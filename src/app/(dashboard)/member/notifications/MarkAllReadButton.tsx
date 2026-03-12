@@ -1,0 +1,29 @@
+"use client";
+
+import { markNotificationsAsRead } from "@/actions/notifications";
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+import { CheckCheck } from "lucide-react";
+
+export function MarkAllReadButton() {
+    const router = useRouter();
+    const [isPending, startTransition] = useTransition();
+
+    const handleClick = () => {
+        startTransition(async () => {
+            await markNotificationsAsRead();
+            router.refresh();
+        });
+    };
+
+    return (
+        <button
+            onClick={handleClick}
+            disabled={isPending}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-secondary px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50"
+        >
+            <CheckCheck className="h-4 w-4" />
+            Mark all read
+        </button>
+    );
+}

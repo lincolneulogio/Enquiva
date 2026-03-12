@@ -1,0 +1,64 @@
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { User, Mail, Shield } from "lucide-react";
+
+export default async function MemberProfilePage() {
+    const session = await auth.api.getSession({ headers: await headers() });
+    const user = session!.user;
+
+    return (
+        <div className="space-y-8">
+            <div>
+                <h1 className="font-display text-3xl font-semibold text-foreground">Profile</h1>
+                <p className="mt-1 text-muted-foreground">Your account information</p>
+            </div>
+
+            <div className="max-w-2xl space-y-6">
+                {/* Avatar + name */}
+                <div className="flex items-center gap-5 rounded-xl border border-border bg-card p-6">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary/10 text-2xl font-semibold text-primary">
+                        {user.name?.[0]?.toUpperCase() ?? "U"}
+                    </div>
+                    <div>
+                        <p className="text-xl font-semibold text-foreground">{user.name}</p>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                        <span className="mt-1 inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-foreground capitalize">
+                            {user.role ?? "member"}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Details */}
+                <div className="rounded-xl border border-border bg-card divide-y divide-border">
+                    <div className="flex items-center gap-4 p-4">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-muted-foreground">Full name</p>
+                            <p className="font-medium text-foreground">{user.name ?? "—"}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-4 p-4">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+                            <Mail className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-muted-foreground">Email</p>
+                            <p className="font-medium text-foreground">{user.email}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-4 p-4">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+                            <Shield className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div>
+                            <p className="text-xs text-muted-foreground">Role</p>
+                            <p className="font-medium text-foreground capitalize">{user.role ?? "member"}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}

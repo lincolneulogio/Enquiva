@@ -1,0 +1,97 @@
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+import { format, formatDistanceToNow, isAfter } from "date-fns";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+export function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function generateUniqueSlug(title: string): string {
+  const base = slugify(title);
+  const suffix = Math.random().toString(36).slice(2, 7);
+  return `${base}-${suffix}`;
+}
+
+export function formatEventDate(date: Date | string): string {
+  return format(new Date(date), "EEEE, MMMM d, yyyy 'at' h:mm a");
+}
+
+export function formatEventDateShort(date: Date | string): string {
+  return format(new Date(date), "MMM d, yyyy");
+}
+
+export function formatRelativeTime(date: Date | string): string {
+  return formatDistanceToNow(new Date(date), { addSuffix: true });
+}
+
+export function isEventUpcoming(date: Date | string): boolean {
+  return isAfter(new Date(date), new Date());
+}
+
+export function truncate(text: string, length: number): string {
+  if (text.length <= length) return text;
+  return text.slice(0, length) + "...";
+}
+
+export function categoryLabel(category: string): string {
+  const labels: Record<string, string> = {
+    worship: "Worship",
+    retreat: "Retreat",
+    youth: "Youth",
+    charity: "Charity",
+    conference: "Conference",
+    prayer: "Prayer",
+    bible_study: "Bible Study",
+    outreach: "Outreach",
+    fellowship: "Fellowship",
+    other: "Other",
+  };
+  return labels[category] ?? category;
+}
+
+export function categoryColor(category: string): string {
+  const colors: Record<string, string> = {
+    worship: "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300",
+    retreat: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+    youth: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+    charity: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300",
+    conference: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+    prayer: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+    bible_study: "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300",
+    outreach: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+    fellowship: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300",
+    other: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300",
+  };
+  return colors[category] ?? colors.other;
+}
+
+export function statusColor(status: string): string {
+  const colors: Record<string, string> = {
+    draft: "bg-gray-100 text-gray-800",
+    published: "bg-green-100 text-green-800",
+    cancelled: "bg-red-100 text-red-800",
+    completed: "bg-blue-100 text-blue-800",
+  };
+  return colors[status] ?? colors.draft;
+}
+
+export function generateTicketCode(): string {
+  const suffix = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `TKT-${suffix}`;
+}
+
+export function formatCurrency(value: number, currency = "USD"): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+  }).format(value);
+}

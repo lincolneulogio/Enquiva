@@ -1,0 +1,90 @@
+import Link from "next/link";
+import Image from "next/image";
+import { Calendar, MapPin, Users } from "lucide-react";
+import type { Event } from "@/lib/db/schema";
+import { categoryColor, categoryLabel, formatEventDateShort, truncate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+
+interface EventCardProps {
+  event: Event & { attendeeCount?: number };
+  className?: string;
+}
+
+export function EventCard({ event, className }: EventCardProps) {
+  const isVirtual = event.isVirtual;
+  const isFull = event.capacity != null && (event.attendeeCount ?? 0) >= event.capacity;
+
+  return (
+    <Link href={`/events/${event.slug}`}>
+      <article
+        className={cn(
+          "group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all duration-200 hover:border-primary/30 hover:shadow-lg",
+          className
+        )}
+      >
+        {/* Cover Image */}
+        <div className="relative h-48 overflow-hidden bg-secondary">
+          {event.coverImage ? (
+            <Image
+              src={event.coverImage}
+              alt={event.title}
+              fill
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <span className="text-5xl opacity-20">✦</span>
+            </div>
+          )}
+          {/* Category badge */}
+          <div className="absolute left-3 top-3">
+            <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", categoryColor(event.category))}>
+              {categoryLabel(event.category)}
+            </span>
+          </div>
+          {/* Featured badge */}
+          {event.isFeatured && (
+            <div className="absolute right-3 top-3">
+              <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground">
+                Featured
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="flex flex-1 flex-col p-5">
+          <h3 className="mb-2 font-display text-xl font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+            {event.title}
+          </h3>
+          <p className="mb-4 flex-1 text-sm leading-relaxed text-muted-foreground line-clamp-2">
+            {truncate(event.description, 120)}
+          </p>
+
+          {/* Meta */}
+          <div className="space-y-1.5 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5 text-primary" />
+              <span>{formatEventDateShort(event.date)}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-primary" />
+              <span className="truncate">
+                {isVirtual ? "Virtual Event" : (event.location ?? "Location TBD")}
+              </span>
+            </div>
+            {event.capacity != null && (
+              <div className="flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5 text-primary" />
+                <span>
+                  {event.attendeeCount ?? 0} / {event.capacity} registered
+                  {isFull && <span className="ml-1 text-destructive font-medium">(Full)</span>}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </article>
+    </Link>
+  );
+}
