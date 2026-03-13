@@ -1,10 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useCompletion } from "ai/react";
 import { Sparkles, Plus, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+
+type AIModel =
+  | "auto"
+  | "google/gemma-3-4b-it:free"
+  | "google/gemma-3-12b-it:free"
+  | "meta-llama/llama-3.2-3b-instruct:free";
+
+const AI_MODEL_STORAGE_KEY = "faithEvents.aiModel";
+const ALLOWED_MODELS: AIModel[] = [
+  "auto",
+  "google/gemma-3-4b-it:free",
+  "google/gemma-3-12b-it:free",
+  "meta-llama/llama-3.2-3b-instruct:free",
+];
 
 interface AIDescriptionGeneratorProps {
   title: string;
@@ -22,9 +36,39 @@ export function AIDescriptionGenerator({
   const [tone, setTone] = useState<"formal" | "casual" | "inspirational">(
     "inspirational"
   );
+  const [model, setModel] = useState<AIModel>("auto");
+  const [usedModel, setUsedModel] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const savedModel = localStorage.getItem(AI_MODEL_STORAGE_KEY);
+      if (
+        savedModel &&
+        ALLOWED_MODELS.includes(savedModel as AIModel)
+      ) {
+        setModel(savedModel as AIModel);
+      }
+    } catch {
+      // Ignore storage access issues (private mode, blocked storage, etc.)
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(AI_MODEL_STORAGE_KEY, model);
+    } catch {
+      // Ignore storage access issues (private mode, blocked storage, etc.)
+    }
+  }, [model]);
 
   const { complete, isLoading, completion } = useCompletion({
     api: "/api/ai/generate",
+    onResponse: (response) => {
+      const modelFromHeader = response.headers.get("x-ai-model");
+      if (modelFromHeader) {
+        setUsedModel(modelFromHeader);
+      }
+    },
     onFinish: (_, completion) => {
       const generated = completion.trim();
       if (!generated) {
@@ -34,7 +78,34 @@ export function AIDescriptionGenerator({
       onGenerated(generated);
       toast.success(t("events.ai.success"));
     },
-    onError: () => toast.error(t("events.ai.failed")),
+    onError: (error) => {
+      const message = error.message.toLowerCase();
+
+      if (message.includes("quota") || message.includes("rate limit")) {
+        toast.error(t("events.ai.quotaExceeded"));
+        return;
+      }
+
+      if (
+        message.includes("api key") ||
+        message.includes("credential") ||
+        message.includes("configuration")
+      ) {
+        toast.error(t("events.ai.providerConfigError"));
+        return;
+      }
+
+      if (
+        message.includes("temporarily unavailable") ||
+        message.includes("provider returned error") ||
+        message.includes("no endpoints available")
+      ) {
+        toast.error(t("events.ai.providerUnavailable"));
+        return;
+      }
+
+      toast.error(error.message || t("events.ai.failed"));
+    },
   });
 
   const handleGenerate = () => {
@@ -49,8 +120,15 @@ export function AIDescriptionGenerator({
     }
 
     complete("", {
-      body: { title, category, bulletPoints: validPoints, tone },
+      body: { title, category, bulletPoints: validPoints, tone, model },
     });
+  };
+
+  const modelLabelMap: Record<string, string> = {
+    "google/gemma-3-4b-it:free": "Gemma 3 4B (free)",
+    "google/gemma-3-12b-it:free": "Gemma 3 12B (free)",
+    "meta-llama/llama-3.2-3b-instruct:free": "Llama 3.2 3B (free)",
+    "local-template": "Plantilla local (fallback)",
   };
 
   return (
@@ -122,6 +200,31 @@ export function AIDescriptionGenerator({
                 : t("events.ai.toneInspirational")}
           </button>
         ))}
+      </div>
+
+      <div className="mb-3 space-y-1">
+        <label className="text-xs text-muted-foreground">
+          {t("events.ai.modelLabel")}
+        </label>
+        <select
+          value={model}
+          onChange={(e) =>
+            setModel(e.target.value as AIModel)
+          }
+          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
+        >
+          <option value="auto">{t("events.ai.modelAuto")}</option>
+          <option value="google/gemma-3-4b-it:free">Gemma 3 4B (free)</option>
+          <option value="google/gemma-3-12b-it:free">Gemma 3 12B (free)</option>
+          <option value="meta-llama/llama-3.2-3b-instruct:free">Llama 3.2 3B (free)</option>
+        </select>
+        {usedModel && (
+          <p className="text-[11px] text-muted-foreground">
+            {t("events.ai.usingModel", {
+              model: modelLabelMap[usedModel] ?? usedModel,
+            })}
+          </p>
+        )}
       </div>
 
       {/* Preview */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -28,6 +28,35 @@ interface EventFormProps {
     canFeature?: boolean;
 }
 
+const EVENT_DRAFT_STORAGE_KEY = "faithEvents.eventDraft.create";
+
+const VALIDATION_MESSAGE_KEY_BY_TEXT: Record<string, string> = {
+    "Title must be at least 3 characters": "events.form.validation.titleMin",
+    "Description must be at least 20 characters": "events.form.validation.descriptionMin",
+    "Category is required": "events.form.validation.categoryRequired",
+    "Date is required": "events.form.validation.dateRequired",
+    "Invalid date format": "events.form.validation.dateInvalid",
+    "Event date cannot be in the past": "events.form.validation.datePast",
+    "Meeting link is required for virtual events": "events.form.validation.virtualLinkRequired",
+    "Venue address is required for in-person events": "events.form.validation.locationRequired",
+    "Invalid url": "events.form.validation.invalidUrl",
+    "Expected number, received nan": "events.form.validation.capacityInvalid",
+    "Expected number, received string": "events.form.validation.capacityInvalid",
+    "Number must be greater than 0": "events.form.validation.capacityInvalid",
+    "Required": "events.form.validation.required",
+};
+
+const FIRST_ERROR_FIELD_ORDER: Array<keyof CreateEventInput> = [
+    "title",
+    "description",
+    "category",
+    "date",
+    "virtualLink",
+    "location",
+    "capacity",
+    "status",
+];
+
 export function EventForm({
     event,
     redirectPath = "/organizer",
@@ -39,13 +68,27 @@ export function EventForm({
     const [isPending, startTransition] = useTransition();
     const [coverImage, setCoverImage] = useState<string | null>(event?.coverImage ?? null);
     const [showAI, setShowAI] = useState(false);
-    const todayISO = new Date().toISOString().slice(0, 16);
+    const [highlightedField, setHighlightedField] = useState<keyof CreateEventInput | null>(null);
+    const highlightTimeoutRef = useRef<number | null>(null);
+
+    const getLocalizedValidationMessage = (message?: string) => {
+        if (!message) return t("events.form.requiredFieldsError");
+        const key = VALIDATION_MESSAGE_KEY_BY_TEXT[message];
+        return key ? t(key) : message;
+    };
+
+    const getFieldHighlightClass = (field: keyof CreateEventInput) =>
+        highlightedField === field
+            ? "border-destructive ring-2 ring-destructive/40 animate-pulse"
+            : "";
 
     const {
         register,
         handleSubmit,
         watch,
         setValue,
+        setFocus,
+        reset,
         formState: { errors },
     } = useForm<CreateEventInput>({
         resolver: zodResolver(createEventSchema),
@@ -71,6 +114,82 @@ export function EventForm({
     const isVirtual = watch("isVirtual");
     const hasTransport = watch("hasTransport");
 
+    useEffect(() => {
+        if (event) return;
+
+        try {
+            const raw = localStorage.getItem(EVENT_DRAFT_STORAGE_KEY);
+            if (!raw) return;
+
+            const parsed = JSON.parse(raw) as {
+                values?: Partial<CreateEventInput>;
+                coverImage?: string | null;
+                showAI?: boolean;
+            };
+
+            if (parsed.values) {
+                reset({
+                    status: "draft",
+                    isVirtual: false,
+                    isFeatured: false,
+                    hasTransport: false,
+                    ...parsed.values,
+                });
+            }
+
+            if (parsed.coverImage !== undefined) {
+                setCoverImage(parsed.coverImage);
+            }
+
+            if (typeof parsed.showAI === "boolean") {
+                setShowAI(parsed.showAI);
+            }
+        } catch {
+            // Ignore malformed draft data
+        }
+    }, [event, reset]);
+
+    useEffect(() => {
+        if (event) return;
+
+        const subscription = watch((values) => {
+            try {
+                localStorage.setItem(
+                    EVENT_DRAFT_STORAGE_KEY,
+                    JSON.stringify({
+                        values,
+                        coverImage,
+                        showAI,
+                        savedAt: Date.now(),
+                    })
+                );
+            } catch {
+                // Ignore storage issues
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    }, [event, watch, coverImage, showAI]);
+
+    useEffect(() => {
+        return () => {
+            if (highlightTimeoutRef.current) {
+                window.clearTimeout(highlightTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!highlightedField) return;
+        if (errors[highlightedField]) return;
+
+        setHighlightedField(null);
+        if (highlightTimeoutRef.current) {
+            window.clearTimeout(highlightTimeoutRef.current);
+            highlightTimeoutRef.current = null;
+        }
+    }, [highlightedField, errors]);
+
     const onSubmit = (data: CreateEventInput) => {
         startTransition(async () => {
             try {
@@ -90,20 +209,47 @@ export function EventForm({
                     : await createEvent(payload);
 
                 if (result.success) {
+                    if (!event) {
+                        try {
+                            localStorage.removeItem(EVENT_DRAFT_STORAGE_KEY);
+                        } catch {
+                            // Ignore storage issues
+                        }
+                    }
                     toast.success(event ? t("events.form.eventUpdated") : t("events.form.eventCreated"));
                     router.push(redirectPath);
                 }
             } catch (err) {
-                toast.error(err instanceof Error ? err.message : t("events.form.genericError"));
+                toast.error(
+                    err instanceof Error
+                        ? getLocalizedValidationMessage(err.message)
+                        : t("events.form.genericError")
+                );
             }
         });
     };
 
     const onInvalid = (errs: FieldErrors<CreateEventInput>) => {
+        const firstFieldWithError = FIRST_ERROR_FIELD_ORDER.find((field) => !!errs[field]);
+
+        if (firstFieldWithError) {
+            setFocus(firstFieldWithError);
+            setHighlightedField(firstFieldWithError);
+            if (highlightTimeoutRef.current) {
+                window.clearTimeout(highlightTimeoutRef.current);
+            }
+            highlightTimeoutRef.current = window.setTimeout(() => {
+                setHighlightedField(null);
+            }, 1400);
+
+            const fieldElement = document.querySelector<HTMLElement>(`[name="${firstFieldWithError}"]`);
+            fieldElement?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+
         const first = Object.values(errs).find(
             (e): e is { message?: string } => typeof e === "object" && e !== null && "message" in e
         );
-        toast.error(first?.message ?? t("events.form.requiredFieldsError"));
+        toast.error(getLocalizedValidationMessage(first?.message));
     };
 
     return (
@@ -123,10 +269,10 @@ export function EventForm({
                         <input
                             {...register("title")}
                             placeholder={t("events.form.eventTitlePlaceholder")}
-                            className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                            className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary ${getFieldHighlightClass("title")}`}
                         />
                         {errors.title && (
-                            <p className="mt-1 text-xs text-destructive">{errors.title.message}</p>
+                            <p className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.title.message)}</p>
                         )}
                     </div>
 
@@ -165,10 +311,10 @@ export function EventForm({
                             {...register("description")}
                             rows={6}
                             placeholder={t("events.form.descriptionPlaceholder")}
-                            className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                            className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary resize-none ${getFieldHighlightClass("description")}`}
                         />
                         {errors.description && (
-                            <p className="mt-1 text-xs text-destructive">{errors.description.message}</p>
+                            <p className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.description.message)}</p>
                         )}
                     </div>
 
@@ -177,7 +323,7 @@ export function EventForm({
                             <label className="mb-1.5 block text-sm font-medium text-foreground">{t("events.form.category")}</label>
                             <select
                                 {...register("category")}
-                                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
+                                className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("category")}`}
                             >
                                 <option value="">{t("events.form.selectCategory")}</option>
                                 {categories.map((cat) => (
@@ -187,7 +333,7 @@ export function EventForm({
                                 ))}
                             </select>
                             {errors.category && (
-                                <p className="mt-1 text-xs text-destructive">{errors.category.message}</p>
+                                <p className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.category.message)}</p>
                             )}
                         </div>
 
@@ -196,11 +342,10 @@ export function EventForm({
                             <input
                                 type="datetime-local"
                                 {...register("date")}
-                                min={todayISO}
-                                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
+                                className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("date")}`}
                             />
                             {errors.date && (
-                                <p className="mt-1 text-xs text-destructive">{errors.date.message}</p>
+                                <p className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.date.message)}</p>
                             )}
                         </div>
                     </div>
@@ -225,13 +370,13 @@ export function EventForm({
                                 <input
                                     {...register("virtualLink")}
                                     placeholder={t("events.form.meetingLinkPlaceholder")}
-                                    className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
+                                    className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("virtualLink")}`}
                                 />
                                 <p className="mt-1 text-xs text-muted-foreground">
                                     {t("events.form.meetingLinkHelp")}
                                 </p>
                                 {errors.virtualLink && (
-                                    <p className="mt-1 text-xs text-destructive">{errors.virtualLink.message}</p>
+                                    <p className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.virtualLink.message)}</p>
                                 )}
                             </div>
                         ) : (
@@ -241,11 +386,11 @@ export function EventForm({
                                     <input
                                         {...register("location")}
                                         placeholder={t("events.form.venuePlaceholder")}
-                                        className="w-full rounded-xl border border-border bg-background pl-9 pr-4 py-2.5 text-sm focus:border-primary focus:outline-none"
+                                        className={`w-full rounded-xl border border-border bg-background pl-9 pr-4 py-2.5 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("location")}`}
                                     />
                                 </div>
                                 {errors.location && (
-                                    <p className="mt-1 text-xs text-destructive">{errors.location.message}</p>
+                                    <p className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.location.message)}</p>
                                 )}
                             </div>
                         )}
@@ -267,13 +412,13 @@ export function EventForm({
                                 })}
                                 placeholder={t("events.form.capacityPlaceholder")}
                                 min={1}
-                                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
+                                className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("capacity")}`}
                             />
                             <p className="mt-1 text-xs text-muted-foreground">
                                 {t("events.form.capacityHelp")}
                             </p>
                             {errors.capacity && (
-                                <p className="mt-1 text-xs text-destructive">{errors.capacity.message}</p>
+                                <p className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.capacity.message)}</p>
                             )}
                         </div>
                     )}
@@ -324,7 +469,7 @@ export function EventForm({
                         <label className="mb-1.5 block text-sm font-medium text-foreground">{t("events.form.status")}</label>
                         <select
                             {...register("status")}
-                            className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
+                            className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("status")}`}
                         >
                             <option value="draft">{t("eventStatus.draft")}</option>
                             <option value="published">{t("eventStatus.published")}</option>

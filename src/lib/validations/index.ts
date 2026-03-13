@@ -202,6 +202,14 @@ export const generateDescriptionSchema = z.object({
     .min(1)
     .max(10),
   tone: z.enum(["formal", "casual", "inspirational"]).default("inspirational"),
+  model: z
+    .enum([
+      "auto",
+      "google/gemma-3-4b-it:free",
+      "google/gemma-3-12b-it:free",
+      "meta-llama/llama-3.2-3b-instruct:free",
+    ])
+    .default("auto"),
 });
 
 export const recommendEventsSchema = z.object({
