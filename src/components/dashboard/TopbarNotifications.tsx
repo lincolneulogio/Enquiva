@@ -155,7 +155,7 @@ export function TopbarNotifications({
             </button>
 
             {open && (
-                <div className="absolute right-0 z-50 mt-2 w-[340px] max-w-[92vw] overflow-hidden rounded-2xl border border-border bg-popover shadow-xl sm:w-[360px] sm:max-w-[90vw]">
+                <div className="absolute right-0 z-50 mt-2 w-[calc(100vw-2rem)] max-w-[340px] overflow-hidden rounded-2xl border border-border bg-popover shadow-xl sm:w-[360px] sm:max-w-[90vw]">
                     <div className="flex items-center justify-between border-b border-border px-4 py-3">
                         <div className="flex items-center gap-2">
                             <BellRing className="h-4 w-4 text-primary" />
