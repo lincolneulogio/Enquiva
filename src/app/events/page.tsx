@@ -1,9 +1,9 @@
 import { Suspense } from "react";
-import { getPublicEvents } from "@/actions/events";
+import { getCategories, getPublicEvents } from "@/actions/events";
 import { EventCard } from "@/components/events/EventCard";
 import { EventFilters } from "@/components/events/EventFilters";
 import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
-import { Search } from "lucide-react";
+import { PublicHeader } from "@/components/shared/PublicHeader";
 
 interface EventsPageProps {
   searchParams: Promise<{
@@ -13,7 +13,19 @@ interface EventsPageProps {
   }>;
 }
 
-async function EventsGrid({ searchParams }: { searchParams: Awaited<EventsPageProps["searchParams"]> }) {
+interface CategoryOption {
+  slug: string;
+  label: string;
+  colorClass?: string;
+}
+
+async function EventsGrid({
+  searchParams,
+  categoryMap,
+}: {
+  searchParams: Awaited<EventsPageProps["searchParams"]>;
+  categoryMap: Record<string, { label: string; colorClass?: string | null }>;
+}) {
   const page = parseInt(searchParams.page ?? "1");
   const { events, total, limit } = await getPublicEvents({
     category: searchParams.category as never,
@@ -41,7 +53,7 @@ async function EventsGrid({ searchParams }: { searchParams: Awaited<EventsPagePr
       </p>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {events.map((event) => (
-          <EventCard key={event.id} event={event} />
+          <EventCard key={event.id} event={event} categoryMap={categoryMap} />
         ))}
       </div>
     </>
@@ -50,9 +62,18 @@ async function EventsGrid({ searchParams }: { searchParams: Awaited<EventsPagePr
 
 export default async function EventsPage({ searchParams }: EventsPageProps) {
   const params = await searchParams;
+  const categories = await getCategories();
+  const categoryMap = Object.fromEntries(
+    categories.map((category) => [
+      category.slug,
+      { label: category.label, colorClass: category.colorClass },
+    ])
+  );
 
   return (
     <div className="min-h-screen bg-background">
+      <PublicHeader />
+
       {/* Header */}
       <div className="border-b border-border bg-card px-6 py-12">
         <div className="mx-auto max-w-7xl">
@@ -69,7 +90,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
         <div className="flex flex-col gap-8 lg:flex-row">
           {/* Sidebar filters */}
           <aside className="w-full shrink-0 lg:w-60">
-            <EventFilters currentFilters={params} />
+            <EventFilters currentFilters={params} categories={categories} />
           </aside>
 
           {/* Main content */}
@@ -83,7 +104,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
                 </div>
               }
             >
-              <EventsGrid searchParams={params} />
+              <EventsGrid searchParams={params} categoryMap={categoryMap} />
             </Suspense>
           </main>
         </div>

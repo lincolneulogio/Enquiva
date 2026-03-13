@@ -70,7 +70,7 @@ export function LoginForm() {
             <input
               type={showPassword ? "text" : "password"}
               {...register("password")}
-              placeholder="••••••••"
+              placeholder="Your password"
               className="w-full rounded-xl border border-border bg-background px-4 py-2.5 pr-11 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
             <button

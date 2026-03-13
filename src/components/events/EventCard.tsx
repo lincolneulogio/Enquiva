@@ -8,11 +8,13 @@ import { cn } from "@/lib/utils";
 interface EventCardProps {
   event: Event & { attendeeCount?: number };
   className?: string;
+  categoryMap?: Record<string, { label: string; colorClass?: string | null }>;
 }
 
-export function EventCard({ event, className }: EventCardProps) {
+export function EventCard({ event, className, categoryMap }: EventCardProps) {
   const isVirtual = event.isVirtual;
   const isFull = event.capacity != null && (event.attendeeCount ?? 0) >= event.capacity;
+  const categoryMeta = categoryMap?.[event.category];
 
   return (
     <Link href={`/events/${event.slug}`}>
@@ -38,8 +40,8 @@ export function EventCard({ event, className }: EventCardProps) {
           )}
           {/* Category badge */}
           <div className="absolute left-3 top-3">
-            <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", categoryColor(event.category))}>
-              {categoryLabel(event.category)}
+            <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", categoryMeta?.colorClass || categoryColor(event.category))}>
+              {categoryMeta?.label || categoryLabel(event.category)}
             </span>
           </div>
           {/* Featured badge */}

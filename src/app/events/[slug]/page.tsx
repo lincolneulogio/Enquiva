@@ -1,13 +1,14 @@
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { getEventBySlug } from "@/actions/events";
+import { getCategories, getEventBySlug } from "@/actions/events";
 import { getRegistrationForEvent } from "@/actions/registrations";
 import { getUserPayments } from "@/actions/payments";
 import { RegisterButton } from "@/components/events/RegisterButton";
 import { TicketCard } from "@/components/tickets/TicketCard";
+import { PublicHeader } from "@/components/shared/PublicHeader";
 import Link from "next/link";
-import { formatEventDate } from "@/lib/utils";
+import { categoryColor, categoryLabel, cn, formatEventDate } from "@/lib/utils";
 
 interface EventPageProps {
   params: Promise<{
@@ -17,11 +18,16 @@ interface EventPageProps {
 
 export default async function EventDetailPage({ params }: EventPageProps) {
   const { slug } = await params;
-  const event = await getEventBySlug(slug);
+  const [event, categories] = await Promise.all([
+    getEventBySlug(slug),
+    getCategories(),
+  ]);
 
   if (!event) {
     return notFound();
   }
+
+  const categoryMeta = categories.find((category) => category.slug === event.category);
 
   const sessionHeaders = await headers();
   const session = await auth.api.getSession({ headers: sessionHeaders });
@@ -46,12 +52,21 @@ export default async function EventDetailPage({ params }: EventPageProps) {
 
   return (
     <div className="min-h-screen bg-background">
+      <PublicHeader />
+
       <section className="relative overflow-hidden border-b border-border bg-card px-6 py-16 shadow-sm">
         <div className="mx-auto max-w-6xl">
           <div className="flex flex-col gap-3">
-            <p className="text-xs uppercase tracking-[0.4em] text-muted-foreground">
-              {event.category}
-            </p>
+            <div>
+              <span
+                className={cn(
+                  "inline-flex rounded-full px-3 py-1 text-xs font-medium",
+                  categoryMeta?.colorClass || categoryColor(event.category)
+                )}
+              >
+                {categoryMeta?.label || categoryLabel(event.category)}
+              </span>
+            </div>
             <h1 className="text-4xl font-semibold leading-tight text-foreground">
               {event.title}
             </h1>

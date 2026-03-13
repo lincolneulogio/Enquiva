@@ -3,13 +3,10 @@
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-const categories = [
-  "worship", "retreat", "youth", "charity", "conference",
-  "prayer", "bible_study", "outreach", "fellowship", "other",
-] as const;
-
-function categoryLabel(cat: string): string {
-  return cat.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+interface CategoryOption {
+  slug: string;
+  label: string;
+  colorClass?: string;
 }
 
 interface EventFiltersProps {
@@ -17,9 +14,10 @@ interface EventFiltersProps {
     category?: string;
     search?: string;
   };
+  categories: CategoryOption[];
 }
 
-export function EventFilters({ currentFilters }: EventFiltersProps) {
+export function EventFilters({ currentFilters, categories }: EventFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -70,16 +68,16 @@ export function EventFilters({ currentFilters }: EventFiltersProps) {
           </button>
           {categories.map((cat) => (
             <button
-              key={cat}
-              onClick={() => applyFilter("category", cat)}
+              key={cat.slug}
+              onClick={() => applyFilter("category", cat.slug)}
               className={cn(
                 "w-full rounded-lg px-3 py-2 text-left text-sm transition-colors",
-                currentFilters.category === cat
+                currentFilters.category === cat.slug
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               )}
             >
-              {categoryLabel(cat)}
+              {cat.label}
             </button>
           ))}
         </div>

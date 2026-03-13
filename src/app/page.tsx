@@ -2,39 +2,14 @@ import Link from "next/link";
 import { ArrowRight, Calendar, Users, Sparkles, Bell, Shield, Zap } from "lucide-react";
 import { getPublicEvents } from "@/actions/events";
 import { EventCard } from "@/components/events/EventCard";
+import { PublicHeader } from "@/components/shared/PublicHeader";
 
 export default async function HomePage() {
   const { events } = await getPublicEvents({ page: 1, limit: 6 });
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
-              <span className="text-lg text-primary-foreground">✦</span>
-            </div>
-            <span className="font-display text-xl font-semibold text-foreground">
-              FaithEvents
-            </span>
-          </Link>
-          <div className="hidden items-center gap-6 md:flex">
-            <Link href="/events" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Browse Events
-            </Link>
-            <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Sign In
-            </Link>
-            <Link
-              href="/register"
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              Get Started
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <PublicHeader />
 
       {/* Hero */}
       <section className="relative overflow-hidden px-6 py-28 text-center">
