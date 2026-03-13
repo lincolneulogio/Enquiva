@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -19,6 +20,7 @@ import {
   ClipboardList,
   KeyRound,
   User,
+  X,
 } from "lucide-react";
 import { signOut } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
@@ -93,79 +95,187 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const t = useTranslations();
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const normalizedRole = normalizeRole(role);
   const baseNav = navByRole[normalizedRole] ?? memberNav;
   const navItems = normalizedRole === "super_admin"
     ? [...baseNav.slice(0, 4), ...superAdminExtraNav, ...baseNav.slice(4)]
     : baseNav;
 
+  useEffect(() => {
+    const openSidebar = () => setIsMobileOpen(true);
+    const closeSidebar = () => setIsMobileOpen(false);
+    const toggleSidebar = () => setIsMobileOpen((prev) => !prev);
+
+    window.addEventListener("dashboard-sidebar:open", openSidebar as EventListener);
+    window.addEventListener("dashboard-sidebar:close", closeSidebar as EventListener);
+    window.addEventListener("dashboard-sidebar:toggle", toggleSidebar as EventListener);
+
+    return () => {
+      window.removeEventListener("dashboard-sidebar:open", openSidebar as EventListener);
+      window.removeEventListener("dashboard-sidebar:close", closeSidebar as EventListener);
+      window.removeEventListener("dashboard-sidebar:toggle", toggleSidebar as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    setIsMobileOpen(false);
+  }, [pathname]);
+
   const handleSignOut = async () => {
     await signOut({ fetchOptions: { onSuccess: () => router.push("/login") } });
   };
 
   return (
-    <aside className="hidden w-64 shrink-0 flex-col bg-sidebar lg:flex">
-      {/* Logo */}
-      <div className="border-b border-sidebar-border px-6 py-5">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
-            <span className="text-sm text-sidebar-primary-foreground">✦</span>
-          </div>
-          <span className="font-display text-lg font-semibold text-sidebar-foreground">
-            FaithEvents
-          </span>
-        </Link>
-      </div>
+    <>
+      <div
+        className={cn(
+          "fixed inset-0 z-40 bg-black/40 transition-opacity lg:hidden",
+          isMobileOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        )}
+        onClick={() => setIsMobileOpen(false)}
+      />
 
-      {/* Nav */}
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        {navItems.map(({ labelKey, href, icon: Icon }) => {
-          const isActive = pathname === href || pathname.startsWith(href + "/");
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-primary"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {t(labelKey)}
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* User */}
-      <div className="border-t border-sidebar-border p-4">
-        <div className="mb-3 flex items-center gap-3">
-          <div className="relative h-8 w-8 overflow-hidden rounded-full bg-sidebar-accent">
-            {user.image ? (
-              <Image src={user.image} alt={user.name ?? ""} fill className="object-cover" />
-            ) : (
-              <div className="flex h-full items-center justify-center text-xs font-semibold text-sidebar-foreground">
-                {user.name?.[0]?.toUpperCase()}
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] transform bg-sidebar shadow-xl transition-transform duration-200 ease-out lg:hidden",
+          isMobileOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        <div className="border-b border-sidebar-border px-4 py-4">
+          <div className="flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
+                <span className="text-sm text-sidebar-primary-foreground">✦</span>
               </div>
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="truncate text-sm font-medium text-sidebar-foreground">
-              {user.name}
-            </p>
-            <p className="truncate text-xs text-sidebar-foreground/50">{user.email}</p>
+              <span className="font-display text-lg font-semibold text-sidebar-foreground">
+                FaithEvents
+              </span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => setIsMobileOpen(false)}
+              className="rounded-lg p-2 text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+              aria-label="Close sidebar"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
         </div>
-        <button
-          onClick={handleSignOut}
-          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
-        >
-          <LogOut className="h-4 w-4" />
-          {t("common.signOut")}
-        </button>
-      </div>
-    </aside>
+
+        <nav className="flex-1 space-y-1 px-3 py-4">
+          {navItems.map(({ labelKey, href, icon: Icon }) => {
+            const isActive = pathname === href || pathname.startsWith(href + "/");
+            return (
+              <Link
+                key={`mobile-${href}`}
+                href={href}
+                onClick={() => setIsMobileOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-sidebar-accent text-sidebar-primary"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {t(labelKey)}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="border-t border-sidebar-border p-4">
+          <div className="mb-3 flex items-center gap-3">
+            <div className="relative h-8 w-8 overflow-hidden rounded-full bg-sidebar-accent">
+              {user.image ? (
+                <Image src={user.image} alt={user.name ?? ""} fill className="object-cover" />
+              ) : (
+                <div className="flex h-full items-center justify-center text-xs font-semibold text-sidebar-foreground">
+                  {user.name?.[0]?.toUpperCase()}
+                </div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="truncate text-sm font-medium text-sidebar-foreground">
+                {user.name}
+              </p>
+              <p className="truncate text-xs text-sidebar-foreground/50">{user.email}</p>
+            </div>
+          </div>
+          <button
+            onClick={handleSignOut}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+            {t("common.signOut")}
+          </button>
+        </div>
+      </aside>
+
+      <aside className="hidden w-64 shrink-0 flex-col bg-sidebar lg:flex">
+        {/* Logo */}
+        <div className="border-b border-sidebar-border px-6 py-5">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
+              <span className="text-sm text-sidebar-primary-foreground">✦</span>
+            </div>
+            <span className="font-display text-lg font-semibold text-sidebar-foreground">
+              FaithEvents
+            </span>
+          </Link>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 space-y-1 px-3 py-4">
+          {navItems.map(({ labelKey, href, icon: Icon }) => {
+            const isActive = pathname === href || pathname.startsWith(href + "/");
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-sidebar-accent text-sidebar-primary"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {t(labelKey)}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* User */}
+        <div className="border-t border-sidebar-border p-4">
+          <div className="mb-3 flex items-center gap-3">
+            <div className="relative h-8 w-8 overflow-hidden rounded-full bg-sidebar-accent">
+              {user.image ? (
+                <Image src={user.image} alt={user.name ?? ""} fill className="object-cover" />
+              ) : (
+                <div className="flex h-full items-center justify-center text-xs font-semibold text-sidebar-foreground">
+                  {user.name?.[0]?.toUpperCase()}
+                </div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="truncate text-sm font-medium text-sidebar-foreground">
+                {user.name}
+              </p>
+              <p className="truncate text-xs text-sidebar-foreground/50">{user.email}</p>
+            </div>
+          </div>
+          <button
+            onClick={handleSignOut}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+            {t("common.signOut")}
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }

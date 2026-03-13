@@ -209,6 +209,13 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
         });
     };
 
+    const uploadButtonAppearance = {
+        container: "w-full max-w-full overflow-hidden",
+        button:
+            "w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap bg-primary text-primary-foreground text-xs sm:text-sm px-3 py-2 rounded-lg ut-readying:bg-primary ut-uploading:opacity-80 sm:w-auto",
+        allowedContent: "max-w-full truncate text-[11px] text-muted-foreground sm:text-xs",
+    };
+
     return (
         <div className="max-w-2xl space-y-6">
             <div className="flex items-center gap-5 rounded-xl border border-border bg-card p-6">
@@ -266,28 +273,27 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img src={previewImage} alt={t("dashboard.profile.profilePhoto")} className="h-full w-full object-cover" />
                                 </div>
-                                <div className="flex flex-wrap gap-2">
-                                    <UploadButton
-                                        endpoint="profileAvatar"
-                                        onBeforeUploadBegin={optimizeAvatarFiles}
-                                        onClientUploadComplete={(res) => {
-                                            if (res?.[0]?.url) {
-                                                setValue("image", res[0].url, {
-                                                    shouldDirty: true,
-                                                    shouldTouch: true,
-                                                    shouldValidate: true,
-                                                });
-                                                toast.success(t("dashboard.profile.avatarUploaded"));
-                                            }
-                                        }}
-                                        onUploadError={(err) => {
-                                            toast.error(err.message);
-                                        }}
-                                        appearance={{
-                                            button:
-                                                "bg-primary text-primary-foreground text-sm px-4 py-2 rounded-lg ut-readying:bg-primary ut-uploading:opacity-80",
-                                        }}
-                                    />
+                                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                                    <div className="min-w-0 w-full sm:flex-1">
+                                        <UploadButton
+                                            endpoint="profileAvatar"
+                                            onBeforeUploadBegin={optimizeAvatarFiles}
+                                            onClientUploadComplete={(res) => {
+                                                if (res?.[0]?.url) {
+                                                    setValue("image", res[0].url, {
+                                                        shouldDirty: true,
+                                                        shouldTouch: true,
+                                                        shouldValidate: true,
+                                                    });
+                                                    toast.success(t("dashboard.profile.avatarUploaded"));
+                                                }
+                                            }}
+                                            onUploadError={(err) => {
+                                                toast.error(err.message);
+                                            }}
+                                            appearance={uploadButtonAppearance}
+                                        />
+                                    </div>
                                     <button
                                         type="button"
                                         onClick={() =>
@@ -297,7 +303,7 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                                                 shouldValidate: true,
                                             })
                                         }
-                                        className="rounded-lg border border-border px-3 py-2 text-sm text-foreground hover:bg-muted"
+                                        className="w-full rounded-lg border border-border px-3 py-2 text-sm text-foreground hover:bg-muted sm:w-auto"
                                     >
                                         {t("dashboard.profile.removeAvatar")}
                                     </button>
@@ -325,10 +331,7 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                                     onUploadError={(err) => {
                                         toast.error(err.message);
                                     }}
-                                    appearance={{
-                                        button:
-                                            "bg-primary text-primary-foreground text-sm px-4 py-2 rounded-lg ut-readying:bg-primary ut-uploading:opacity-80",
-                                    }}
+                                    appearance={uploadButtonAppearance}
                                 />
                             </div>
                         )}

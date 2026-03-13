@@ -33,7 +33,7 @@ export default async function AdminEventsPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="font-display text-3xl font-semibold text-foreground">{t("dashboard.admin.allEvents")}</h1>
                     <p className="mt-1 text-muted-foreground">
@@ -45,7 +45,7 @@ export default async function AdminEventsPage() {
                 </div>
                 <Link
                     href="/admin/events/new"
-                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 sm:w-auto"
                 >
                     <Plus className="h-4 w-4" />
                     {t("common.createEvent")}
@@ -65,56 +65,59 @@ export default async function AdminEventsPage() {
                 </div>
             ) : (
                 <div className="overflow-hidden rounded-xl border border-border bg-card">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="border-b border-border bg-muted/50">
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("dashboard.admin.title")}</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.organizer")}</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.category")}</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.date")}</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.status")}</th>
-                                <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t("common.actions")}</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {allEvents.map((event) => (
-                                <tr key={event.id} className="hover:bg-muted/30 transition-colors">
-                                    <td className="px-4 py-3 font-medium text-foreground">{event.title}</td>
-                                    <td className="px-4 py-3 text-muted-foreground">{event.organizerName ?? "—"}</td>
-                                    <td className="px-4 py-3 text-muted-foreground capitalize">{event.category}</td>
-                                    <td className="px-4 py-3 text-muted-foreground">
-                                        {new Date(event.date).toLocaleDateString(getIntlLocale(locale), {
-                                            month: "short",
-                                            day: "numeric",
-                                            year: "numeric",
-                                        })}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor[event.status] ?? ""}`}>
-                                            {eventStatusLabel(event.status, locale)}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3 text-right">
-                                        <div className="flex items-center justify-end gap-3 text-xs">
-                                            <Link
-                                                href={`/events/${event.slug}`}
-                                                className="text-primary hover:underline"
-                                            >
-                                                {t("common.view")}
-                                            </Link>
-                                            <Link
-                                                href={`/admin/events/${event.id}`}
-                                                className="text-blue-600 hover:underline dark:text-blue-400"
-                                            >
-                                                {t("common.edit")}
-                                            </Link>
-                                            <DeleteEventButton eventId={event.id} />
-                                        </div>
-                                    </td>
+                    <p className="px-3 pt-2 text-[11px] text-muted-foreground sm:hidden">↔ Scroll</p>
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-[820px] text-sm">
+                            <thead>
+                                <tr className="border-b border-border bg-muted/50">
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("dashboard.admin.title")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.organizer")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.category")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.date")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.status")}</th>
+                                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t("common.actions")}</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                                {allEvents.map((event) => (
+                                    <tr key={event.id} className="hover:bg-muted/30 transition-colors">
+                                        <td className="px-4 py-3 font-medium text-foreground">{event.title}</td>
+                                        <td className="px-4 py-3 text-muted-foreground">{event.organizerName ?? "—"}</td>
+                                        <td className="px-4 py-3 text-muted-foreground capitalize">{event.category}</td>
+                                        <td className="px-4 py-3 text-muted-foreground">
+                                            {new Date(event.date).toLocaleDateString(getIntlLocale(locale), {
+                                                month: "short",
+                                                day: "numeric",
+                                                year: "numeric",
+                                            })}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor[event.status] ?? ""}`}>
+                                                {eventStatusLabel(event.status, locale)}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-right">
+                                            <div className="flex items-center justify-end gap-3 text-xs">
+                                                <Link
+                                                    href={`/events/${event.slug}`}
+                                                    className="text-primary hover:underline"
+                                                >
+                                                    {t("common.view")}
+                                                </Link>
+                                                <Link
+                                                    href={`/admin/events/${event.id}`}
+                                                    className="text-blue-600 hover:underline dark:text-blue-400"
+                                                >
+                                                    {t("common.edit")}
+                                                </Link>
+                                                <DeleteEventButton eventId={event.id} />
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>

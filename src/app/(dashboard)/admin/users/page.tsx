@@ -50,57 +50,60 @@ export default async function AdminUsersPage() {
                 </div>
             ) : (
                 <div className="overflow-hidden rounded-xl border border-border bg-card">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="border-b border-border bg-muted/50">
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.name")}</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.email")}</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.role")}</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.joined")}</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.changeRole")}</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.actions")}</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {allUsers.map((user) => (
-                                <tr key={user.id} className="hover:bg-muted/30 transition-colors">
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                                                {user.name?.[0]?.toUpperCase() ?? "U"}
-                                            </div>
-                                            <span className="font-medium text-foreground">{user.name ?? "—"}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3 text-muted-foreground">{user.email}</td>
-                                    <td className="px-4 py-3">
-                                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${roleColor[user.role ?? "member"] ?? roleColor.member}`}>
-                                            {getRoleLabel(user.role ?? "member", locale)}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3 text-muted-foreground">
-                                        {user.createdAt
-                                            ? new Date(user.createdAt).toLocaleDateString(getIntlLocale(locale), {
-                                                month: "short",
-                                                day: "numeric",
-                                                year: "numeric",
-                                            })
-                                            : "—"}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <RoleSelector
-                                            userId={user.id}
-                                            currentRole={(user.role ?? "member") as "member" | "organizer" | "super_admin"}
-                                            currentUserId={currentUserId}
-                                        />
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <DeleteUserButton userId={user.id} isSelf={user.id === currentUserId} />
-                                    </td>
+                    <p className="px-3 pt-2 text-[11px] text-muted-foreground sm:hidden">↔ Scroll</p>
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-[900px] text-sm">
+                            <thead>
+                                <tr className="border-b border-border bg-muted/50">
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.name")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.email")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.role")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.joined")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.changeRole")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.actions")}</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                                {allUsers.map((user) => (
+                                    <tr key={user.id} className="hover:bg-muted/30 transition-colors">
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                                                    {user.name?.[0]?.toUpperCase() ?? "U"}
+                                                </div>
+                                                <span className="font-medium text-foreground">{user.name ?? "—"}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3 text-muted-foreground">{user.email}</td>
+                                        <td className="px-4 py-3">
+                                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${roleColor[user.role ?? "member"] ?? roleColor.member}`}>
+                                                {getRoleLabel(user.role ?? "member", locale)}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-muted-foreground">
+                                            {user.createdAt
+                                                ? new Date(user.createdAt).toLocaleDateString(getIntlLocale(locale), {
+                                                    month: "short",
+                                                    day: "numeric",
+                                                    year: "numeric",
+                                                })
+                                                : "—"}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <RoleSelector
+                                                userId={user.id}
+                                                currentRole={(user.role ?? "member") as "member" | "organizer" | "super_admin"}
+                                                currentUserId={currentUserId}
+                                            />
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <DeleteUserButton userId={user.id} isSelf={user.id === currentUserId} />
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>

@@ -204,84 +204,87 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                     {t("dashboard.admin.dragToReorder")} <GripVertical className="mx-1 inline h-3.5 w-3.5" /> {t("dashboard.admin.toReorderCategories")}
                 </div>
 
-                <table className="w-full text-sm">
-                    <thead className="bg-secondary/40">
-                        <tr>
-                            <th className="w-12 px-3 py-2 text-left">#</th>
-                            <th className="px-3 py-2 text-left">{t("common.slug")}</th>
-                            <th className="px-3 py-2 text-left">{t("common.label")}</th>
-                            <th className="px-3 py-2 text-left">{t("common.color")}</th>
-                            <th className="px-3 py-2 text-left">{t("common.active")}</th>
-                            <th className="px-3 py-2 text-left">{t("common.actions")}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {sorted.map((item, idx) => (
-                            <tr
-                                key={item.id}
-                                className={cn("border-t border-border", draggedId === item.id && "bg-secondary/30")}
-                                draggable
-                                onDragStart={() => setDraggedId(item.id)}
-                                onDragEnd={() => setDraggedId(null)}
-                                onDragOver={(e) => e.preventDefault()}
-                                onDrop={() => onDropOver(item.id)}
-                            >
-                                <td className="px-3 py-2 text-muted-foreground">
-                                    <span className="inline-flex items-center gap-1">
-                                        <GripVertical className="h-4 w-4" /> {idx + 1}
-                                    </span>
-                                </td>
-                                <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{item.slug}</td>
-                                <td className="px-3 py-2">
-                                    <input
-                                        value={item.label}
-                                        onChange={(e) => onPatchLocal(item.id, { label: e.target.value })}
-                                        onBlur={() => onBlurSave(item)}
-                                        className="w-full rounded-md border border-border bg-background px-2 py-1"
-                                    />
-                                </td>
-                                <td className="px-3 py-2">
-                                    <div className="flex flex-wrap gap-1">
-                                        {COLOR_OPTIONS.map((option) => (
-                                            <button
-                                                key={option.value}
-                                                type="button"
-                                                onClick={() => {
-                                                    const next = { ...item, colorClass: option.value };
-                                                    onPatchLocal(item.id, { colorClass: option.value });
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[760px] text-sm">
+                        <thead className="bg-secondary/40">
+                            <tr>
+                                <th className="w-12 whitespace-nowrap px-3 py-2 text-left">#</th>
+                                <th className="whitespace-nowrap px-3 py-2 text-left">{t("common.slug")}</th>
+                                <th className="whitespace-nowrap px-3 py-2 text-left">{t("common.label")}</th>
+                                <th className="whitespace-nowrap px-3 py-2 text-left">{t("common.color")}</th>
+                                <th className="whitespace-nowrap px-3 py-2 text-left">{t("common.active")}</th>
+                                <th className="whitespace-nowrap px-3 py-2 text-left">{t("common.actions")}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {sorted.map((item, idx) => (
+                                <tr
+                                    key={item.id}
+                                    className={cn("border-t border-border", draggedId === item.id && "bg-secondary/30")}
+                                    draggable
+                                    onDragStart={() => setDraggedId(item.id)}
+                                    onDragEnd={() => setDraggedId(null)}
+                                    onDragOver={(e) => e.preventDefault()}
+                                    onDrop={() => onDropOver(item.id)}
+                                >
+                                    <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
+                                        <span className="inline-flex items-center gap-1">
+                                            <GripVertical className="h-4 w-4" /> {idx + 1}
+                                        </span>
+                                    </td>
+                                    <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-muted-foreground">{item.slug}</td>
+                                    <td className="px-3 py-2">
+                                        <input
+                                            value={item.label}
+                                            onChange={(e) => onPatchLocal(item.id, { label: e.target.value })}
+                                            onBlur={() => onBlurSave(item)}
+                                            className="min-w-[140px] rounded-md border border-border bg-background px-2 py-1"
+                                        />
+                                    </td>
+                                    <td className="whitespace-nowrap px-3 py-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className={cn("rounded-full border px-2 py-0.5 text-[11px]", item.colorClass)}>
+                                                {t(COLOR_OPTIONS.find((opt) => opt.value === item.colorClass)?.labelKey ?? "dashboard.admin.colorGray")}
+                                            </span>
+                                            <select
+                                                value={item.colorClass}
+                                                onChange={(e) => {
+                                                    const nextValue = e.target.value;
+                                                    const next = { ...item, colorClass: nextValue };
+                                                    onPatchLocal(item.id, { colorClass: nextValue });
                                                     onBlurSave(next);
                                                 }}
-                                                className={cn(
-                                                    "rounded-full border px-2 py-0.5 text-[11px]",
-                                                    option.value,
-                                                    item.colorClass === option.value ? "ring-2 ring-primary" : "border-border"
-                                                )}
+                                                className="rounded-md border border-border bg-background px-2 py-1 text-xs"
                                             >
-                                                {t(option.labelKey)}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </td>
-                                <td className="px-3 py-2">
-                                    <input
-                                        type="checkbox"
-                                        checked={item.isActive}
-                                        onChange={(e) => onToggleActive(item.id, e.target.checked)}
-                                    />
-                                </td>
-                                <td className="px-3 py-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => onDelete(item.id)}
-                                        className="rounded-md px-2 py-1 text-red-600 hover:bg-red-50"
-                                    >
-                                        {t("common.delete")}
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                                                {COLOR_OPTIONS.map((option) => (
+                                                    <option key={option.value} value={option.value}>
+                                                        {t(option.labelKey)}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </td>
+                                    <td className="whitespace-nowrap px-3 py-2">
+                                        <input
+                                            type="checkbox"
+                                            checked={item.isActive}
+                                            onChange={(e) => onToggleActive(item.id, e.target.checked)}
+                                        />
+                                    </td>
+                                    <td className="whitespace-nowrap px-3 py-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => onDelete(item.id)}
+                                            className="rounded-md px-2 py-1 text-red-600 hover:bg-red-50"
+                                        >
+                                            {t("common.delete")}
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );

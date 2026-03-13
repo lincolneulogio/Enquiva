@@ -35,7 +35,7 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="font-display text-3xl font-semibold text-foreground">{t("dashboard.organizer.myEvents")}</h1>
                     <p className="mt-1 text-muted-foreground">
@@ -47,7 +47,7 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                 </div>
                 <Link
                     href="/organizer/events/new"
-                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 sm:w-auto"
                 >
                     <Plus className="h-4 w-4" />
                     {t("common.newEvent")}
@@ -96,8 +96,9 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                 </div>
             ) : (
                 <div className="overflow-hidden rounded-xl border border-border bg-card">
+                    <p className="px-3 pt-2 text-[11px] text-muted-foreground sm:hidden">↔ Scroll</p>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                        <table className="w-full min-w-[820px] text-sm">
                             <thead>
                                 <tr className="border-b border-border bg-muted/50">
                                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("dashboard.admin.title")}</th>

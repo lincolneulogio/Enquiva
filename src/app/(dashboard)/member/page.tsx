@@ -53,7 +53,7 @@ export default async function MemberDashboardPage() {
       {/* My Upcoming Events */}
       {activeRegistrations.length > 0 && (
         <section>
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-display text-xl font-semibold text-foreground">
               {t("dashboard.member.yourUpcomingEvents")}
             </h2>
@@ -97,7 +97,7 @@ export default async function MemberDashboardPage() {
 
       {/* Discover Events */}
       <section>
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="font-display text-xl font-semibold text-foreground">
             {t("dashboard.member.discoverEvents")}
           </h2>

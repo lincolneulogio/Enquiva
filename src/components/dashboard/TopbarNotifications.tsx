@@ -143,7 +143,7 @@ export function TopbarNotifications({
         <div ref={wrapperRef} className="relative">
             <button
                 onClick={onToggle}
-                className="relative rounded-xl border border-border bg-secondary/50 p-2 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                className="relative shrink-0 rounded-xl border border-border bg-secondary/50 p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                 aria-label={t("common.openNotifications")}
             >
                 <Bell className="h-4 w-4" />
@@ -155,7 +155,7 @@ export function TopbarNotifications({
             </button>
 
             {open && (
-                <div className="absolute right-0 z-50 mt-2 w-[360px] max-w-[90vw] overflow-hidden rounded-2xl border border-border bg-popover shadow-xl">
+                <div className="absolute right-0 z-50 mt-2 w-[340px] max-w-[92vw] overflow-hidden rounded-2xl border border-border bg-popover shadow-xl sm:w-[360px] sm:max-w-[90vw]">
                     <div className="flex items-center justify-between border-b border-border px-4 py-3">
                         <div className="flex items-center gap-2">
                             <BellRing className="h-4 w-4 text-primary" />

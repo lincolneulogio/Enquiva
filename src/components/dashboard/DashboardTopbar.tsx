@@ -2,6 +2,7 @@ import { getNotifications, getUnreadNotificationsCount } from "@/actions/notific
 import { LanguageSwitcher } from "@/components/dashboard/LanguageSwitcher";
 import { TopbarUserMenu } from "@/components/dashboard/TopbarUserMenu";
 import { TopbarNotifications } from "@/components/dashboard/TopbarNotifications";
+import { SidebarMenuButton } from "@/components/dashboard/SidebarMenuButton";
 
 interface DashboardTopbarProps {
   user: {
@@ -20,15 +21,18 @@ export async function DashboardTopbar({ user }: DashboardTopbarProps) {
   ]);
 
   return (
-    <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background/80 px-6 py-3 backdrop-blur-md">
-      {/* Título móvil */}
-      <div className="font-display text-lg text-foreground lg:hidden">
-        FaithEvents
+    <header
+      className="fixed inset-x-0 top-0 z-30 flex w-full min-w-0 items-center justify-between border-b border-border bg-background/95 px-4 pb-3.5 pt-3 backdrop-blur-md sm:px-6 lg:sticky lg:bg-background/80"
+      style={{ paddingTop: "calc(env(safe-area-inset-top) + 0.75rem)" }}
+    >
+      <div className="flex min-w-0 items-center gap-2.5">
+        <SidebarMenuButton />
+        <div className="hidden font-display text-lg text-foreground sm:block lg:hidden">
+          FaithEvents
+        </div>
       </div>
 
-      <div className="flex-1" />
-
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 max-w-full items-center gap-2 overflow-visible sm:gap-3">
         <LanguageSwitcher />
 
         {/* Notificaciones */}

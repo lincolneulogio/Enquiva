@@ -26,51 +26,54 @@ export default async function OrganizerPaymentsPage() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.event")}</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.route")}</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.attendee")}</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t("common.amount")}</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.status")}</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.receipt")}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {payments.map(({ payment, event, attendee, transportRoute }) => (
-                <tr key={payment.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-4">
-                    <Link href={`/events/${event.slug}`} className="font-medium text-foreground hover:text-primary">
-                      {event.title}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-4 text-sm text-muted-foreground">
-                    {transportRoute?.name ?? t("common.noDataDash")}
-                  </td>
-                  <td className="px-4 py-4 text-sm text-muted-foreground">
-                    <div className="font-medium text-foreground">{attendee.name ?? t("common.guest")}</div>
-                    <div>{attendee.email}</div>
-                  </td>
-                  <td className="px-4 py-4 text-right font-semibold text-foreground">
-                    {formatCurrency(Number(payment.amount), payment.currency, locale)}
-                  </td>
-                  <td className="px-4 py-4">
-                    <PaymentStatusBadge status={payment.status} />
-                  </td>
-                  <td className="px-4 py-4">
-                    {payment.receiptUrl ? (
-                      <a href={payment.receiptUrl} target="_blank" rel="noreferrer" className="text-xs font-medium text-primary hover:underline">
-                        {t("common.viewReceipt")}
-                      </a>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">{t("common.awaitingReceipt")}</span>
-                    )}
-                  </td>
+          <div className="overflow-x-auto">
+            <p className="px-3 pt-2 text-[11px] text-muted-foreground sm:hidden">↔ Scroll</p>
+            <table className="w-full min-w-[880px] text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/50">
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.event")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.route")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.attendee")}</th>
+                  <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t("common.amount")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.status")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.receipt")}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {payments.map(({ payment, event, attendee, transportRoute }) => (
+                  <tr key={payment.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-4 py-4">
+                      <Link href={`/events/${event.slug}`} className="font-medium text-foreground hover:text-primary">
+                        {event.title}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-4 text-sm text-muted-foreground">
+                      {transportRoute?.name ?? t("common.noDataDash")}
+                    </td>
+                    <td className="px-4 py-4 text-sm text-muted-foreground">
+                      <div className="font-medium text-foreground">{attendee.name ?? t("common.guest")}</div>
+                      <div>{attendee.email}</div>
+                    </td>
+                    <td className="px-4 py-4 text-right font-semibold text-foreground">
+                      {formatCurrency(Number(payment.amount), payment.currency, locale)}
+                    </td>
+                    <td className="px-4 py-4">
+                      <PaymentStatusBadge status={payment.status} />
+                    </td>
+                    <td className="px-4 py-4">
+                      {payment.receiptUrl ? (
+                        <a href={payment.receiptUrl} target="_blank" rel="noreferrer" className="text-xs font-medium text-primary hover:underline">
+                          {t("common.viewReceipt")}
+                        </a>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">{t("common.awaitingReceipt")}</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

@@ -61,8 +61,9 @@ export default async function AdminRegistrationsPage() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <p className="px-3 pt-2 text-[11px] text-muted-foreground sm:hidden">↔ Scroll</p>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[860px] text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/50">
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">#</th>

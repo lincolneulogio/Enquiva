@@ -53,68 +53,71 @@ export default async function OrganizerAttendeesPage() {
                 </div>
             ) : (
                 <div className="overflow-hidden rounded-xl border border-border bg-card">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="border-b border-border bg-muted/50">
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.name")}</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.email")}</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.event")}</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.date")}</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.status")}</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("dashboard.organizer.checkedInAt")}</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.actions")}</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                            {rows.map((row) => (
-                                <tr key={row.registrationId} className="hover:bg-muted/30 transition-colors">
-                                    <td className="px-4 py-3 font-medium text-foreground">{row.userName ?? "—"}</td>
-                                    <td className="px-4 py-3 text-muted-foreground">{row.userEmail}</td>
-                                    <td className="px-4 py-3 text-foreground">{row.eventTitle}</td>
-                                    <td className="px-4 py-3 text-muted-foreground">
-                                        {new Date(row.eventDate).toLocaleDateString(getIntlLocale(locale), {
-                                            month: "short",
-                                            day: "numeric",
-                                            year: "numeric",
-                                        })}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <span
-                                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${row.status === "checked_in"
-                                                ? "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400"
-                                                : row.status === "registered"
-                                                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
-                                                    : "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400"
-                                                }`}
-                                        >
-                                            {getRegistrationStatusLabel(row.status, locale)}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3 text-muted-foreground">
-                                        {row.checkedInAt
-                                            ? new Date(row.checkedInAt).toLocaleString(getIntlLocale(locale), {
+                    <p className="px-3 pt-2 text-[11px] text-muted-foreground sm:hidden">↔ Scroll</p>
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-[980px] text-sm">
+                            <thead>
+                                <tr className="border-b border-border bg-muted/50">
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.name")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.email")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.event")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.date")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.status")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("dashboard.organizer.checkedInAt")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.actions")}</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                                {rows.map((row) => (
+                                    <tr key={row.registrationId} className="hover:bg-muted/30 transition-colors">
+                                        <td className="px-4 py-3 font-medium text-foreground">{row.userName ?? "—"}</td>
+                                        <td className="px-4 py-3 text-muted-foreground">{row.userEmail}</td>
+                                        <td className="px-4 py-3 text-foreground">{row.eventTitle}</td>
+                                        <td className="px-4 py-3 text-muted-foreground">
+                                            {new Date(row.eventDate).toLocaleDateString(getIntlLocale(locale), {
                                                 month: "short",
                                                 day: "numeric",
                                                 year: "numeric",
-                                                hour: "2-digit",
-                                                minute: "2-digit",
-                                            })
-                                            : <span className="text-muted-foreground/40">—</span>}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        {row.status === "registered" ? (
-                                            <ManualCheckInButton
-                                                registrationId={row.registrationId}
-                                                eventId={row.eventId}
-                                            />
-                                        ) : (
-                                            <span className="text-xs text-muted-foreground/60">{t("dashboard.organizer.noAction")}</span>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                            })}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <span
+                                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${row.status === "checked_in"
+                                                    ? "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400"
+                                                    : row.status === "registered"
+                                                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
+                                                        : "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400"
+                                                    }`}
+                                            >
+                                                {getRegistrationStatusLabel(row.status, locale)}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-muted-foreground">
+                                            {row.checkedInAt
+                                                ? new Date(row.checkedInAt).toLocaleString(getIntlLocale(locale), {
+                                                    month: "short",
+                                                    day: "numeric",
+                                                    year: "numeric",
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                })
+                                                : <span className="text-muted-foreground/40">—</span>}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {row.status === "registered" ? (
+                                                <ManualCheckInButton
+                                                    registrationId={row.registrationId}
+                                                    eventId={row.eventId}
+                                                />
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground/60">{t("dashboard.organizer.noAction")}</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>

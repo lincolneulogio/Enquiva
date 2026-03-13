@@ -17,37 +17,40 @@ export default async function AdminAuditLogsPage() {
       </div>
 
       <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/50">
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.actions")}</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.actor")}</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.entity")}</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.target")}</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.details")}</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.when")}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {logs.map(({ log, user }) => (
-              <tr key={log.id} className="hover:bg-muted/30 transition-colors">
-                <td className="px-4 py-3 text-foreground">{log.action}</td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">
-                  <div>{user?.name ?? t("common.system")}</div>
-                  <div className="text-[10px] uppercase">{getRoleLabel(log.role, locale)}</div>
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">{log.entity}</td>
-                <td className="px-4 py-3 text-muted-foreground">{log.entityId ?? "—"}</td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">
-                  {log.metadata ? JSON.stringify(log.metadata) : "—"}
-                </td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">
-                  {formatRelativeTime(log.createdAt, locale)}
-                </td>
+        <p className="px-3 pt-2 text-[11px] text-muted-foreground sm:hidden">↔ Scroll</p>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[860px] text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.actions")}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.actor")}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.entity")}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.target")}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.details")}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.when")}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {logs.map(({ log, user }) => (
+                <tr key={log.id} className="hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-3 text-foreground">{log.action}</td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground">
+                    <div>{user?.name ?? t("common.system")}</div>
+                    <div className="text-[10px] uppercase">{getRoleLabel(log.role, locale)}</div>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">{log.entity}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{log.entityId ?? "—"}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">
+                    {log.metadata ? JSON.stringify(log.metadata) : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">
+                    {formatRelativeTime(log.createdAt, locale)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
