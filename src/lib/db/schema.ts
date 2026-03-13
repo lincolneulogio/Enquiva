@@ -71,6 +71,7 @@ export const users = pgTable("users", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
+  phone: text("phone"),
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
   role: roleEnum("role").notNull().default("member"),
@@ -171,6 +172,7 @@ export const registrations = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     status: registrationStatusEnum("status").notNull().default("registered"),
+    contactPhone: text("contact_phone"),
     qrCode: text("qr_code"),
     notes: text("notes"),
     registeredAt: timestamp("registered_at").notNull().defaultNow(),

@@ -12,6 +12,7 @@ export default async function MemberProfilePage() {
             name: users.name,
             email: users.email,
             role: users.role,
+            phone: users.phone,
             bio: users.bio,
             image: users.image,
         })
@@ -23,6 +24,7 @@ export default async function MemberProfilePage() {
         name: session!.user.name ?? "",
         email: session!.user.email,
         role: session!.user.role ?? "member",
+        phone: null,
         bio: null,
         image: session!.user.image ?? null,
     };

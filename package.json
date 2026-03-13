@@ -20,7 +20,8 @@
     "db:backfill:pending-payments": "node --env-file=.env ./scripts/backfill-pending-payments.mjs",
     "db:setup:categories": "node --env-file=.env ./scripts/add-categories-table.mjs",
     "db:add-role-permissions": "node --env-file=.env ./scripts/add-role-permissions-table.mjs",
-    "db:setup:transport": "node --env-file=.env ./scripts/add-transport-tables.mjs"
+    "db:setup:transport": "node --env-file=.env ./scripts/add-transport-tables.mjs",
+    "db:setup:phones": "node --env-file=.env ./scripts/add-phone-columns.mjs"
   },
   "dependencies": {
     "@ai-sdk/google": "^1.2.22",

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const peruPhoneRegex = /^\+519\d{8}$/;
+
 // ─── Auth Schemas ─────────────────────────────────────────────────────────────
 
 export const signUpSchema = z
@@ -136,6 +138,10 @@ export const updatePaymentStatusSchema = z.object({
 
 export const createRegistrationSchema = z.object({
   eventId: z.string().uuid(),
+  contactPhone: z
+    .string()
+    .trim()
+    .regex(peruPhoneRegex, "Phone must follow format +519XXXXXXXX"),
   notes: z.string().max(500).optional(),
 });
 
@@ -148,6 +154,15 @@ export const checkInSchema = z.object({
 
 export const updateProfileSchema = z.object({
   name: z.string().min(2).max(100),
+  phone: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? null : value),
+    z
+      .string()
+      .trim()
+      .regex(peruPhoneRegex, "Phone must follow format +519XXXXXXXX")
+      .optional()
+      .nullable()
+  ),
   bio: z.preprocess(
     (value) => (typeof value === "string" && value.trim() === "" ? null : value),
     z.string().max(500).optional().nullable()

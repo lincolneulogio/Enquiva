@@ -13,13 +13,14 @@ import {
     type UpdateProfileInput,
 } from "@/lib/validations";
 import { UploadButton } from "@/lib/uploadthing/components";
-import { Eye, EyeOff, Loader2, Mail, Shield, User, ImageIcon, LockKeyhole } from "lucide-react";
+import { Eye, EyeOff, Loader2, Mail, Shield, User, ImageIcon, LockKeyhole, Phone } from "lucide-react";
 
 interface ProfileEditorProps {
     user: {
         name: string;
         email: string;
         role: string;
+        phone: string | null;
         bio: string | null;
         image: string | null;
     };
@@ -141,6 +142,7 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
         resolver: zodResolver(updateProfileSchema),
         defaultValues: {
             name: user.name ?? "",
+            phone: user.phone ?? "",
             bio: user.bio ?? "",
             image: user.image ?? "",
         },
@@ -172,6 +174,7 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
             try {
                 await updateCurrentUserProfile({
                     ...data,
+                    phone: data.phone?.trim() ? data.phone : null,
                     bio: data.bio?.trim() ? data.bio : null,
                     image: data.image?.trim() ? data.image : null,
                 });
@@ -224,6 +227,22 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                         className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
                     />
                     {errors.name && <p className="mt-1 text-xs text-destructive">{errors.name.message}</p>}
+                </div>
+
+                <div>
+                    <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-foreground">
+                        <Phone className="h-4 w-4" />
+                        Teléfono (+51) *
+                    </label>
+                    <input
+                        {...register("phone")}
+                        placeholder="+51987654321"
+                        className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                        Formato requerido: +51 seguido de 9 dígitos (ej. +51987654321).
+                    </p>
+                    {errors.phone && <p className="mt-1 text-xs text-destructive">{errors.phone.message}</p>}
                 </div>
 
                 <div className="space-y-2">

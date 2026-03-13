@@ -13,6 +13,7 @@ export default async function AdminProfilePage() {
             name: users.name,
             email: users.email,
             role: users.role,
+            phone: users.phone,
             bio: users.bio,
             image: users.image,
         })
@@ -24,6 +25,7 @@ export default async function AdminProfilePage() {
         name: session!.user.name ?? "",
         email: session!.user.email,
         role: session!.user.role ?? "admin",
+        phone: null,
         bio: null,
         image: session!.user.image ?? null,
     };

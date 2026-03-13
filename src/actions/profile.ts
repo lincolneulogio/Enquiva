@@ -24,6 +24,7 @@ export async function updateCurrentUserProfile(input: unknown) {
         .update(users)
         .set({
             name: data.name.trim(),
+            phone: data.phone?.trim() || null,
             bio: data.bio?.trim() || null,
             image: data.image?.trim() || null,
             updatedAt: new Date(),

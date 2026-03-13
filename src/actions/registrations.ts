@@ -27,8 +27,10 @@ async function requireAuth() {
 
 // ─── Register for Event ────────────────────────────────────────────────────────
 
-export async function registerForEvent(eventId: string) {
+export async function registerForEvent(input: unknown) {
   const user = await requireAuth();
+  const validated = createRegistrationSchema.parse(input);
+  const eventId = validated.eventId;
 
   // Rate limiting
   const headersList = await headers();
@@ -81,16 +83,31 @@ export async function registerForEvent(eventId: string) {
   }
 
   // Upsert registration
+  const normalizedContactPhone = validated.contactPhone.trim();
+
+  await db
+    .update(users)
+    .set({
+      phone: normalizedContactPhone,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, user.id));
+
   const [registration] = await db
     .insert(registrations)
     .values({
       eventId,
       userId: user.id,
       status,
+      contactPhone: normalizedContactPhone,
     })
     .onConflictDoUpdate({
       target: [registrations.eventId, registrations.userId],
-      set: { status, registeredAt: new Date() },
+      set: {
+        status,
+        contactPhone: normalizedContactPhone,
+        registeredAt: new Date(),
+      },
     })
     .returning();
 
