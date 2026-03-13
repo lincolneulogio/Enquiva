@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
-import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { LocaleProvider } from "@/components/providers/LocaleProvider";
+import { AppThemeProvider } from "@/components/providers/AppThemeProvider";
 import { getLocale } from "@/lib/i18n/server";
 import "./globals.css";
 
@@ -33,12 +33,7 @@ export default async function RootLayout({
     <html lang={locale} suppressHydrationWarning className={outfit.variable}>
       <body suppressHydrationWarning className="font-sans">
         <LocaleProvider initialLocale={locale}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
-            enableSystem
-            disableTransitionOnChange
-          >
+          <AppThemeProvider>
             {children}
             <Toaster
               position="bottom-right"
@@ -50,7 +45,7 @@ export default async function RootLayout({
                 },
               }}
             />
-          </ThemeProvider>
+          </AppThemeProvider>
         </LocaleProvider>
       </body>
     </html>
