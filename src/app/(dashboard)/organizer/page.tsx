@@ -21,11 +21,11 @@ export default async function OrganizerDashboardPage() {
   ).length;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-3xl font-semibold text-foreground">
+          <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
             {t("dashboard.organizer.welcomeBack", {
               firstName: session?.user.name?.split(" ")[0] ?? "",
             })}
@@ -70,12 +70,12 @@ export default async function OrganizerDashboardPage() {
         ].map(({ label, value, icon: Icon, color, bg }) => (
           <div
             key={label}
-            className="rounded-2xl border border-border bg-card p-6"
+            className="rounded-2xl border border-border bg-card p-5 sm:p-6"
           >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">{label}</p>
-                <p className="mt-1 font-display text-3xl font-semibold text-foreground">
+                <p className="mt-1 font-display text-2xl font-semibold text-foreground sm:text-3xl">
                   {value}
                 </p>
               </div>

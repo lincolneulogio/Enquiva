@@ -54,9 +54,9 @@ export default async function MemberEventsPage() {
                         {active.map(({ event, registration }) => (
                             <div
                                 key={registration.id}
-                                className="flex items-center justify-between rounded-xl border border-border bg-card p-4"
+                                className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
                             >
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-start gap-4 sm:items-center">
                                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                                         <Calendar className="h-5 w-5 text-primary" />
                                     </div>
@@ -76,7 +76,7 @@ export default async function MemberEventsPage() {
                                         </p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3">
+                                <div className="flex flex-wrap items-center gap-3 sm:justify-end">
                                     <span
                                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${registration.status === "checked_in"
                                             ? "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400"
@@ -107,9 +107,9 @@ export default async function MemberEventsPage() {
                         {past.map(({ event, registration }) => (
                             <div
                                 key={registration.id}
-                                className="flex items-center justify-between rounded-xl border border-border bg-card p-4"
+                                className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
                             >
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-start gap-4 sm:items-center">
                                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted">
                                         <Calendar className="h-5 w-5 text-muted-foreground" />
                                     </div>
@@ -124,7 +124,7 @@ export default async function MemberEventsPage() {
                                         </p>
                                     </div>
                                 </div>
-                                <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/20 dark:text-red-400">
+                                <span className="inline-flex w-fit items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/20 dark:text-red-400">
                                     {registrationStatusLabel(registration.status, locale)}
                                 </span>
                             </div>

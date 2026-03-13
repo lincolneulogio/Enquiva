@@ -41,9 +41,9 @@ export default async function AdminAnalyticsPage({ searchParams }: AdminAnalytic
     ];
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8">
             <div>
-                <h1 className="font-display text-3xl font-semibold text-foreground">{t("common.analytics")}</h1>
+                <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">{t("common.analytics")}</h1>
                 <p className="mt-1 text-muted-foreground">{t("dashboard.admin.analyticsIntro")}</p>
             </div>
 
@@ -72,12 +72,12 @@ export default async function AdminAnalyticsPage({ searchParams }: AdminAnalytic
                     { label: t("dashboard.admin.totalEvents"), value: stats.totalEvents, Icon: CalendarDays, color: "text-blue-600", iconBg: "bg-blue-500/10" },
                     { label: t("dashboard.admin.totalRegistrations"), value: stats.totalRegistrations, Icon: Ticket, color: "text-accent", iconBg: "bg-accent/10" },
                 ].map(({ label, value, Icon, color, iconBg }) => (
-                    <div key={label} className="rounded-2xl border border-border bg-card p-6">
+                    <div key={label} className="rounded-2xl border border-border bg-card p-5 sm:p-6">
                         <div className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}>
                             <Icon className={`h-5 w-5 ${color}`} />
                         </div>
                         <p className="text-sm text-muted-foreground">{label}</p>
-                        <p className={`mt-1 font-display text-4xl font-semibold ${color}`}>
+                        <p className={`mt-1 font-display text-3xl font-semibold ${color} sm:text-4xl`}>
                             {value.toLocaleString(getIntlLocale(locale))}
                         </p>
                     </div>
@@ -86,7 +86,7 @@ export default async function AdminAnalyticsPage({ searchParams }: AdminAnalytic
 
             <div className="grid gap-6 md:grid-cols-2">
                 {/* Events by status */}
-                <div className="rounded-xl border border-border bg-card p-6">
+                <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
                     <h2 className="mb-4 font-semibold text-foreground">{t("dashboard.admin.eventsByStatus")}</h2>
                     <div className="space-y-3">
                         {eventStats.map(({ label, value, color }) => {
@@ -110,7 +110,7 @@ export default async function AdminAnalyticsPage({ searchParams }: AdminAnalytic
                 </div>
 
                 {/* Users by role */}
-                <div className="rounded-xl border border-border bg-card p-6">
+                <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
                     <h2 className="mb-4 font-semibold text-foreground">{t("dashboard.admin.usersByRole")}</h2>
                     <div className="space-y-3">
                         {userStats.map(({ label, value, color }) => {

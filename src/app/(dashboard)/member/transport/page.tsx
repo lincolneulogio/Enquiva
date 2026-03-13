@@ -73,12 +73,12 @@ export default async function MemberTransportPage() {
                             {eventItem.routes.map((route) =>
                                 route.alreadyBooked ? (
                                     <div key={route.id} className="rounded-2xl border border-border bg-card p-5">
-                                        <div className="flex items-start justify-between gap-3">
+                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                             <div>
                                                 <h3 className="font-semibold text-foreground">{route.name}</h3>
                                                 <p className="mt-0.5 text-sm text-muted-foreground">{route.departurePoint}</p>
                                             </div>
-                                            <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400">
+                                            <span className="w-fit rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400">
                                                 {t("dashboard.member.alreadyBooked")}
                                             </span>
                                         </div>

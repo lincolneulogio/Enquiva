@@ -9,9 +9,9 @@ export default async function AdminDashboardPage() {
   const stats = await getAdminDashboardStats();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div>
-        <h1 className="font-display text-3xl font-semibold text-foreground">
+        <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
           {t("dashboard.admin.platformOverview")}
         </h1>
         <p className="mt-1 text-muted-foreground">
@@ -51,12 +51,12 @@ export default async function AdminDashboardPage() {
             Icon: Ticket,
           },
         ].map(({ label, value, color, iconBg, Icon }) => (
-          <div key={label} className="rounded-2xl border border-border bg-card p-6">
+          <div key={label} className="rounded-2xl border border-border bg-card p-5 sm:p-6">
             <div className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}>
               <Icon className={`h-5 w-5 ${color}`} />
             </div>
             <p className="text-sm text-muted-foreground">{label}</p>
-            <p className={`mt-1 font-display text-4xl font-semibold ${color}`}>
+            <p className={`mt-1 font-display text-3xl font-semibold ${color} sm:text-4xl`}>
               {value.toLocaleString(getIntlLocale(locale))}
             </p>
           </div>

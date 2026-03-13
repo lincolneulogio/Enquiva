@@ -17,7 +17,7 @@ export default async function OrganizerSettingsPage() {
             </div>
 
             <div className="max-w-2xl space-y-6">
-                <div className="flex items-center gap-5 rounded-xl border border-border bg-card p-6">
+                <div className="flex flex-col items-start gap-5 rounded-xl border border-border bg-card p-6 sm:flex-row sm:items-center">
                     <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary/10 text-2xl font-semibold text-primary">
                         {user.name?.[0]?.toUpperCase() ?? "O"}
                     </div>

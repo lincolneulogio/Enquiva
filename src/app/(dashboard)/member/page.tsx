@@ -23,9 +23,9 @@ export default async function MemberDashboardPage() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div>
-        <h1 className="font-display text-3xl font-semibold text-foreground">
+        <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
           {t("dashboard.member.hello", {
             firstName: session?.user.name?.split(" ")[0] ?? "",
           })}
@@ -38,13 +38,13 @@ export default async function MemberDashboardPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <Link
           href="/member/payments"
-          className="rounded-2xl border border-border bg-card p-5 text-sm font-semibold text-foreground hover:border-primary hover:shadow-lg transition"
+          className="rounded-2xl border border-border bg-card p-4 text-sm font-semibold text-foreground transition hover:border-primary hover:shadow-lg sm:p-5"
         >
           {t("dashboard.member.reviewPayments")}
         </Link>
         <Link
           href="/member/tickets"
-          className="rounded-2xl border border-border bg-card p-5 text-sm font-semibold text-foreground hover:border-primary hover:shadow-lg transition"
+          className="rounded-2xl border border-border bg-card p-4 text-sm font-semibold text-foreground transition hover:border-primary hover:shadow-lg sm:p-5"
         >
           {t("dashboard.member.viewTickets")}
         </Link>
