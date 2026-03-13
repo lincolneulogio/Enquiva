@@ -24,8 +24,6 @@
     "db:setup:phones": "node --env-file=.env ./scripts/add-phone-columns.mjs"
   },
   "dependencies": {
-    "@ai-sdk/google": "^1.2.22",
-    "@ai-sdk/openai": "^1.3.24",
     "@hookform/resolvers": "^3.9.0",
     "@neondatabase/serverless": "^0.10.0",
     "@radix-ui/react-avatar": "^1.1.0",
@@ -43,7 +41,6 @@
     "@uploadthing/react": "^7.0.0",
     "@upstash/ratelimit": "^2.0.0",
     "@upstash/redis": "^1.34.0",
-    "ai": "^4.0.0",
     "better-auth": "^1.2.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",

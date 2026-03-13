@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createEventSchema, type CreateEventInput } from "@/lib/validations";
 import { createEvent, updateEvent } from "@/actions/events";
-import { AIDescriptionGenerator } from "./AIDescriptionGenerator";
 import { UploadButton } from "@/lib/uploadthing/components";
 import { toast } from "sonner";
 import { Loader2, ImageIcon, MapPin, Video, Star, Bus } from "lucide-react";
@@ -67,7 +66,6 @@ export function EventForm({
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [coverImage, setCoverImage] = useState<string | null>(event?.coverImage ?? null);
-    const [showAI, setShowAI] = useState(false);
     const [highlightedField, setHighlightedField] = useState<keyof CreateEventInput | null>(null);
     const highlightTimeoutRef = useRef<number | null>(null);
 
@@ -109,8 +107,6 @@ export function EventForm({
             : { status: "draft", isVirtual: false, isFeatured: false, hasTransport: false },
     });
 
-    const title = watch("title");
-    const category = watch("category");
     const isVirtual = watch("isVirtual");
     const hasTransport = watch("hasTransport");
 
@@ -124,7 +120,6 @@ export function EventForm({
             const parsed = JSON.parse(raw) as {
                 values?: Partial<CreateEventInput>;
                 coverImage?: string | null;
-                showAI?: boolean;
             };
 
             if (parsed.values) {
@@ -139,10 +134,6 @@ export function EventForm({
 
             if (parsed.coverImage !== undefined) {
                 setCoverImage(parsed.coverImage);
-            }
-
-            if (typeof parsed.showAI === "boolean") {
-                setShowAI(parsed.showAI);
             }
         } catch {
             // Ignore malformed draft data
@@ -159,7 +150,6 @@ export function EventForm({
                     JSON.stringify({
                         values,
                         coverImage,
-                        showAI,
                         savedAt: Date.now(),
                     })
                 );
@@ -169,7 +159,7 @@ export function EventForm({
         });
 
         return () => subscription.unsubscribe();
-    }, [event, watch, coverImage, showAI]);
+    }, [event, watch, coverImage]);
 
     useEffect(() => {
         return () => {
@@ -279,34 +269,7 @@ export function EventForm({
                     <div>
                         <div className="mb-1.5 flex items-center justify-between">
                             <label className="text-sm font-medium text-foreground">{t("events.form.description")}</label>
-                            <button
-                                type="button"
-                                onClick={() => setShowAI(!showAI)}
-                                className="text-xs text-primary hover:underline"
-                            >
-                                {t("events.form.aiGenerate")}
-                            </button>
                         </div>
-                        {showAI && title && category && (
-                            <div className="mb-3">
-                                <AIDescriptionGenerator
-                                    title={title}
-                                    category={category}
-                                    onGenerated={(desc) =>
-                                        setValue("description", desc, {
-                                            shouldValidate: true,
-                                            shouldDirty: true,
-                                            shouldTouch: true,
-                                        })
-                                    }
-                                />
-                            </div>
-                        )}
-                        {showAI && (!title || !category) && (
-                            <p className="mb-3 rounded-lg bg-secondary px-4 py-2 text-xs text-muted-foreground">
-                                {t("events.form.aiHint")}
-                            </p>
-                        )}
                         <textarea
                             {...register("description")}
                             rows={6}

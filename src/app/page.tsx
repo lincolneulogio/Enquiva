@@ -20,11 +20,6 @@ export default async function HomePage() {
       desc: t("public.home.features.attendeeRegistrationDesc"),
     },
     {
-      icon: Sparkles,
-      title: t("public.home.features.aiWritingTitle"),
-      desc: t("public.home.features.aiWritingDesc"),
-    },
-    {
       icon: Bell,
       title: t("public.home.features.realtimeNotificationsTitle"),
       desc: t("public.home.features.realtimeNotificationsDesc"),

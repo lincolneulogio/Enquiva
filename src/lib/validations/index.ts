@@ -192,31 +192,6 @@ export const updatePasswordSchema = z
     path: ["newPassword"],
   });
 
-// ─── AI Schemas ───────────────────────────────────────────────────────────────
-
-export const generateDescriptionSchema = z.object({
-  title: z.string().min(3).max(200),
-  category: z.string().min(1, "Category is required"),
-  bulletPoints: z
-    .array(z.string().min(1).max(200))
-    .min(1)
-    .max(10),
-  tone: z.enum(["formal", "casual", "inspirational"]).default("inspirational"),
-  model: z
-    .enum([
-      "auto",
-      "google/gemma-3-4b-it:free",
-      "google/gemma-3-12b-it:free",
-      "meta-llama/llama-3.2-3b-instruct:free",
-    ])
-    .default("auto"),
-});
-
-export const recommendEventsSchema = z.object({
-  userId: z.string(),
-  limit: z.number().int().positive().max(10).default(5),
-});
-
 // ─── Notification Schemas ─────────────────────────────────────────────────────
 
 export const markNotificationsReadSchema = z.object({
@@ -235,6 +210,5 @@ export type CreateRegistrationInput = z.infer<typeof createRegistrationSchema>;
 export type CheckInInput = z.infer<typeof checkInSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type UpdatePasswordInput = z.infer<typeof updatePasswordSchema>;
-export type GenerateDescriptionInput = z.infer<typeof generateDescriptionSchema>;
 export type CreatePaymentInput = z.infer<typeof createPaymentSchema>;
 export type UpdatePaymentStatusInput = z.infer<typeof updatePaymentStatusSchema>;
