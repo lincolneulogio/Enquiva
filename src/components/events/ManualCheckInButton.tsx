@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Loader2 } from "lucide-react";
 import { checkInAttendee } from "@/actions/registrations";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 
 interface ManualCheckInButtonProps {
   registrationId: string;
@@ -14,15 +15,16 @@ interface ManualCheckInButtonProps {
 export function ManualCheckInButton({ registrationId, eventId }: ManualCheckInButtonProps) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const t = useTranslations();
 
   const onCheckIn = () => {
     startTransition(async () => {
       try {
         await checkInAttendee({ registrationId, eventId });
-        toast.success("Asistencia registrada correctamente");
+        toast.success(t("dashboard.organizer.checkInSuccess"));
         router.refresh();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "No se pudo registrar la asistencia");
+        toast.error(error instanceof Error ? error.message : t("dashboard.organizer.checkInError"));
       }
     });
   };
@@ -35,7 +37,7 @@ export function ManualCheckInButton({ registrationId, eventId }: ManualCheckInBu
       className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
     >
       {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-      {isPending ? "Checking in..." : "Check in now"}
+      {isPending ? t("dashboard.organizer.checkingIn") : t("dashboard.organizer.checkInNow")}
     </button>
   );
 }

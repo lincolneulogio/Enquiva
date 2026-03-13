@@ -1,6 +1,20 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { format, formatDistanceToNow, isAfter } from "date-fns";
+import { enUS, es } from "date-fns/locale";
+import {
+  defaultLocale,
+  getCategoryLabel,
+  getEventStatusLabel,
+  getIntlLocale,
+  getRegistrationStatusLabel,
+  type Locale,
+} from "@/lib/i18n/core";
+
+const DATE_LOCALES = {
+  es,
+  en: enUS,
+} as const;
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -21,16 +35,27 @@ export function generateUniqueSlug(title: string): string {
   return `${base}-${suffix}`;
 }
 
-export function formatEventDate(date: Date | string): string {
-  return format(new Date(date), "EEEE, MMMM d, yyyy 'at' h:mm a");
+export function formatEventDate(date: Date | string, locale: Locale = defaultLocale): string {
+  return format(
+    new Date(date),
+    locale === "en"
+      ? "EEEE, MMMM d, yyyy 'at' h:mm a"
+      : "EEEE d 'de' MMMM 'de' yyyy 'a las' h:mm a",
+    { locale: DATE_LOCALES[locale] }
+  );
 }
 
-export function formatEventDateShort(date: Date | string): string {
-  return format(new Date(date), "MMM d, yyyy");
+export function formatEventDateShort(date: Date | string, locale: Locale = defaultLocale): string {
+  return format(new Date(date), locale === "en" ? "MMM d, yyyy" : "d MMM yyyy", {
+    locale: DATE_LOCALES[locale],
+  });
 }
 
-export function formatRelativeTime(date: Date | string): string {
-  return formatDistanceToNow(new Date(date), { addSuffix: true });
+export function formatRelativeTime(date: Date | string, locale: Locale = defaultLocale): string {
+  return formatDistanceToNow(new Date(date), {
+    addSuffix: true,
+    locale: DATE_LOCALES[locale],
+  });
 }
 
 export function isEventUpcoming(date: Date | string): boolean {
@@ -42,20 +67,8 @@ export function truncate(text: string, length: number): string {
   return text.slice(0, length) + "...";
 }
 
-export function categoryLabel(category: string): string {
-  const labels: Record<string, string> = {
-    worship: "Worship",
-    retreat: "Retreat",
-    youth: "Youth",
-    charity: "Charity",
-    conference: "Conference",
-    prayer: "Prayer",
-    bible_study: "Bible Study",
-    outreach: "Outreach",
-    fellowship: "Fellowship",
-    other: "Other",
-  };
-  return labels[category] ?? category;
+export function categoryLabel(category: string, locale: Locale = defaultLocale): string {
+  return getCategoryLabel(category, locale);
 }
 
 export function categoryColor(category: string): string {
@@ -84,13 +97,25 @@ export function statusColor(status: string): string {
   return colors[status] ?? colors.draft;
 }
 
+export function eventStatusLabel(status: string, locale: Locale = defaultLocale): string {
+  return getEventStatusLabel(status, locale);
+}
+
+export function registrationStatusLabel(status: string, locale: Locale = defaultLocale): string {
+  return getRegistrationStatusLabel(status, locale);
+}
+
 export function generateTicketCode(): string {
   const suffix = Math.random().toString(36).slice(2, 8).toUpperCase();
   return `TKT-${suffix}`;
 }
 
-export function formatCurrency(value: number, currency = "USD"): string {
-  return new Intl.NumberFormat("en-US", {
+export function formatCurrency(
+  value: number,
+  currency = "USD",
+  locale: Locale = defaultLocale
+): string {
+  return new Intl.NumberFormat(getIntlLocale(locale), {
     style: "currency",
     currency,
   }).format(value);

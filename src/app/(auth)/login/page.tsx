@@ -1,7 +1,10 @@
 import { LoginForm } from "@/components/auth/LoginForm";
 import Link from "next/link";
+import { getI18n } from "@/lib/i18n/server";
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const { t } = await getI18n();
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-6">
       {/* Background decoration */}
@@ -21,10 +24,10 @@ export default function LoginPage() {
             </span>
           </Link>
           <h1 className="font-display text-3xl font-semibold text-foreground">
-            Welcome back
+            {t("auth.welcomeBack")}
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Sign in to your community account
+            {t("auth.signInToCommunity")}
           </p>
         </div>
 
@@ -33,9 +36,9 @@ export default function LoginPage() {
         </div>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
+          {t("auth.noAccountQuestion")}{" "}
           <Link href="/register" className="text-primary hover:underline font-medium">
-            Create one
+            {t("auth.createOne")}
           </Link>
         </p>
       </div>

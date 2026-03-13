@@ -1,4 +1,5 @@
 import { getNotifications, getUnreadNotificationsCount } from "@/actions/notifications";
+import { LanguageSwitcher } from "@/components/dashboard/LanguageSwitcher";
 import { TopbarUserMenu } from "@/components/dashboard/TopbarUserMenu";
 import { TopbarNotifications } from "@/components/dashboard/TopbarNotifications";
 
@@ -28,6 +29,8 @@ export async function DashboardTopbar({ user }: DashboardTopbarProps) {
       <div className="flex-1" />
 
       <div className="flex items-center gap-3">
+        <LanguageSwitcher />
+
         {/* Notificaciones */}
         {user.id && (
           <TopbarNotifications

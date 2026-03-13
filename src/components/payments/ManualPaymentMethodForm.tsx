@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createPayment } from "@/actions/payments";
 import { Loader2 } from "lucide-react";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 
 interface ManualPaymentMethodFormProps {
     registrationId: string;
@@ -28,6 +29,7 @@ export function ManualPaymentMethodForm({
     defaultAmount = 1,
     existingMethod,
 }: ManualPaymentMethodFormProps) {
+    const t = useTranslations();
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
 
@@ -46,7 +48,7 @@ export function ManualPaymentMethodForm({
         startTransition(async () => {
             const parsedAmount = Number(amount);
             if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-                toast.error("Ingresa un monto válido mayor a 0");
+                toast.error(t("payments.manual.invalidAmount"));
                 return;
             }
 
@@ -60,11 +62,11 @@ export function ManualPaymentMethodForm({
                     notes: `Pago manual seleccionado por el usuario para ${eventTitle}`,
                 });
 
-                toast.success("Pago registrado como pagado ✅");
+                toast.success(t("payments.manual.success"));
                 router.push(`/events/${eventSlug}`);
                 router.refresh();
             } catch (error) {
-                toast.error(error instanceof Error ? error.message : "No se pudo registrar el pago");
+                toast.error(error instanceof Error ? error.message : t("payments.manual.failed"));
             }
         });
     };
@@ -72,16 +74,15 @@ export function ManualPaymentMethodForm({
     return (
         <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
             <div className="mb-5">
-                <h2 className="text-xl font-semibold text-foreground">Completar pago</h2>
+                <h2 className="text-xl font-semibold text-foreground">{t("payments.manual.title")}</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                    Elige tu método de pago para <span className="font-medium text-foreground">{eventTitle}</span>.
-                    No hay pasarela automática: solo registramos tu elección y marcamos como pagado.
+                    {t("payments.manual.description", { eventTitle })}
                 </p>
             </div>
 
             <div className="space-y-4">
                 <div>
-                    <label className="mb-1.5 block text-sm font-medium text-foreground">Método</label>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">{t("payments.manual.method")}</label>
                     <select
                         value={method}
                         onChange={(e) => setMethod(e.target.value)}
@@ -97,7 +98,7 @@ export function ManualPaymentMethodForm({
                 </div>
 
                 <div>
-                    <label className="mb-1.5 block text-sm font-medium text-foreground">Monto (PEN)</label>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">{t("payments.manual.amountPen")}</label>
                     <input
                         type="number"
                         min="0.01"
@@ -110,12 +111,12 @@ export function ManualPaymentMethodForm({
                 </div>
 
                 <div>
-                    <label className="mb-1.5 block text-sm font-medium text-foreground">Referencia (opcional)</label>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">{t("payments.manual.referenceOptional")}</label>
                     <input
                         type="text"
                         value={reference}
                         onChange={(e) => setReference(e.target.value)}
-                        placeholder="Ej: operación bancaria, número de voucher"
+                        placeholder={t("payments.manual.referencePlaceholder")}
                         className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                         disabled={isPending}
                     />
@@ -128,7 +129,7 @@ export function ManualPaymentMethodForm({
                     className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                     {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                    {isPending ? "Guardando..." : "Confirmar método y marcar pagado"}
+                    {isPending ? t("payments.manual.saving") : t("payments.manual.submit")}
                 </button>
             </div>
         </div>

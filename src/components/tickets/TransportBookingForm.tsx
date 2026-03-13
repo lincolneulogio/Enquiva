@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { Loader2, Bus, MapPin, Clock, Users, CreditCard, X } from "lucide-react";
 import { bookTransport, cancelTransportBooking } from "@/actions/transport";
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
+import { getIntlLocale } from "@/lib/i18n/core";
 
 interface Route {
     id: string;
@@ -37,6 +39,8 @@ export function TransportBookingForm({
     registrationId,
 }: TransportBookingFormProps) {
     const router = useRouter();
+    const t = useTranslations();
+    const { locale } = useLocale();
     const [isPending, startTransition] = useTransition();
     const [seats, setSeats] = useState(1);
     const [method, setMethod] = useState("");
@@ -47,7 +51,7 @@ export function TransportBookingForm({
 
     const handleSubmit = () => {
         if (!method) {
-            toast.error("Selecciona un método de pago");
+            toast.error(t("transport.booking.methodRequired"));
             return;
         }
 
@@ -61,10 +65,10 @@ export function TransportBookingForm({
                     reference: reference || undefined,
                     receiptUrl: receiptUrl || undefined,
                 });
-                toast.success("¡Reserva enviada! Espera la confirmación del organizador.");
+                toast.success(t("transport.booking.reservationSent"));
                 router.refresh();
             } catch (e) {
-                toast.error(e instanceof Error ? e.message : "Error al reservar");
+                toast.error(e instanceof Error ? e.message : t("transport.booking.reservationError"));
             }
         });
     };
@@ -82,7 +86,7 @@ export function TransportBookingForm({
                     </p>
                     <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
                         <Clock className="h-3.5 w-3.5" />{" "}
-                        {new Date(route.departureTime).toLocaleString("es-PE", {
+                        {new Date(route.departureTime).toLocaleString(getIntlLocale(locale), {
                             dateStyle: "medium",
                             timeStyle: "short",
                         })}
@@ -94,7 +98,7 @@ export function TransportBookingForm({
             <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                     <label className="mb-1.5 block text-sm font-medium text-foreground">
-                        Número de asientos *
+                        {t("transport.booking.seats")}
                     </label>
                     <input
                         type="number"
@@ -105,13 +109,16 @@ export function TransportBookingForm({
                         className={inputClass}
                     />
                     <p className="mt-1 text-xs text-muted-foreground">
-                        {route.availableSeats} disponibles · S/. {Number(route.pricePerSeat).toFixed(2)} c/u
+                        {t("transport.booking.availableSeatsPrice", {
+                            available: route.availableSeats,
+                            price: Number(route.pricePerSeat).toFixed(2),
+                        })}
                     </p>
                 </div>
 
                 <div>
                     <label className="mb-1.5 block text-sm font-medium text-foreground">
-                        Total a pagar
+                        {t("transport.booking.totalToPay")}
                     </label>
                     <div className="flex h-[42px] items-center rounded-xl border border-border bg-secondary px-4 text-sm font-semibold text-foreground">
                         S/. {totalPrice.toFixed(2)}
@@ -120,14 +127,14 @@ export function TransportBookingForm({
 
                 <div className="sm:col-span-2">
                     <label className="mb-1.5 block text-sm font-medium text-foreground">
-                        Método de pago *
+                        {t("transport.booking.paymentMethod")}
                     </label>
                     <select
                         className={inputClass}
                         value={method}
                         onChange={(e) => setMethod(e.target.value)}
                     >
-                        <option value="">Selecciona el método</option>
+                        <option value="">{t("transport.booking.selectMethod")}</option>
                         {PAYMENT_METHODS.map((m) => (
                             <option key={m} value={m}>
                                 {m}
@@ -138,12 +145,12 @@ export function TransportBookingForm({
 
                 <div>
                     <label className="mb-1.5 block text-sm font-medium text-foreground">
-                        Número de referencia{" "}
-                        <span className="font-normal text-muted-foreground">(opcional)</span>
+                        {t("transport.booking.referenceNumber")}{" "}
+                        <span className="font-normal text-muted-foreground">{t("transport.booking.optional")}</span>
                     </label>
                     <input
                         className={inputClass}
-                        placeholder="Nro. de operación"
+                        placeholder={t("transport.booking.referencePlaceholder")}
                         value={reference}
                         onChange={(e) => setReference(e.target.value)}
                     />
@@ -151,12 +158,12 @@ export function TransportBookingForm({
 
                 <div>
                     <label className="mb-1.5 block text-sm font-medium text-foreground">
-                        URL del comprobante{" "}
-                        <span className="font-normal text-muted-foreground">(opcional)</span>
+                        {t("transport.booking.receiptUrl")}{" "}
+                        <span className="font-normal text-muted-foreground">{t("transport.booking.optional")}</span>
                     </label>
                     <input
                         className={inputClass}
-                        placeholder="https://..."
+                        placeholder={t("transport.booking.receiptPlaceholder")}
                         value={receiptUrl}
                         onChange={(e) => setReceiptUrl(e.target.value)}
                     />
@@ -174,7 +181,7 @@ export function TransportBookingForm({
                 ) : (
                     <CreditCard className="h-4 w-4" />
                 )}
-                Confirmar reserva · S/. {totalPrice.toFixed(2)}
+                {t("transport.booking.confirmReservation", { price: totalPrice.toFixed(2) })}
             </button>
         </div>
     );
@@ -187,6 +194,7 @@ interface CancelTransportButtonProps {
 }
 
 export function CancelTransportButton({ bookingId }: CancelTransportButtonProps) {
+    const t = useTranslations();
     const [isPending, startTransition] = useTransition();
     const [confirm, setConfirm] = useState(false);
 
@@ -197,21 +205,21 @@ export function CancelTransportButton({ bookingId }: CancelTransportButtonProps)
                 onClick={() => setConfirm(true)}
                 className="text-xs text-destructive hover:underline"
             >
-                Cancelar reserva
+                {t("transport.booking.cancelBooking")}
             </button>
         );
     }
 
     return (
         <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">¿Seguro?</span>
+            <span className="text-xs text-muted-foreground">{t("transport.booking.sureQuestion")}</span>
             <button
                 type="button"
                 onClick={() => {
                     startTransition(async () => {
                         try {
                             await cancelTransportBooking(bookingId);
-                            toast.success("Reserva cancelada");
+                            toast.success(t("transport.booking.canceledSuccess"));
                         } catch (e) {
                             toast.error(e instanceof Error ? e.message : "Error");
                         }
@@ -220,14 +228,14 @@ export function CancelTransportButton({ bookingId }: CancelTransportButtonProps)
                 disabled={isPending}
                 className="text-xs text-destructive font-medium hover:underline disabled:opacity-50"
             >
-                {isPending ? "Cancelando..." : "Sí, cancelar"}
+                {isPending ? t("transport.booking.cancelling") : t("transport.booking.confirmCancel")}
             </button>
             <button
                 type="button"
                 onClick={() => setConfirm(false)}
                 className="text-xs text-muted-foreground hover:underline"
             >
-                No
+                {t("transport.booking.no")}
             </button>
         </div>
     );

@@ -2,7 +2,8 @@ import { getOrganizerEvents } from "@/actions/events";
 import Link from "next/link";
 import { Calendar, Plus } from "lucide-react";
 import { DeleteEventButton } from "./DeleteEventButton";
-import { categoryLabel, formatEventDateShort, statusColor } from "@/lib/utils";
+import { categoryLabel, eventStatusLabel, formatEventDateShort, statusColor } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n/server";
 
 interface OrganizerEventsPageProps {
     searchParams: Promise<{
@@ -11,14 +12,15 @@ interface OrganizerEventsPageProps {
 }
 
 const STATUS_FILTERS = [
-    { value: "all", label: "All" },
-    { value: "published", label: "Published" },
-    { value: "draft", label: "Draft" },
-    { value: "cancelled", label: "Cancelled" },
-    { value: "completed", label: "Completed" },
+    { value: "all", labelKey: "common.all" },
+    { value: "published", labelKey: "eventStatus.published" },
+    { value: "draft", labelKey: "eventStatus.draft" },
+    { value: "cancelled", labelKey: "eventStatus.cancelled" },
+    { value: "completed", labelKey: "eventStatus.completed" },
 ] as const;
 
 export default async function OrganizerEventsPage({ searchParams }: OrganizerEventsPageProps) {
+    const { locale, t } = await getI18n();
     const params = await searchParams;
     const organizerEvents = await getOrganizerEvents();
 
@@ -35,9 +37,12 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="font-display text-3xl font-semibold text-foreground">My Events</h1>
+                    <h1 className="font-display text-3xl font-semibold text-foreground">{t("dashboard.organizer.myEvents")}</h1>
                     <p className="mt-1 text-muted-foreground">
-                        {organizerEvents.length} event{organizerEvents.length !== 1 ? "s" : ""} created by you
+                        {t("dashboard.organizer.createdByYou", {
+                            count: organizerEvents.length,
+                            label: organizerEvents.length === 1 ? "evento" : "eventos",
+                        })}
                     </p>
                 </div>
                 <Link
@@ -45,7 +50,7 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                     className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
                     <Plus className="h-4 w-4" />
-                    New Event
+                    {t("common.newEvent")}
                 </Link>
             </div>
 
@@ -61,11 +66,11 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                                     : `/organizer/events?status=${filter.value}`
                             }
                             className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${isActive
-                                    ? "border-primary bg-primary text-primary-foreground"
-                                    : "border-border bg-card text-muted-foreground hover:bg-secondary"
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border bg-card text-muted-foreground hover:bg-secondary"
                                 }`}
                         >
-                            {filter.label}
+                            {t(filter.labelKey)}
                         </Link>
                     );
                 })}
@@ -74,17 +79,19 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
             {filteredEvents.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
                     <Calendar className="mx-auto h-10 w-10 text-muted-foreground/50" />
-                    <p className="mt-4 font-medium text-foreground">No events yet</p>
+                    <p className="mt-4 font-medium text-foreground">{t("dashboard.organizer.noEventsYet")}</p>
                     <p className="mt-1 text-sm text-muted-foreground">
                         {activeStatus === "all"
-                            ? "Create your first event to start receiving registrations."
-                            : `No events found with status \"${activeStatus}\".`}
+                            ? t("dashboard.organizer.createFirstEventReceiveRegistrations")
+                            : t("dashboard.organizer.noEventsForStatus", {
+                                status: eventStatusLabel(activeStatus, locale).toLowerCase(),
+                            })}
                     </p>
                     <Link
                         href="/organizer/events/new"
                         className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                     >
-                        <Plus className="h-4 w-4" /> Create Event
+                        <Plus className="h-4 w-4" /> {t("common.createEvent")}
                     </Link>
                 </div>
             ) : (
@@ -93,23 +100,23 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b border-border bg-muted/50">
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Title</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Category</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Date</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Registrations</th>
-                                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("dashboard.admin.title")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.category")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.date")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.status")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.registrations")}</th>
+                                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t("common.actions")}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
                                 {filteredEvents.map(({ event, attendeeCount }) => (
                                     <tr key={event.id} className="hover:bg-muted/30 transition-colors">
                                         <td className="px-4 py-3 font-medium text-foreground">{event.title}</td>
-                                        <td className="px-4 py-3 text-muted-foreground">{categoryLabel(event.category)}</td>
-                                        <td className="px-4 py-3 text-muted-foreground">{formatEventDateShort(event.date)}</td>
+                                        <td className="px-4 py-3 text-muted-foreground">{categoryLabel(event.category, locale)}</td>
+                                        <td className="px-4 py-3 text-muted-foreground">{formatEventDateShort(event.date, locale)}</td>
                                         <td className="px-4 py-3">
                                             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor(event.status)}`}>
-                                                {event.status}
+                                                {eventStatusLabel(event.status, locale)}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 text-muted-foreground">
@@ -119,13 +126,13 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                                         <td className="px-4 py-3 text-right">
                                             <div className="flex items-center justify-end gap-3 text-xs">
                                                 <Link href={`/events/${event.slug}`} className="text-primary hover:underline">
-                                                    View
+                                                    {t("common.view")}
                                                 </Link>
                                                 <Link
                                                     href={`/organizer/events/${event.id}`}
                                                     className="text-blue-600 hover:underline dark:text-blue-400"
                                                 >
-                                                    Edit
+                                                    {t("common.edit")}
                                                 </Link>
                                                 <DeleteEventButton eventId={event.id} />
                                             </div>

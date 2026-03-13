@@ -5,8 +5,12 @@ import { getUserRegistrations } from "@/actions/registrations";
 import { EventCard } from "@/components/events/EventCard";
 import Link from "next/link";
 import { Calendar, ArrowRight } from "lucide-react";
+import { getI18n } from "@/lib/i18n/server";
+import { getIntlLocale } from "@/lib/i18n/core";
+import { registrationStatusLabel } from "@/lib/utils";
 
 export default async function MemberDashboardPage() {
+  const { locale, t } = await getI18n();
   const session = await auth.api.getSession({ headers: await headers() });
   const [{ events: upcomingEvents }, myRegistrations] = await Promise.all([
     getPublicEvents({ limit: 3 }),
@@ -22,10 +26,12 @@ export default async function MemberDashboardPage() {
     <div className="space-y-8">
       <div>
         <h1 className="font-display text-3xl font-semibold text-foreground">
-          Hello, {session?.user.name?.split(" ")[0]} ✦
+          {t("dashboard.member.hello", {
+            firstName: session?.user.name?.split(" ")[0] ?? "",
+          })}
         </h1>
         <p className="mt-1 text-muted-foreground">
-          Discover events and stay connected with your community
+          {t("dashboard.member.discoverCommunity")}
         </p>
       </div>
 
@@ -34,13 +40,13 @@ export default async function MemberDashboardPage() {
           href="/member/payments"
           className="rounded-2xl border border-border bg-card p-5 text-sm font-semibold text-foreground hover:border-primary hover:shadow-lg transition"
         >
-          Review payments &amp; receipts
+          {t("dashboard.member.reviewPayments")}
         </Link>
         <Link
           href="/member/tickets"
           className="rounded-2xl border border-border bg-card p-5 text-sm font-semibold text-foreground hover:border-primary hover:shadow-lg transition"
         >
-          View your tickets
+          {t("dashboard.member.viewTickets")}
         </Link>
       </div>
 
@@ -49,13 +55,13 @@ export default async function MemberDashboardPage() {
         <section>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-display text-xl font-semibold text-foreground">
-              Your Upcoming Events
+              {t("dashboard.member.yourUpcomingEvents")}
             </h2>
             <Link
               href="/member/events"
               className="text-sm text-primary hover:underline"
             >
-              View all →
+              {t("dashboard.member.viewAll")}
             </Link>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -73,14 +79,14 @@ export default async function MemberDashboardPage() {
                     {event.title}
                   </p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {new Date(event.date).toLocaleDateString("en-US", {
+                    {new Date(event.date).toLocaleDateString(getIntlLocale(locale), {
                       month: "short",
                       day: "numeric",
                       year: "numeric",
                     })}
                   </p>
                   <span className="mt-1 inline-block rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400">
-                    {registration.status === "checked_in" ? "Checked In" : "Registered"}
+                    {registrationStatusLabel(registration.status, locale)}
                   </span>
                 </div>
               </Link>
@@ -93,13 +99,13 @@ export default async function MemberDashboardPage() {
       <section>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-xl font-semibold text-foreground">
-            Discover Events
+            {t("dashboard.member.discoverEvents")}
           </h2>
           <Link
             href="/events"
             className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
           >
-            Browse all <ArrowRight className="h-3.5 w-3.5" />
+            {t("dashboard.member.browseAll")} <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
         {upcomingEvents.length > 0 ? (
@@ -111,9 +117,9 @@ export default async function MemberDashboardPage() {
         ) : (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-16 text-center">
             <span className="mb-3 text-5xl opacity-20">✦</span>
-            <p className="font-medium text-foreground">No events yet</p>
+            <p className="font-medium text-foreground">{t("dashboard.member.noEventsYet")}</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Check back later for upcoming events
+              {t("dashboard.member.checkBackLater")}
             </p>
           </div>
         )}

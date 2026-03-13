@@ -2,11 +2,14 @@ import { db } from "@/lib/db";
 import { registrations, events, users } from "@/lib/db/schema";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { eq, and, desc } from "drizzle-orm";
-import { Users, Calendar } from "lucide-react";
+import { eq, desc } from "drizzle-orm";
+import { Users } from "lucide-react";
 import { ManualCheckInButton } from "@/components/events/ManualCheckInButton";
+import { getI18n } from "@/lib/i18n/server";
+import { getIntlLocale, getPluralLabel, getRegistrationStatusLabel } from "@/lib/i18n/core";
 
 export default async function OrganizerAttendeesPage() {
+    const { t, locale } = await getI18n();
     const session = await auth.api.getSession({ headers: await headers() });
     const organizerId = session!.user.id;
 
@@ -29,21 +32,23 @@ export default async function OrganizerAttendeesPage() {
         .where(eq(events.organizerId, organizerId))
         .orderBy(desc(registrations.registeredAt));
 
+    const registrationWord = getPluralLabel(locale, "registration", "registrations", rows.length);
+
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="font-display text-3xl font-semibold text-foreground">Attendees</h1>
+                <h1 className="font-display text-3xl font-semibold text-foreground">{t("dashboard.organizer.attendeesTitle")}</h1>
                 <p className="mt-1 text-muted-foreground">
-                    {rows.length} registration{rows.length !== 1 ? "s" : ""} across all your events
+                    {t("dashboard.organizer.attendeesSummary", { count: rows.length, label: registrationWord })}
                 </p>
             </div>
 
             {rows.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
                     <Users className="mx-auto h-10 w-10 text-muted-foreground/50" />
-                    <p className="mt-4 font-medium text-foreground">No attendees yet</p>
+                    <p className="mt-4 font-medium text-foreground">{t("dashboard.organizer.noAttendeesYet")}</p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        Attendees will appear here once people register for your events.
+                        {t("dashboard.organizer.attendeesAppearHere")}
                     </p>
                 </div>
             ) : (
@@ -51,13 +56,13 @@ export default async function OrganizerAttendeesPage() {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="border-b border-border bg-muted/50">
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Email</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Event</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Date</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Checked in</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Action</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.name")}</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.email")}</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.event")}</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.date")}</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.status")}</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("dashboard.organizer.checkedInAt")}</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.actions")}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -67,7 +72,7 @@ export default async function OrganizerAttendeesPage() {
                                     <td className="px-4 py-3 text-muted-foreground">{row.userEmail}</td>
                                     <td className="px-4 py-3 text-foreground">{row.eventTitle}</td>
                                     <td className="px-4 py-3 text-muted-foreground">
-                                        {new Date(row.eventDate).toLocaleDateString("en-US", {
+                                        {new Date(row.eventDate).toLocaleDateString(getIntlLocale(locale), {
                                             month: "short",
                                             day: "numeric",
                                             year: "numeric",
@@ -82,12 +87,12 @@ export default async function OrganizerAttendeesPage() {
                                                     : "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400"
                                                 }`}
                                         >
-                                            {row.status}
+                                            {getRegistrationStatusLabel(row.status, locale)}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-muted-foreground">
                                         {row.checkedInAt
-                                            ? new Date(row.checkedInAt).toLocaleString("en-US", {
+                                            ? new Date(row.checkedInAt).toLocaleString(getIntlLocale(locale), {
                                                 month: "short",
                                                 day: "numeric",
                                                 year: "numeric",
@@ -103,7 +108,7 @@ export default async function OrganizerAttendeesPage() {
                                                 eventId={row.eventId}
                                             />
                                         ) : (
-                                            <span className="text-xs text-muted-foreground/60">No action</span>
+                                            <span className="text-xs text-muted-foreground/60">{t("dashboard.organizer.noAction")}</span>
                                         )}
                                     </td>
                                 </tr>

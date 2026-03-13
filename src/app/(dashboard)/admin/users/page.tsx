@@ -6,8 +6,11 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { RoleSelector } from "./RoleSelector";
 import { DeleteUserButton } from "./DeleteUserButton";
+import { getI18n } from "@/lib/i18n/server";
+import { getIntlLocale, getRoleLabel } from "@/lib/i18n/core";
 
 export default async function AdminUsersPage() {
+    const { locale, t } = await getI18n();
     const session = await auth.api.getSession({ headers: await headers() });
     const currentUserId = session!.user.id;
 
@@ -31,28 +34,31 @@ export default async function AdminUsersPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="font-display text-3xl font-semibold text-foreground">Users</h1>
+                <h1 className="font-display text-3xl font-semibold text-foreground">{t("common.users")}</h1>
                 <p className="mt-1 text-muted-foreground">
-                    {allUsers.length} registered user{allUsers.length !== 1 ? "s" : ""}
+                    {t("dashboard.admin.usersRegistered", {
+                        count: allUsers.length,
+                        label: allUsers.length === 1 ? (locale === "en" ? "user" : "usuario") : (locale === "en" ? "users" : "usuarios"),
+                    })}
                 </p>
             </div>
 
             {allUsers.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
                     <UserCog className="mx-auto h-10 w-10 text-muted-foreground/50" />
-                    <p className="mt-4 font-medium text-foreground">No users yet</p>
+                    <p className="mt-4 font-medium text-foreground">{t("dashboard.admin.noUsersYet")}</p>
                 </div>
             ) : (
                 <div className="overflow-hidden rounded-xl border border-border bg-card">
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="border-b border-border bg-muted/50">
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Email</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Role</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Joined</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Change Role</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Actions</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.name")}</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.email")}</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.role")}</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.joined")}</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.changeRole")}</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.actions")}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -69,12 +75,12 @@ export default async function AdminUsersPage() {
                                     <td className="px-4 py-3 text-muted-foreground">{user.email}</td>
                                     <td className="px-4 py-3">
                                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${roleColor[user.role ?? "member"] ?? roleColor.member}`}>
-                                            {user.role ?? "member"}
+                                            {getRoleLabel(user.role ?? "member", locale)}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-muted-foreground">
                                         {user.createdAt
-                                            ? new Date(user.createdAt).toLocaleDateString("en-US", {
+                                            ? new Date(user.createdAt).toLocaleDateString(getIntlLocale(locale), {
                                                 month: "short",
                                                 day: "numeric",
                                                 year: "numeric",

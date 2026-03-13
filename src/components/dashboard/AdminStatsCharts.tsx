@@ -13,6 +13,7 @@ import {
   Cell,
   Legend,
 } from "recharts";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 
 type MonthlyDataPoint = {
   month: string;
@@ -33,16 +34,18 @@ interface AdminStatsChartsProps {
 const COLORS = ["#7c3aed", "#e11d48", "#ea580c", "#16a34a", "#d97706", "#4f46e5"];
 
 export function AdminStatsCharts({ monthlyData, categoryData }: AdminStatsChartsProps) {
+  const t = useTranslations();
+
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       {/* Monthly activity */}
       <div className="rounded-2xl border border-border bg-card p-6">
         <h3 className="mb-4 font-display text-lg font-semibold text-foreground">
-          Monthly Activity
+          {t("dashboard.admin.monthlyActivity")}
         </h3>
         {monthlyData.length === 0 ? (
           <div className="flex h-[240px] items-center justify-center text-sm text-muted-foreground">
-            No monthly data available.
+            {t("dashboard.admin.noMonthlyData")}
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={240}>
@@ -61,8 +64,8 @@ export function AdminStatsCharts({ monthlyData, categoryData }: AdminStatsCharts
                   fontSize: "12px",
                 }}
               />
-              <Bar dataKey="events" name="Events" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="registrations" name="Registrations" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="events" name={t("common.event")} fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="registrations" name={t("common.registrations")} fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -71,11 +74,11 @@ export function AdminStatsCharts({ monthlyData, categoryData }: AdminStatsCharts
       {/* Category breakdown */}
       <div className="rounded-2xl border border-border bg-card p-6">
         <h3 className="mb-4 font-display text-lg font-semibold text-foreground">
-          Events by Category
+          {t("dashboard.admin.eventsByCategory")}
         </h3>
         {categoryData.length === 0 ? (
           <div className="flex h-[240px] items-center justify-center text-sm text-muted-foreground">
-            No categories with events yet.
+            {t("dashboard.admin.noCategoriesYet")}
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={240}>

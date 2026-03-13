@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { normalizeRole } from "@/lib/rbac";
+import { getI18n } from "@/lib/i18n/server";
 
 function getDashboardPath(role?: string | null) {
     const normalizedRole = normalizeRole(role);
@@ -17,6 +18,7 @@ function getProfilePath(role?: string | null) {
 export async function PublicHeader() {
     const session = await auth.api.getSession({ headers: await headers() });
     const user = session?.user;
+    const { t } = await getI18n();
 
     return (
         <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
@@ -32,7 +34,7 @@ export async function PublicHeader() {
 
                 <div className="hidden items-center gap-6 md:flex">
                     <Link href="/events" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-                        Browse Events
+                        {t("common.browseEvents")}
                     </Link>
 
                     {user ? (
@@ -41,19 +43,19 @@ export async function PublicHeader() {
                                 href={getDashboardPath(user.role)}
                                 className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                             >
-                                Ir a mi panel
+                                {t("common.goToDashboard")}
                             </Link>
                         </>
                     ) : (
                         <>
                             <Link href="/login" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-                                Sign In
+                                {t("common.signIn")}
                             </Link>
                             <Link
                                 href="/register"
                                 className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                             >
-                                Get Started
+                                {t("common.getStarted")}
                             </Link>
                         </>
                     )}

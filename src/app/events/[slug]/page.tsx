@@ -12,6 +12,8 @@ import { users } from "@/lib/db/schema";
 import Link from "next/link";
 import { categoryColor, categoryLabel, cn, formatEventDate } from "@/lib/utils";
 import { eq as drizzleEq } from "drizzle-orm";
+import { getI18n } from "@/lib/i18n/server";
+import { getIntlLocale } from "@/lib/i18n/core";
 
 interface EventPageProps {
   params: Promise<{
@@ -20,6 +22,7 @@ interface EventPageProps {
 }
 
 export default async function EventDetailPage({ params }: EventPageProps) {
+  const { t, locale } = await getI18n();
   const { slug } = await params;
   const [event, categories] = await Promise.all([
     getEventBySlug(slug),
@@ -89,7 +92,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                 {event.location && ` · ${event.location}`}
               </p>
               <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
-                Capacity: {event.capacity ?? "Unlimited"} · Status:{" "}
+                {t("public.eventDetail.capacityLabel")}: {event.capacity ?? t("public.eventDetail.unlimited")} · {t("public.eventDetail.statusLabel")}:{" "}
                 <span className="font-semibold uppercase text-foreground">{event.status}</span>
               </p>
             </div>
@@ -112,19 +115,19 @@ export default async function EventDetailPage({ params }: EventPageProps) {
         <div className="grid gap-10 lg:grid-cols-[2fr,1fr]">
           <div className="space-y-6">
             <div className="rounded-3xl border border-border bg-card p-8 shadow-sm">
-              <h2 className="text-2xl font-semibold text-foreground">About the event</h2>
+              <h2 className="text-2xl font-semibold text-foreground">{t("public.eventDetail.aboutTitle")}</h2>
               <p className="mt-3 text-sm text-muted-foreground">{event.description}</p>
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Location</p>
+                  <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">{t("public.eventDetail.locationLabel")}</p>
                   <p className="text-sm text-foreground">
-                    {event.location ?? (event.isVirtual ? "Virtual event" : "TBD")}
+                    {event.location ?? (event.isVirtual ? t("common.virtualEvent") : t("common.locationTbd"))}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Attendees</p>
+                  <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">{t("public.eventDetail.attendeesLabel")}</p>
                   <p className="text-sm text-foreground">
-                    {(event.attendeeCount ?? 0).toLocaleString()} attending
+                    {(event.attendeeCount ?? 0).toLocaleString(getIntlLocale(locale))} {t("public.eventDetail.attendingSuffix")}
                   </p>
                 </div>
               </div>
@@ -142,25 +145,25 @@ export default async function EventDetailPage({ params }: EventPageProps) {
 
           <aside className="space-y-6">
             <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-              <h3 className="text-xs uppercase tracking-[0.4em] text-muted-foreground">Organizer</h3>
-              <p className="mt-3 text-lg font-semibold text-foreground">FaithEvents Operations</p>
-              <p className="mt-1 text-sm text-muted-foreground">We handle logistics, payments and support.</p>
+              <h3 className="text-xs uppercase tracking-[0.4em] text-muted-foreground">{t("common.organizer")}</h3>
+              <p className="mt-3 text-lg font-semibold text-foreground">{t("public.eventDetail.organizerName")}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{t("public.eventDetail.organizerDescription")}</p>
             </div>
 
             <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-foreground">Quick links</h3>
+              <h3 className="text-lg font-semibold text-foreground">{t("public.eventDetail.quickLinksTitle")}</h3>
               <div className="mt-4 space-y-2 text-sm">
                 <Link
                   href="/member/events"
                   className="block text-primary hover:underline"
                 >
-                  Review your registrations
+                  {t("public.eventDetail.reviewRegistrations")}
                 </Link>
                 <Link
                   href="/member/payments"
                   className="block text-primary hover:underline"
                 >
-                  Check payment history
+                  {t("public.eventDetail.checkPaymentHistory")}
                 </Link>
               </div>
             </div>

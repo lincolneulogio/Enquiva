@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getPusherClient, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/client";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 
 interface LiveAttendeeCountProps {
   eventId: string;
@@ -14,6 +15,7 @@ export function LiveAttendeeCount({
   initialCount,
   capacity,
 }: LiveAttendeeCountProps) {
+  const t = useTranslations();
   const [count, setCount] = useState(initialCount);
 
   useEffect(() => {
@@ -47,9 +49,12 @@ export function LiveAttendeeCount({
           {count}
         </span>
         {capacity != null && (
-          <span> / {capacity} spots filled</span>
+          <span>
+            {" "}
+            {t("common.registeredCount", { count, capacity })}
+          </span>
         )}
-        {capacity == null && " registered"}
+        {capacity == null && ` ${t("eventCard.registered")}`}
       </p>
       {percentage != null && (
         <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-secondary">

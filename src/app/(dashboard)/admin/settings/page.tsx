@@ -2,16 +2,19 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { User, Mail, Shield } from "lucide-react";
 import { BackfillPendingPaymentsButton } from "@/components/dashboard/BackfillPendingPaymentsButton";
+import { getI18n } from "@/lib/i18n/server";
+import { getRoleLabel } from "@/lib/i18n/core";
 
 export default async function AdminSettingsPage() {
+    const { locale, t } = await getI18n();
     const session = await auth.api.getSession({ headers: await headers() });
     const user = session!.user;
 
     return (
         <div className="space-y-8">
             <div>
-                <h1 className="font-display text-3xl font-semibold text-foreground">Settings</h1>
-                <p className="mt-1 text-muted-foreground">Platform administration account</p>
+                <h1 className="font-display text-3xl font-semibold text-foreground">{t("common.settings")}</h1>
+                <p className="mt-1 text-muted-foreground">{t("dashboard.admin.settingsIntro")}</p>
             </div>
 
             <div className="max-w-2xl space-y-6">
@@ -23,7 +26,7 @@ export default async function AdminSettingsPage() {
                         <p className="text-xl font-semibold text-foreground">{user.name}</p>
                         <p className="text-sm text-muted-foreground">{user.email}</p>
                         <span className="mt-1 inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900/20 dark:text-purple-400 capitalize">
-                            {user.role ?? "super_admin"}
+                            {getRoleLabel(user.role ?? "super_admin", locale)}
                         </span>
                     </div>
                 </div>
@@ -34,7 +37,7 @@ export default async function AdminSettingsPage() {
                             <User className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <div>
-                            <p className="text-xs text-muted-foreground">Full name</p>
+                            <p className="text-xs text-muted-foreground">{t("common.fullName")}</p>
                             <p className="font-medium text-foreground">{user.name ?? "—"}</p>
                         </div>
                     </div>
@@ -43,7 +46,7 @@ export default async function AdminSettingsPage() {
                             <Mail className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <div>
-                            <p className="text-xs text-muted-foreground">Email</p>
+                            <p className="text-xs text-muted-foreground">{t("common.email")}</p>
                             <p className="font-medium text-foreground">{user.email}</p>
                         </div>
                     </div>
@@ -52,17 +55,17 @@ export default async function AdminSettingsPage() {
                             <Shield className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <div>
-                            <p className="text-xs text-muted-foreground">Role</p>
-                            <p className="font-medium text-foreground capitalize">{user.role ?? "super_admin"}</p>
+                            <p className="text-xs text-muted-foreground">{t("common.role")}</p>
+                            <p className="font-medium text-foreground capitalize">{getRoleLabel(user.role ?? "super_admin", locale)}</p>
                         </div>
                     </div>
                 </div>
 
                 {user.role === "super_admin" && (
                     <div className="rounded-xl border border-border bg-card p-5">
-                        <p className="text-sm font-semibold text-foreground">Data maintenance</p>
+                        <p className="text-sm font-semibold text-foreground">{t("dashboard.admin.dataMaintenance")}</p>
                         <p className="mt-1 text-xs text-muted-foreground">
-                            Crea pagos pendientes faltantes para registros históricos sin pago.
+                            {t("dashboard.admin.dataMaintenanceHelp")}
                         </p>
                         <div className="mt-4">
                             <BackfillPendingPaymentsButton />

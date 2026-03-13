@@ -4,8 +4,12 @@ import { desc, eq } from "drizzle-orm";
 import Link from "next/link";
 import { Calendar, Plus } from "lucide-react";
 import { DeleteEventButton } from "./DeleteEventButton";
+import { getI18n } from "@/lib/i18n/server";
+import { eventStatusLabel } from "@/lib/utils";
+import { getIntlLocale } from "@/lib/i18n/core";
 
 export default async function AdminEventsPage() {
+    const { locale, t } = await getI18n();
     const allEvents = await db
         .select({
             id: events.id,
@@ -31,9 +35,12 @@ export default async function AdminEventsPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="font-display text-3xl font-semibold text-foreground">All Events</h1>
+                    <h1 className="font-display text-3xl font-semibold text-foreground">{t("dashboard.admin.allEvents")}</h1>
                     <p className="mt-1 text-muted-foreground">
-                        {allEvents.length} event{allEvents.length !== 1 ? "s" : ""} on the platform
+                        {t("dashboard.admin.eventsOnPlatform", {
+                            count: allEvents.length,
+                            label: allEvents.length === 1 ? "evento" : "eventos",
+                        })}
                     </p>
                 </div>
                 <Link
@@ -41,19 +48,19 @@ export default async function AdminEventsPage() {
                     className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
                     <Plus className="h-4 w-4" />
-                    Create Event
+                    {t("common.createEvent")}
                 </Link>
             </div>
 
             {allEvents.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
                     <Calendar className="mx-auto h-10 w-10 text-muted-foreground/50" />
-                    <p className="mt-4 font-medium text-foreground">No events yet</p>
+                    <p className="mt-4 font-medium text-foreground">{t("dashboard.admin.noEventsYet")}</p>
                     <Link
                         href="/admin/events/new"
                         className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                     >
-                        <Plus className="h-4 w-4" /> Create Event
+                        <Plus className="h-4 w-4" /> {t("common.createEvent")}
                     </Link>
                 </div>
             ) : (
@@ -61,12 +68,12 @@ export default async function AdminEventsPage() {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="border-b border-border bg-muted/50">
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Title</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Organizer</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Category</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Date</th>
-                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-                                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("dashboard.admin.title")}</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.organizer")}</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.category")}</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.date")}</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.status")}</th>
+                                <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t("common.actions")}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -76,7 +83,7 @@ export default async function AdminEventsPage() {
                                     <td className="px-4 py-3 text-muted-foreground">{event.organizerName ?? "—"}</td>
                                     <td className="px-4 py-3 text-muted-foreground capitalize">{event.category}</td>
                                     <td className="px-4 py-3 text-muted-foreground">
-                                        {new Date(event.date).toLocaleDateString("en-US", {
+                                        {new Date(event.date).toLocaleDateString(getIntlLocale(locale), {
                                             month: "short",
                                             day: "numeric",
                                             year: "numeric",
@@ -84,7 +91,7 @@ export default async function AdminEventsPage() {
                                     </td>
                                     <td className="px-4 py-3">
                                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor[event.status] ?? ""}`}>
-                                            {event.status}
+                                            {eventStatusLabel(event.status, locale)}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-right">
@@ -93,13 +100,13 @@ export default async function AdminEventsPage() {
                                                 href={`/events/${event.slug}`}
                                                 className="text-primary hover:underline"
                                             >
-                                                View
+                                                {t("common.view")}
                                             </Link>
                                             <Link
                                                 href={`/admin/events/${event.id}`}
                                                 className="text-blue-600 hover:underline dark:text-blue-400"
                                             >
-                                                Edit
+                                                {t("common.edit")}
                                             </Link>
                                             <DeleteEventButton eventId={event.id} />
                                         </div>

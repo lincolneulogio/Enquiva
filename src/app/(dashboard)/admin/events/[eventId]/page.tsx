@@ -6,12 +6,14 @@ import { events } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { EventForm } from "@/components/events/EventForm";
 import { getCategories } from "@/actions/events";
+import { getI18n } from "@/lib/i18n/server";
 
 interface AdminEditEventPageProps {
     params: Promise<{ eventId: string }>;
 }
 
 export default async function AdminEditEventPage({ params }: AdminEditEventPageProps) {
+    const { t } = await getI18n();
     const { eventId } = await params;
 
     const [event] = await db
@@ -32,12 +34,12 @@ export default async function AdminEditEventPage({ params }: AdminEditEventPageP
                     className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                     <ArrowLeft className="h-3.5 w-3.5" />
-                    Back to Events
+                    {t("dashboard.admin.backToEvents")}
                 </Link>
                 <h1 className="mt-3 font-display text-3xl font-semibold text-foreground">
-                    Edit Event
+                    {t("dashboard.admin.editEvent")}
                 </h1>
-                <p className="mt-1 text-muted-foreground">Update details for {event.title}</p>
+                <p className="mt-1 text-muted-foreground">{t("dashboard.admin.updateEventDetails", { title: event.title })}</p>
             </div>
 
             <EventForm event={event} redirectPath="/admin/events" categories={categories} canFeature />

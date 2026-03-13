@@ -1,6 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/components/providers/LocaleProvider";
+import { getPaymentStatusLabel } from "@/lib/i18n/core";
 
 interface PaymentStatusBadgeProps {
   status: string;
@@ -13,13 +15,9 @@ const STATUS_STYLES: Record<string, string> = {
   rejected: "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400",
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: "Pendiente",
-  approved: "Pagado",
-  rejected: "Rechazado",
-};
-
 export function PaymentStatusBadge({ status, className }: PaymentStatusBadgeProps) {
+  const { locale } = useLocale();
+
   return (
     <span
       className={cn(
@@ -28,7 +26,7 @@ export function PaymentStatusBadge({ status, className }: PaymentStatusBadgeProp
         className
       )}
     >
-      {STATUS_LABELS[status] ?? status}
+      {getPaymentStatusLabel(status, locale)}
     </span>
   );
 }

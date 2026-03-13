@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 
 interface CategoryOption {
   slug: string;
@@ -20,6 +21,7 @@ interface EventFiltersProps {
 export function EventFilters({ currentFilters, categories }: EventFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const t = useTranslations();
 
   function applyFilter(key: string, value: string | undefined) {
     const params = new URLSearchParams();
@@ -35,12 +37,12 @@ export function EventFilters({ currentFilters, categories }: EventFiltersProps) 
       {/* Search */}
       <div>
         <label className="mb-2 block text-sm font-medium text-foreground">
-          Search
+          {t("events.filters.search")}
         </label>
         <input
           type="text"
           defaultValue={currentFilters.search}
-          placeholder="Search events..."
+          placeholder={t("events.filters.searchPlaceholder")}
           className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           onChange={(e) => {
             const params = new URLSearchParams();
@@ -53,7 +55,7 @@ export function EventFilters({ currentFilters, categories }: EventFiltersProps) 
 
       {/* Categories */}
       <div>
-        <h3 className="mb-3 text-sm font-medium text-foreground">Category</h3>
+        <h3 className="mb-3 text-sm font-medium text-foreground">{t("events.filters.category")}</h3>
         <div className="space-y-1">
           <button
             onClick={() => applyFilter("category", undefined)}
@@ -64,7 +66,7 @@ export function EventFilters({ currentFilters, categories }: EventFiltersProps) 
                 : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             )}
           >
-            All Categories
+            {t("events.filters.allCategories")}
           </button>
           {categories.map((cat) => (
             <button

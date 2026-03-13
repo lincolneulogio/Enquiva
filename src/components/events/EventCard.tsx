@@ -4,6 +4,8 @@ import { Calendar, MapPin, Users } from "lucide-react";
 import type { Event } from "@/lib/db/schema";
 import { categoryColor, categoryLabel, formatEventDateShort, truncate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { getLocale } from "@/lib/i18n/server";
+import { translate } from "@/lib/i18n/core";
 
 interface EventCardProps {
   event: Event & { attendeeCount?: number };
@@ -11,7 +13,9 @@ interface EventCardProps {
   categoryMap?: Record<string, { label: string; colorClass?: string | null }>;
 }
 
-export function EventCard({ event, className, categoryMap }: EventCardProps) {
+export async function EventCard({ event, className, categoryMap }: EventCardProps) {
+  const locale = await getLocale();
+  const t = (key: string, params?: Record<string, string | number>) => translate(locale, key, params);
   const isVirtual = event.isVirtual;
   const isFull = event.capacity != null && (event.attendeeCount ?? 0) >= event.capacity;
   const categoryMeta = categoryMap?.[event.category];
@@ -41,14 +45,14 @@ export function EventCard({ event, className, categoryMap }: EventCardProps) {
           {/* Category badge */}
           <div className="absolute left-3 top-3">
             <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", categoryMeta?.colorClass || categoryColor(event.category))}>
-              {categoryMeta?.label || categoryLabel(event.category)}
+              {categoryMeta?.label || categoryLabel(event.category, locale)}
             </span>
           </div>
           {/* Featured badge */}
           {event.isFeatured && (
             <div className="absolute right-3 top-3">
               <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground">
-                Featured
+                {t("common.featured")}
               </span>
             </div>
           )}
@@ -67,20 +71,23 @@ export function EventCard({ event, className, categoryMap }: EventCardProps) {
           <div className="space-y-1.5 text-xs text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <Calendar className="h-3.5 w-3.5 text-primary" />
-              <span>{formatEventDateShort(event.date)}</span>
+              <span>{formatEventDateShort(event.date, locale)}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5 text-primary" />
               <span className="truncate">
-                {isVirtual ? "Virtual Event" : (event.location ?? "Location TBD")}
+                {isVirtual ? t("common.virtualEvent") : (event.location ?? t("common.locationTbd"))}
               </span>
             </div>
             {event.capacity != null && (
               <div className="flex items-center gap-1.5">
                 <Users className="h-3.5 w-3.5 text-primary" />
                 <span>
-                  {event.attendeeCount ?? 0} / {event.capacity} registered
-                  {isFull && <span className="ml-1 text-destructive font-medium">(Full)</span>}
+                  {t("common.registeredCount", {
+                    count: event.attendeeCount ?? 0,
+                    capacity: event.capacity,
+                  })}
+                  {isFull && <span className="ml-1 text-destructive font-medium">({t("common.full")})</span>}
                 </span>
               </div>
             )}

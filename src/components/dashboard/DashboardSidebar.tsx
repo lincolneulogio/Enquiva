@@ -24,50 +24,51 @@ import { signOut } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { normalizeRole, type AppRole } from "@/lib/rbac";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 
 interface NavItem {
-  label: string;
+  labelKey: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
 }
 
 const organiverNav: NavItem[] = [
-  { label: "Overview", href: "/organizer", icon: LayoutDashboard },
-  { label: "My Events", href: "/organizer/events", icon: Calendar },
-  { label: "Attendees", href: "/organizer/attendees", icon: Users },
-  { label: "Notifications", href: "/organizer/notifications", icon: Bell },
-  { label: "Payments", href: "/organizer/payments", icon: CreditCard },
-  { label: "Profile", href: "/organizer/profile", icon: User },
-  { label: "Settings", href: "/organizer/settings", icon: Settings },
+  { labelKey: "dashboard.sidebar.organizer.overview", href: "/organizer", icon: LayoutDashboard },
+  { labelKey: "dashboard.sidebar.organizer.myEvents", href: "/organizer/events", icon: Calendar },
+  { labelKey: "dashboard.sidebar.organizer.attendees", href: "/organizer/attendees", icon: Users },
+  { labelKey: "dashboard.sidebar.organizer.notifications", href: "/organizer/notifications", icon: Bell },
+  { labelKey: "dashboard.sidebar.organizer.payments", href: "/organizer/payments", icon: CreditCard },
+  { labelKey: "dashboard.sidebar.organizer.profile", href: "/organizer/profile", icon: User },
+  { labelKey: "dashboard.sidebar.organizer.settings", href: "/organizer/settings", icon: Settings },
 ];
 
 const adminNav: NavItem[] = [
-  { label: "Overview", href: "/admin", icon: LayoutDashboard },
-  { label: "All Events", href: "/admin/events", icon: Calendar },
-  { label: "Categories", href: "/admin/categories", icon: ClipboardList },
-  { label: "Users", href: "/admin/users", icon: UserCog },
-  { label: "Registrations", href: "/admin/registrations", icon: ClipboardList },
-  { label: "Notifications", href: "/admin/notifications", icon: Bell },
-  { label: "Permissions", href: "/admin/permissions", icon: KeyRound },
-  { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-  { label: "Payments", href: "/admin/payments", icon: CreditCard },
-  { label: "Profile", href: "/admin/profile", icon: User },
-  { label: "Audit Logs", href: "/admin/logs", icon: FileText },
-  { label: "Settings", href: "/admin/settings", icon: Settings },
+  { labelKey: "dashboard.sidebar.admin.overview", href: "/admin", icon: LayoutDashboard },
+  { labelKey: "dashboard.sidebar.admin.allEvents", href: "/admin/events", icon: Calendar },
+  { labelKey: "dashboard.sidebar.admin.categories", href: "/admin/categories", icon: ClipboardList },
+  { labelKey: "dashboard.sidebar.admin.users", href: "/admin/users", icon: UserCog },
+  { labelKey: "dashboard.sidebar.admin.registrations", href: "/admin/registrations", icon: ClipboardList },
+  { labelKey: "dashboard.sidebar.admin.notifications", href: "/admin/notifications", icon: Bell },
+  { labelKey: "dashboard.sidebar.admin.permissions", href: "/admin/permissions", icon: KeyRound },
+  { labelKey: "dashboard.sidebar.admin.analytics", href: "/admin/analytics", icon: BarChart3 },
+  { labelKey: "dashboard.sidebar.admin.payments", href: "/admin/payments", icon: CreditCard },
+  { labelKey: "dashboard.sidebar.admin.profile", href: "/admin/profile", icon: User },
+  { labelKey: "dashboard.sidebar.admin.auditLogs", href: "/admin/logs", icon: FileText },
+  { labelKey: "dashboard.sidebar.admin.settings", href: "/admin/settings", icon: Settings },
 ];
 
 const superAdminExtraNav: NavItem[] = [
-  { label: "Roles", href: "/admin/roles", icon: Shield },
+  { labelKey: "dashboard.sidebar.admin.roles", href: "/admin/roles", icon: Shield },
 ];
 
 const memberNav: NavItem[] = [
-  { label: "Discover", href: "/member", icon: LayoutDashboard },
-  { label: "My Events", href: "/member/events", icon: Calendar },
-  { label: "Transport", href: "/member/transport", icon: Bus },
-  { label: "Notifications", href: "/member/notifications", icon: Bell },
-  { label: "Payments", href: "/member/payments", icon: CreditCard },
-  { label: "Tickets", href: "/member/tickets", icon: Ticket },
-  { label: "Profile", href: "/member/profile", icon: User },
+  { labelKey: "dashboard.sidebar.member.discover", href: "/member", icon: LayoutDashboard },
+  { labelKey: "dashboard.sidebar.member.myEvents", href: "/member/events", icon: Calendar },
+  { labelKey: "dashboard.sidebar.member.transport", href: "/member/transport", icon: Bus },
+  { labelKey: "dashboard.sidebar.member.notifications", href: "/member/notifications", icon: Bell },
+  { labelKey: "dashboard.sidebar.member.payments", href: "/member/payments", icon: CreditCard },
+  { labelKey: "dashboard.sidebar.member.tickets", href: "/member/tickets", icon: Ticket },
+  { labelKey: "dashboard.sidebar.member.profile", href: "/member/profile", icon: User },
 ];
 
 const navByRole: Record<string, NavItem[]> = {
@@ -91,6 +92,7 @@ interface DashboardSidebarProps {
 export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const t = useTranslations();
   const normalizedRole = normalizeRole(role);
   const baseNav = navByRole[normalizedRole] ?? memberNav;
   const navItems = normalizedRole === "super_admin"
@@ -117,7 +119,7 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
 
       {/* Nav */}
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {navItems.map(({ label, href, icon: Icon }) => {
+        {navItems.map(({ labelKey, href, icon: Icon }) => {
           const isActive = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link
@@ -131,7 +133,7 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
               )}
             >
               <Icon className="h-4 w-4" />
-              {label}
+              {t(labelKey)}
             </Link>
           );
         })}
@@ -161,7 +163,7 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
           className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
         >
           <LogOut className="h-4 w-4" />
-          Sign Out
+          {t("common.signOut")}
         </button>
       </div>
     </aside>

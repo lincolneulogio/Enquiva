@@ -9,6 +9,8 @@ import {
     deleteRoute,
     toggleRouteActive,
 } from "@/actions/transport";
+import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
+import { getIntlLocale } from "@/lib/i18n/core";
 
 interface Route {
     id: string;
@@ -48,6 +50,8 @@ export function TransportRoutesManager({
     eventId,
     initialRoutes,
 }: TransportRoutesManagerProps) {
+    const t = useTranslations();
+    const { locale } = useLocale();
     const [routes, setRoutes] = useState<Route[]>(initialRoutes);
     const [isPending, startTransition] = useTransition();
     const [showForm, setShowForm] = useState(false);
@@ -80,15 +84,15 @@ export function TransportRoutesManager({
         const seats = parseInt(form.totalSeats);
 
         if (!form.name.trim() || !form.departurePoint.trim() || !form.departureTime) {
-            toast.error("Nombre, punto de salida y hora son requeridos");
+            toast.error(t("transport.manager.requiredFields"));
             return;
         }
         if (isNaN(price) || price < 0) {
-            toast.error("Precio inválido");
+            toast.error(t("transport.manager.invalidPrice"));
             return;
         }
         if (isNaN(seats) || seats < 1) {
-            toast.error("Número de asientos inválido");
+            toast.error(t("transport.manager.invalidSeats"));
             return;
         }
 
@@ -120,7 +124,7 @@ export function TransportRoutesManager({
                                 : r
                         )
                     );
-                    toast.success("Ruta actualizada");
+                    toast.success(t("transport.manager.routeUpdated"));
                 } else {
                     const result = await createRoute({
                         eventId,
@@ -138,13 +142,13 @@ export function TransportRoutesManager({
                             { ...result.route, bookedSeats: 0 } as Route,
                         ]);
                     }
-                    toast.success("Ruta creada");
+                    toast.success(t("transport.manager.routeCreated"));
                 }
                 setShowForm(false);
                 setEditId(null);
                 setForm(EMPTY_FORM);
             } catch (e) {
-                toast.error(e instanceof Error ? e.message : "Error al guardar");
+                toast.error(e instanceof Error ? e.message : t("transport.manager.saveError"));
             }
         });
     };
@@ -155,9 +159,9 @@ export function TransportRoutesManager({
             try {
                 await deleteRoute(routeId);
                 setRoutes((prev) => prev.filter((r) => r.id !== routeId));
-                toast.success("Ruta eliminada");
+                toast.success(t("transport.manager.routeDeleted"));
             } catch (e) {
-                toast.error(e instanceof Error ? e.message : "Error al eliminar");
+                toast.error(e instanceof Error ? e.message : t("transport.manager.deleteError"));
             } finally {
                 setDeletingId(null);
             }
@@ -171,9 +175,9 @@ export function TransportRoutesManager({
                 setRoutes((prev) =>
                     prev.map((r) => (r.id === routeId ? { ...r, isActive: !current } : r))
                 );
-                toast.success(!current ? "Ruta activada" : "Ruta desactivada");
+                toast.success(!current ? t("transport.manager.routeActivated") : t("transport.manager.routeDeactivated"));
             } catch {
-                toast.error("Error al cambiar estado");
+                toast.error(t("transport.manager.toggleError"));
             }
         });
     };
@@ -186,14 +190,14 @@ export function TransportRoutesManager({
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Bus className="h-5 w-5 text-blue-500" />
-                    <h2 className="text-lg font-semibold text-foreground">Rutas de Transporte</h2>
+                    <h2 className="text-lg font-semibold text-foreground">{t("transport.manager.title")}</h2>
                 </div>
                 <button
                     type="button"
                     onClick={openCreate}
                     className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
-                    <Plus className="h-4 w-4" /> Nueva Ruta
+                    <Plus className="h-4 w-4" /> {t("transport.manager.newRoute")}
                 </button>
             </div>
 
@@ -201,17 +205,17 @@ export function TransportRoutesManager({
             {showForm && (
                 <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
                     <h3 className="font-medium text-foreground">
-                        {editId ? "Editar Ruta" : "Nueva Ruta de Transporte"}
+                        {editId ? t("transport.manager.editRoute") : t("transport.manager.newTransportRoute")}
                     </h3>
 
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="sm:col-span-2">
                             <label className="mb-1.5 block text-sm font-medium text-foreground">
-                                Nombre de la ruta *
+                                {t("transport.manager.routeName")}
                             </label>
                             <input
                                 className={inputClass}
-                                placeholder='Ej: "Bus desde Plaza de Armas"'
+                                placeholder={t("transport.manager.routeNamePlaceholder")}
                                 value={form.name}
                                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                             />
@@ -219,11 +223,11 @@ export function TransportRoutesManager({
 
                         <div className="sm:col-span-2">
                             <label className="mb-1.5 block text-sm font-medium text-foreground">
-                                Punto de salida *
+                                {t("transport.manager.departurePoint")}
                             </label>
                             <input
                                 className={inputClass}
-                                placeholder="Dirección exacta del punto de encuentro"
+                                placeholder={t("transport.manager.departurePointPlaceholder")}
                                 value={form.departurePoint}
                                 onChange={(e) => setForm({ ...form, departurePoint: e.target.value })}
                             />
@@ -231,7 +235,7 @@ export function TransportRoutesManager({
 
                         <div>
                             <label className="mb-1.5 block text-sm font-medium text-foreground">
-                                Hora de salida *
+                                {t("transport.manager.departureTime")}
                             </label>
                             <input
                                 type="datetime-local"
@@ -243,8 +247,8 @@ export function TransportRoutesManager({
 
                         <div>
                             <label className="mb-1.5 block text-sm font-medium text-foreground">
-                                Hora de retorno{" "}
-                                <span className="font-normal text-muted-foreground">(opcional)</span>
+                                {t("transport.manager.returnTime")}{" "}
+                                <span className="font-normal text-muted-foreground">{t("transport.booking.optional")}</span>
                             </label>
                             <input
                                 type="datetime-local"
@@ -256,14 +260,14 @@ export function TransportRoutesManager({
 
                         <div>
                             <label className="mb-1.5 block text-sm font-medium text-foreground">
-                                Precio por asiento (S/.) *
+                                {t("transport.manager.seatPrice")}
                             </label>
                             <input
                                 type="number"
                                 min={0}
                                 step="0.50"
                                 className={inputClass}
-                                placeholder="0.00"
+                                placeholder={t("transport.manager.pricePlaceholder")}
                                 value={form.pricePerSeat}
                                 onChange={(e) => setForm({ ...form, pricePerSeat: e.target.value })}
                             />
@@ -271,13 +275,13 @@ export function TransportRoutesManager({
 
                         <div>
                             <label className="mb-1.5 block text-sm font-medium text-foreground">
-                                Total de asientos *
+                                {t("transport.manager.totalSeats")}
                             </label>
                             <input
                                 type="number"
                                 min={1}
                                 className={inputClass}
-                                placeholder="Ej: 40"
+                                placeholder={t("transport.manager.seatsPlaceholder")}
                                 value={form.totalSeats}
                                 onChange={(e) => setForm({ ...form, totalSeats: e.target.value })}
                             />
@@ -285,13 +289,13 @@ export function TransportRoutesManager({
 
                         <div className="sm:col-span-2">
                             <label className="mb-1.5 block text-sm font-medium text-foreground">
-                                Descripción{" "}
-                                <span className="font-normal text-muted-foreground">(opcional)</span>
+                                {t("transport.manager.description")}{" "}
+                                <span className="font-normal text-muted-foreground">{t("transport.booking.optional")}</span>
                             </label>
                             <textarea
                                 rows={2}
                                 className={`${inputClass} resize-none`}
-                                placeholder="Información adicional sobre el transporte..."
+                                placeholder={t("transport.manager.descriptionPlaceholder")}
                                 value={form.description}
                                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                             />
@@ -316,7 +320,7 @@ export function TransportRoutesManager({
                             className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
                         >
                             {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                            {editId ? "Guardar cambios" : "Crear ruta"}
+                            {editId ? t("common.saveChanges") : t("transport.manager.createRoute")}
                         </button>
                     </div>
                 </div>
@@ -327,7 +331,7 @@ export function TransportRoutesManager({
                 <div className="rounded-2xl border border-dashed border-border p-10 text-center">
                     <Bus className="mx-auto h-10 w-10 text-muted-foreground/30" />
                     <p className="mt-3 text-sm text-muted-foreground">
-                        No hay rutas de transporte. Agrega la primera.
+                        {t("transport.manager.noRoutes")}
                     </p>
                 </div>
             ) : (
@@ -348,7 +352,7 @@ export function TransportRoutesManager({
                                             <h3 className="font-medium text-foreground">{route.name}</h3>
                                             {!route.isActive && (
                                                 <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
-                                                    Inactiva
+                                                    {t("transport.manager.inactive")}
                                                 </span>
                                             )}
                                         </div>
@@ -357,23 +361,23 @@ export function TransportRoutesManager({
                                         </p>
                                         <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                                             <span>
-                                                🕐 Salida:{" "}
-                                                {new Date(route.departureTime).toLocaleString("es-PE", {
+                                                🕐 {t("transport.manager.departure")}:{" "}
+                                                {new Date(route.departureTime).toLocaleString(getIntlLocale(locale), {
                                                     dateStyle: "short",
                                                     timeStyle: "short",
                                                 })}
                                             </span>
                                             {route.returnTime && (
                                                 <span>
-                                                    🔁 Retorno:{" "}
-                                                    {new Date(route.returnTime).toLocaleString("es-PE", {
+                                                    🔁 {t("transport.manager.return")}:{" "}
+                                                    {new Date(route.returnTime).toLocaleString(getIntlLocale(locale), {
                                                         dateStyle: "short",
                                                         timeStyle: "short",
                                                     })}
                                                 </span>
                                             )}
                                             <span className="font-medium text-foreground">
-                                                S/. {Number(route.pricePerSeat).toFixed(2)} / asiento
+                                                S/. {Number(route.pricePerSeat).toFixed(2)} / {t("transport.manager.perSeat")}
                                             </span>
                                         </div>
 
@@ -382,17 +386,17 @@ export function TransportRoutesManager({
                                             <div className="h-1.5 flex-1 rounded-full bg-secondary">
                                                 <div
                                                     className={`h-1.5 rounded-full transition-all ${occupancy >= 90
-                                                            ? "bg-destructive"
-                                                            : occupancy >= 70
-                                                                ? "bg-amber-500"
-                                                                : "bg-green-500"
+                                                        ? "bg-destructive"
+                                                        : occupancy >= 70
+                                                            ? "bg-amber-500"
+                                                            : "bg-green-500"
                                                         }`}
                                                     style={{ width: `${Math.min(occupancy, 100)}%` }}
                                                 />
                                             </div>
                                             <span className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
                                                 <Users className="h-3 w-3" />
-                                                {route.bookedSeats}/{route.totalSeats} ({available} libres)
+                                                {route.bookedSeats}/{route.totalSeats} ({available} {t("transport.manager.freeSeats")})
                                             </span>
                                         </div>
                                     </div>
@@ -400,12 +404,12 @@ export function TransportRoutesManager({
                                     <div className="flex items-center gap-1.5 shrink-0">
                                         <button
                                             type="button"
-                                            title={route.isActive ? "Desactivar" : "Activar"}
+                                            title={route.isActive ? t("transport.manager.deactivate") : t("transport.manager.activate")}
                                             onClick={() => handleToggle(route.id, route.isActive)}
                                             disabled={isPending}
                                             className={`rounded-lg p-2 transition-colors disabled:opacity-50 ${route.isActive
-                                                    ? "hover:bg-green-500/10 text-green-600"
-                                                    : "hover:bg-secondary text-muted-foreground"
+                                                ? "hover:bg-green-500/10 text-green-600"
+                                                : "hover:bg-secondary text-muted-foreground"
                                                 }`}
                                         >
                                             {route.isActive ? (

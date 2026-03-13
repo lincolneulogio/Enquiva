@@ -5,7 +5,9 @@ import { LogOut, Crown, ShieldCheck, Briefcase, UserRound } from "lucide-react";
 import Image from "next/image";
 import { signOut } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
-import { ROLE_BADGE_STYLES, ROLE_LABELS, normalizeRole } from "@/lib/rbac";
+import { useTranslations, useLocale } from "@/components/providers/LocaleProvider";
+import { getRoleLabel } from "@/lib/i18n/core";
+import { ROLE_BADGE_STYLES, normalizeRole } from "@/lib/rbac";
 
 interface TopbarUserMenuProps {
   user: {
@@ -18,6 +20,8 @@ interface TopbarUserMenuProps {
 
 export function TopbarUserMenu({ user }: TopbarUserMenuProps) {
   const router = useRouter();
+  const t = useTranslations();
+  const { locale } = useLocale();
   const normalizedRole = normalizeRole(user.role);
   const RoleIcon =
     normalizedRole === "super_admin"
@@ -61,18 +65,18 @@ export function TopbarUserMenu({ user }: TopbarUserMenuProps) {
           )}
         >
           <RoleIcon className="h-3 w-3" />
-          {ROLE_LABELS[normalizedRole]}
+          {getRoleLabel(normalizedRole, locale)}
         </span>
       </div>
 
       {/* Botón cerrar sesión */}
       <button
         onClick={handleSignOut}
-        title="Sign out"
+        title={t("common.signOut")}
         className="flex items-center gap-1.5 rounded-xl border border-border bg-secondary/50 px-3 py-2 text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors"
       >
         <LogOut className="h-4 w-4" />
-        <span className="hidden md:block">Sign Out</span>
+        <span className="hidden md:block">{t("common.signOut")}</span>
       </button>
     </div>
   );

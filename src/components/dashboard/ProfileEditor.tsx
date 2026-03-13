@@ -14,6 +14,8 @@ import {
 } from "@/lib/validations";
 import { UploadButton } from "@/lib/uploadthing/components";
 import { Eye, EyeOff, Loader2, Mail, Shield, User, ImageIcon, LockKeyhole, Phone } from "lucide-react";
+import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
+import { getRoleLabel } from "@/lib/i18n/core";
 
 interface ProfileEditorProps {
     user: {
@@ -54,7 +56,7 @@ async function loadImageFromFile(file: File) {
         const image = await new Promise<HTMLImageElement>((resolve, reject) => {
             const img = new Image();
             img.onload = () => resolve(img);
-            img.onerror = () => reject(new Error("No se pudo leer la imagen"));
+            img.onerror = () => reject(new Error("IMAGE_READ_ERROR"));
             img.src = objectUrl;
         });
         return image;
@@ -77,7 +79,7 @@ async function optimizeAvatarFile(file: File) {
 
     const ctx = canvas.getContext("2d");
     if (!ctx) {
-        throw new Error("No se pudo procesar la imagen");
+        throw new Error("IMAGE_PROCESS_ERROR");
     }
 
     ctx.imageSmoothingEnabled = true;
@@ -98,7 +100,7 @@ async function optimizeAvatarFile(file: File) {
         canvas.toBlob(
             (result) => {
                 if (!result) {
-                    reject(new Error("No se pudo generar el avatar"));
+                    reject(new Error("AVATAR_GENERATE_ERROR"));
                     return;
                 }
                 resolve(result);
@@ -119,13 +121,14 @@ async function optimizeAvatarFiles(files: File[]) {
     try {
         return await Promise.all(files.map((file) => optimizeAvatarFile(file)));
     } catch {
-        toast.error("No pudimos optimizar la imagen. Intenta con otra foto.");
         return files;
     }
 }
 
 export function ProfileEditor({ user }: ProfileEditorProps) {
     const router = useRouter();
+    const t = useTranslations();
+    const { locale } = useLocale();
     const [isProfilePending, startProfileTransition] = useTransition();
     const [isPasswordPending, startPasswordTransition] = useTransition();
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -168,6 +171,14 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
 
     const newPasswordValue = watchPassword("newPassword") ?? "";
     const passwordStrength = getPasswordStrength(newPasswordValue);
+    const localizedPasswordStrength =
+        passwordStrength.label === "Sin contraseña"
+            ? t("dashboard.profile.noPassword")
+            : passwordStrength.label === "Débil"
+                ? t("dashboard.profile.weak")
+                : passwordStrength.label === "Media"
+                    ? t("dashboard.profile.medium")
+                    : t("dashboard.profile.strong");
 
     const onSubmit = (data: UpdateProfileInput) => {
         startProfileTransition(async () => {
@@ -178,10 +189,10 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                     bio: data.bio?.trim() ? data.bio : null,
                     image: data.image?.trim() ? data.image : null,
                 });
-                toast.success("Perfil actualizado correctamente");
+                toast.success(t("dashboard.profile.profileUpdated"));
                 router.refresh();
             } catch (error) {
-                toast.error(error instanceof Error ? error.message : "No se pudo actualizar el perfil");
+                toast.error(error instanceof Error ? error.message : t("dashboard.profile.profileUpdateError"));
             }
         });
     };
@@ -190,10 +201,10 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
         startPasswordTransition(async () => {
             try {
                 await updateCurrentUserPassword(data);
-                toast.success("Contraseña actualizada correctamente");
+                toast.success(t("dashboard.profile.passwordUpdated"));
                 resetPasswordForm();
             } catch (error) {
-                toast.error(error instanceof Error ? error.message : "No se pudo actualizar la contraseña");
+                toast.error(error instanceof Error ? error.message : t("dashboard.profile.passwordUpdateError"));
             }
         });
     };
@@ -204,7 +215,7 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                 <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-2xl font-semibold text-primary">
                     {previewImage ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={previewImage} alt="Profile" className="h-full w-full object-cover" />
+                        <img src={previewImage} alt={t("common.profile")} className="h-full w-full object-cover" />
                     ) : (
                         initials
                     )}
@@ -213,17 +224,17 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                     <p className="text-xl font-semibold text-foreground">{watch("name") || user.name}</p>
                     <p className="text-sm text-muted-foreground">{user.email}</p>
                     <span className="mt-1 inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-foreground capitalize">
-                        {user.role}
+                        {getRoleLabel(user.role, locale)}
                     </span>
                 </div>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 rounded-xl border border-border bg-card p-6">
                 <div>
-                    <label className="mb-1.5 block text-sm font-medium text-foreground">Nombre completo *</label>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">{t("common.fullName")} *</label>
                     <input
                         {...register("name")}
-                        placeholder="Tu nombre"
+                        placeholder={t("common.fullName")}
                         className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
                     />
                     {errors.name && <p className="mt-1 text-xs text-destructive">{errors.name.message}</p>}
@@ -232,28 +243,28 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                 <div>
                     <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-foreground">
                         <Phone className="h-4 w-4" />
-                        Teléfono (+51) *
+                        {t("profile.phoneLabel")}
                     </label>
                     <input
                         {...register("phone")}
-                        placeholder="+51987654321"
+                        placeholder={t("profile.phonePlaceholder")}
                         className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
                     />
                     <p className="mt-1 text-xs text-muted-foreground">
-                        Formato requerido: +51 seguido de 9 dígitos (ej. +51987654321).
+                        {t("profile.phoneHint")}
                     </p>
                     {errors.phone && <p className="mt-1 text-xs text-destructive">{errors.phone.message}</p>}
                 </div>
 
                 <div className="space-y-2">
-                    <label className="block text-sm font-medium text-foreground">Foto de perfil</label>
+                    <label className="block text-sm font-medium text-foreground">{t("dashboard.profile.profilePhoto")}</label>
 
                     <div className="rounded-xl border border-border bg-background p-4">
                         {previewImage ? (
                             <div className="space-y-3">
                                 <div className="relative h-40 w-full overflow-hidden rounded-lg border border-border">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={previewImage} alt="Avatar preview" className="h-full w-full object-cover" />
+                                    <img src={previewImage} alt={t("dashboard.profile.profilePhoto")} className="h-full w-full object-cover" />
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                     <UploadButton
@@ -266,7 +277,7 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                                                     shouldTouch: true,
                                                     shouldValidate: true,
                                                 });
-                                                toast.success("Avatar subido correctamente");
+                                                toast.success(t("dashboard.profile.avatarUploaded"));
                                             }
                                         }}
                                         onUploadError={(err) => {
@@ -288,7 +299,7 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                                         }
                                         className="rounded-lg border border-border px-3 py-2 text-sm text-foreground hover:bg-muted"
                                     >
-                                        Quitar avatar
+                                        {t("dashboard.profile.removeAvatar")}
                                     </button>
                                 </div>
                             </div>
@@ -296,7 +307,7 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                             <div className="flex flex-col items-start gap-3 text-muted-foreground">
                                 <div className="flex items-center gap-2 text-sm">
                                     <ImageIcon className="h-4 w-4" />
-                                    <span>Sube una imagen para tu perfil</span>
+                                    <span>{t("dashboard.profile.uploadProfilePhoto")}</span>
                                 </div>
                                 <UploadButton
                                     endpoint="profileAvatar"
@@ -308,7 +319,7 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                                                 shouldTouch: true,
                                                 shouldValidate: true,
                                             });
-                                            toast.success("Avatar subido correctamente");
+                                            toast.success(t("dashboard.profile.avatarUploaded"));
                                         }
                                     }}
                                     onUploadError={(err) => {
@@ -324,22 +335,22 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                     </div>
 
                     <p className="text-xs text-muted-foreground">
-                        Opcional: puedes pegar una URL manual o dejarlo vacío si no la usarás.
+                        {t("dashboard.profile.optionalManualUrl")}
                     </p>
                     <input
                         {...register("image")}
-                        placeholder="Opcional (ej: https://mi-sitio.com/avatar.jpg)"
+                        placeholder={t("profile.avatarUrlPlaceholder")}
                         className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
                     />
                     {errors.image && <p className="mt-1 text-xs text-destructive">{errors.image.message}</p>}
                 </div>
 
                 <div>
-                    <label className="mb-1.5 block text-sm font-medium text-foreground">Bio</label>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">{t("dashboard.profile.bio")}</label>
                     <textarea
                         {...register("bio")}
                         rows={4}
-                        placeholder="Cuéntanos un poco sobre ti"
+                        placeholder={t("dashboard.profile.tellUsAboutYou")}
                         className="w-full resize-none rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
                     />
                     {errors.bio && <p className="mt-1 text-xs text-destructive">{errors.bio.message}</p>}
@@ -349,18 +360,18 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                     <div className="space-y-3">
                         <div className="flex items-center gap-3 text-sm text-muted-foreground">
                             <Mail className="h-4 w-4" />
-                            <span>Email:</span>
+                            <span>{t("common.email")}:</span>
                             <span className="font-medium text-foreground">{user.email}</span>
                         </div>
                         <div className="flex items-center gap-3 text-sm text-muted-foreground">
                             <Shield className="h-4 w-4" />
-                            <span>Rol:</span>
-                            <span className="font-medium capitalize text-foreground">{user.role}</span>
+                            <span>{t("common.role")}:</span>
+                            <span className="font-medium capitalize text-foreground">{getRoleLabel(user.role, locale)}</span>
                         </div>
                         <div className="flex items-center gap-3 text-sm text-muted-foreground">
                             <User className="h-4 w-4" />
-                            <span>Cuenta:</span>
-                            <span className="font-medium text-foreground">Información personal editable</span>
+                            <span>{t("common.account")}:</span>
+                            <span className="font-medium text-foreground">{t("dashboard.profile.accountInfoEditable")}</span>
                         </div>
                     </div>
                 </div>
@@ -371,7 +382,7 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                     className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                     {isProfilePending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                    {isProfilePending ? "Guardando..." : "Guardar cambios"}
+                    {isProfilePending ? t("common.saving") : t("common.saveChanges")}
                 </button>
             </form>
 
@@ -381,23 +392,23 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
             >
                 <div className="flex items-center gap-2">
                     <LockKeyhole className="h-4 w-4 text-primary" />
-                    <h3 className="text-base font-semibold text-foreground">Actualizar contraseña</h3>
+                    <h3 className="text-base font-semibold text-foreground">{t("dashboard.profile.updatePassword")}</h3>
                 </div>
 
                 <div>
-                    <label className="mb-1.5 block text-sm font-medium text-foreground">Contraseña actual *</label>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">{t("dashboard.profile.currentPassword")}</label>
                     <div className="relative">
                         <input
                             type={showCurrentPassword ? "text" : "password"}
                             {...registerPassword("currentPassword")}
-                            placeholder="Ingresa tu contraseña actual"
+                            placeholder={t("dashboard.profile.enterCurrentPassword")}
                             className="w-full rounded-xl border border-border bg-background px-4 py-2.5 pr-11 text-sm focus:border-primary focus:outline-none"
                         />
                         <button
                             type="button"
                             onClick={() => setShowCurrentPassword((prev) => !prev)}
                             className="absolute inset-y-0 right-2 my-auto h-8 rounded-lg px-2 text-muted-foreground hover:bg-muted"
-                            aria-label={showCurrentPassword ? "Ocultar contraseña actual" : "Mostrar contraseña actual"}
+                            aria-label={showCurrentPassword ? t("dashboard.profile.hideCurrentPassword") : t("dashboard.profile.showCurrentPassword")}
                         >
                             {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -408,19 +419,19 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                 </div>
 
                 <div>
-                    <label className="mb-1.5 block text-sm font-medium text-foreground">Nueva contraseña *</label>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">{t("dashboard.profile.newPassword")}</label>
                     <div className="relative">
                         <input
                             type={showNewPassword ? "text" : "password"}
                             {...registerPassword("newPassword")}
-                            placeholder="Mínimo 8 caracteres, 1 mayúscula y 1 número"
+                            placeholder={t("dashboard.profile.newPasswordHint")}
                             className="w-full rounded-xl border border-border bg-background px-4 py-2.5 pr-11 text-sm focus:border-primary focus:outline-none"
                         />
                         <button
                             type="button"
                             onClick={() => setShowNewPassword((prev) => !prev)}
                             className="absolute inset-y-0 right-2 my-auto h-8 rounded-lg px-2 text-muted-foreground hover:bg-muted"
-                            aria-label={showNewPassword ? "Ocultar nueva contraseña" : "Mostrar nueva contraseña"}
+                            aria-label={showNewPassword ? t("dashboard.profile.hideNewPassword") : t("dashboard.profile.showNewPassword")}
                         >
                             {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -432,7 +443,7 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                                 style={{ width: `${Math.max((passwordStrength.score / 5) * 100, 8)}%` }}
                             />
                         </div>
-                        <p className="text-xs text-muted-foreground">Fortaleza: {passwordStrength.label}</p>
+                        <p className="text-xs text-muted-foreground">{t("dashboard.profile.passwordStrength", { label: localizedPasswordStrength })}</p>
                     </div>
                     {passwordErrors.newPassword && (
                         <p className="mt-1 text-xs text-destructive">{passwordErrors.newPassword.message}</p>
@@ -440,19 +451,19 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                 </div>
 
                 <div>
-                    <label className="mb-1.5 block text-sm font-medium text-foreground">Confirmar nueva contraseña *</label>
+                    <label className="mb-1.5 block text-sm font-medium text-foreground">{t("dashboard.profile.confirmNewPassword")}</label>
                     <div className="relative">
                         <input
                             type={showConfirmPassword ? "text" : "password"}
                             {...registerPassword("confirmPassword")}
-                            placeholder="Repite tu nueva contraseña"
+                            placeholder={t("dashboard.profile.repeatNewPassword")}
                             className="w-full rounded-xl border border-border bg-background px-4 py-2.5 pr-11 text-sm focus:border-primary focus:outline-none"
                         />
                         <button
                             type="button"
                             onClick={() => setShowConfirmPassword((prev) => !prev)}
                             className="absolute inset-y-0 right-2 my-auto h-8 rounded-lg px-2 text-muted-foreground hover:bg-muted"
-                            aria-label={showConfirmPassword ? "Ocultar confirmación de contraseña" : "Mostrar confirmación de contraseña"}
+                            aria-label={showConfirmPassword ? t("dashboard.profile.hideConfirmPassword") : t("dashboard.profile.showConfirmPassword")}
                         >
                             {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -468,7 +479,7 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                     className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                     {isPasswordPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                    {isPasswordPending ? "Actualizando..." : "Cambiar contraseña"}
+                    {isPasswordPending ? t("dashboard.profile.updating") : t("dashboard.profile.changePassword")}
                 </button>
             </form>
         </div>

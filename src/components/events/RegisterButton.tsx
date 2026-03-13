@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { registerForEvent, cancelRegistration } from "@/actions/registrations";
 import { Loader2, CheckCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 
 interface RegisterButtonProps {
   eventId: string;
@@ -29,6 +30,7 @@ export function RegisterButton({
   registrationId,
 }: RegisterButtonProps) {
   const router = useRouter();
+  const t = useTranslations();
   const [isPending, startTransition] = useTransition();
   const [optimisticStatus, setOptimisticStatus] = useState(currentStatus);
   const [contactPhone, setContactPhone] = useState(userPhone ?? "");
@@ -39,7 +41,7 @@ export function RegisterButton({
         href={`/login?callbackUrl=/events`}
         className="block w-full rounded-xl bg-primary py-3 text-center text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
       >
-        Sign In to Register
+        {t("register.signInToRegister")}
       </a>
     );
   }
@@ -49,7 +51,7 @@ export function RegisterButton({
       <div className="space-y-2">
         <div className="flex items-center justify-center gap-2 rounded-xl bg-green-50 py-3 text-sm font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400">
           <CheckCircle className="h-4 w-4" />
-          {optimisticStatus === "checked_in" ? "Checked In" : "You're Registered!"}
+          {optimisticStatus === "checked_in" ? t("register.checkedIn") : t("register.youreRegistered")}
         </div>
         {optimisticStatus === "registered" && registrationId && (
           <button
@@ -58,18 +60,18 @@ export function RegisterButton({
                 setOptimisticStatus("cancelled");
                 try {
                   await cancelRegistration(registrationId);
-                  toast.success("Registration cancelled");
+                  toast.success(t("register.registrationCancelled"));
                   router.refresh();
                 } catch {
                   setOptimisticStatus("registered");
-                  toast.error("Failed to cancel registration");
+                  toast.error(t("register.registrationCancelFailed"));
                 }
               });
             }}
             disabled={isPending}
             className="block w-full rounded-xl border border-border py-2 text-center text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition-colors"
           >
-            {isPending ? <Loader2 className="mx-auto h-3 w-3 animate-spin" /> : "Cancel Registration"}
+            {isPending ? <Loader2 className="mx-auto h-3 w-3 animate-spin" /> : t("register.cancelRegistration")}
           </button>
         )}
       </div>
@@ -80,7 +82,7 @@ export function RegisterButton({
     return (
       <div className="flex items-center justify-center gap-2 rounded-xl bg-amber-50 py-3 text-sm font-medium text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
         <Clock className="h-4 w-4" />
-        On Waitlist
+        {t("register.onWaitlist")}
       </div>
     );
   }
@@ -89,16 +91,16 @@ export function RegisterButton({
     <div className="space-y-3">
       <div className="rounded-xl border border-border bg-card p-3 text-left">
         <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Confirma tu teléfono de contacto
+          {t("register.confirmContactPhone")}
         </label>
         <input
           value={contactPhone}
           onChange={(event) => setContactPhone(event.target.value)}
-          placeholder="+51987654321"
+          placeholder={t("register.contactPhonePlaceholder")}
           className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
         />
         <p className="mt-1 text-xs text-muted-foreground">
-          Formato Perú: +51 seguido por 9 dígitos.
+          {t("register.peruPhoneFormat")}
         </p>
       </div>
 
@@ -106,7 +108,7 @@ export function RegisterButton({
         onClick={() => {
           const normalizedPhone = contactPhone.trim();
           if (!PERU_PHONE_REGEX.test(normalizedPhone)) {
-            toast.error("Usa el formato +519XXXXXXXX para continuar.");
+            toast.error(t("register.invalidPhoneFormat"));
             return;
           }
 
@@ -121,8 +123,8 @@ export function RegisterButton({
               if (result.success) {
                 toast.success(
                   result.status === "waitlisted"
-                    ? "Added to waitlist!"
-                    : "Successfully registered! 🎉"
+                    ? t("register.addedToWaitlist")
+                    : t("register.registrationSuccess")
                 );
                 if (result.status === "registered") {
                   router.push(hasTransport ? "/member/transport" : "/member/tickets");
@@ -133,7 +135,7 @@ export function RegisterButton({
             } catch (error) {
               setOptimisticStatus(null);
               toast.error(
-                error instanceof Error ? error.message : "Registration failed"
+                error instanceof Error ? error.message : t("register.registrationFailed")
               );
             }
           });
@@ -149,9 +151,9 @@ export function RegisterButton({
         {isPending ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : isFull ? (
-          "Join Waitlist"
+          t("register.joinWaitlist")
         ) : (
-          "Register Now"
+          t("register.registerNow")
         )}
       </button>
     </div>

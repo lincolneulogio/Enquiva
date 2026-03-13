@@ -8,9 +8,11 @@ import { signIn } from "@/lib/auth/client";
 import { signInSchema, type SignInInput } from "@/lib/validations";
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 
 export function LoginForm() {
   const router = useRouter();
+  const t = useTranslations();
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -35,9 +37,9 @@ export function LoginForm() {
       });
 
       if (result.error) {
-        toast.error(result.error.message ?? "Invalid credentials");
+        toast.error(result.error.message ?? t("auth.invalidCredentials"));
       } else {
-        toast.success("Welcome back!");
+        toast.success(t("auth.loginSuccess"));
         router.push("/dashboard");
         router.refresh();
       }
@@ -49,12 +51,12 @@ export function LoginForm() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label className="mb-1.5 block text-sm font-medium text-foreground">
-            Email
+            {t("auth.email")}
           </label>
           <input
             type="email"
             {...register("email")}
-            placeholder="you@example.com"
+            placeholder={t("auth.emailPlaceholder")}
             className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
           {errors.email && (
@@ -64,20 +66,20 @@ export function LoginForm() {
 
         <div>
           <label className="mb-1.5 block text-sm font-medium text-foreground">
-            Password
+            {t("auth.password")}
           </label>
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
               {...register("password")}
-              placeholder="Your password"
+              placeholder={t("auth.yourPassword")}
               className="w-full rounded-xl border border-border bg-background px-4 py-2.5 pr-11 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
               className="absolute inset-y-0 right-2 my-auto h-8 rounded-lg px-2 text-muted-foreground hover:bg-muted"
-              aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -93,7 +95,7 @@ export function LoginForm() {
             {...register("rememberMe")}
             className="h-4 w-4 rounded border-border"
           />
-          Recordarme
+          {t("auth.rememberMe")}
         </label>
 
         <button
@@ -104,7 +106,7 @@ export function LoginForm() {
           {isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            "Sign In"
+            t("auth.signIn")
           )}
         </button>
       </form>

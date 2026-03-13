@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
+import { LocaleProvider } from "@/components/providers/LocaleProvider";
+import { getLocale } from "@/lib/i18n/server";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -12,40 +14,44 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: {
-    default: "FaithEvents — Community Event Platform",
+    default: "FaithEvents — Plataforma de eventos comunitarios",
     template: "%s | FaithEvents",
   },
   description:
-    "Manage and discover meaningful community and faith-based events. Register, connect, and grow together.",
-  keywords: ["faith", "community", "events", "church", "worship", "retreat"],
+    "Gestiona y descubre eventos comunitarios y de fe con facilidad. Regístrate, conecta y crezcan juntos.",
+  keywords: ["fe", "comunidad", "eventos", "iglesia", "adoración", "retiro"],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale();
+
   return (
-    <html lang="en" suppressHydrationWarning className={outfit.variable}>
+    <html lang={locale} suppressHydrationWarning className={outfit.variable}>
       <body suppressHydrationWarning className="font-sans">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-          <Toaster
-            position="bottom-right"
-            richColors
-            expand
-            toastOptions={{
-              style: {
-                fontFamily: "var(--font-outfit), sans-serif",
-              },
-            }}
-          />
-        </ThemeProvider>
+        <LocaleProvider initialLocale={locale}>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+            <Toaster
+              position="bottom-right"
+              richColors
+              expand
+              toastOptions={{
+                style: {
+                  fontFamily: "var(--font-outfit), sans-serif",
+                },
+              }}
+            />
+          </ThemeProvider>
+        </LocaleProvider>
       </body>
     </html>
   );

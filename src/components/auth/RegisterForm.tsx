@@ -8,9 +8,11 @@ import { signUp } from "@/lib/auth/client";
 import { signUpSchema, type SignUpInput } from "@/lib/validations";
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 
 export function RegisterForm() {
   const router = useRouter();
+  const t = useTranslations();
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -33,9 +35,9 @@ export function RegisterForm() {
       });
 
       if (result.error) {
-        toast.error(result.error.message ?? "Failed to create account");
+        toast.error(result.error.message ?? t("auth.createAccountFailed"));
       } else {
-        toast.success("Account created! Welcome to FaithEvents 🎉");
+        toast.success(t("auth.createAccountSuccess"));
         router.push("/dashboard");
         router.refresh();
       }
@@ -46,11 +48,11 @@ export function RegisterForm() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
         <label className="mb-1.5 block text-sm font-medium text-foreground">
-          Full Name
+          {t("auth.fullName")}
         </label>
         <input
           {...register("name")}
-          placeholder="Your name"
+          placeholder={t("auth.yourName")}
           className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         />
         {errors.name && (
@@ -60,12 +62,12 @@ export function RegisterForm() {
 
       <div>
         <label className="mb-1.5 block text-sm font-medium text-foreground">
-          Email
+          {t("auth.email")}
         </label>
         <input
           type="email"
           {...register("email")}
-          placeholder="you@example.com"
+          placeholder={t("auth.emailPlaceholder")}
           className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         />
         {errors.email && (
@@ -75,20 +77,20 @@ export function RegisterForm() {
 
       <div>
         <label className="mb-1.5 block text-sm font-medium text-foreground">
-          Password
+          {t("auth.password")}
         </label>
         <div className="relative">
           <input
             type={showPassword ? "text" : "password"}
             {...register("password")}
-            placeholder="Min. 8 characters"
+            placeholder={t("auth.min8Chars")}
             className="w-full rounded-xl border border-border bg-background px-4 py-2.5 pr-11 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
             className="absolute inset-y-0 right-2 my-auto h-8 rounded-lg px-2 text-muted-foreground hover:bg-muted"
-            aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+            aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
           >
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
@@ -100,20 +102,20 @@ export function RegisterForm() {
 
       <div>
         <label className="mb-1.5 block text-sm font-medium text-foreground">
-          Confirm Password
+          {t("auth.confirmPassword")}
         </label>
         <div className="relative">
           <input
             type={showConfirmPassword ? "text" : "password"}
             {...register("confirmPassword")}
-            placeholder="Repeat your password"
+            placeholder={t("auth.repeatPassword")}
             className="w-full rounded-xl border border-border bg-background px-4 py-2.5 pr-11 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
           <button
             type="button"
             onClick={() => setShowConfirmPassword((prev) => !prev)}
             className="absolute inset-y-0 right-2 my-auto h-8 rounded-lg px-2 text-muted-foreground hover:bg-muted"
-            aria-label={showConfirmPassword ? "Ocultar confirmación de contraseña" : "Mostrar confirmación de contraseña"}
+            aria-label={showConfirmPassword ? t("auth.hideConfirmPassword") : t("auth.showConfirmPassword")}
           >
             {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
@@ -131,12 +133,12 @@ export function RegisterForm() {
         {isPending ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
-          "Create Account"
+          t("auth.createAccount")
         )}
       </button>
 
       <p className="text-center text-xs text-muted-foreground">
-        By creating an account, you agree to our terms of service and privacy policy.
+        {t("auth.termsNotice")}
       </p>
     </form>
   );

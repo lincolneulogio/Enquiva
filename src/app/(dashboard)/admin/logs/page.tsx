@@ -1,15 +1,18 @@
 import { getAuditLogs } from "@/actions/audit";
 import { formatRelativeTime } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n/server";
+import { getRoleLabel } from "@/lib/i18n/core";
 
 export default async function AdminAuditLogsPage() {
+  const { locale, t } = await getI18n();
   const logs = await getAuditLogs(120);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl font-semibold text-foreground">Audit Logs</h1>
+        <h1 className="font-display text-3xl font-semibold text-foreground">{t("common.auditLogs")}</h1>
         <p className="mt-1 text-muted-foreground">
-          Track critical activity across the platform.
+          {t("dashboard.admin.auditIntro")}
         </p>
       </div>
 
@@ -17,12 +20,12 @@ export default async function AdminAuditLogsPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/50">
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Action</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Actor</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Entity</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Target</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">Details</th>
-              <th className="px-4 py-3 text-left font-medium text-muted-foreground">When</th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.actions")}</th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.actor")}</th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.entity")}</th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.target")}</th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.details")}</th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.when")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -30,8 +33,8 @@ export default async function AdminAuditLogsPage() {
               <tr key={log.id} className="hover:bg-muted/30 transition-colors">
                 <td className="px-4 py-3 text-foreground">{log.action}</td>
                 <td className="px-4 py-3 text-sm text-muted-foreground">
-                  <div>{user?.name ?? "System"}</div>
-                  <div className="text-[10px] uppercase">{log.role}</div>
+                  <div>{user?.name ?? t("common.system")}</div>
+                  <div className="text-[10px] uppercase">{getRoleLabel(log.role, locale)}</div>
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">{log.entity}</td>
                 <td className="px-4 py-3 text-muted-foreground">{log.entityId ?? "—"}</td>
@@ -39,7 +42,7 @@ export default async function AdminAuditLogsPage() {
                   {log.metadata ? JSON.stringify(log.metadata) : "—"}
                 </td>
                 <td className="px-4 py-3 text-xs text-muted-foreground">
-                  {formatRelativeTime(log.createdAt)}
+                  {formatRelativeTime(log.createdAt, locale)}
                 </td>
               </tr>
             ))}

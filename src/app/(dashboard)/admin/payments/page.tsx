@@ -4,16 +4,19 @@ import { PaymentStatusBadge } from "@/components/payments/PaymentStatusBadge";
 import { PaymentStatusSelect } from "@/components/payments/PaymentStatusSelect";
 import { formatCurrency } from "@/lib/utils";
 import { Calendar } from "lucide-react";
+import { getI18n } from "@/lib/i18n/server";
+import { getIntlLocale } from "@/lib/i18n/core";
 
 export default async function AdminPaymentsPage() {
+  const { locale, t } = await getI18n();
   const payments = await getAdminPayments();
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl font-semibold text-foreground">Payments</h1>
+        <h1 className="font-display text-3xl font-semibold text-foreground">{t("common.payments")}</h1>
         <p className="mt-1 text-muted-foreground">
-          Revisa y aprueba pagos de transporte en la plataforma.
+          {t("dashboard.admin.paymentsIntro")}
         </p>
       </div>
 
@@ -21,22 +24,22 @@ export default async function AdminPaymentsPage() {
         <div className="border-b border-border px-6 py-4">
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
-            <span>Showing {payments.length} payments</span>
+            <span>{t("dashboard.admin.showingPayments", { count: payments.length })}</span>
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/50">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Payment</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Event</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Route</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Attendee</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Amount</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Method</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Update</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Receipt</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.payments")}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.event")}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.route")}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.attendee")}</th>
+                <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t("common.amount")}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.method")}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.status")}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.update")}</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.receipt")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -45,7 +48,7 @@ export default async function AdminPaymentsPage() {
                   <td className="px-4 py-4">
                     <div className="text-xs text-muted-foreground">#{payment.id.slice(0, 8)}</div>
                     <div className="text-foreground text-sm font-medium">
-                      {new Date(payment.createdAt).toLocaleDateString("en-US", {
+                      {new Date(payment.createdAt).toLocaleDateString(getIntlLocale(locale), {
                         month: "short",
                         day: "numeric",
                         year: "numeric",
@@ -61,14 +64,14 @@ export default async function AdminPaymentsPage() {
                     </Link>
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
-                    {transportRoute?.name ?? "—"}
+                    {transportRoute?.name ?? t("common.noDataDash")}
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
-                    <div className="font-medium text-foreground">{attendee.name ?? "Guest"}</div>
+                    <div className="font-medium text-foreground">{attendee.name ?? t("common.guest")}</div>
                     <div>{attendee.email}</div>
                   </td>
                   <td className="px-4 py-4 text-right text-sm font-semibold text-foreground">
-                    {formatCurrency(Number(payment.amount), payment.currency)}
+                    {formatCurrency(Number(payment.amount), payment.currency, locale)}
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">{payment.method}</td>
                   <td className="px-4 py-4">
@@ -88,10 +91,10 @@ export default async function AdminPaymentsPage() {
                         rel="noreferrer"
                         className="text-xs font-medium text-primary hover:underline"
                       >
-                        View receipt
+                        {t("common.viewReceipt")}
                       </a>
                     ) : (
-                      <span className="text-xs text-muted-foreground">No receipt</span>
+                      <span className="text-xs text-muted-foreground">{t("common.noReceipt")}</span>
                     )}
                   </td>
                 </tr>

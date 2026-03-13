@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { updateRolePermission } from "@/actions/admin";
 import type { AppRole, Permission } from "@/lib/rbac";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 
 interface PermissionToggleCellProps {
   role: AppRole;
@@ -16,6 +17,7 @@ interface PermissionToggleCellProps {
 export function PermissionToggleCell({ role, permission, allowed, canEdit }: PermissionToggleCellProps) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const t = useTranslations();
 
   const onToggle = () => {
     if (!canEdit) return;
@@ -25,13 +27,13 @@ export function PermissionToggleCell({ role, permission, allowed, canEdit }: Per
         await updateRolePermission({ role, permission, allowed: !allowed });
         router.refresh();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to update permission");
+        toast.error(error instanceof Error ? error.message : t("dashboard.admin.unableToUpdateStatus"));
       }
     });
   };
 
   return (
-    <label className="inline-flex cursor-pointer items-center justify-center" title={canEdit ? "Toggle permission" : "Read-only"}>
+    <label className="inline-flex cursor-pointer items-center justify-center" title={canEdit ? t("common.update") : t("dashboard.admin.readOnlyPermissions")}>
       <input
         type="checkbox"
         checked={allowed}

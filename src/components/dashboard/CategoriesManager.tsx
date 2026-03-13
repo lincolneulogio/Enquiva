@@ -5,6 +5,7 @@ import { createCategory, deleteCategory, reorderCategories, updateCategory } fro
 import { toast } from "sonner";
 import { GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 
 type CategoryItem = {
     id: string;
@@ -21,14 +22,14 @@ interface CategoriesManagerProps {
 }
 
 const COLOR_OPTIONS = [
-    { label: "Gray", value: "bg-gray-100 text-gray-800" },
-    { label: "Violet", value: "bg-violet-100 text-violet-800" },
-    { label: "Blue", value: "bg-blue-100 text-blue-800" },
-    { label: "Green", value: "bg-green-100 text-green-800" },
-    { label: "Amber", value: "bg-amber-100 text-amber-800" },
-    { label: "Rose", value: "bg-rose-100 text-rose-800" },
-    { label: "Teal", value: "bg-teal-100 text-teal-800" },
-    { label: "Indigo", value: "bg-indigo-100 text-indigo-800" },
+    { labelKey: "dashboard.admin.colorGray", value: "bg-gray-100 text-gray-800" },
+    { labelKey: "dashboard.admin.colorViolet", value: "bg-violet-100 text-violet-800" },
+    { labelKey: "dashboard.admin.colorBlue", value: "bg-blue-100 text-blue-800" },
+    { labelKey: "dashboard.admin.colorGreen", value: "bg-green-100 text-green-800" },
+    { labelKey: "dashboard.admin.colorAmber", value: "bg-amber-100 text-amber-800" },
+    { labelKey: "dashboard.admin.colorRose", value: "bg-rose-100 text-rose-800" },
+    { labelKey: "dashboard.admin.colorTeal", value: "bg-teal-100 text-teal-800" },
+    { labelKey: "dashboard.admin.colorIndigo", value: "bg-indigo-100 text-indigo-800" },
 ] as const;
 
 function reorderList<T extends { id: string }>(list: T[], draggedId: string, targetId: string): T[] {
@@ -43,6 +44,7 @@ function reorderList<T extends { id: string }>(list: T[], draggedId: string, tar
 }
 
 export function CategoriesManager({ initialCategories }: CategoriesManagerProps) {
+    const t = useTranslations();
     const [items, setItems] = useState(initialCategories);
     const [draggedId, setDraggedId] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
@@ -60,14 +62,14 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
             try {
                 await reorderCategories(nextItems.map((it) => it.id));
             } catch (e) {
-                toast.error(e instanceof Error ? e.message : "Failed to save new order");
+                toast.error(e instanceof Error ? e.message : t("dashboard.admin.failedToSaveOrder"));
             }
         });
     };
 
     const onCreate = () => {
         if (!newItem.slug.trim() || !newItem.label.trim()) {
-            toast.error("Slug and label are required");
+            toast.error(t("dashboard.admin.slugRequiredLabelRequired"));
             return;
         }
 
@@ -85,9 +87,9 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
 
                 setItems((prev) => [...prev, result.category]);
                 setNewItem({ slug: "", label: "", description: "", colorClass: "bg-gray-100 text-gray-800" });
-                toast.success("Category created");
+                toast.success(t("dashboard.admin.categoryCreated"));
             } catch (e) {
-                toast.error(e instanceof Error ? e.message : "Failed to create category");
+                toast.error(e instanceof Error ? e.message : t("dashboard.admin.failedToCreateCategory"));
             }
         });
     };
@@ -98,7 +100,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
             try {
                 await updateCategory(id, { isActive });
             } catch (e) {
-                toast.error(e instanceof Error ? e.message : "Failed to update category");
+                toast.error(e instanceof Error ? e.message : t("dashboard.admin.failedToUpdateCategory"));
             }
         });
     };
@@ -117,7 +119,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                     sortOrder: item.sortOrder,
                 });
             } catch (e) {
-                toast.error(e instanceof Error ? e.message : "Failed to save category");
+                toast.error(e instanceof Error ? e.message : t("dashboard.admin.failedToSaveCategory"));
             }
         });
     };
@@ -129,9 +131,9 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                 const next = sorted.filter((it) => it.id !== id).map((it, idx) => ({ ...it, sortOrder: idx + 1 }));
                 setItems(next);
                 await reorderCategories(next.map((it) => it.id));
-                toast.success("Category deleted");
+                toast.success(t("dashboard.admin.categoryDeleted"));
             } catch (e) {
-                toast.error(e instanceof Error ? e.message : "Failed to delete category");
+                toast.error(e instanceof Error ? e.message : t("dashboard.admin.failedToDeleteCategory"));
             }
         });
     };
@@ -146,24 +148,24 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
     return (
         <div className="space-y-4">
             <div className="rounded-xl border border-border p-4">
-                <h3 className="text-sm font-semibold text-foreground">Create category</h3>
+                <h3 className="text-sm font-semibold text-foreground">{t("dashboard.admin.createCategory")}</h3>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                     <input
                         value={newItem.slug}
                         onChange={(e) => setNewItem((p) => ({ ...p, slug: e.target.value }))}
-                        placeholder="slug (e.g. couples_night)"
+                        placeholder={t("dashboard.admin.slugPlaceholder")}
                         className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
                     />
                     <input
                         value={newItem.label}
                         onChange={(e) => setNewItem((p) => ({ ...p, label: e.target.value }))}
-                        placeholder="Label"
+                        placeholder={t("dashboard.admin.labelPlaceholder")}
                         className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
                     />
                     <input
                         value={newItem.description}
                         onChange={(e) => setNewItem((p) => ({ ...p, description: e.target.value }))}
-                        placeholder="Description (optional)"
+                        placeholder={t("dashboard.admin.descriptionOptionalPlaceholder")}
                         className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
                     />
                     <button
@@ -172,12 +174,12 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                         disabled={isPending}
                         className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
                     >
-                        Add category
+                        {t("dashboard.admin.addCategory")}
                     </button>
                 </div>
 
                 <div className="mt-3">
-                    <p className="mb-2 text-xs text-muted-foreground">Color</p>
+                    <p className="mb-2 text-xs text-muted-foreground">{t("common.color")}</p>
                     <div className="flex flex-wrap gap-2">
                         {COLOR_OPTIONS.map((option) => (
                             <button
@@ -190,7 +192,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                                     newItem.colorClass === option.value ? "ring-2 ring-primary" : "border-border"
                                 )}
                             >
-                                {option.label}
+                                {t(option.labelKey)}
                             </button>
                         ))}
                     </div>
@@ -199,18 +201,18 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
 
             <div className="rounded-xl border border-border">
                 <div className="border-b border-border px-3 py-2 text-xs text-muted-foreground">
-                    Drag rows using <GripVertical className="mx-1 inline h-3.5 w-3.5" /> to reorder categories.
+                    {t("dashboard.admin.dragToReorder")} <GripVertical className="mx-1 inline h-3.5 w-3.5" /> {t("dashboard.admin.toReorderCategories")}
                 </div>
 
                 <table className="w-full text-sm">
                     <thead className="bg-secondary/40">
                         <tr>
                             <th className="w-12 px-3 py-2 text-left">#</th>
-                            <th className="px-3 py-2 text-left">Slug</th>
-                            <th className="px-3 py-2 text-left">Label</th>
-                            <th className="px-3 py-2 text-left">Color</th>
-                            <th className="px-3 py-2 text-left">Active</th>
-                            <th className="px-3 py-2 text-left">Actions</th>
+                            <th className="px-3 py-2 text-left">{t("common.slug")}</th>
+                            <th className="px-3 py-2 text-left">{t("common.label")}</th>
+                            <th className="px-3 py-2 text-left">{t("common.color")}</th>
+                            <th className="px-3 py-2 text-left">{t("common.active")}</th>
+                            <th className="px-3 py-2 text-left">{t("common.actions")}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -255,7 +257,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                                                     item.colorClass === option.value ? "ring-2 ring-primary" : "border-border"
                                                 )}
                                             >
-                                                {option.label}
+                                                {t(option.labelKey)}
                                             </button>
                                         ))}
                                     </div>
@@ -273,7 +275,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                                         onClick={() => onDelete(item.id)}
                                         className="rounded-md px-2 py-1 text-red-600 hover:bg-red-50"
                                     >
-                                        Delete
+                                        {t("common.delete")}
                                     </button>
                                 </td>
                             </tr>

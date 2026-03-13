@@ -4,8 +4,10 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { ProfileEditor } from "@/components/dashboard/ProfileEditor";
+import { getI18n } from "@/lib/i18n/server";
 
 export default async function OrganizerProfilePage() {
+    const { t } = await getI18n();
     const session = await auth.api.getSession({ headers: await headers() });
 
     const [user] = await db
@@ -33,8 +35,8 @@ export default async function OrganizerProfilePage() {
     return (
         <div className="space-y-8">
             <div>
-                <h1 className="font-display text-3xl font-semibold text-foreground">Profile</h1>
-                <p className="mt-1 text-muted-foreground">Administra tu información de organizador</p>
+                <h1 className="font-display text-3xl font-semibold text-foreground">{t("common.profile")}</h1>
+                <p className="mt-1 text-muted-foreground">{t("dashboard.settings.organizerInfo")}</p>
             </div>
 
             <ProfileEditor user={profileUser} />

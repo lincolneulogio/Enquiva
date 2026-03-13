@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { RegisterForm } from "@/components/auth/RegisterForm";
+import { getI18n } from "@/lib/i18n/server";
 
-export default function RegisterPage() {
+export default async function RegisterPage() {
+  const { t } = await getI18n();
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-6">
       <div className="pointer-events-none fixed inset-0">
@@ -20,10 +23,10 @@ export default function RegisterPage() {
             </span>
           </Link>
           <h1 className="font-display text-3xl font-semibold text-foreground">
-            Join the community
+            {t("auth.joinCommunity")}
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Create your account and start discovering events
+            {t("auth.createAccountAndDiscover")}
           </p>
         </div>
 
@@ -32,9 +35,9 @@ export default function RegisterPage() {
         </div>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
+          {t("auth.alreadyHaveAccount")}{" "}
           <Link href="/login" className="text-primary hover:underline font-medium">
-            Sign in
+            {t("auth.signIn")}
           </Link>
         </p>
       </div>

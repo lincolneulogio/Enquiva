@@ -1,8 +1,10 @@
 import { getUserRegistrations } from "@/actions/registrations";
 import { getUserPayments } from "@/actions/payments";
 import { TicketCard } from "@/components/tickets/TicketCard";
+import { getI18n } from "@/lib/i18n/server";
 
 export default async function MemberTicketsPage() {
+  const { t } = await getI18n();
   const [registrations, payments] = await Promise.all([
     getUserRegistrations(),
     getUserPayments(),
@@ -18,17 +20,17 @@ export default async function MemberTicketsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl font-semibold text-foreground">Tickets</h1>
+        <h1 className="font-display text-3xl font-semibold text-foreground">{t("dashboard.member.ticketsTitle")}</h1>
         <p className="mt-1 text-muted-foreground">
-          All your event tickets and check-in status.
+          {t("dashboard.member.ticketsSubtitle")}
         </p>
       </div>
 
       {registrations.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-border bg-card p-12 text-center">
-          <p className="text-lg font-semibold text-foreground">No tickets yet</p>
+          <p className="text-lg font-semibold text-foreground">{t("dashboard.member.noTicketsYet")}</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Register for an event to generate a ticket.
+            {t("dashboard.member.registerToGenerateTicket")}
           </p>
         </div>
       ) : (

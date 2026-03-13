@@ -2,11 +2,13 @@ import { getOrganizerEvents } from "@/actions/events";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import Link from "next/link";
-import { Plus, Calendar, Users, TrendingUp, Eye } from "lucide-react";
-import { categoryLabel, formatEventDateShort, statusColor } from "@/lib/utils";
+import { Plus, Calendar, Users, Eye } from "lucide-react";
+import { categoryLabel, eventStatusLabel, formatEventDateShort, statusColor } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n/server";
 
 export default async function OrganizerDashboardPage() {
+  const { locale, t } = await getI18n();
   const session = await auth.api.getSession({ headers: await headers() });
   const organizerEvents = await getOrganizerEvents();
 
@@ -24,10 +26,12 @@ export default async function OrganizerDashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-3xl font-semibold text-foreground">
-            Welcome back, {session?.user.name?.split(" ")[0]} ✦
+            {t("dashboard.organizer.welcomeBack", {
+              firstName: session?.user.name?.split(" ")[0] ?? "",
+            })}
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Manage your events and track attendance
+            {t("dashboard.organizer.manageEvents")}
           </p>
         </div>
         <Link
@@ -35,7 +39,7 @@ export default async function OrganizerDashboardPage() {
           className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           <Plus className="h-4 w-4" />
-          New Event
+          {t("common.newEvent")}
         </Link>
       </div>
 
@@ -43,21 +47,21 @@ export default async function OrganizerDashboardPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         {[
           {
-            label: "Total Events",
+            label: t("dashboard.organizer.totalEvents"),
             value: organizerEvents.length,
             icon: Calendar,
             color: "text-primary",
             bg: "bg-primary/10",
           },
           {
-            label: "Published",
+            label: t("dashboard.organizer.published"),
             value: publishedCount,
             icon: Eye,
             color: "text-green-600",
             bg: "bg-green-100 dark:bg-green-900/20",
           },
           {
-            label: "Total Registrations",
+            label: t("dashboard.organizer.totalRegistrations"),
             value: totalAttendees,
             icon: Users,
             color: "text-accent",
@@ -87,21 +91,21 @@ export default async function OrganizerDashboardPage() {
       <div className="rounded-2xl border border-border bg-card">
         <div className="border-b border-border px-6 py-4">
           <h2 className="font-display text-xl font-semibold text-foreground">
-            Your Events
+            {t("dashboard.organizer.yourEvents")}
           </h2>
         </div>
         {organizerEvents.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Calendar className="mb-3 h-10 w-10 text-muted-foreground/40" />
-            <p className="font-medium text-foreground">No events yet</p>
+            <p className="font-medium text-foreground">{t("dashboard.organizer.noEventsYet")}</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Create your first event to get started
+              {t("dashboard.organizer.createFirstEvent")}
             </p>
             <Link
               href="/organizer/events/new"
               className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
             >
-              <Plus className="h-4 w-4" /> Create Event
+              <Plus className="h-4 w-4" /> {t("common.createEvent")}
             </Link>
           </div>
         ) : (
@@ -109,7 +113,14 @@ export default async function OrganizerDashboardPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  {["Event", "Date", "Category", "Status", "Registrations", ""].map(
+                  {[
+                    t("common.event"),
+                    t("common.date"),
+                    t("common.category"),
+                    t("common.status"),
+                    t("common.registrations"),
+                    "",
+                  ].map(
                     (h) => (
                       <th
                         key={h}
@@ -130,10 +141,10 @@ export default async function OrganizerDashboardPage() {
                       </p>
                     </td>
                     <td className="px-6 py-4 text-sm text-muted-foreground whitespace-nowrap">
-                      {formatEventDateShort(event.date)}
+                      {formatEventDateShort(event.date, locale)}
                     </td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">
-                      {categoryLabel(event.category)}
+                      {categoryLabel(event.category, locale)}
                     </td>
                     <td className="px-6 py-4">
                       <span
@@ -142,7 +153,7 @@ export default async function OrganizerDashboardPage() {
                           statusColor(event.status)
                         )}
                       >
-                        {event.status}
+                        {eventStatusLabel(event.status, locale)}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">
@@ -154,7 +165,7 @@ export default async function OrganizerDashboardPage() {
                         href={`/organizer/events/${event.id}`}
                         className="text-sm text-primary hover:underline"
                       >
-                        Manage →
+                        {t("common.edit")} →
                       </Link>
                     </td>
                   </tr>

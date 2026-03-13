@@ -4,6 +4,7 @@ import { EventCard } from "@/components/events/EventCard";
 import { EventFilters } from "@/components/events/EventFilters";
 import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
 import { PublicHeader } from "@/components/shared/PublicHeader";
+import { getI18n } from "@/lib/i18n/server";
 
 interface EventsPageProps {
   searchParams: Promise<{
@@ -26,6 +27,7 @@ async function EventsGrid({
   searchParams: Awaited<EventsPageProps["searchParams"]>;
   categoryMap: Record<string, { label: string; colorClass?: string | null }>;
 }) {
+  const { t } = await getI18n();
   const page = parseInt(searchParams.page ?? "1");
   const { events, total, limit } = await getPublicEvents({
     category: searchParams.category as never,
@@ -38,9 +40,9 @@ async function EventsGrid({
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <div className="mb-4 text-6xl opacity-20">✦</div>
-        <h3 className="font-display text-2xl font-semibold text-foreground">No events found</h3>
+        <h3 className="font-display text-2xl font-semibold text-foreground">{t("public.events.noEventsFound")}</h3>
         <p className="mt-2 text-muted-foreground">
-          Try adjusting your filters or check back later.
+          {t("public.events.adjustFilters")}
         </p>
       </div>
     );
@@ -49,7 +51,7 @@ async function EventsGrid({
   return (
     <>
       <p className="mb-6 text-sm text-muted-foreground">
-        Showing {events.length} of {total} events
+        {t("public.events.showingEvents", { count: events.length, total })}
       </p>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {events.map((event) => (
@@ -61,6 +63,7 @@ async function EventsGrid({
 }
 
 export default async function EventsPage({ searchParams }: EventsPageProps) {
+  const { t } = await getI18n();
   const params = await searchParams;
   const categories = await getCategories();
   const categoryMap = Object.fromEntries(
@@ -78,10 +81,10 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
       <div className="border-b border-border bg-card px-6 py-12">
         <div className="mx-auto max-w-7xl">
           <h1 className="font-display text-4xl font-semibold text-foreground sm:text-5xl">
-            Community Events
+            {t("public.events.title")}
           </h1>
           <p className="mt-2 text-lg text-muted-foreground">
-            Discover meaningful events happening in your faith community
+            {t("public.events.subtitle")}
           </p>
         </div>
       </div>

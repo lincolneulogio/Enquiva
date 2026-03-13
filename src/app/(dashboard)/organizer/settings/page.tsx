@@ -1,16 +1,19 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { User, Mail, Shield } from "lucide-react";
+import { getI18n } from "@/lib/i18n/server";
+import { getRoleLabel } from "@/lib/i18n/core";
 
 export default async function OrganizerSettingsPage() {
+    const { locale, t } = await getI18n();
     const session = await auth.api.getSession({ headers: await headers() });
     const user = session!.user;
 
     return (
         <div className="space-y-8">
             <div>
-                <h1 className="font-display text-3xl font-semibold text-foreground">Settings</h1>
-                <p className="mt-1 text-muted-foreground">Manage your account details</p>
+                <h1 className="font-display text-3xl font-semibold text-foreground">{t("common.settings")}</h1>
+                <p className="mt-1 text-muted-foreground">{t("dashboard.settings.manageAccountDetails")}</p>
             </div>
 
             <div className="max-w-2xl space-y-6">
@@ -22,7 +25,7 @@ export default async function OrganizerSettingsPage() {
                         <p className="text-xl font-semibold text-foreground">{user.name}</p>
                         <p className="text-sm text-muted-foreground">{user.email}</p>
                         <span className="mt-1 inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-foreground capitalize">
-                            {user.role ?? "organizer"}
+                            {getRoleLabel(user.role ?? "organizer", locale)}
                         </span>
                     </div>
                 </div>
@@ -33,7 +36,7 @@ export default async function OrganizerSettingsPage() {
                             <User className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <div>
-                            <p className="text-xs text-muted-foreground">Full name</p>
+                            <p className="text-xs text-muted-foreground">{t("common.fullName")}</p>
                             <p className="font-medium text-foreground">{user.name ?? "—"}</p>
                         </div>
                     </div>
@@ -42,7 +45,7 @@ export default async function OrganizerSettingsPage() {
                             <Mail className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <div>
-                            <p className="text-xs text-muted-foreground">Email</p>
+                            <p className="text-xs text-muted-foreground">{t("common.email")}</p>
                             <p className="font-medium text-foreground">{user.email}</p>
                         </div>
                     </div>
@@ -51,8 +54,8 @@ export default async function OrganizerSettingsPage() {
                             <Shield className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <div>
-                            <p className="text-xs text-muted-foreground">Role</p>
-                            <p className="font-medium text-foreground capitalize">{user.role ?? "organizer"}</p>
+                            <p className="text-xs text-muted-foreground">{t("common.role")}</p>
+                            <p className="font-medium text-foreground capitalize">{getRoleLabel(user.role ?? "organizer", locale)}</p>
                         </div>
                     </div>
                 </div>

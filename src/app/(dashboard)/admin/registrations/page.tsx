@@ -3,6 +3,9 @@ import { db } from "@/lib/db";
 import { registrations, events, users } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { ClipboardList } from "lucide-react";
+import { getI18n } from "@/lib/i18n/server";
+import { getIntlLocale } from "@/lib/i18n/core";
+import { registrationStatusLabel } from "@/lib/utils";
 
 const statusColor: Record<string, string> = {
   registered: "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400",
@@ -12,6 +15,7 @@ const statusColor: Record<string, string> = {
 };
 
 export default async function AdminRegistrationsPage() {
+  const { locale, t } = await getI18n();
   const allRegistrations = await db
     .select({
       id: registrations.id,
@@ -38,18 +42,21 @@ export default async function AdminRegistrationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl font-semibold text-foreground">Registrations</h1>
+        <h1 className="font-display text-3xl font-semibold text-foreground">{t("common.registrations")}</h1>
         <p className="mt-1 text-muted-foreground">
-          {allRegistrations.length} registration{allRegistrations.length !== 1 ? "s" : ""} across all events
+          {t("dashboard.admin.registrationsIntro", {
+            count: allRegistrations.length,
+            label: allRegistrations.length === 1 ? (locale === "en" ? "registration" : "inscripción") : (locale === "en" ? "registrations" : "inscripciones"),
+          })}
         </p>
       </div>
 
       {allRegistrations.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
           <ClipboardList className="mx-auto h-10 w-10 text-muted-foreground/50" />
-          <p className="mt-4 font-medium text-foreground">No registrations yet</p>
+          <p className="mt-4 font-medium text-foreground">{t("dashboard.admin.noRegistrationsYet")}</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Registrations will appear here once attendees sign up for events.
+            {t("dashboard.admin.registrationsAppearHere")}
           </p>
         </div>
       ) : (
@@ -59,11 +66,11 @@ export default async function AdminRegistrationsPage() {
               <thead>
                 <tr className="border-b border-border bg-muted/50">
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">#</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Attendee</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Event</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Registered</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Checked in</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.attendee")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.event")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.status")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.registered")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.checkedIn")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -84,7 +91,7 @@ export default async function AdminRegistrationsPage() {
                         {reg.event.title}
                       </Link>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(reg.event.date).toLocaleDateString("en-US", {
+                        {new Date(reg.event.date).toLocaleDateString(getIntlLocale(locale), {
                           month: "short",
                           day: "numeric",
                           year: "numeric",
@@ -95,11 +102,11 @@ export default async function AdminRegistrationsPage() {
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor[reg.status] ?? "bg-secondary text-foreground"}`}
                       >
-                        {reg.status.replace("_", " ")}
+                        {registrationStatusLabel(reg.status, locale)}
                       </span>
                     </td>
                     <td className="px-4 py-4 text-muted-foreground">
-                      {new Date(reg.registeredAt).toLocaleDateString("en-US", {
+                      {new Date(reg.registeredAt).toLocaleDateString(getIntlLocale(locale), {
                         month: "short",
                         day: "numeric",
                         year: "numeric",
@@ -107,11 +114,11 @@ export default async function AdminRegistrationsPage() {
                     </td>
                     <td className="px-4 py-4 text-muted-foreground">
                       {reg.checkedInAt
-                        ? new Date(reg.checkedInAt).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })
+                        ? new Date(reg.checkedInAt).toLocaleDateString(getIntlLocale(locale), {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })
                         : <span className="text-muted-foreground/40">—</span>}
                     </td>
                   </tr>

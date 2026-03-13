@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getRecentNotifications, markNotificationsAsRead } from "@/actions/notifications";
 import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
+import { getIntlLocale } from "@/lib/i18n/core";
+import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 
 type NotificationItem = {
     id: string;
@@ -55,6 +57,8 @@ export function TopbarNotifications({
     initialUnreadCount,
     initialNotifications,
 }: TopbarNotificationsProps) {
+    const { locale } = useLocale();
+    const t = useTranslations();
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
@@ -116,7 +120,7 @@ export function TopbarNotifications({
                 setUnreadCount(0);
                 setItems((prev) => prev.map((item) => ({ ...item, read: true })));
             } catch {
-                toast.error("Could not mark notifications as read.");
+                toast.error(t("common.couldNotMarkNotifications"));
             }
         });
     };
@@ -130,7 +134,7 @@ export function TopbarNotifications({
                 );
                 setUnreadCount((prev) => Math.max(0, prev - 1));
             } catch {
-                toast.error("Could not update notification.");
+                toast.error(t("common.couldNotUpdateNotification"));
             }
         });
     };
@@ -140,7 +144,7 @@ export function TopbarNotifications({
             <button
                 onClick={onToggle}
                 className="relative rounded-xl border border-border bg-secondary/50 p-2 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-                aria-label="Open notifications"
+                aria-label={t("common.openNotifications")}
             >
                 <Bell className="h-4 w-4" />
                 {unreadCount > 0 && (
@@ -155,7 +159,7 @@ export function TopbarNotifications({
                     <div className="flex items-center justify-between border-b border-border px-4 py-3">
                         <div className="flex items-center gap-2">
                             <BellRing className="h-4 w-4 text-primary" />
-                            <p className="text-sm font-semibold text-foreground">Notifications</p>
+                            <p className="text-sm font-semibold text-foreground">{t("common.notifications")}</p>
                         </div>
                         {unreadCount > 0 && (
                             <button
@@ -163,7 +167,7 @@ export function TopbarNotifications({
                                 disabled={isPending}
                                 className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-primary hover:bg-secondary disabled:opacity-50"
                             >
-                                <CheckCheck className="h-3.5 w-3.5" /> Mark all
+                                <CheckCheck className="h-3.5 w-3.5" /> {t("common.markAll")}
                             </button>
                         )}
                     </div>
@@ -171,7 +175,7 @@ export function TopbarNotifications({
                     <div className="max-h-[420px] overflow-y-auto p-2">
                         {items.length === 0 ? (
                             <div className="px-3 py-10 text-center text-sm text-muted-foreground">
-                                No notifications yet.
+                                {t("common.noNotificationsYet")}
                             </div>
                         ) : (
                             <div className="space-y-1">
@@ -201,7 +205,7 @@ export function TopbarNotifications({
                                                     <p className="truncate text-sm font-medium text-foreground">{n.title}</p>
                                                     <p className="line-clamp-2 text-xs text-muted-foreground">{n.message}</p>
                                                     <p className="mt-1 text-[11px] text-muted-foreground">
-                                                        {new Date(n.createdAt).toLocaleDateString("en-US", {
+                                                        {new Date(n.createdAt).toLocaleDateString(getIntlLocale(locale), {
                                                             month: "short",
                                                             day: "numeric",
                                                             hour: "numeric",
@@ -224,7 +228,7 @@ export function TopbarNotifications({
                             onClick={() => setOpen(false)}
                             className="block rounded-lg px-2 py-1.5 text-center text-xs font-medium text-primary hover:bg-secondary"
                         >
-                            View all notifications
+                            {t("common.viewAllNotifications")}
                         </Link>
                     </div>
                 </div>

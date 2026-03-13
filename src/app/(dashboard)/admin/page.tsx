@@ -1,18 +1,21 @@
 import { AdminStatsCharts } from "@/components/dashboard/AdminStatsCharts";
 import { Users, CalendarDays, BadgeCheck, Ticket } from "lucide-react";
 import { getAdminDashboardStats } from "@/lib/analytics/admin";
+import { getI18n } from "@/lib/i18n/server";
+import { getIntlLocale } from "@/lib/i18n/core";
 
 export default async function AdminDashboardPage() {
+  const { locale, t } = await getI18n();
   const stats = await getAdminDashboardStats();
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="font-display text-3xl font-semibold text-foreground">
-          Platform Overview
+          {t("dashboard.admin.platformOverview")}
         </h1>
         <p className="mt-1 text-muted-foreground">
-          Monitor all activity across FaithEvents
+          {t("dashboard.admin.monitorActivity")}
         </p>
       </div>
 
@@ -20,28 +23,28 @@ export default async function AdminDashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           {
-            label: "Total Users",
+            label: t("dashboard.admin.totalUsers"),
             value: stats.totalUsers,
             color: "text-primary",
             iconBg: "bg-primary/10",
             Icon: Users,
           },
           {
-            label: "Total Events",
+            label: t("dashboard.admin.totalEvents"),
             value: stats.totalEvents,
             color: "text-blue-600",
             iconBg: "bg-blue-500/10",
             Icon: CalendarDays,
           },
           {
-            label: "Published Events",
+            label: t("dashboard.admin.publishedEvents"),
             value: stats.publishedEvents,
             color: "text-green-600",
             iconBg: "bg-green-500/10",
             Icon: BadgeCheck,
           },
           {
-            label: "Total Registrations",
+            label: t("dashboard.admin.totalRegistrations"),
             value: stats.totalRegistrations,
             color: "text-accent",
             iconBg: "bg-accent/10",
@@ -54,7 +57,7 @@ export default async function AdminDashboardPage() {
             </div>
             <p className="text-sm text-muted-foreground">{label}</p>
             <p className={`mt-1 font-display text-4xl font-semibold ${color}`}>
-              {value.toLocaleString()}
+              {value.toLocaleString(getIntlLocale(locale))}
             </p>
           </div>
         ))}
