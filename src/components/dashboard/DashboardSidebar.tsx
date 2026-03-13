@@ -18,6 +18,7 @@ import {
   FileText,
   ClipboardList,
   KeyRound,
+  User,
 } from "lucide-react";
 import { signOut } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,7 @@ const organiverNav: NavItem[] = [
   { label: "Attendees", href: "/organizer/attendees", icon: Users },
   { label: "Notifications", href: "/organizer/notifications", icon: Bell },
   { label: "Payments", href: "/organizer/payments", icon: CreditCard },
+  { label: "Profile", href: "/organizer/profile", icon: User },
   { label: "Settings", href: "/organizer/settings", icon: Settings },
 ];
 
@@ -49,6 +51,7 @@ const adminNav: NavItem[] = [
   { label: "Permissions", href: "/admin/permissions", icon: KeyRound },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
   { label: "Payments", href: "/admin/payments", icon: CreditCard },
+  { label: "Profile", href: "/admin/profile", icon: User },
   { label: "Audit Logs", href: "/admin/logs", icon: FileText },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
@@ -64,7 +67,7 @@ const memberNav: NavItem[] = [
   { label: "Notifications", href: "/member/notifications", icon: Bell },
   { label: "Payments", href: "/member/payments", icon: CreditCard },
   { label: "Tickets", href: "/member/tickets", icon: Ticket },
-  { label: "Profile", href: "/member/profile", icon: Settings },
+  { label: "Profile", href: "/member/profile", icon: User },
 ];
 
 const navByRole: Record<string, NavItem[]> = {

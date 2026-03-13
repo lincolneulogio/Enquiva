@@ -19,7 +19,7 @@ A production-ready, full-stack web platform for managing community and faith-bas
 
 ## Features
 
-- **3 User Roles**: Super Admin, Organizer, Member
+- **4 User Roles**: Super Admin, Admin, Organizer, Member
 - **Event Management**: Full CRUD with draft/publish workflow
 - **AI Description Generator**: Streaming AI-powered event descriptions
 - **Real-Time Updates**: Live attendee counts and check-in feed via Pusher
