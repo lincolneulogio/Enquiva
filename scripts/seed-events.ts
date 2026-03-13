@@ -65,7 +65,7 @@ function getSeedEvents(sourceLinks: Record<string, string>): SeedEvent[] {
                 "Convención nacional con enfoque en familia, enseñanza bíblica y fortalecimiento comunitario. Sede: Complejo deportivo Alto Selva Alegre.",
                 sourceLinks.mmmConvencion
             ),
-            category: "conference",
+            category: "convention",
             date: new Date("2026-03-12T09:00:00-05:00"),
             endDate: new Date("2026-03-15T18:00:00-05:00"),
             location: "Arequipa, Perú · Complejo deportivo Alto Selva Alegre",
@@ -80,7 +80,7 @@ function getSeedEvents(sourceLinks: Record<string, string>): SeedEvent[] {
                 "Jornadas de adoración, palabra y unidad familiar en la sede Lima de la convención nacional.",
                 sourceLinks.mmmConvencion
             ),
-            category: "conference",
+            category: "convention",
             date: new Date("2026-03-19T09:00:00-05:00"),
             endDate: new Date("2026-03-22T18:00:00-05:00"),
             location: "Lima, Perú · Estadio de la Universidad Nacional Mayor de San Marcos",
@@ -95,7 +95,7 @@ function getSeedEvents(sourceLinks: Record<string, string>): SeedEvent[] {
                 "Encuentro de impacto espiritual y comunitario para iglesias y familias en la región Huánuco.",
                 sourceLinks.mmmConvencion
             ),
-            category: "conference",
+            category: "convention",
             date: new Date("2026-03-26T09:00:00-05:00"),
             endDate: new Date("2026-03-29T18:00:00-05:00"),
             location: "Huánuco, Perú · Estadio del Complejo Deportivo de Amarilis",
@@ -136,7 +136,7 @@ function getSeedEvents(sourceLinks: Record<string, string>): SeedEvent[] {
                 "Programa radial matutino con música, reflexión, oración y entrevistas. Inspirado en la programación oficial.",
                 sourceLinks.bethelDespierta
             ),
-            category: "broadcast",
+            category: "family_faith",
             date: nextWeekdayAt(1, 6, 0),
             endDate: nextWeekdayAt(1, 8, 30),
             isVirtual: true,
@@ -150,7 +150,7 @@ function getSeedEvents(sourceLinks: Record<string, string>): SeedEvent[] {
                 "Espacio de entrevistas y análisis periodístico sobre la actualidad nacional desde una perspectiva de valores.",
                 sourceLinks.bethelHoraPunta
             ),
-            category: "broadcast",
+            category: "news_analysis",
             date: nextWeekdayAt(2, 9, 0),
             endDate: nextWeekdayAt(2, 11, 0),
             isVirtual: true,
@@ -165,7 +165,7 @@ function getSeedEvents(sourceLinks: Record<string, string>): SeedEvent[] {
                 "Programa con conversaciones, historias y mensajes de esperanza para la comunidad oyente.",
                 sourceLinks.bethelEntreNotas
             ),
-            category: "broadcast",
+            category: "music_testimony",
             date: nextWeekdayAt(3, 14, 0),
             endDate: nextWeekdayAt(3, 15, 0),
             isVirtual: true,

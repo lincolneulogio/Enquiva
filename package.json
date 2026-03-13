@@ -17,6 +17,8 @@
     "db:seed:roles": "node --env-file=.env ./scripts/seed-roles.mjs",
     "db:seed:admin": "npx tsx --env-file=.env --tsconfig tsconfig.json ./scripts/seed-admin.ts",
     "db:seed:events": "npx tsx --env-file=.env --tsconfig tsconfig.json ./scripts/seed-events.ts",
+    "db:seed:categories": "npx tsx --env-file=.env --tsconfig tsconfig.json ./scripts/seed-categories.ts",
+    "db:sync:event-categories": "npx tsx --env-file=.env --tsconfig tsconfig.json ./scripts/sync-event-categories.ts",
     "db:add-indexes": "node --env-file=.env ./scripts/add-unique-indexes.mjs",
     "db:backfill:pending-payments": "node --env-file=.env ./scripts/backfill-pending-payments.mjs",
     "db:setup:categories": "node --env-file=.env ./scripts/add-categories-table.mjs",
