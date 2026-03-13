@@ -12,7 +12,7 @@ import {
 } from "@/lib/db/schema";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, count } from "drizzle-orm";
 import {
   createPaymentSchema,
   updatePaymentStatusSchema,
@@ -274,4 +274,46 @@ export async function getAdminPayments() {
     .leftJoin(transportBookings, eq(transportBookings.id, payments.transportBookingId))
     .leftJoin(transportRoutes, eq(transportRoutes.id, transportBookings.routeId))
     .orderBy(desc(payments.createdAt));
+}
+
+export async function getAdminPaymentsPaginated(page = 1, limit = 10) {
+  await requireAdminOrHigherWithHeaders();
+
+  const safeLimit = Math.max(1, Math.min(50, limit));
+  const requestedPage = Math.max(1, page);
+
+  const [totalRow] = await db.select({ total: count() }).from(payments);
+  const total = totalRow?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / safeLimit));
+  const safePage = Math.min(requestedPage, totalPages);
+  const offset = (safePage - 1) * safeLimit;
+
+  const items = await db
+    .select({
+      payment: payments,
+      registration: registrations,
+      event: events,
+      attendee: users,
+      transportBooking: transportBookings,
+      transportRoute: transportRoutes,
+    })
+    .from(payments)
+    .innerJoin(
+      registrations,
+      eq(payments.registrationId, registrations.id)
+    )
+    .innerJoin(events, eq(registrations.eventId, events.id))
+    .innerJoin(users, eq(payments.userId, users.id))
+    .leftJoin(transportBookings, eq(transportBookings.id, payments.transportBookingId))
+    .leftJoin(transportRoutes, eq(transportRoutes.id, transportBookings.routeId))
+    .orderBy(desc(payments.createdAt))
+    .limit(safeLimit)
+    .offset(offset);
+
+  return {
+    items,
+    total,
+    page: safePage,
+    limit: safeLimit,
+  };
 }

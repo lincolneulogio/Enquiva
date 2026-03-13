@@ -1,15 +1,31 @@
 import Link from "next/link";
-import { getAdminPayments } from "@/actions/payments";
+import { getAdminPaymentsPaginated } from "@/actions/payments";
 import { PaymentStatusBadge } from "@/components/payments/PaymentStatusBadge";
 import { PaymentStatusSelect } from "@/components/payments/PaymentStatusSelect";
 import { formatCurrency } from "@/lib/utils";
 import { Calendar } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
+import { TablePagination } from "@/components/dashboard/TablePagination";
 
-export default async function AdminPaymentsPage() {
+interface AdminPaymentsPageProps {
+  searchParams: Promise<{
+    page?: string;
+  }>;
+}
+
+const PAGE_SIZE = 10;
+
+export default async function AdminPaymentsPage({ searchParams }: AdminPaymentsPageProps) {
   const { locale, t } = await getI18n();
-  const payments = await getAdminPayments();
+  const params = await searchParams;
+  const requestedPage = Number(params.page ?? "1");
+  const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
+
+  const { items: payments, total, page } = await getAdminPaymentsPaginated(currentPage, PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const rowStart = (safePage - 1) * PAGE_SIZE;
 
   return (
     <div className="space-y-6">
@@ -24,7 +40,7 @@ export default async function AdminPaymentsPage() {
         <div className="border-b border-border px-6 py-4">
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
-            <span>{t("dashboard.admin.showingPayments", { count: payments.length })}</span>
+            <span>{t("dashboard.admin.showingPayments", { count: total })}</span>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -32,6 +48,7 @@ export default async function AdminPaymentsPage() {
           <table className="w-full min-w-[980px] text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/50">
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">N°</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.payments")}</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.event")}</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.route")}</th>
@@ -44,10 +61,10 @@ export default async function AdminPaymentsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {payments.map(({ payment, event, attendee, transportRoute }) => (
+              {payments.map(({ payment, event, attendee, transportRoute }, index) => (
                 <tr key={payment.id} className="hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-4 text-muted-foreground">{rowStart + index + 1}</td>
                   <td className="px-4 py-4">
-                    <div className="text-xs text-muted-foreground">#{payment.id.slice(0, 8)}</div>
                     <div className="text-foreground text-sm font-medium">
                       {new Date(payment.createdAt).toLocaleDateString(getIntlLocale(locale), {
                         month: "short",
@@ -102,6 +119,14 @@ export default async function AdminPaymentsPage() {
               ))}
             </tbody>
           </table>
+
+          <TablePagination
+            basePath="/admin/payments"
+            currentPage={safePage}
+            totalPages={totalPages}
+            totalItems={total}
+            pageSize={PAGE_SIZE}
+          />
         </div>
       </div>
     </div>

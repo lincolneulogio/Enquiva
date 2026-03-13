@@ -24,6 +24,44 @@ export async function getNotifications(limit = 20) {
     .limit(limit);
 }
 
+export async function getNotificationsPaginated(page = 1, limit = 10) {
+  const user = await requireAuth();
+  const safeLimit = Math.max(1, Math.min(50, limit));
+  const requestedPage = Math.max(1, page);
+
+  const [totalRows, unreadRows] = await Promise.all([
+    db
+      .select({ total: count() })
+      .from(notifications)
+      .where(eq(notifications.userId, user.id)),
+    db
+      .select({ total: count() })
+      .from(notifications)
+      .where(and(eq(notifications.userId, user.id), eq(notifications.read, false))),
+  ]);
+
+  const total = totalRows[0]?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / safeLimit));
+  const safePage = Math.min(requestedPage, totalPages);
+  const offset = (safePage - 1) * safeLimit;
+
+  const items = await db
+    .select()
+    .from(notifications)
+    .where(eq(notifications.userId, user.id))
+    .orderBy(desc(notifications.createdAt))
+    .limit(safeLimit)
+    .offset(offset);
+
+  return {
+    items,
+    total,
+    unread: unreadRows[0]?.total ?? 0,
+    page: safePage,
+    limit: safeLimit,
+  };
+}
+
 export async function getRecentNotifications(limit = 8) {
   const items = await getNotifications(limit);
   const unreadCount = await getUnreadNotificationsCount();

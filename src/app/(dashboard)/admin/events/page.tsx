@@ -1,15 +1,34 @@
 import { db } from "@/lib/db";
 import { events, users } from "@/lib/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { count, desc, eq } from "drizzle-orm";
 import Link from "next/link";
 import { Calendar, Plus } from "lucide-react";
 import { DeleteEventButton } from "./DeleteEventButton";
 import { getI18n } from "@/lib/i18n/server";
 import { eventStatusLabel } from "@/lib/utils";
 import { getIntlLocale } from "@/lib/i18n/core";
+import { TablePagination } from "@/components/dashboard/TablePagination";
 
-export default async function AdminEventsPage() {
+interface AdminEventsPageProps {
+    searchParams: Promise<{
+        page?: string;
+    }>;
+}
+
+const PAGE_SIZE = 10;
+
+export default async function AdminEventsPage({ searchParams }: AdminEventsPageProps) {
     const { locale, t } = await getI18n();
+    const params = await searchParams;
+    const requestedPage = Number(params.page ?? "1");
+    const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
+
+    const [{ total }] = await db.select({ total: count() }).from(events);
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    const safePage = Math.min(currentPage, totalPages);
+    const offset = (safePage - 1) * PAGE_SIZE;
+    const rowStart = offset;
+
     const allEvents = await db
         .select({
             id: events.id,
@@ -22,7 +41,9 @@ export default async function AdminEventsPage() {
         })
         .from(events)
         .innerJoin(users, eq(events.organizerId, users.id))
-        .orderBy(desc(events.createdAt));
+        .orderBy(desc(events.createdAt))
+        .limit(PAGE_SIZE)
+        .offset(offset);
 
     const statusColor: Record<string, string> = {
         published: "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400",
@@ -38,8 +59,8 @@ export default async function AdminEventsPage() {
                     <h1 className="font-display text-3xl font-semibold text-foreground">{t("dashboard.admin.allEvents")}</h1>
                     <p className="mt-1 text-muted-foreground">
                         {t("dashboard.admin.eventsOnPlatform", {
-                            count: allEvents.length,
-                            label: allEvents.length === 1 ? "evento" : "eventos",
+                            count: total,
+                            label: total === 1 ? "evento" : "eventos",
                         })}
                     </p>
                 </div>
@@ -70,6 +91,7 @@ export default async function AdminEventsPage() {
                         <table className="w-full min-w-[820px] text-sm">
                             <thead>
                                 <tr className="border-b border-border bg-muted/50">
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">N°</th>
                                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("dashboard.admin.title")}</th>
                                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.organizer")}</th>
                                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.category")}</th>
@@ -79,8 +101,9 @@ export default async function AdminEventsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
-                                {allEvents.map((event) => (
+                                {allEvents.map((event, index) => (
                                     <tr key={event.id} className="hover:bg-muted/30 transition-colors">
+                                        <td className="px-4 py-3 text-muted-foreground">{rowStart + index + 1}</td>
                                         <td className="px-4 py-3 font-medium text-foreground">{event.title}</td>
                                         <td className="px-4 py-3 text-muted-foreground">{event.organizerName ?? "—"}</td>
                                         <td className="px-4 py-3 text-muted-foreground capitalize">{event.category}</td>
@@ -118,6 +141,13 @@ export default async function AdminEventsPage() {
                             </tbody>
                         </table>
                     </div>
+                    <TablePagination
+                        basePath="/admin/events"
+                        currentPage={safePage}
+                        totalPages={totalPages}
+                        totalItems={total}
+                        pageSize={PAGE_SIZE}
+                    />
                 </div>
             )}
         </div>

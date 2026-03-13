@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { desc } from "drizzle-orm";
+import { count, desc } from "drizzle-orm";
 import { UserCog } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -8,11 +8,29 @@ import { RoleSelector } from "./RoleSelector";
 import { DeleteUserButton } from "./DeleteUserButton";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale, getRoleLabel } from "@/lib/i18n/core";
+import { TablePagination } from "@/components/dashboard/TablePagination";
 
-export default async function AdminUsersPage() {
+interface AdminUsersPageProps {
+    searchParams: Promise<{
+        page?: string;
+    }>;
+}
+
+const PAGE_SIZE = 10;
+
+export default async function AdminUsersPage({ searchParams }: AdminUsersPageProps) {
     const { locale, t } = await getI18n();
     const session = await auth.api.getSession({ headers: await headers() });
     const currentUserId = session!.user.id;
+    const params = await searchParams;
+    const requestedPage = Number(params.page ?? "1");
+    const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
+
+    const [{ total }] = await db.select({ total: count() }).from(users);
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    const safePage = Math.min(currentPage, totalPages);
+    const offset = (safePage - 1) * PAGE_SIZE;
+    const rowStart = offset;
 
     const allUsers = await db
         .select({
@@ -23,7 +41,9 @@ export default async function AdminUsersPage() {
             createdAt: users.createdAt,
         })
         .from(users)
-        .orderBy(desc(users.createdAt));
+        .orderBy(desc(users.createdAt))
+        .limit(PAGE_SIZE)
+        .offset(offset);
 
     const roleColor: Record<string, string> = {
         super_admin: "bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400",
@@ -37,8 +57,8 @@ export default async function AdminUsersPage() {
                 <h1 className="font-display text-3xl font-semibold text-foreground">{t("common.users")}</h1>
                 <p className="mt-1 text-muted-foreground">
                     {t("dashboard.admin.usersRegistered", {
-                        count: allUsers.length,
-                        label: allUsers.length === 1 ? (locale === "en" ? "user" : "usuario") : (locale === "en" ? "users" : "usuarios"),
+                        count: total,
+                        label: total === 1 ? (locale === "en" ? "user" : "usuario") : (locale === "en" ? "users" : "usuarios"),
                     })}
                 </p>
             </div>
@@ -55,6 +75,7 @@ export default async function AdminUsersPage() {
                         <table className="w-full min-w-[900px] text-sm">
                             <thead>
                                 <tr className="border-b border-border bg-muted/50">
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">N°</th>
                                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.name")}</th>
                                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.email")}</th>
                                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.role")}</th>
@@ -64,8 +85,9 @@ export default async function AdminUsersPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
-                                {allUsers.map((user) => (
+                                {allUsers.map((user, index) => (
                                     <tr key={user.id} className="hover:bg-muted/30 transition-colors">
+                                        <td className="px-4 py-3 text-muted-foreground">{rowStart + index + 1}</td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-3">
                                                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
@@ -104,6 +126,13 @@ export default async function AdminUsersPage() {
                             </tbody>
                         </table>
                     </div>
+                    <TablePagination
+                        basePath="/admin/users"
+                        currentPage={safePage}
+                        totalPages={totalPages}
+                        totalItems={total}
+                        pageSize={PAGE_SIZE}
+                    />
                 </div>
             )}
         </div>
