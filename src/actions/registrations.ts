@@ -12,7 +12,7 @@ import {
   registrationRatelimit,
 } from "@/lib/redis";
 import { headers } from "next/headers";
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, count, inArray } from "drizzle-orm";
 import QRCode from "qrcode";
 import { revalidatePath } from "next/cache";
 import { logAudit } from "@/lib/audit";
@@ -133,7 +133,7 @@ export async function registerForEvent(eventId: string) {
 
   }
 
-  // Create notification
+  // Create notification for attendee
   await db.insert(notifications).values({
     userId: user.id,
     type: status === "registered" ? "registration_confirmed" : "registration_confirmed",
@@ -147,6 +147,65 @@ export async function registerForEvent(eventId: string) {
 
   // Invalidate unread count cache
   await invalidateCache(CACHE_KEYS.userNotificationsCount(user.id));
+
+  // Notify organizer and admin roles about a new registration
+  if (status === "registered") {
+    const adminUsers = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(inArray(users.role, ["admin", "super_admin"]));
+
+    const recipientIds = new Set<string>();
+
+    if (event.organizerId && event.organizerId !== user.id) {
+      recipientIds.add(event.organizerId);
+    }
+
+    for (const adminUser of adminUsers) {
+      if (adminUser.id !== user.id) {
+        recipientIds.add(adminUser.id);
+      }
+    }
+
+    const registrationAlertTitle = "Nuevo registro en evento";
+    const registrationAlertMessage = `${user.name} se registró en \"${event.title}\".`;
+
+    if (recipientIds.size > 0) {
+      const alertPayload = Array.from(recipientIds).map((recipientId) => ({
+        userId: recipientId,
+        type: "event_updated" as const,
+        title: registrationAlertTitle,
+        message: registrationAlertMessage,
+        metadata: {
+          eventId,
+          eventTitle: event.title,
+          registrationId: registration.id,
+          attendeeId: user.id,
+        },
+      }));
+
+      await db.insert(notifications).values(alertPayload);
+
+      await Promise.all([
+        ...Array.from(recipientIds).map((recipientId) =>
+          invalidateCache(CACHE_KEYS.userNotificationsCount(recipientId))
+        ),
+        ...Array.from(recipientIds).map((recipientId) =>
+          pusherServer.trigger(
+            PUSHER_CHANNELS.userNotifications(recipientId),
+            PUSHER_EVENTS.notificationCreated,
+            {
+              title: registrationAlertTitle,
+              message: registrationAlertMessage,
+              type: "event_updated",
+              eventId,
+              registrationId: registration.id,
+            }
+          )
+        ),
+      ]);
+    }
+  }
 
   // Real-time updates
   const [{ count: newCount }] = await db

@@ -1,6 +1,6 @@
-import { Bell } from "lucide-react";
-import { getUnreadNotificationsCount } from "@/actions/notifications";
+import { getNotifications, getUnreadNotificationsCount } from "@/actions/notifications";
 import { TopbarUserMenu } from "@/components/dashboard/TopbarUserMenu";
+import { TopbarNotifications } from "@/components/dashboard/TopbarNotifications";
 
 interface DashboardTopbarProps {
   user: {
@@ -13,7 +13,10 @@ interface DashboardTopbarProps {
 }
 
 export async function DashboardTopbar({ user }: DashboardTopbarProps) {
-  const unreadCount = await getUnreadNotificationsCount();
+  const [unreadCount, initialNotifications] = await Promise.all([
+    getUnreadNotificationsCount(),
+    getNotifications(8),
+  ]);
 
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background/80 px-6 py-3 backdrop-blur-md">
@@ -26,14 +29,14 @@ export async function DashboardTopbar({ user }: DashboardTopbarProps) {
 
       <div className="flex items-center gap-3">
         {/* Notificaciones */}
-        <button className="relative rounded-xl border border-border bg-secondary/50 p-2 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
-          <Bell className="h-4 w-4" />
-          {unreadCount > 0 && (
-            <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-foreground">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          )}
-        </button>
+        {user.id && (
+          <TopbarNotifications
+            userId={user.id}
+            role={user.role}
+            initialUnreadCount={unreadCount}
+            initialNotifications={initialNotifications}
+          />
+        )}
 
         {/* Usuario + cerrar sesión */}
         <TopbarUserMenu user={user} />

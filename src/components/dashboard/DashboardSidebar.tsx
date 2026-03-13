@@ -45,6 +45,7 @@ const adminNav: NavItem[] = [
   { label: "Categories", href: "/admin/categories", icon: ClipboardList },
   { label: "Users", href: "/admin/users", icon: UserCog },
   { label: "Registrations", href: "/admin/registrations", icon: ClipboardList },
+  { label: "Notifications", href: "/admin/notifications", icon: Bell },
   { label: "Permissions", href: "/admin/permissions", icon: KeyRound },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
   { label: "Payments", href: "/admin/payments", icon: CreditCard },

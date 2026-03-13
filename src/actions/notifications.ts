@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { notifications } from "@/lib/db/schema";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { eq, and, desc, count } from "drizzle-orm";
+import { eq, and, desc, count, inArray } from "drizzle-orm";
 import { getCached, setCached, invalidateCache, CACHE_KEYS, CACHE_TTL } from "@/lib/redis";
 
 async function requireAuth() {
@@ -22,6 +22,16 @@ export async function getNotifications(limit = 20) {
     .where(eq(notifications.userId, user.id))
     .orderBy(desc(notifications.createdAt))
     .limit(limit);
+}
+
+export async function getRecentNotifications(limit = 8) {
+  const items = await getNotifications(limit);
+  const unreadCount = await getUnreadNotificationsCount();
+
+  return {
+    items,
+    unreadCount,
+  };
 }
 
 export async function getUnreadNotificationsCount(): Promise<number> {
@@ -52,7 +62,7 @@ export async function markNotificationsAsRead(notificationIds?: string[]) {
       .where(
         and(
           eq(notifications.userId, user.id),
-          // Filter by IDs
+          inArray(notifications.id, notificationIds)
         )
       );
   } else {
