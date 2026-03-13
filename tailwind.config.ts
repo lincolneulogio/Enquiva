@@ -10,9 +10,9 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "sans-serif"],
-        mono: ["var(--font-geist-mono)", "monospace"],
-        display: ["var(--font-display)", "serif"],
+        sans: ["var(--font-outfit)", "sans-serif"],
+        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+        display: ["var(--font-display)", "var(--font-outfit)", "sans-serif"],
       },
       colors: {
         background: "hsl(var(--background))",

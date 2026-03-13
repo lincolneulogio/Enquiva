@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
+import { Outfit } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import "./globals.css";
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -19,8 +26,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={outfit.variable}>
+      <body suppressHydrationWarning className="font-sans">
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
@@ -34,7 +41,7 @@ export default function RootLayout({
             expand
             toastOptions={{
               style: {
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: "var(--font-outfit), sans-serif",
               },
             }}
           />
