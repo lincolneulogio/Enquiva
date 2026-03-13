@@ -8,6 +8,7 @@ import { paymentStatusValues } from "@/lib/validations";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import { useLocale } from "@/components/providers/LocaleProvider";
 import { getPaymentStatusLabel } from "@/lib/i18n/core";
+import { confirmDeleteAction } from "@/lib/ui/confirm";
 
 interface PaymentStatusSelectProps {
   paymentId: string;
@@ -20,10 +21,31 @@ export function PaymentStatusSelect({ paymentId, currentStatus }: PaymentStatusS
   const t = useTranslations();
   const { locale } = useLocale();
 
-  const handleChange = (value: string) => {
+  const handleChange = async (value: string) => {
+    const nextStatus = value as typeof paymentStatusValues[number];
+    const statusLabel = getPaymentStatusLabel(nextStatus, locale);
+
+    const isSpanish = locale.startsWith("es");
+    const tone = nextStatus === "approved" ? "success" : nextStatus === "rejected" ? "danger" : "info";
+
+    const confirmed = await confirmDeleteAction({
+      title: isSpanish ? "Actualizar estado de pago" : "Update payment status",
+      text: isSpanish
+        ? `¿Deseas cambiar el estado del pago a \"${statusLabel}\"?`
+        : `Do you want to change the payment status to "${statusLabel}"?`,
+      confirmText: isSpanish ? "Sí, actualizar" : "Yes, update",
+      cancelText: isSpanish ? "Cancelar" : "Cancel",
+      tone,
+    });
+
+    if (!confirmed) {
+      router.refresh();
+      return;
+    }
+
     startTransition(async () => {
       try {
-        await updatePaymentStatus({ paymentId, status: value as typeof paymentStatusValues[number] });
+        await updatePaymentStatus({ paymentId, status: nextStatus });
         toast.success(t("dashboard.admin.updatePaymentStatus"));
         router.refresh();
       } catch (error) {
@@ -35,7 +57,9 @@ export function PaymentStatusSelect({ paymentId, currentStatus }: PaymentStatusS
   return (
     <select
       value={currentStatus}
-      onChange={(event) => handleChange(event.target.value)}
+      onChange={(event) => {
+        void handleChange(event.target.value);
+      }}
       disabled={isPending}
       className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
     >

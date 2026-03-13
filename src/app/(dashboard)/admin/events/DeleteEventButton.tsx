@@ -5,6 +5,7 @@ import { useTranslations } from "@/components/providers/LocaleProvider";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
+import { confirmDeleteAction } from "@/lib/ui/confirm";
 
 interface DeleteEventButtonProps {
     eventId: string;
@@ -15,8 +16,14 @@ export function DeleteEventButton({ eventId }: DeleteEventButtonProps) {
     const t = useTranslations();
     const [isPending, startTransition] = useTransition();
 
-    const handleDelete = () => {
-        const confirmed = window.confirm(t("common.confirmDeleteEvent"));
+    const handleDelete = async () => {
+        const confirmed = await confirmDeleteAction({
+            title: t("common.delete"),
+            text: t("common.confirmDeleteEvent"),
+            confirmText: t("common.delete"),
+            cancelText: t("common.cancel"),
+            tone: "danger",
+        });
         if (!confirmed) return;
 
         startTransition(async () => {

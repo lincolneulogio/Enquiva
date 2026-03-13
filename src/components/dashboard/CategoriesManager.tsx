@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { createCategory, deleteCategory, reorderCategories, updateCategory } from "@/actions/admin";
 import { toast } from "sonner";
+import { confirmDeleteAction } from "@/lib/ui/confirm";
 import { GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/components/providers/LocaleProvider";
@@ -124,7 +125,19 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
         });
     };
 
-    const onDelete = (id: string) => {
+    const onDelete = async (id: string) => {
+        const category = items.find((it) => it.id === id);
+        const confirmed = await confirmDeleteAction({
+            title: t("common.delete"),
+            text: category
+                ? `${t("dashboard.admin.confirmDeleteCategory")} "${category.label}"`
+                : t("dashboard.admin.confirmDeleteCategory"),
+            confirmText: t("common.delete"),
+            cancelText: t("common.cancel"),
+            tone: "danger",
+        });
+        if (!confirmed) return;
+
         startTransition(async () => {
             try {
                 await deleteCategory(id);

@@ -61,6 +61,7 @@
     "react-hook-form": "^7.54.0",
     "recharts": "^2.13.0",
     "sonner": "^1.7.0",
+    "sweetalert2": "^11.26.22",
     "tailwind-merge": "^2.5.0",
     "uploadthing": "^7.0.0",
     "zod": "^3.23.0"

@@ -5,6 +5,7 @@ import { LocaleProvider } from "@/components/providers/LocaleProvider";
 import { AppThemeProvider } from "@/components/providers/AppThemeProvider";
 import { getLocale } from "@/lib/i18n/server";
 import "./globals.css";
+import "sweetalert2/dist/sweetalert2.min.css";
 
 const outfit = Outfit({
   subsets: ["latin"],
