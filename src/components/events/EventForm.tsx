@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createEventSchema, type CreateEventInput } from "@/lib/validations";
 import { createEvent, updateEvent } from "@/actions/events";
-import { UploadButton } from "@/lib/uploadthing/components";
+import { UploadDropzone } from "@/lib/uploadthing/components";
 import { toast } from "sonner";
 import { Loader2, ImageIcon, MapPin, Video, Star, Bus } from "lucide-react";
 import Image from "next/image";
@@ -242,6 +242,16 @@ export function EventForm({
         toast.error(getLocalizedValidationMessage(first?.message));
     };
 
+    const coverDropzoneAppearance = {
+        container:
+            "h-32 w-full rounded-xl border border-dashed border-primary/25 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-3 transition-colors hover:border-primary/40 hover:from-primary/15",
+        uploadIcon: "h-6 w-6 text-primary/80",
+        label: "text-sm font-semibold text-foreground",
+        allowedContent: "text-[11px] text-muted-foreground",
+        button:
+            "mt-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:bg-primary/90",
+    };
+
     return (
         <form
             onSubmit={handleSubmit(onSubmit, onInvalid)}
@@ -403,15 +413,18 @@ export function EventForm({
                                     <button
                                         type="button"
                                         onClick={() => setCoverImage(null)}
-                                        className="absolute right-2 top-2 rounded-lg bg-background/80 px-2 py-1 text-xs hover:bg-background"
+                                        className="absolute right-2 top-2 rounded-lg border border-border bg-background/85 px-2 py-1 text-xs font-medium backdrop-blur transition hover:bg-background"
                                     >
                                         {t("events.form.removeImage")}
                                     </button>
                                 </div>
                             ) : (
-                                <div className="flex h-40 flex-col items-center justify-center gap-2 text-muted-foreground">
-                                    <ImageIcon className="h-8 w-8 opacity-40" />
-                                    <UploadButton
+                                <div className="flex h-72 flex-col items-center justify-center gap-2 px-4 text-center text-muted-foreground">
+                                    <div className="rounded-full bg-primary/10 p-2.5">
+                                        <ImageIcon className="h-5 w-5 text-primary animate-pulse" />
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">{t("events.form.coverImage")}</p>
+                                    <UploadDropzone
                                         endpoint="eventCoverImage"
                                         onClientUploadComplete={(res) => {
                                             if (res[0]) setCoverImage(res[0].url);
@@ -419,9 +432,7 @@ export function EventForm({
                                         onUploadError={(err) => {
                                             toast.error(err.message);
                                         }}
-                                        appearance={{
-                                            button: "bg-primary text-primary-foreground text-sm px-4 py-2 rounded-lg",
-                                        }}
+                                        appearance={coverDropzoneAppearance}
                                     />
                                 </div>
                             )}

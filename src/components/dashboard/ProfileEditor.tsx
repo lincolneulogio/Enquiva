@@ -12,7 +12,7 @@ import {
     type UpdatePasswordInput,
     type UpdateProfileInput,
 } from "@/lib/validations";
-import { UploadButton } from "@/lib/uploadthing/components";
+import { UploadDropzone } from "@/lib/uploadthing/components";
 import { Eye, EyeOff, Loader2, Mail, Shield, User, ImageIcon, LockKeyhole, Phone } from "lucide-react";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { getRoleLabel } from "@/lib/i18n/core";
@@ -209,11 +209,14 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
         });
     };
 
-    const uploadButtonAppearance = {
-        container: "w-full max-w-full overflow-hidden",
+    const uploadDropzoneAppearance = {
+        container:
+            "h-full w-full rounded-2xl border border-dashed border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-3 transition-colors hover:border-primary/50 hover:from-primary/15",
+        uploadIcon: "h-6 w-6 text-primary/80",
+        label: "text-sm font-semibold text-foreground",
+        allowedContent: "text-[11px] text-muted-foreground",
         button:
-            "w-full max-w-full overflow-hidden text-ellipsis whitespace-nowrap bg-primary text-primary-foreground text-xs sm:text-sm px-3 py-2 rounded-lg ut-readying:bg-primary ut-uploading:opacity-80 sm:w-auto",
-        allowedContent: "max-w-full truncate text-[11px] text-muted-foreground sm:text-xs",
+            "mt-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:bg-primary/90",
     };
 
     return (
@@ -267,15 +270,27 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                     <label className="block text-sm font-medium text-foreground">{t("dashboard.profile.profilePhoto")}</label>
 
                     <div className="rounded-xl border border-border bg-background p-4">
-                        {previewImage ? (
-                            <div className="space-y-3">
-                                <div className="relative h-40 w-full overflow-hidden rounded-lg border border-border">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={previewImage} alt={t("dashboard.profile.profilePhoto")} className="h-full w-full object-cover" />
+                        <div className="flex flex-col items-center gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-center sm:gap-5">
+                            <div className="shrink-0">
+                                <div className="relative h-40 w-40 overflow-hidden rounded-2xl border border-border bg-secondary sm:h-44 sm:w-44">
+                                    {previewImage ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img src={previewImage} alt={t("dashboard.profile.profilePhoto")} className="h-full w-full object-cover" />
+                                    ) : (
+                                        <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                                            <div className="rounded-full bg-primary/15 p-2">
+                                                <ImageIcon className="h-5 w-5 text-primary animate-pulse" />
+                                            </div>
+                                            <span className="text-sm">{t("dashboard.profile.uploadProfilePhoto")}</span>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                                    <div className="min-w-0 w-full sm:flex-1">
-                                        <UploadButton
+                            </div>
+
+                            <div className="w-full max-w-[320px] space-y-3">
+                                <div className="w-full">
+                                    <div className="h-28 sm:h-28">
+                                        <UploadDropzone
                                             endpoint="profileAvatar"
                                             onBeforeUploadBegin={optimizeAvatarFiles}
                                             onClientUploadComplete={(res) => {
@@ -291,9 +306,12 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                                             onUploadError={(err) => {
                                                 toast.error(err.message);
                                             }}
-                                            appearance={uploadButtonAppearance}
+                                            appearance={uploadDropzoneAppearance}
                                         />
                                     </div>
+                                </div>
+
+                                {previewImage ? (
                                     <button
                                         type="button"
                                         onClick={() =>
@@ -303,38 +321,13 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                                                 shouldValidate: true,
                                             })
                                         }
-                                        className="w-full rounded-lg border border-border px-3 py-2 text-sm text-foreground hover:bg-muted sm:w-auto"
+                                        className="w-full rounded-xl border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
                                     >
                                         {t("dashboard.profile.removeAvatar")}
                                     </button>
-                                </div>
+                                ) : null}
                             </div>
-                        ) : (
-                            <div className="flex flex-col items-start gap-3 text-muted-foreground">
-                                <div className="flex items-center gap-2 text-sm">
-                                    <ImageIcon className="h-4 w-4" />
-                                    <span>{t("dashboard.profile.uploadProfilePhoto")}</span>
-                                </div>
-                                <UploadButton
-                                    endpoint="profileAvatar"
-                                    onBeforeUploadBegin={optimizeAvatarFiles}
-                                    onClientUploadComplete={(res) => {
-                                        if (res?.[0]?.url) {
-                                            setValue("image", res[0].url, {
-                                                shouldDirty: true,
-                                                shouldTouch: true,
-                                                shouldValidate: true,
-                                            });
-                                            toast.success(t("dashboard.profile.avatarUploaded"));
-                                        }
-                                    }}
-                                    onUploadError={(err) => {
-                                        toast.error(err.message);
-                                    }}
-                                    appearance={uploadButtonAppearance}
-                                />
-                            </div>
-                        )}
+                        </div>
                     </div>
 
                     <p className="text-xs text-muted-foreground">
