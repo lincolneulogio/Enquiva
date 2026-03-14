@@ -4,6 +4,8 @@ import { Calendar, Plus } from "lucide-react";
 import { DeleteEventButton } from "./DeleteEventButton";
 import { categoryLabel, eventStatusLabel, formatEventDateShort, statusColor } from "@/lib/utils";
 import { getI18n } from "@/lib/i18n/server";
+import { ExportDataPanel } from "@/components/dashboard/ExportDataPanel";
+import { getCategories } from "@/actions/events";
 
 interface OrganizerEventsPageProps {
     searchParams: Promise<{
@@ -23,6 +25,8 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
     const { locale, t } = await getI18n();
     const params = await searchParams;
     const organizerEvents = await getOrganizerEvents();
+    const categories = await getCategories();
+    const categoryMap = Object.fromEntries(categories.map((category) => [category.slug, category.label]));
 
     const activeStatus = STATUS_FILTERS.some((f) => f.value === params.status)
         ? (params.status as (typeof STATUS_FILTERS)[number]["value"])
@@ -32,6 +36,15 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
         activeStatus === "all"
             ? organizerEvents
             : organizerEvents.filter(({ event }) => event.status === activeStatus);
+    const exportEventOptions = organizerEvents.map(({ event }) => ({ id: event.id, title: event.title }));
+    const exportCategoryOptions = categories.map((category) => ({
+        value: category.slug,
+        label: category.label,
+    }));
+    const exportStatusOptions = STATUS_FILTERS.map((filter) => ({
+        value: filter.value,
+        label: t(filter.labelKey),
+    }));
 
     return (
         <div className="space-y-6">
@@ -76,6 +89,15 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                 })}
             </div>
 
+            <ExportDataPanel
+                resource="events"
+                scope="organizer"
+                eventOptions={exportEventOptions}
+                categoryOptions={exportCategoryOptions}
+                statusOptions={exportStatusOptions}
+                initialStatus={activeStatus}
+            />
+
             {filteredEvents.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
                     <Calendar className="mx-auto h-10 w-10 text-muted-foreground/50" />
@@ -113,7 +135,7 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                                 {filteredEvents.map(({ event, attendeeCount }) => (
                                     <tr key={event.id} className="hover:bg-muted/30 transition-colors">
                                         <td className="px-4 py-3 font-medium text-foreground">{event.title}</td>
-                                        <td className="px-4 py-3 text-muted-foreground">{categoryLabel(event.category, locale)}</td>
+                                        <td className="px-4 py-3 text-muted-foreground">{categoryMap[event.category] ?? categoryLabel(event.category, locale)}</td>
                                         <td className="px-4 py-3 text-muted-foreground">{formatEventDateShort(event.date, locale)}</td>
                                         <td className="px-4 py-3">
                                             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor(event.status)}`}>

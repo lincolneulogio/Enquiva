@@ -3,10 +3,24 @@ import { formatCurrency } from "@/lib/utils";
 import { PaymentStatusBadge } from "@/components/payments/PaymentStatusBadge";
 import Link from "next/link";
 import { getI18n } from "@/lib/i18n/server";
+import { ExportDataPanel } from "@/components/dashboard/ExportDataPanel";
+import { getExportEventOptions } from "@/actions/exports";
+import { getCategories } from "@/actions/events";
+import { categoryLabel } from "@/lib/utils";
+import { getPaymentStatusLabel } from "@/lib/i18n/core";
 
 export default async function OrganizerPaymentsPage() {
   const { locale, t } = await getI18n();
   const payments = await getOrganizerPayments();
+  const exportEventOptions = await getExportEventOptions("organizer");
+  const exportCategoryOptions = (await getCategories()).map((category) => ({
+    value: category.slug,
+    label: category.label,
+  }));
+  const exportStatusOptions = ["all", "pending", "approved", "rejected"].map((value) => ({
+    value,
+    label: value === "all" ? t("common.all") : getPaymentStatusLabel(value, locale),
+  }));
 
   return (
     <div className="space-y-6">
@@ -16,6 +30,14 @@ export default async function OrganizerPaymentsPage() {
           {t("dashboard.organizer.paymentsIntro")}
         </p>
       </div>
+
+      <ExportDataPanel
+        resource="payments"
+        scope="organizer"
+        eventOptions={exportEventOptions}
+        categoryOptions={exportCategoryOptions}
+        statusOptions={exportStatusOptions}
+      />
 
       {payments.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-border bg-card p-12 text-center">

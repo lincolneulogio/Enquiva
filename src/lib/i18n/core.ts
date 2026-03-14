@@ -29,6 +29,18 @@ const translations: Record<Locale, TranslationDictionary> = {
             getStarted: "Comenzar",
             goToDashboard: "Ir a mi panel",
             signOut: "Cerrar sesión",
+            export: "Exportar",
+            exportExcel: "Excel",
+            exportPdf: "PDF",
+            exporting: "Exportando...",
+            filterByEvent: "Filtrar por evento",
+            filterByStatus: "Filtrar por estado",
+            filterByCategory: "Filtrar por categoría",
+            fromDate: "Desde",
+            toDate: "Hasta",
+            allEventsOption: "Todos los eventos",
+            allCategoriesOption: "Todas las categorías",
+            genericExportError: "No se pudo generar la exportación.",
             openNotifications: "Abrir notificaciones",
             switchToDark: "Modo oscuro",
             switchToLight: "Modo claro",
@@ -695,6 +707,18 @@ const translations: Record<Locale, TranslationDictionary> = {
             getStarted: "Get started",
             goToDashboard: "Go to my dashboard",
             signOut: "Sign out",
+            export: "Export",
+            exportExcel: "Excel",
+            exportPdf: "PDF",
+            exporting: "Exporting...",
+            filterByEvent: "Filter by event",
+            filterByStatus: "Filter by status",
+            filterByCategory: "Filter by category",
+            fromDate: "From date",
+            toDate: "To date",
+            allEventsOption: "All events",
+            allCategoriesOption: "All categories",
+            genericExportError: "Could not generate the export.",
             openNotifications: "Open notifications",
             switchToDark: "Dark mode",
             switchToLight: "Light mode",
@@ -1389,7 +1413,17 @@ export function getPermissionLabel(permission: string, locale: Locale): string {
 }
 
 export function getCategoryLabel(category: string, locale: Locale): string {
-    return translate(locale, `categories.${category}`);
+    const translated = translate(locale, `categories.${category}`);
+    if (translated !== `categories.${category}`) {
+        return translated;
+    }
+
+    return category
+        .replace(/^categories\./, "")
+        .replace(/[_-]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 export function getEventStatusLabel(status: string, locale: Locale): string {

@@ -5,8 +5,11 @@ import { eq, desc, count } from "drizzle-orm";
 import { ClipboardList } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
-import { registrationStatusLabel } from "@/lib/utils";
+import { categoryLabel, registrationStatusLabel } from "@/lib/utils";
 import { TablePagination } from "@/components/dashboard/TablePagination";
+import { ExportDataPanel } from "@/components/dashboard/ExportDataPanel";
+import { getExportEventOptions } from "@/actions/exports";
+import { getCategories } from "@/actions/events";
 
 interface AdminRegistrationsPageProps {
   searchParams: Promise<{
@@ -30,6 +33,15 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
   const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
 
   const [{ total }] = await db.select({ total: count() }).from(registrations);
+  const exportEventOptions = await getExportEventOptions("admin");
+  const exportCategoryOptions = (await getCategories()).map((category) => ({
+    value: category.slug,
+    label: category.label,
+  }));
+  const exportStatusOptions = ["all", "registered", "checked_in", "waitlisted", "cancelled"].map((value) => ({
+    value,
+    label: value === "all" ? t("common.all") : registrationStatusLabel(value, locale),
+  }));
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
   const offset = (safePage - 1) * PAGE_SIZE;
@@ -71,6 +83,14 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
           })}
         </p>
       </div>
+
+      <ExportDataPanel
+        resource="registrations"
+        scope="admin"
+        eventOptions={exportEventOptions}
+        categoryOptions={exportCategoryOptions}
+        statusOptions={exportStatusOptions}
+      />
 
       {allRegistrations.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">

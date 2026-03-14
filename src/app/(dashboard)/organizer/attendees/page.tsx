@@ -7,11 +7,24 @@ import { Users } from "lucide-react";
 import { ManualCheckInButton } from "@/components/events/ManualCheckInButton";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale, getPluralLabel, getRegistrationStatusLabel } from "@/lib/i18n/core";
+import { ExportDataPanel } from "@/components/dashboard/ExportDataPanel";
+import { getExportEventOptions } from "@/actions/exports";
+import { getCategories } from "@/actions/events";
+import { categoryLabel } from "@/lib/utils";
 
 export default async function OrganizerAttendeesPage() {
     const { t, locale } = await getI18n();
     const session = await auth.api.getSession({ headers: await headers() });
     const organizerId = session!.user.id;
+    const exportEventOptions = await getExportEventOptions("organizer");
+    const exportCategoryOptions = (await getCategories()).map((category) => ({
+        value: category.slug,
+        label: category.label,
+    }));
+    const exportStatusOptions = ["all", "registered", "checked_in", "waitlisted", "cancelled"].map((value) => ({
+        value,
+        label: value === "all" ? t("common.all") : getRegistrationStatusLabel(value, locale),
+    }));
 
     const rows = await db
         .select({
@@ -42,6 +55,14 @@ export default async function OrganizerAttendeesPage() {
                     {t("dashboard.organizer.attendeesSummary", { count: rows.length, label: registrationWord })}
                 </p>
             </div>
+
+            <ExportDataPanel
+                resource="registrations"
+                scope="organizer"
+                eventOptions={exportEventOptions}
+                categoryOptions={exportCategoryOptions}
+                statusOptions={exportStatusOptions}
+            />
 
             {rows.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">

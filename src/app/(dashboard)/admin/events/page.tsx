@@ -5,9 +5,12 @@ import Link from "next/link";
 import { Calendar, Plus } from "lucide-react";
 import { DeleteEventButton } from "./DeleteEventButton";
 import { getI18n } from "@/lib/i18n/server";
-import { eventStatusLabel } from "@/lib/utils";
+import { categoryLabel, eventStatusLabel } from "@/lib/utils";
 import { getIntlLocale } from "@/lib/i18n/core";
 import { TablePagination } from "@/components/dashboard/TablePagination";
+import { ExportDataPanel } from "@/components/dashboard/ExportDataPanel";
+import { getExportEventOptions } from "@/actions/exports";
+import { getCategories } from "@/actions/events";
 
 interface AdminEventsPageProps {
     searchParams: Promise<{
@@ -17,6 +20,8 @@ interface AdminEventsPageProps {
 
 const PAGE_SIZE = 10;
 
+const EVENT_STATUS_VALUES = ["all", "published", "draft", "cancelled", "completed"] as const;
+
 export default async function AdminEventsPage({ searchParams }: AdminEventsPageProps) {
     const { locale, t } = await getI18n();
     const params = await searchParams;
@@ -24,6 +29,17 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
     const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
 
     const [{ total }] = await db.select({ total: count() }).from(events);
+    const exportEventOptions = await getExportEventOptions("admin");
+    const categories = await getCategories();
+    const categoryMap = Object.fromEntries(categories.map((category) => [category.slug, category.label]));
+    const exportCategoryOptions = categories.map((category) => ({
+        value: category.slug,
+        label: category.label,
+    }));
+    const exportStatusOptions = EVENT_STATUS_VALUES.map((value) => ({
+        value,
+        label: value === "all" ? t("common.all") : t(`eventStatus.${value}`),
+    }));
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
     const safePage = Math.min(currentPage, totalPages);
     const offset = (safePage - 1) * PAGE_SIZE;
@@ -73,6 +89,14 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                 </Link>
             </div>
 
+            <ExportDataPanel
+                resource="events"
+                scope="admin"
+                eventOptions={exportEventOptions}
+                categoryOptions={exportCategoryOptions}
+                statusOptions={exportStatusOptions}
+            />
+
             {allEvents.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
                     <Calendar className="mx-auto h-10 w-10 text-muted-foreground/50" />
@@ -106,7 +130,7 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                                         <td className="px-4 py-3 text-muted-foreground">{rowStart + index + 1}</td>
                                         <td className="px-4 py-3 font-medium text-foreground">{event.title}</td>
                                         <td className="px-4 py-3 text-muted-foreground">{event.organizerName ?? "—"}</td>
-                                        <td className="px-4 py-3 text-muted-foreground capitalize">{event.category}</td>
+                                        <td className="px-4 py-3 text-muted-foreground">{categoryMap[event.category] ?? categoryLabel(event.category, locale)}</td>
                                         <td className="px-4 py-3 text-muted-foreground">
                                             {new Date(event.date).toLocaleDateString(getIntlLocale(locale), {
                                                 month: "short",
@@ -123,6 +147,7 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                                             <div className="flex items-center justify-end gap-3 text-xs">
                                                 <Link
                                                     href={`/events/${event.slug}`}
+                                                    target="_blank"
                                                     className="text-primary hover:underline"
                                                 >
                                                     {t("common.view")}

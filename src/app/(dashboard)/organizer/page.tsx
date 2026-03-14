@@ -1,4 +1,4 @@
-import { getOrganizerEvents } from "@/actions/events";
+import { getCategories, getOrganizerEvents } from "@/actions/events";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -11,6 +11,8 @@ export default async function OrganizerDashboardPage() {
   const { locale, t } = await getI18n();
   const session = await auth.api.getSession({ headers: await headers() });
   const organizerEvents = await getOrganizerEvents();
+  const categories = await getCategories();
+  const categoryMap = Object.fromEntries(categories.map((category) => [category.slug, category.label]));
 
   const totalAttendees = organizerEvents.reduce(
     (sum, { attendeeCount }) => sum + (attendeeCount ?? 0),
@@ -145,7 +147,7 @@ export default async function OrganizerDashboardPage() {
                       {formatEventDateShort(event.date, locale)}
                     </td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">
-                      {categoryLabel(event.category, locale)}
+                      {categoryMap[event.category] ?? categoryLabel(event.category, locale)}
                     </td>
                     <td className="px-6 py-4">
                       <span

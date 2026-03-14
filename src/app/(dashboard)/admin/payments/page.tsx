@@ -5,8 +5,12 @@ import { PaymentStatusSelect } from "@/components/payments/PaymentStatusSelect";
 import { formatCurrency } from "@/lib/utils";
 import { Calendar } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
-import { getIntlLocale } from "@/lib/i18n/core";
+import { getIntlLocale, getPaymentStatusLabel } from "@/lib/i18n/core";
 import { TablePagination } from "@/components/dashboard/TablePagination";
+import { ExportDataPanel } from "@/components/dashboard/ExportDataPanel";
+import { getExportEventOptions } from "@/actions/exports";
+import { getCategories } from "@/actions/events";
+import { categoryLabel } from "@/lib/utils";
 
 interface AdminPaymentsPageProps {
   searchParams: Promise<{
@@ -19,6 +23,15 @@ const PAGE_SIZE = 10;
 export default async function AdminPaymentsPage({ searchParams }: AdminPaymentsPageProps) {
   const { locale, t } = await getI18n();
   const params = await searchParams;
+  const exportEventOptions = await getExportEventOptions("admin");
+  const exportCategoryOptions = (await getCategories()).map((category) => ({
+    value: category.slug,
+    label: category.label,
+  }));
+  const exportStatusOptions = ["all", "pending", "approved", "rejected"].map((value) => ({
+    value,
+    label: value === "all" ? t("common.all") : getPaymentStatusLabel(value, locale),
+  }));
   const requestedPage = Number(params.page ?? "1");
   const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
 
@@ -35,6 +48,14 @@ export default async function AdminPaymentsPage({ searchParams }: AdminPaymentsP
           {t("dashboard.admin.paymentsIntro")}
         </p>
       </div>
+
+      <ExportDataPanel
+        resource="payments"
+        scope="admin"
+        eventOptions={exportEventOptions}
+        categoryOptions={exportCategoryOptions}
+        statusOptions={exportStatusOptions}
+      />
 
       <div className="rounded-3xl border border-border bg-card shadow-sm">
         <div className="border-b border-border px-6 py-4">
