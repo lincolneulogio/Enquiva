@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { normalizeRole } from "@/lib/rbac";
 import { getI18n } from "@/lib/i18n/server";
 import { PublicMobileMenu } from "@/components/shared/PublicMobileMenu";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 
 function getDashboardPath(role?: string | null) {
     const normalizedRole = normalizeRole(role);
@@ -34,15 +35,20 @@ export async function PublicHeader() {
                     </span>
                 </Link>
 
-                <PublicMobileMenu
-                    browseLabel={t("common.browseEvents")}
-                    primaryHref={user ? dashboardPath : "/register"}
-                    primaryLabel={user ? t("common.goToDashboard") : t("common.getStarted")}
-                    secondaryHref={user ? undefined : "/login"}
-                    secondaryLabel={user ? undefined : t("common.signIn")}
-                />
+                <div className="flex items-center gap-2 md:hidden">
+                    <ThemeToggle />
+                    <PublicMobileMenu
+                        browseLabel={t("common.browseEvents")}
+                        primaryHref={user ? dashboardPath : "/register"}
+                        primaryLabel={user ? t("common.goToDashboard") : t("common.getStarted")}
+                        secondaryHref={user ? undefined : "/login"}
+                        secondaryLabel={user ? undefined : t("common.signIn")}
+                    />
+                </div>
 
                 <div className="hidden items-center gap-6 md:flex">
+                    <ThemeToggle />
+
                     <Link href="/events" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
                         {t("common.browseEvents")}
                     </Link>

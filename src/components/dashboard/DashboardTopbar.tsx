@@ -3,6 +3,7 @@ import { LanguageSwitcher } from "@/components/dashboard/LanguageSwitcher";
 import { TopbarUserMenu } from "@/components/dashboard/TopbarUserMenu";
 import { TopbarNotifications } from "@/components/dashboard/TopbarNotifications";
 import { SidebarMenuButton } from "@/components/dashboard/SidebarMenuButton";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 
 interface DashboardTopbarProps {
   user: {
@@ -33,6 +34,8 @@ export async function DashboardTopbar({ user }: DashboardTopbarProps) {
       </div>
 
       <div className="flex min-w-0 max-w-full items-center gap-2 overflow-visible sm:gap-3">
+        <ThemeToggle />
+
         <LanguageSwitcher />
 
         {/* Notificaciones */}
