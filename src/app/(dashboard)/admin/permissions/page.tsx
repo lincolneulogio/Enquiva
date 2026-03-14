@@ -69,7 +69,6 @@ export default async function AdminPermissionsPage() {
                                 <tr key={permission} className="hover:bg-muted/20 transition-colors">
                                     <td className="px-4 py-3">
                                         <div className="font-medium text-foreground">{getPermissionLabel(permission, locale)}</div>
-                                        <div className="text-xs text-muted-foreground">{permission}</div>
                                     </td>
                                     {ROLE_ORDER.map((role) => {
                                         const allowed = matrix[role][permission];

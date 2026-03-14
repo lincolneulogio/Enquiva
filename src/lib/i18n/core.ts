@@ -153,8 +153,8 @@ const translations: Record<Locale, TranslationDictionary> = {
         },
         permissions: {
             "events:create": "Crear eventos",
-            "events:update:any": "Editar cualquier evento",
-            "events:update:own": "Editar eventos propios",
+            "events:update:any": "Editar todos los eventos",
+            "events:update:own": "Editar solo sus eventos",
             "events:delete:any": "Eliminar cualquier evento",
             "events:delete:own": "Eliminar eventos propios",
             "users:manage": "Gestionar usuarios",
@@ -817,8 +817,8 @@ const translations: Record<Locale, TranslationDictionary> = {
         },
         permissions: {
             "events:create": "Create events",
-            "events:update:any": "Edit any event",
-            "events:update:own": "Edit own events",
+            "events:update:any": "Edit all events",
+            "events:update:own": "Edit only own events",
             "events:delete:any": "Delete any event",
             "events:delete:own": "Delete own events",
             "users:manage": "Manage users",

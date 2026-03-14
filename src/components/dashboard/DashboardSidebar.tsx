@@ -138,7 +138,7 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] transform bg-sidebar shadow-xl transition-transform duration-200 ease-out lg:hidden",
+          "fixed left-0 top-0 z-50 flex h-[100dvh] max-h-[100dvh] w-72 max-w-[85vw] transform flex-col overflow-hidden bg-sidebar pb-[env(safe-area-inset-bottom)] shadow-xl transition-transform duration-200 ease-out lg:hidden",
           isMobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -163,7 +163,7 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-4">
+        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain scroll-smooth snap-y snap-proximity px-3 py-4 [-webkit-overflow-scrolling:touch] [scroll-padding-bottom:0.75rem] [scroll-padding-top:0.75rem]">
           {navItems.map(({ labelKey, href, icon: Icon }) => {
             const isActive = pathname === href || pathname.startsWith(href + "/");
             return (
@@ -172,7 +172,7 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
                 href={href}
                 onClick={() => setIsMobileOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                  "flex snap-start items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive
                     ? "bg-sidebar-accent text-sidebar-primary"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
@@ -185,7 +185,7 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
           })}
         </nav>
 
-        <div className="border-t border-sidebar-border p-4">
+        <div className="shrink-0 border-t border-sidebar-border p-4">
           <div className="mb-3 flex items-center gap-3">
             <div className="relative h-8 w-8 overflow-hidden rounded-full bg-sidebar-accent">
               {user.image ? (
