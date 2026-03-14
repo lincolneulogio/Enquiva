@@ -23,7 +23,6 @@ import {
 import { pusherServer, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/server";
 import { generateUniqueSlug } from "@/lib/utils";
 import { headers } from "next/headers";
-import { logAudit } from "@/lib/audit";
 import { eq, and, desc, ilike, count, sql, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
@@ -57,7 +56,6 @@ async function requireOrganizer() {
 
 export async function createEvent(input: CreateEventInput) {
   const user = await requireOrganizer();
-  const requestHeaders = await headers();
   const validated = createEventSchema.parse(input);
 
   const slug = generateUniqueSlug(validated.title);
@@ -77,16 +75,6 @@ export async function createEvent(input: CreateEventInput) {
   revalidatePath("/events");
   revalidatePath("/(dashboard)/organizer");
 
-  await logAudit({
-    userId: user.id,
-    role: user.role,
-    action: "event:created",
-    entity: "events",
-    entityId: event.id,
-    metadata: { slug, title: event.title },
-    headers: requestHeaders,
-  });
-
   return { success: true, event };
 }
 
@@ -94,7 +82,6 @@ export async function createEvent(input: CreateEventInput) {
 
 export async function updateEvent(eventId: string, input: UpdateEventInput) {
   const user = await requireOrganizer();
-  const requestHeaders = await headers();
   const validated = updateEventSchema.parse(input);
 
   const [existing] = await db
@@ -130,16 +117,6 @@ export async function updateEvent(eventId: string, input: UpdateEventInput) {
   await invalidateCachePattern("events:public*");
   revalidatePath(`/events/${updated.slug}`);
 
-  await logAudit({
-    userId: user.id,
-    role: user.role,
-    action: "event:updated",
-    entity: "events",
-    entityId: updated.id,
-    metadata: { status: updated.status, slug: updated.slug },
-    headers: requestHeaders,
-  });
-
   return { success: true, event: updated };
 }
 
@@ -147,7 +124,6 @@ export async function updateEvent(eventId: string, input: UpdateEventInput) {
 
 export async function deleteEvent(eventId: string) {
   const user = await requireOrganizer();
-  const requestHeaders = await headers();
 
   const [existing] = await db
     .select()
@@ -163,16 +139,6 @@ export async function deleteEvent(eventId: string) {
   await db.delete(events).where(eq(events.id, eventId));
   await invalidateCachePattern("events:*");
   revalidatePath("/events");
-
-  await logAudit({
-    userId: user.id,
-    role: user.role,
-    action: "event:deleted",
-    entity: "events",
-    entityId: existing.id,
-    metadata: { title: existing.title, slug: existing.slug },
-    headers: requestHeaders,
-  });
 
   return { success: true };
 }

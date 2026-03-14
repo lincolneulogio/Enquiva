@@ -15,7 +15,6 @@ import { headers } from "next/headers";
 import { eq, and, sql, desc, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { logAudit } from "@/lib/audit";
 
 // ─── Auth Helpers ─────────────────────────────────────────────────────────────
 

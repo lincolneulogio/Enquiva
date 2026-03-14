@@ -263,18 +263,6 @@ export const tickets = pgTable("tickets", {
   index("tickets_status_idx").on(t.status),
 ]);
 
-export const auditLogs = pgTable("audit_logs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id").references(() => users.id),
-  role: roleEnum("role").notNull(),
-  action: text("action").notNull(),
-  entity: text("entity").notNull(),
-  entityId: text("entity_id"),
-  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
-  ipAddress: text("ip_address"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
 // ─── Transport ────────────────────────────────────────────────────────────────
 
 export const transportRoutes = pgTable(
@@ -374,7 +362,6 @@ export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),
   payments: many(payments),
   tickets: many(tickets),
-  auditLogs: many(auditLogs),
 }));
 
 export const eventsRelations = relations(events, ({ one, many }) => ({
@@ -439,10 +426,6 @@ export const ticketsRelations = relations(tickets, ({ one }) => ({
   }),
 }));
 
-export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
-  user: one(users, { fields: [auditLogs.userId], references: [users.id] }),
-}));
-
 export const rolePermissionsRelations = relations(rolePermissions, ({ one }) => ({
   role: one(roles, { fields: [rolePermissions.roleName], references: [roles.name] }),
   updater: one(users, { fields: [rolePermissions.updatedBy], references: [users.id] }),
@@ -466,8 +449,6 @@ export type Payment = typeof payments.$inferSelect;
 export type NewPayment = typeof payments.$inferInsert;
 export type Ticket = typeof tickets.$inferSelect;
 export type NewTicket = typeof tickets.$inferInsert;
-export type AuditLog = typeof auditLogs.$inferSelect;
-export type NewAuditLog = typeof auditLogs.$inferInsert;
 export type NewRolePermission = typeof rolePermissions.$inferInsert;
 export type TransportRoute = typeof transportRoutes.$inferSelect;
 export type NewTransportRoute = typeof transportRoutes.$inferInsert;

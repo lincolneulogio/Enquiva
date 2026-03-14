@@ -14,7 +14,6 @@ export const PERMISSIONS = [
     "payments:view:any",
     "payments:view:own",
     "payments:update:any",
-    "audit:view",
     "permissions:view",
 ] as const;
 
@@ -34,7 +33,6 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
     "payments:view:any": "View all payments",
     "payments:view:own": "View own-event payments",
     "payments:update:any": "Update payment status",
-    "audit:view": "View audit logs",
     "permissions:view": "View permissions",
 };
 
@@ -64,7 +62,6 @@ export const PERMISSIONS_BY_ROLE: Record<AppRole, Permission[]> = {
         "registrations:view:any",
         "payments:view:any",
         "payments:update:any",
-        "audit:view",
         "permissions:view",
     ],
     organizer: [

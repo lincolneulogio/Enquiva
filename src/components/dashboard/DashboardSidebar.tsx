@@ -16,7 +16,6 @@ import {
   CreditCard,
   Ticket,
   Bus,
-  FileText,
   ClipboardList,
   KeyRound,
   User,
@@ -55,7 +54,6 @@ const adminNav: NavItem[] = [
   { labelKey: "dashboard.sidebar.admin.analytics", href: "/admin/analytics", icon: BarChart3 },
   { labelKey: "dashboard.sidebar.admin.payments", href: "/admin/payments", icon: CreditCard },
   { labelKey: "dashboard.sidebar.admin.profile", href: "/admin/profile", icon: User },
-  { labelKey: "dashboard.sidebar.admin.auditLogs", href: "/admin/logs", icon: FileText },
   { labelKey: "dashboard.sidebar.admin.settings", href: "/admin/settings", icon: Settings },
 ];
 

@@ -15,7 +15,6 @@ import { headers } from "next/headers";
 import { eq, and, count, inArray } from "drizzle-orm";
 import QRCode from "qrcode";
 import { revalidatePath } from "next/cache";
-import { logAudit } from "@/lib/audit";
 import { generateTicketCode } from "@/lib/utils";
 import { env } from "@/env";
 
@@ -244,16 +243,6 @@ export async function registerForEvent(input: unknown) {
   // Update Redis attendee count
   await redis.set(CACHE_KEYS.eventAttendeesCount(eventId), newCount);
 
-  await logAudit({
-    userId: user.id,
-    role: user.role,
-    action: "registration:created",
-    entity: "registrations",
-    entityId: registration.id,
-    metadata: { eventId, status },
-    headers: headersList,
-  });
-
   revalidatePath(`/events/${event.slug}`);
   return { success: true, status, registration };
 }
@@ -262,7 +251,6 @@ export async function registerForEvent(input: unknown) {
 
 export async function cancelRegistration(registrationId: string) {
   const user = await requireAuth();
-  const requestHeaders = await headers();
 
   const [reg] = await db
     .select()
@@ -312,16 +300,6 @@ export async function cancelRegistration(registrationId: string) {
     });
   }
 
-  await logAudit({
-    userId: user.id,
-    role: user.role,
-    action: "registration:cancelled",
-    entity: "registrations",
-    entityId: reg.id,
-    metadata: { eventId: reg.eventId },
-    headers: requestHeaders,
-  });
-
   return { success: true };
 }
 
@@ -332,7 +310,6 @@ export async function checkInAttendee(input: unknown) {
   if (user.role !== "organizer" && user.role !== "super_admin") {
     throw new Error("Only organizers can check in attendees");
   }
-  const requestHeaders = await headers();
 
   const validated = checkInSchema.parse(input);
 
@@ -364,16 +341,6 @@ export async function checkInAttendee(input: unknown) {
     PUSHER_EVENTS.checkIn,
     { registrationId: reg.id, userId: reg.userId, checkedInAt: reg.checkedInAt }
   );
-
-  await logAudit({
-    userId: user.id,
-    role: user.role,
-    action: "registration:checked_in",
-    entity: "registrations",
-    entityId: reg.id,
-    metadata: { eventId: validated.eventId },
-    headers: requestHeaders,
-  });
 
   return { success: true, registration: reg };
 }

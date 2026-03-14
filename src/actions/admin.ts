@@ -7,7 +7,6 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { eq, count, and, inArray, isNull, asc, sql as sqlExpr } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { logAudit } from "@/lib/audit";
 import {
     PERMISSIONS,
     ROLE_ORDER,
@@ -28,19 +27,9 @@ export async function updateUserRole(
     userId: string,
     role: "member" | "organizer" | "admin" | "super_admin"
 ) {
-    const currentUser = await requireSuperAdmin();
-    const requestHeaders = await headers();
+    await requireSuperAdmin();
     await db.update(users).set({ role }).where(eq(users.id, userId));
     revalidatePath("/admin/users");
-    await logAudit({
-        userId: currentUser.id,
-        role: currentUser.role,
-        action: "user:role_updated",
-        entity: "users",
-        entityId: userId,
-        metadata: { newRole: role },
-        headers: requestHeaders,
-    });
     return { success: true };
 }
 
@@ -138,7 +127,6 @@ export async function reorderCategories(orderedIds: string[]) {
 
 export async function deleteUser(userId: string) {
     const currentUser = await requireSuperAdmin();
-    const requestHeaders = await headers();
 
     if (currentUser.id === userId) {
         throw new Error("You cannot delete your own account");
@@ -167,14 +155,6 @@ export async function deleteUser(userId: string) {
 
     await db.delete(users).where(eq(users.id, userId));
     revalidatePath("/admin/users");
-    await logAudit({
-        userId: currentUser.id,
-        role: currentUser.role,
-        action: "user:deleted",
-        entity: "users",
-        entityId: userId,
-        headers: requestHeaders,
-    });
     return { success: true };
 }
 
@@ -208,8 +188,7 @@ const DEFAULT_ROLES = [
 ] as const;
 
 export async function seedRoles() {
-    const currentUser = await requireSuperAdmin();
-    const requestHeaders = await headers();
+    await requireSuperAdmin();
     for (const role of DEFAULT_ROLES) {
         await db
             .insert(roles)
@@ -217,14 +196,6 @@ export async function seedRoles() {
             .onConflictDoNothing();
     }
     revalidatePath("/admin/roles");
-    await logAudit({
-        userId: currentUser.id,
-        role: currentUser.role,
-        action: "roles:seeded",
-        entity: "roles",
-        metadata: { roles: DEFAULT_ROLES.map((role) => role.name) },
-        headers: requestHeaders,
-    });
     return { success: true };
 }
 
@@ -232,28 +203,17 @@ export async function updateRole(
     name: string,
     data: { label: string; description: string; color: string }
 ) {
-    const currentUser = await requireSuperAdmin();
-    const requestHeaders = await headers();
+    await requireSuperAdmin();
     await db
         .update(roles)
         .set({ ...data, updatedAt: new Date() })
         .where(eq(roles.name, name));
     revalidatePath("/admin/roles");
-    await logAudit({
-        userId: currentUser.id,
-        role: currentUser.role,
-        action: "role:updated",
-        entity: "roles",
-        entityId: name,
-        metadata: data,
-        headers: requestHeaders,
-    });
     return { success: true };
 }
 
 export async function backfillPendingPayments() {
-    const currentUser = await requireSuperAdmin();
-    const requestHeaders = await headers();
+    await requireSuperAdmin();
 
     const missingPayments = await db
         .select({
@@ -292,15 +252,6 @@ export async function backfillPendingPayments() {
     revalidatePath("/admin/payments");
     revalidatePath("/member/payments");
     revalidatePath("/organizer/payments");
-
-    await logAudit({
-        userId: currentUser.id,
-        role: currentUser.role,
-        action: "payments:backfill_pending",
-        entity: "payments",
-        metadata: { inserted: missingPayments.length },
-        headers: requestHeaders,
-    });
 
     return { success: true, inserted: missingPayments.length };
 }
@@ -346,7 +297,6 @@ export async function updateRolePermission(input: {
     allowed: boolean;
 }) {
     const currentUser = await requireSuperAdmin();
-    const requestHeaders = await headers();
 
     if (input.role === "super_admin") {
         throw new Error("Super Admin permissions are fixed and cannot be changed");
@@ -385,19 +335,6 @@ export async function updateRolePermission(input: {
     }
 
     revalidatePath("/admin/permissions");
-
-    await logAudit({
-        userId: currentUser.id,
-        role: currentUser.role,
-        action: "permissions:updated",
-        entity: "role_permissions",
-        metadata: {
-            targetRole: input.role,
-            permission: input.permission,
-            allowed: input.allowed,
-        },
-        headers: requestHeaders,
-    });
 
     return { success: true };
 }

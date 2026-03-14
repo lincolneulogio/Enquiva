@@ -19,7 +19,6 @@ import {
   type CreatePaymentInput,
   type UpdatePaymentStatusInput,
 } from "@/lib/validations";
-import { logAudit } from "@/lib/audit";
 import {
   pusherServer,
   PUSHER_CHANNELS,
@@ -99,7 +98,6 @@ export async function getPaymentCheckoutContext(registrationId: string) {
 export async function updatePaymentStatus(input: UpdatePaymentStatusInput) {
   const {
     user,
-    headers: requestHeaders,
   } = await requireOrganizerOrHigherWithHeaders();
   const validated = updatePaymentStatusSchema.parse(input);
 
@@ -145,20 +143,6 @@ export async function updatePaymentStatus(input: UpdatePaymentStatusInput) {
     })
     .where(eq(payments.id, validated.paymentId))
     .returning();
-
-  await logAudit({
-    userId: user.id,
-    role: user.role,
-    action: "payment:status_updated",
-    entity: "payments",
-    entityId: payment.id,
-    metadata: {
-      status: updated.status,
-      eventId: event.id,
-      registrationId: registration.id,
-    },
-    headers: requestHeaders,
-  });
 
   await db.insert(notifications).values({
     userId: payment.userId,

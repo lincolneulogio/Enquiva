@@ -1,7 +1,6 @@
 import { execSync } from "node:child_process";
 import { db } from "@/lib/db";
 import {
-    auditLogs,
     eventAttachments,
     events,
     notifications,
@@ -266,12 +265,11 @@ async function seedTransportAndAttachments(
     console.log(`✓ Event attachments seeded: ${attachmentCount}`);
 }
 
-async function seedNotificationsAndAudit() {
+async function seedNotifications() {
     const demoUserIds = demoUsers.map((u) => u.id);
     await db
         .delete(notifications)
         .where(and(inArray(notifications.userId, demoUserIds), ilike(notifications.title, "%[DEMO]%")));
-    await db.delete(auditLogs).where(ilike(auditLogs.action, "seed:demo:%"));
 
     let notificationCount = 0;
     for (let i = 0; i < demoUserIds.length; i += 1) {
@@ -308,43 +306,7 @@ async function seedNotificationsAndAudit() {
         }
     }
 
-    const auditRows = [
-        {
-            userId: "demo-super-admin",
-            role: "super_admin" as const,
-            action: "seed:demo:users",
-            entity: "users",
-            metadata: { total: demoUsers.length, marker: SEED_MARK },
-        },
-        {
-            userId: "demo-admin-01",
-            role: "admin" as const,
-            action: "seed:demo:events",
-            entity: "events",
-            metadata: { marker: SEED_MARK },
-        },
-        {
-            userId: "demo-organizer-01",
-            role: "organizer" as const,
-            action: "seed:demo:transport",
-            entity: "transport",
-            metadata: { marker: SEED_MARK },
-        },
-    ];
-
-    for (const row of auditRows) {
-        await db.insert(auditLogs).values({
-            userId: row.userId,
-            role: row.role,
-            action: row.action,
-            entity: row.entity,
-            metadata: row.metadata,
-            ipAddress: "127.0.0.1",
-        });
-    }
-
     console.log(`✓ Notifications seeded: ${notificationCount}`);
-    console.log(`✓ Audit logs seeded: ${auditRows.length}`);
 }
 
 async function main() {
@@ -357,7 +319,7 @@ async function main() {
     await seedDemoUsers();
     const { demoRegistrationRows, publishedEvents } = await seedRegistrationsAndPaymentsAndTickets();
     await seedTransportAndAttachments(publishedEvents, demoRegistrationRows);
-    await seedNotificationsAndAudit();
+    await seedNotifications();
 
     console.log("\n✅ Seed maestro completado.");
 }
