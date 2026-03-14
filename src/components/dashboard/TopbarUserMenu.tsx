@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut, Crown, ShieldCheck, Briefcase, UserRound } from "lucide-react";
 import Image from "next/image";
@@ -22,6 +23,8 @@ export function TopbarUserMenu({ user }: TopbarUserMenuProps) {
   const router = useRouter();
   const t = useTranslations();
   const { locale } = useLocale();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const normalizedRole = normalizeRole(user.role);
   const RoleIcon =
     normalizedRole === "super_admin"
@@ -33,13 +36,59 @@ export function TopbarUserMenu({ user }: TopbarUserMenuProps) {
           : UserRound;
 
   const handleSignOut = async () => {
+    setIsMobileMenuOpen(false);
     await signOut({ fetchOptions: { onSuccess: () => router.push("/login") } });
   };
 
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!menuRef.current) return;
+      if (menuRef.current.contains(event.target as Node)) return;
+      setIsMobileMenuOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
+
   return (
-    <div className="flex shrink-0 items-center gap-2 sm:gap-2">
+    <div ref={menuRef} className="relative flex shrink-0 items-center gap-2 sm:gap-2">
+      <button
+        type="button"
+        onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+        title={user.name ?? "User"}
+        className="flex items-center gap-2 rounded-xl border border-border bg-secondary/50 px-2.5 py-1.5 md:hidden"
+      >
+        <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full bg-secondary">
+          {user.image ? (
+            <Image src={user.image} alt={user.name ?? ""} fill className="object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-foreground/70">
+              {user.name?.[0]?.toUpperCase()}
+            </div>
+          )}
+        </div>
+      </button>
+
+      {isMobileMenuOpen && (
+        <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-border bg-background p-2 shadow-xl md:hidden">
+          <div className="mb-2 rounded-lg bg-secondary/40 px-3 py-2">
+            <p className="truncate text-sm font-medium text-foreground">{user.name}</p>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">{user.email}</p>
+          </div>
+
+          <button
+            onClick={handleSignOut}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+          >
+            <LogOut className="h-4 w-4" />
+            {t("common.signOut")}
+          </button>
+        </div>
+      )}
+
       {/* User info: avatar + nombre + rol */}
-      <div className="flex items-center gap-2 rounded-xl border border-border bg-secondary/50 px-2.5 py-1.5 sm:gap-3 sm:px-3 sm:py-1.5">
+      <div className="hidden items-center gap-2 rounded-xl border border-border bg-secondary/50 px-2.5 py-1.5 sm:gap-3 sm:px-3 sm:py-1.5 md:flex">
         {/* Avatar */}
         <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full bg-secondary sm:h-7 sm:w-7">
           {user.image ? (

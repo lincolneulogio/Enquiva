@@ -250,7 +250,7 @@ export function EventForm({
             data-gramm="false"
             data-gramm_editor="false"
         >
-            <div className="grid gap-8 lg:grid-cols-3">
+            <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-6 lg:col-span-2">
                     <div>
                         <label className="mb-1.5 block text-sm font-medium text-foreground">
