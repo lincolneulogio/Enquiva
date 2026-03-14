@@ -15,7 +15,7 @@ export default async function MemberLayout({
   return (
     <div className="flex min-h-screen bg-background">
       <DashboardSidebar role={session.user.role ?? "member"} user={session.user} />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
         <DashboardTopbar user={session.user} />
         <main className="min-w-0 flex-1 overflow-x-hidden p-4 pt-[calc(env(safe-area-inset-top)+5.75rem)] sm:p-6 sm:pt-[calc(env(safe-area-inset-top)+6.25rem)] lg:p-8 lg:pt-8">{children}</main>
       </div>

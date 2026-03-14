@@ -213,7 +213,7 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
         </div>
       </aside>
 
-      <aside className="hidden w-64 shrink-0 flex-col bg-sidebar lg:flex">
+      <aside className="hidden w-64 shrink-0 flex-col bg-sidebar lg:fixed lg:inset-y-0 lg:left-0 lg:z-20 lg:flex lg:h-screen lg:overflow-hidden">
         {/* Logo */}
         <div className="border-b border-sidebar-border px-6 py-5">
           <Link href="/" className="flex items-center gap-2">
@@ -227,7 +227,7 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 space-y-1 px-3 py-4">
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
           {navItems.map(({ labelKey, href, icon: Icon }) => {
             const isActive = pathname === href || pathname.startsWith(href + "/");
             return (
@@ -249,7 +249,7 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
         </nav>
 
         {/* User */}
-        <div className="border-t border-sidebar-border p-4">
+        <div className="shrink-0 border-t border-sidebar-border p-4">
           <div className="mb-3 flex items-center gap-3">
             <div className="relative h-8 w-8 overflow-hidden rounded-full bg-sidebar-accent">
               {user.image ? (
