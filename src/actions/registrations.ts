@@ -44,7 +44,12 @@ export async function registerForEvent(input: unknown) {
     .where(and(eq(events.id, eventId), eq(events.status, "published")))
     .limit(1);
 
-  if (!event) throw new Error("Event not found or not available");
+  if (!event) throw new Error("REGISTRATION_UNAVAILABLE");
+
+  const eventDate = new Date(event.date);
+  if (eventDate.getTime() <= Date.now()) {
+    throw new Error("REGISTRATION_CLOSED_EVENT_EXPIRED");
+  }
 
   // Check if already registered
   const [existing] = await db
@@ -63,8 +68,8 @@ export async function registerForEvent(input: unknown) {
     }
   }
 
-  // Check capacity for waitlist
-  let status: "registered" | "waitlisted" = "registered";
+  // Check capacity
+  let status: "registered" = "registered";
   if (event.capacity) {
     const [{ count: currentCount }] = await db
       .select({ count: count() })
@@ -72,12 +77,12 @@ export async function registerForEvent(input: unknown) {
       .where(
         and(
           eq(registrations.eventId, eventId),
-          eq(registrations.status, "registered")
+          inArray(registrations.status, ["registered", "checked_in"])
         )
       );
 
     if (currentCount >= event.capacity) {
-      status = "waitlisted";
+      throw new Error("REGISTRATION_CLOSED_EVENT_FULL");
     }
   }
 
@@ -152,12 +157,9 @@ export async function registerForEvent(input: unknown) {
   // Create notification for attendee
   await db.insert(notifications).values({
     userId: user.id,
-    type: status === "registered" ? "registration_confirmed" : "registration_confirmed",
-    title: status === "registered" ? "Registration Confirmed!" : "Added to Waitlist",
-    message:
-      status === "registered"
-        ? `You're registered for "${event.title}"`
-        : `You've been added to the waitlist for "${event.title}"`,
+    type: "registration_confirmed",
+    title: "Registration Confirmed!",
+    message: `You're registered for "${event.title}"`,
     metadata: { eventId, eventTitle: event.title, registrationId: registration.id },
   });
 
@@ -230,7 +232,7 @@ export async function registerForEvent(input: unknown) {
     .where(
       and(
         eq(registrations.eventId, eventId),
-        eq(registrations.status, "registered")
+        inArray(registrations.status, ["registered", "checked_in"])
       )
     );
 

@@ -11,7 +11,8 @@ import { useTranslations } from "@/components/providers/LocaleProvider";
 interface RegisterButtonProps {
   eventId: string;
   isAuthenticated: boolean;
-  isFull: boolean;
+  isRegistrationClosed?: boolean;
+  closedReason?: string | null;
   userPhone?: string | null;
   hasTransport?: boolean;
   currentStatus?: "registered" | "waitlisted" | "checked_in" | "cancelled" | null;
@@ -23,7 +24,8 @@ const PERU_PHONE_REGEX = /^\+519\d{8}$/;
 export function RegisterButton({
   eventId,
   isAuthenticated,
-  isFull,
+  isRegistrationClosed = false,
+  closedReason,
   userPhone,
   hasTransport = false,
   currentStatus,
@@ -34,6 +36,32 @@ export function RegisterButton({
   const [isPending, startTransition] = useTransition();
   const [optimisticStatus, setOptimisticStatus] = useState(currentStatus);
   const [contactPhone, setContactPhone] = useState(userPhone ?? "");
+
+  const mapRegistrationError = (message: string) => {
+    const normalized = message.toLowerCase();
+
+    if (normalized.includes("registration_closed_event_full") || normalized.includes("full")) {
+      return t("register.eventFull");
+    }
+
+    if (
+      normalized.includes("registration_closed_event_expired") ||
+      normalized.includes("expired") ||
+      normalized.includes("already passed")
+    ) {
+      return t("register.eventExpired");
+    }
+
+    if (normalized.includes("registration_unavailable") || normalized.includes("not found")) {
+      return t("register.registrationUnavailable");
+    }
+
+    if (normalized.includes("already registered")) {
+      return t("register.youreRegistered");
+    }
+
+    return message;
+  };
 
   if (!isAuthenticated) {
     return (
@@ -87,6 +115,15 @@ export function RegisterButton({
     );
   }
 
+  if (isRegistrationClosed) {
+    return (
+      <div className="rounded-xl border border-border bg-secondary/50 px-4 py-3 text-sm text-muted-foreground">
+        <p className="font-medium text-foreground">{t("register.registrationClosed")}</p>
+        <p className="mt-1 text-xs">{closedReason ?? t("register.registrationUnavailable")}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <div className="rounded-xl border border-border bg-card p-3 text-left">
@@ -113,45 +150,32 @@ export function RegisterButton({
           }
 
           startTransition(async () => {
-            // Optimistic update
-            setOptimisticStatus(isFull ? "waitlisted" : "registered");
             try {
               const result = await registerForEvent({
                 eventId,
                 contactPhone: normalizedPhone,
               });
               if (result.success) {
-                toast.success(
-                  result.status === "waitlisted"
-                    ? t("register.addedToWaitlist")
-                    : t("register.registrationSuccess")
-                );
-                if (result.status === "registered") {
-                  router.push(hasTransport ? "/member/transport" : "/member/tickets");
-                  return;
-                }
-                router.refresh();
+                setOptimisticStatus("registered");
+                toast.success(t("register.registrationSuccess"));
+                router.push(hasTransport ? "/member/transport" : "/member/tickets");
+                return;
               }
             } catch (error) {
               setOptimisticStatus(null);
               toast.error(
-                error instanceof Error ? error.message : t("register.registrationFailed")
+                error instanceof Error
+                  ? mapRegistrationError(error.message)
+                  : t("register.registrationFailed")
               );
             }
           });
         }}
         disabled={isPending}
-        className={cn(
-          "flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium transition-colors",
-          isFull
-            ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-            : "bg-primary text-primary-foreground hover:bg-primary/90"
-        )}
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
       >
         {isPending ? (
           <Loader2 className="h-4 w-4 animate-spin" />
-        ) : isFull ? (
-          t("register.joinWaitlist")
         ) : (
           t("register.registerNow")
         )}

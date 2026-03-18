@@ -62,6 +62,15 @@ export default async function EventDetailPage({ params }: EventPageProps) {
   const isFull =
     typeof event.capacity === "number" &&
     (event.attendeeCount ?? 0) >= event.capacity;
+  const isEventExpired = new Date(event.date).getTime() <= Date.now();
+  const isRegistrationClosed = isEventExpired || Boolean(isFull) || event.status !== "published";
+  const registrationClosedReason = isEventExpired
+    ? t("register.eventExpired")
+    : isFull
+      ? t("register.eventFull")
+      : event.status !== "published"
+        ? t("register.registrationUnavailable")
+        : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -100,7 +109,8 @@ export default async function EventDetailPage({ params }: EventPageProps) {
               <RegisterButton
                 eventId={event.id}
                 isAuthenticated={isAuthenticated}
-                isFull={Boolean(isFull)}
+                isRegistrationClosed={isRegistrationClosed}
+                closedReason={registrationClosedReason}
                 hasTransport={event.hasTransport}
                 currentStatus={registration?.status}
                 registrationId={registration?.id}

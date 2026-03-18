@@ -23,7 +23,7 @@ import {
 import { pusherServer, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/server";
 import { generateUniqueSlug } from "@/lib/utils";
 import { headers } from "next/headers";
-import { eq, and, desc, ilike, count, sql, asc } from "drizzle-orm";
+import { eq, and, desc, ilike, count, sql, asc, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 async function requireAuth() {
@@ -146,7 +146,7 @@ export async function deleteEvent(eventId: string) {
 // ─── Get Public Events ────────────────────────────────────────────────────────
 
 type PublicEventsResult = {
-  events: InferSelectModel<typeof events>[];
+  events: (InferSelectModel<typeof events> & { attendeeCount: number })[];
   total: number;
   page: number;
   limit: number;
@@ -186,8 +186,33 @@ export async function getPublicEvents(filterInput?: unknown) {
         .where(and(...conditions)),
     ]);
 
+    const eventIds = results.map((event) => event.id);
+    const attendeeCountMap = new Map<string, number>();
+
+    if (eventIds.length > 0) {
+      const attendeeCounts = await db
+        .select({ eventId: registrations.eventId, count: count() })
+        .from(registrations)
+        .where(
+          and(
+            inArray(registrations.eventId, eventIds),
+            inArray(registrations.status, ["registered", "checked_in"])
+          )
+        )
+        .groupBy(registrations.eventId);
+
+      for (const item of attendeeCounts) {
+        attendeeCountMap.set(item.eventId, item.count);
+      }
+    }
+
+    const eventsWithAttendeeCount = results.map((event) => ({
+      ...event,
+      attendeeCount: attendeeCountMap.get(event.id) ?? 0,
+    }));
+
     const result = {
-      events: results,
+      events: eventsWithAttendeeCount,
       total: totalCount[0]?.count ?? 0,
       page: filter.page,
       limit: filter.limit,
@@ -230,7 +255,7 @@ export async function getEventBySlug(slug: string) {
     .where(
       and(
         eq(registrations.eventId, event.id),
-        eq(registrations.status, "registered")
+        inArray(registrations.status, ["registered", "checked_in"])
       )
     );
 
