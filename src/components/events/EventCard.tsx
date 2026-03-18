@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Calendar, MapPin, Users } from "lucide-react";
+import { ArrowUpRight, Calendar, MapPin, Users } from "lucide-react";
 import type { Event } from "@/lib/db/schema";
 import { categoryColor, categoryLabel, formatEventDateShort, truncate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -21,10 +21,13 @@ export async function EventCard({ event, className, categoryMap }: EventCardProp
   const categoryMeta = categoryMap?.[event.category];
 
   return (
-    <Link href={`/events/${event.slug}`}>
+    <Link
+      href={`/events/${event.slug}`}
+      className="group block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2"
+    >
       <article
         className={cn(
-          "group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all duration-200 hover:border-primary/30 hover:shadow-lg",
+          "flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-card/95 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl",
           className
         )}
       >
@@ -35,62 +38,108 @@ export async function EventCard({ event, className, categoryMap }: EventCardProp
               src={event.coverImage}
               alt={event.title}
               fill
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
-            <div className="flex h-full items-center justify-center">
-              <span className="text-5xl opacity-20">✦</span>
+            <div className="relative flex h-full items-center justify-center bg-gradient-to-br from-secondary to-muted/80">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_30%,hsl(var(--primary)/0.16),transparent_40%),radial-gradient(circle_at_80%_70%,hsl(var(--accent)/0.14),transparent_45%)]" />
+              <span className="relative text-5xl opacity-30">✦</span>
             </div>
           )}
+
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/30 to-transparent" />
+
           {/* Category badge */}
           <div className="absolute left-3 top-3">
-            <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", categoryMeta?.colorClass || categoryColor(event.category))}>
+            <span
+              className={cn(
+                "rounded-full px-2.5 py-1 text-xs font-medium shadow-sm",
+                categoryMeta?.colorClass || categoryColor(event.category)
+              )}
+            >
               {categoryMeta?.label || categoryLabel(event.category, locale)}
             </span>
           </div>
+
           {/* Featured badge */}
           {event.isFeatured && (
             <div className="absolute right-3 top-3">
-              <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground">
+              <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground shadow-sm">
                 {t("common.featured")}
               </span>
             </div>
           )}
+
+          <div className="absolute bottom-3 left-3">
+            <span className="inline-flex items-center gap-1 rounded-full border border-white/35 bg-black/35 px-2.5 py-1 text-xs font-medium text-white/95 backdrop-blur-sm">
+              <Calendar className="h-3 w-3" />
+              {formatEventDateShort(event.date, locale)}
+            </span>
+          </div>
         </div>
 
         {/* Content */}
-        <div className="flex flex-1 flex-col p-5">
-          <h3 className="mb-2 font-display text-xl font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+        <div className="flex flex-1 flex-col p-4 sm:p-5">
+          <h3 className="mb-1.5 line-clamp-2 font-display text-[1.9rem] font-semibold leading-tight text-foreground transition-colors group-hover:text-primary">
             {event.title}
           </h3>
-          <p className="mb-4 flex-1 text-sm leading-relaxed text-muted-foreground line-clamp-2">
+
+          <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
             {truncate(event.description, 120)}
           </p>
 
           {/* Meta */}
           <div className="space-y-1.5 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <Calendar className="h-3.5 w-3.5 text-primary" />
-              <span>{formatEventDateShort(event.date, locale)}</span>
+            <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-background/70 px-3 py-1.5">
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-lg bg-primary/10">
+                <Calendar className="h-3.5 w-3.5 text-primary" />
+              </span>
+              <span className="font-medium text-foreground/90">{formatEventDateShort(event.date, locale)}</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5 text-primary" />
-              <span className="truncate">
+
+            <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-background/70 px-3 py-1.5">
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-lg bg-primary/10">
+                <MapPin className="h-3.5 w-3.5 text-primary" />
+              </span>
+              <span className="line-clamp-1">
                 {isVirtual ? t("common.virtualEvent") : (event.location ?? t("common.locationTbd"))}
               </span>
             </div>
+
             {event.capacity != null && (
-              <div className="flex items-center gap-1.5">
-                <Users className="h-3.5 w-3.5 text-primary" />
-                <span>
+              <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-background/70 px-3 py-1.5">
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-lg bg-primary/10">
+                  <Users className="h-3.5 w-3.5 text-primary" />
+                </span>
+                <span className="line-clamp-1">
                   {t("common.registeredCount", {
                     count: event.attendeeCount ?? 0,
                     capacity: event.capacity,
                   })}
-                  {isFull && <span className="ml-1 text-destructive font-medium">({t("common.full")})</span>}
+                  {isFull && <span className="ml-1 font-medium text-destructive">({t("common.full")})</span>}
                 </span>
               </div>
             )}
+
+            {event.capacity == null && (
+              <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-background/70 px-3 py-1.5">
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-lg bg-primary/10">
+                  <Users className="h-3.5 w-3.5 text-primary" />
+                </span>
+                <span className="line-clamp-1">
+                  {isVirtual
+                    ? `${t("public.eventDetail.capacityLabel")}: ${t("public.eventDetail.unlimited")}`
+                    : t("common.registered")}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-3 border-t border-border/70 pt-3">
+            <div className="inline-flex w-full items-center justify-between rounded-xl border border-primary/20 bg-primary/[0.10] px-3.5 py-2 text-sm transition-colors group-hover:bg-primary/[0.12]">
+              <span className="font-medium text-primary">{t("common.view")}</span>
+              <ArrowUpRight className="h-4 w-4 text-primary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            </div>
           </div>
         </div>
       </article>
