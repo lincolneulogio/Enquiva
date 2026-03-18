@@ -125,9 +125,11 @@ export default async function HomePage() {
                 {t("public.home.viewAll")} <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 justify-items-center gap-6 sm:grid-cols-2 sm:justify-items-stretch lg:grid-cols-3">
               {events.map((event) => (
-                <EventCard key={event.id} event={event} />
+                <div key={event.id} className="w-full max-w-md sm:max-w-none">
+                  <EventCard event={event} />
+                </div>
               ))}
             </div>
           </div>
