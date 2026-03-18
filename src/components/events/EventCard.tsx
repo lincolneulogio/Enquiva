@@ -19,14 +19,7 @@ export async function EventCard({ event, className, categoryMap }: EventCardProp
   const isVirtual = event.isVirtual;
   const isFull = event.capacity != null && (event.attendeeCount ?? 0) >= event.capacity;
   const isEventExpired = new Date(event.date).getTime() <= Date.now();
-  const isRegistrationClosed = isEventExpired || isFull;
   const categoryMeta = categoryMap?.[event.category];
-
-  const registrationStatusLabel = isEventExpired
-    ? t("register.eventExpiredShort")
-    : isFull
-      ? t("register.eventFullShort")
-      : t("register.registrationOpenShort");
 
   const cardContent = (
     <article
@@ -158,17 +151,6 @@ export async function EventCard({ event, className, categoryMap }: EventCardProp
         </div>
 
         <div className="mt-3 border-t border-border/70 pt-3">
-          <div
-            className={cn(
-              "mb-2 rounded-xl border px-3 py-1.5 text-xs font-medium",
-              isRegistrationClosed
-                ? "border-destructive/30 bg-destructive/10 text-destructive"
-                : "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-            )}
-          >
-            {registrationStatusLabel}
-          </div>
-
           {!isEventExpired ? (
             <div className="inline-flex w-full items-center justify-between rounded-xl border border-primary/20 bg-primary/[0.10] px-3.5 py-2 text-sm transition-colors group-hover:bg-primary/[0.12]">
               <span className="font-medium text-primary">{t("common.view")}</span>
@@ -177,6 +159,12 @@ export async function EventCard({ event, className, categoryMap }: EventCardProp
           ) : (
             <div className="inline-flex w-full items-center justify-center rounded-xl border border-destructive/20 bg-destructive/[0.08] px-3.5 py-2 text-sm font-medium text-destructive/90">
               {t("register.eventExpired")}
+            </div>
+          )}
+
+          {!isEventExpired && isFull && (
+            <div className="mt-2 inline-flex w-full items-center justify-center rounded-xl border border-amber-500/25 bg-amber-500/10 px-3.5 py-2 text-sm font-medium text-amber-700 dark:text-amber-400">
+              {t("register.eventFull")}
             </div>
           )}
         </div>
