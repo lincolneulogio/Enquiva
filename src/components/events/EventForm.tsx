@@ -27,7 +27,7 @@ interface EventFormProps {
     canFeature?: boolean;
 }
 
-const EVENT_DRAFT_STORAGE_KEY = "faithEvents.eventDraft.create";
+const EVENT_DRAFT_STORAGE_KEY = "EncuentroDeFe.eventDraft.create";
 
 const VALIDATION_MESSAGE_KEY_BY_TEXT: Record<string, string> = {
     "Title must be at least 3 characters": "events.form.validation.titleMin",

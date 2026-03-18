@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
-const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL ?? "admin@faithevents.com";
+const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL ?? "admin@EncuentroDeFe.com";
 const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? "Admin1234!";
 const ADMIN_NAME = process.env.SEED_ADMIN_NAME ?? "Super Admin";
 

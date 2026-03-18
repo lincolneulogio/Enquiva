@@ -20,7 +20,7 @@ export default async function LoginPage() {
               <span className="text-xl text-primary-foreground">✦</span>
             </div>
             <span className="font-display text-2xl font-semibold text-foreground">
-              FaithEvents
+              EncuentroDeFe
             </span>
           </Link>
           <h1 className="font-display text-3xl font-semibold text-foreground">

@@ -19,11 +19,11 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: {
-    default: "FaithEvents — Plataforma de eventos comunitarios",
-    template: "%s | FaithEvents",
+    default: "Encuentro de Fe — Plataforma de eventos cristianos",
+    template: "%s | Encuentro de Fe",
   },
   description:
-    "Gestiona y descubre eventos comunitarios y de fe con facilidad. Regístrate, conecta y crezcan juntos.",
+    "Gestiona y descubre eventos cristianos con facilidad. Regístrate, conecta y crezcan juntos.",
   keywords: ["fe", "comunidad", "eventos", "iglesia", "adoración", "retiro"],
 };
 

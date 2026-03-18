@@ -46,7 +46,7 @@ async function getOrCreateOrganizerId() {
     await db.insert(users).values({
         id: organizerId,
         name: "Seed Organizer",
-        email: `seed-organizer-${Date.now()}@faithevents.local`,
+        email: `seed-organizer-${Date.now()}@EncuentroDeFe.local`,
         role: "organizer",
         emailVerified: true,
         isActive: true,

@@ -138,7 +138,7 @@ export default async function HomePage() {
               <div className="mb-5 flex items-center justify-between">
                 <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                   <Radio className="h-3.5 w-3.5" />
-                  FaithEvents Pulse
+                  Encuentro de Fe
                 </span>
                 <span className="text-xs text-muted-foreground">Live</span>
               </div>
@@ -268,7 +268,7 @@ export default async function HomePage() {
                 <div className="relative z-10 flex h-full flex-col justify-between rounded-3xl border border-white/60 bg-white/45 p-5 backdrop-blur-md sm:p-6">
                   <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/70 bg-white/80 px-3 py-1 text-xs font-medium text-[#9a4d1e]">
                     <Users className="h-3.5 w-3.5" />
-                    FaithEvents Community
+                    Encuentro de Fe Comunidad
                   </div>
 
                   <div className="space-y-3">
@@ -313,7 +313,7 @@ export default async function HomePage() {
             <div>
               <div className="mb-4 inline-flex items-center gap-2">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">✦</div>
-                <span className="font-display text-lg font-semibold text-foreground">FaithEvents</span>
+                <span className="font-display text-lg font-semibold text-foreground">Encuentro de Fe</span>
               </div>
 
               <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
@@ -386,11 +386,11 @@ export default async function HomePage() {
 
               <div className="space-y-2.5 text-sm">
                 <a
-                  href="mailto:hola@faithevents.app"
+                  href="mailto:hola@EncuentroDeFe.app"
                   className="inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
                 >
                   <Mail className="h-4 w-4 text-primary" />
-                  hola@faithevents.app
+                  hola@EncuentroDeFe.app
                 </a>
                 <p className="inline-flex items-center gap-2 text-muted-foreground">
                   <MapPin className="h-4 w-4 text-primary" />
@@ -418,7 +418,7 @@ export default async function HomePage() {
           </div>
 
           <div className="flex flex-col gap-3 border-t border-border/80 bg-background/70 px-6 py-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-10">
-            <p>© {new Date().getFullYear()} FaithEvents. {t("public.home.footerBuilt")}</p>
+            <p>© {new Date().getFullYear()} EncuentroDeFe. {t("public.home.footerBuilt")}</p>
             <Link
               href="#top"
               className="inline-flex items-center gap-1 self-start rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground transition-colors hover:bg-secondary sm:self-auto"

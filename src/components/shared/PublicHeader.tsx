@@ -31,7 +31,7 @@ export async function PublicHeader() {
                         <span className="text-lg text-primary-foreground">✦</span>
                     </div>
                     <span className="font-display text-lg font-semibold text-foreground sm:text-xl">
-                        FaithEvents
+                    EncuentroDeFe
                     </span>
                 </Link>
 

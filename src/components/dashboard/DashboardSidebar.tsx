@@ -147,7 +147,7 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
                 <span className="text-sm text-sidebar-primary-foreground">✦</span>
               </div>
               <span className="font-display text-lg font-semibold text-sidebar-foreground">
-                FaithEvents
+              EncuentroDeFe
               </span>
             </Link>
             <button
@@ -219,7 +219,7 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
               <span className="text-sm text-sidebar-primary-foreground">✦</span>
             </div>
             <span className="font-display text-lg font-semibold text-sidebar-foreground">
-              FaithEvents
+            EncuentroDeFe
             </span>
           </Link>
         </div>

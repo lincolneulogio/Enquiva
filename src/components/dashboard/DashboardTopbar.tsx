@@ -29,7 +29,7 @@ export async function DashboardTopbar({ user }: DashboardTopbarProps) {
       <div className="flex min-w-0 items-center gap-2.5">
         <SidebarMenuButton />
         <div className="hidden font-display text-lg text-foreground sm:block lg:hidden">
-          FaithEvents
+        EncuentroDeFe
         </div>
       </div>
 

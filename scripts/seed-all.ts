@@ -24,18 +24,18 @@ type DemoUser = {
 };
 
 const demoUsers: DemoUser[] = [
-    { id: "demo-super-admin", name: "Demo Super Admin", email: "demo.superadmin@faithevents.local", role: "super_admin", phone: "+51900000001" },
-    { id: "demo-admin-01", name: "Demo Admin Uno", email: "demo.admin1@faithevents.local", role: "admin", phone: "+51900000002" },
-    { id: "demo-admin-02", name: "Demo Admin Dos", email: "demo.admin2@faithevents.local", role: "admin", phone: "+51900000003" },
-    { id: "demo-organizer-01", name: "Demo Organizer Uno", email: "demo.organizer1@faithevents.local", role: "organizer", phone: "+51900000004" },
-    { id: "demo-organizer-02", name: "Demo Organizer Dos", email: "demo.organizer2@faithevents.local", role: "organizer", phone: "+51900000005" },
-    { id: "demo-organizer-03", name: "Demo Organizer Tres", email: "demo.organizer3@faithevents.local", role: "organizer", phone: "+51900000006" },
+    { id: "demo-super-admin", name: "Demo Super Admin", email: "demo.superadmin@EncuentroDeFe.local", role: "super_admin", phone: "+51900000001" },
+    { id: "demo-admin-01", name: "Demo Admin Uno", email: "demo.admin1@EncuentroDeFe.local", role: "admin", phone: "+51900000002" },
+    { id: "demo-admin-02", name: "Demo Admin Dos", email: "demo.admin2@EncuentroDeFe.local", role: "admin", phone: "+51900000003" },
+    { id: "demo-organizer-01", name: "Demo Organizer Uno", email: "demo.organizer1@EncuentroDeFe.local", role: "organizer", phone: "+51900000004" },
+    { id: "demo-organizer-02", name: "Demo Organizer Dos", email: "demo.organizer2@EncuentroDeFe.local", role: "organizer", phone: "+51900000005" },
+    { id: "demo-organizer-03", name: "Demo Organizer Tres", email: "demo.organizer3@EncuentroDeFe.local", role: "organizer", phone: "+51900000006" },
     ...Array.from({ length: 20 }).map((_, i) => {
         const n = i + 1;
         return {
             id: `demo-member-${String(n).padStart(2, "0")}`,
             name: `Demo Miembro ${n}`,
-            email: `demo.member${String(n).padStart(2, "0")}@faithevents.local`,
+            email: `demo.member${String(n).padStart(2, "0")}@EncuentroDeFe.local`,
             role: "member" as const,
             phone: `+519${String(10000000 + n).slice(-8)}`,
         };
@@ -164,7 +164,7 @@ async function seedRegistrationsAndPaymentsAndTickets() {
     for (const reg of demoRegistrationRows) {
         if (reg.status !== "registered" && reg.status !== "checked_in") continue;
         const code = `TCK-${reg.id.replace(/-/g, "").slice(0, 12).toUpperCase()}`;
-        const qrCode = `https://faithevents.local/ticket/${code}`;
+        const qrCode = `https://EncuentroDeFe.local/ticket/${code}`;
 
         await db
             .insert(tickets)
