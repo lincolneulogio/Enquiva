@@ -22,8 +22,12 @@ import { PublicHeader } from "@/components/shared/PublicHeader";
 import { getI18n } from "@/lib/i18n/server";
 
 export default async function HomePage() {
-  const { t } = await getI18n();
-  const { events } = await getPublicEvents({ page: 1, limit: 6 });
+  const { locale, t } = await getI18n();
+  const { events, totalRegistrations } = await getPublicEvents({ page: 1, limit: 6 });
+
+  const formattedRegistrations = new Intl.NumberFormat(
+    locale === "en" ? "en-US" : "es-PE"
+  ).format(totalRegistrations);
 
   const features = [
     {
@@ -55,7 +59,7 @@ export default async function HomePage() {
 
   const signals = [
     { icon: Calendar, value: "24/7", label: t("common.overview") },
-    { icon: Users, value: "10k+", label: t("common.registrations") },
+    { icon: Users, value: formattedRegistrations, label: t("common.registrations") },
     { icon: Bell, value: "Live", label: t("common.notifications") },
     { icon: Shield, value: "RBAC", label: t("public.home.features.roleBasedAccessTitle") },
   ];

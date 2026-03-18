@@ -148,6 +148,7 @@ export async function deleteEvent(eventId: string) {
 type PublicEventsResult = {
   events: (InferSelectModel<typeof events> & { attendeeCount: number })[];
   total: number;
+  totalRegistrations: number;
   page: number;
   limit: number;
 };
@@ -172,7 +173,7 @@ export async function getPublicEvents(filterInput?: unknown) {
   const offset = (filter.page - 1) * filter.limit;
 
   try {
-    const [results, totalCount] = await Promise.all([
+    const [results, totalCount, totalRegistrations] = await Promise.all([
       db
         .select()
         .from(events)
@@ -184,6 +185,16 @@ export async function getPublicEvents(filterInput?: unknown) {
         .select({ count: count() })
         .from(events)
         .where(and(...conditions)),
+      db
+        .select({ count: count() })
+        .from(registrations)
+        .innerJoin(events, eq(registrations.eventId, events.id))
+        .where(
+          and(
+            ...conditions,
+            inArray(registrations.status, ["registered", "checked_in"])
+          )
+        ),
     ]);
 
     const eventIds = results.map((event) => event.id);
@@ -214,6 +225,7 @@ export async function getPublicEvents(filterInput?: unknown) {
     const result = {
       events: eventsWithAttendeeCount,
       total: totalCount[0]?.count ?? 0,
+      totalRegistrations: totalRegistrations[0]?.count ?? 0,
       page: filter.page,
       limit: filter.limit,
     };
@@ -226,6 +238,7 @@ export async function getPublicEvents(filterInput?: unknown) {
     return {
       events: [],
       total: 0,
+      totalRegistrations: 0,
       page: filter.page,
       limit: filter.limit,
     } satisfies PublicEventsResult;
