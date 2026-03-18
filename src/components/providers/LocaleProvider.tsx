@@ -28,6 +28,17 @@ type LocaleContextValue = {
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
+const fallbackLocale: Locale = "es";
+
+const fallbackLocaleContext: LocaleContextValue = {
+    locale: fallbackLocale,
+    setLocale: () => {
+        // noop fallback when provider is missing
+    },
+    isPending: false,
+    t: (key: string, params?: TranslationParams) => translate(fallbackLocale, key, params),
+};
+
 interface LocaleProviderProps {
     initialLocale: Locale;
     children: ReactNode;
@@ -73,7 +84,10 @@ export function LocaleProvider({ initialLocale, children }: LocaleProviderProps)
 export function useLocale() {
     const context = useContext(LocaleContext);
     if (!context) {
-        throw new Error("useLocale must be used within LocaleProvider");
+        if (process.env.NODE_ENV !== "production") {
+            console.warn("useLocale called outside LocaleProvider; using fallback locale context.");
+        }
+        return fallbackLocaleContext;
     }
     return context;
 }
