@@ -23,6 +23,8 @@ export async function EventCard({ event, className, categoryMap }: EventCardProp
 
   const cardContent = (
     <article
+      data-aos="fade-up"
+      data-aos-duration="650"
       className={cn(
         "flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-card/95 shadow-sm transition-all duration-300",
         isEventExpired

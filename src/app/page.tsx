@@ -68,7 +68,10 @@ export default async function HomePage() {
       <PublicHeader />
 
       {/* Hero */}
-      <section className="relative overflow-hidden px-4 pb-16 pt-16 sm:px-6 lg:pb-20 lg:pt-24">
+      <section
+        className="relative overflow-hidden px-4 pb-16 pt-16 sm:px-6 lg:pb-20 lg:pt-24"
+        data-aos="fade-up"
+      >
         <div className="pointer-events-none absolute inset-0">
           <div className="fe-gradient-mesh absolute inset-x-0 top-0 h-[680px]" />
           <div className="absolute left-1/2 top-0 h-[580px] w-[580px] -translate-x-1/2 -translate-y-1/4 rounded-full bg-primary/10 blur-3xl" />
@@ -76,7 +79,7 @@ export default async function HomePage() {
         </div>
 
         <div className="relative mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[1.02fr_0.98fr] lg:gap-12">
-          <div className="text-center lg:text-left">
+          <div className="text-center lg:text-left" data-aos="fade-right" data-aos-delay="80">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-background/70 px-4 py-1.5 text-sm text-primary shadow-sm backdrop-blur-sm">
               <Sparkles className="h-3.5 w-3.5" />
               {t("public.home.badge")}
@@ -127,7 +130,7 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <div className="relative mx-auto w-full max-w-xl">
+          <div className="relative mx-auto w-full max-w-xl" data-aos="fade-left" data-aos-delay="140">
             <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-br from-primary/20 via-accent/10 to-transparent blur-3xl" />
 
             <div className="relative overflow-hidden rounded-[1.75rem] border border-border/80 bg-card/90 p-5 shadow-xl backdrop-blur-sm sm:p-6">
@@ -168,7 +171,7 @@ export default async function HomePage() {
       </section>
 
       {/* Signals strip */}
-      <section className="px-4 py-8 sm:px-6">
+      <section className="px-4 py-8 sm:px-6" data-aos="fade-up" data-aos-delay="60">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-3 rounded-2xl border border-border/80 bg-card/70 p-3 backdrop-blur-sm">
           {signals.map(({ icon: Icon, value, label }) => (
             <div
@@ -185,7 +188,7 @@ export default async function HomePage() {
 
       {/* Upcoming Events */}
       {events.length > 0 && (
-        <section className="px-4 pb-20 pt-10 sm:px-6">
+        <section className="px-4 pb-20 pt-10 sm:px-6" data-aos="fade-up" data-aos-delay="80">
           <div className="mx-auto max-w-7xl">
             <div className="mb-10 flex items-center justify-between gap-4">
               <div>
@@ -205,8 +208,13 @@ export default async function HomePage() {
             </div>
 
             <div className="grid grid-cols-1 justify-items-center gap-6 sm:grid-cols-2 sm:justify-items-stretch lg:grid-cols-3">
-              {events.map((event) => (
-                <div key={event.id} className="w-full max-w-md sm:max-w-none">
+              {events.map((event, index) => (
+                <div
+                  key={event.id}
+                  className="w-full max-w-md sm:max-w-none"
+                  data-aos="zoom-in-up"
+                  data-aos-delay={String(70 + index * 60)}
+                >
                   <EventCard event={event} />
                 </div>
               ))}
@@ -216,7 +224,7 @@ export default async function HomePage() {
       )}
 
       {/* CTA */}
-      <section className="px-4 pb-20 sm:px-6">
+      <section className="px-4 pb-20 sm:px-6" data-aos="fade-up" data-aos-delay="120">
         <div className="mx-auto max-w-4xl rounded-[2rem] border border-primary/20 bg-gradient-to-br from-primary via-primary to-accent px-8 py-16 text-center shadow-xl">
           <h2 className="font-display text-3xl font-semibold text-primary-foreground sm:text-4xl">
             {t("public.home.ctaTitle")}
@@ -234,7 +242,11 @@ export default async function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border px-6 py-8 text-center text-sm text-muted-foreground">
+      <footer
+        className="border-t border-border px-6 py-8 text-center text-sm text-muted-foreground"
+        data-aos="fade-up"
+        data-aos-delay="80"
+      >
         <p>© {new Date().getFullYear()} FaithEvents. {t("public.home.footerBuilt")}</p>
       </footer>
     </div>

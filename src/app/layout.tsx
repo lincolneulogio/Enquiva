@@ -3,8 +3,10 @@ import { Outfit } from "next/font/google";
 import { Toaster } from "sonner";
 import { LocaleProvider } from "@/components/providers/LocaleProvider";
 import { AppThemeProvider } from "@/components/providers/AppThemeProvider";
+import { AOSProvider } from "@/components/providers/AOSProvider";
 import { getLocale } from "@/lib/i18n/server";
 import "./globals.css";
+import "aos/dist/aos.css";
 import "sweetalert2/dist/sweetalert2.min.css";
 
 const outfit = Outfit({
@@ -35,17 +37,19 @@ export default async function RootLayout({
       <body suppressHydrationWarning className="font-sans">
         <LocaleProvider initialLocale={locale}>
           <AppThemeProvider>
-            {children}
-            <Toaster
-              position="bottom-right"
-              richColors
-              expand
-              toastOptions={{
-                style: {
-                  fontFamily: "var(--font-outfit), sans-serif",
-                },
-              }}
-            />
+            <AOSProvider>
+              {children}
+              <Toaster
+                position="bottom-right"
+                richColors
+                expand
+                toastOptions={{
+                  style: {
+                    fontFamily: "var(--font-outfit), sans-serif",
+                  },
+                }}
+              />
+            </AOSProvider>
           </AppThemeProvider>
         </LocaleProvider>
       </body>
