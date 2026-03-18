@@ -4,7 +4,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { checkAuthIdentityByEmail } from "@/actions/auth";
 import { signIn } from "@/lib/auth/client";
+import { getAuthErrorKind, getAuthErrorMessage, getValidationMessage } from "@/lib/auth/messages";
 import { signInSchema, type SignInInput } from "@/lib/validations";
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
@@ -19,6 +21,8 @@ export function LoginForm() {
   const {
     register,
     handleSubmit,
+    setError,
+    clearErrors,
     formState: { errors },
   } = useForm<SignInInput>({
     resolver: zodResolver(signInSchema),
@@ -28,20 +32,56 @@ export function LoginForm() {
   });
 
   const onSubmit = (data: SignInInput) => {
-    startTransition(async () => {
-      const result = await signIn.email({
-        email: data.email,
-        password: data.password,
-        rememberMe: data.rememberMe ?? false,
-        callbackURL: "/dashboard",
-      });
+    clearErrors("root");
+    clearErrors("email");
+    clearErrors("password");
 
-      if (result.error) {
-        toast.error(result.error.message ?? t("auth.invalidCredentials"));
-      } else {
+    startTransition(async () => {
+      try {
+        const identity = await checkAuthIdentityByEmail({ email: data.email });
+
+        if (!identity.exists) {
+          const userNotFoundMessage = t("auth.userNotFound");
+          setError("email", { type: "server", message: userNotFoundMessage });
+          toast.error(userNotFoundMessage);
+          return;
+        }
+
+        const result = await signIn.email({
+          email: data.email,
+          password: data.password,
+          rememberMe: data.rememberMe ?? false,
+          callbackURL: "/dashboard",
+        });
+
+        if (result.error) {
+          const authErrorKind = getAuthErrorKind(result.error.message);
+
+          if (authErrorKind === "invalid_credentials") {
+            const incorrectPasswordMessage = t("auth.incorrectPassword");
+            setError("password", { type: "server", message: incorrectPasswordMessage });
+            toast.error(incorrectPasswordMessage);
+            return;
+          }
+
+          const friendlyMessage = getAuthErrorMessage(
+            result.error.message ?? t("auth.invalidCredentials"),
+            t
+          );
+
+          setError("root", { type: "server", message: friendlyMessage });
+          toast.error(friendlyMessage);
+          return;
+        }
+
         toast.success(t("auth.loginSuccess"));
         router.push("/dashboard");
         router.refresh();
+      } catch (error) {
+        const rawMessage = error instanceof Error ? error.message : t("auth.unexpectedAuthError");
+        const friendlyMessage = getAuthErrorMessage(rawMessage, t);
+        setError("root", { type: "server", message: friendlyMessage });
+        toast.error(friendlyMessage);
       }
     });
   };
@@ -49,6 +89,12 @@ export function LoginForm() {
   return (
     <div className="space-y-5">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {errors.root?.message && (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {errors.root.message}
+          </div>
+        )}
+
         <div>
           <label className="mb-1.5 block text-sm font-medium text-foreground">
             {t("auth.email")}
@@ -57,10 +103,11 @@ export function LoginForm() {
             type="email"
             {...register("email")}
             placeholder={t("auth.emailPlaceholder")}
-            className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-destructive"
+            aria-invalid={!!errors.email}
           />
           {errors.email && (
-            <p className="mt-1 text-xs text-destructive">{errors.email.message}</p>
+            <p className="mt-1 text-xs text-destructive">{getValidationMessage(errors.email.message, t)}</p>
           )}
         </div>
 
@@ -73,7 +120,8 @@ export function LoginForm() {
               type={showPassword ? "text" : "password"}
               {...register("password")}
               placeholder={t("auth.yourPassword")}
-              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 pr-11 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 pr-11 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-destructive"
+              aria-invalid={!!errors.password}
             />
             <button
               type="button"
@@ -85,7 +133,7 @@ export function LoginForm() {
             </button>
           </div>
           {errors.password && (
-            <p className="mt-1 text-xs text-destructive">{errors.password.message}</p>
+            <p className="mt-1 text-xs text-destructive">{getValidationMessage(errors.password.message, t)}</p>
           )}
         </div>
 

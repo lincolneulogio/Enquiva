@@ -4,7 +4,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { checkAuthIdentityByEmail } from "@/actions/auth";
 import { signUp } from "@/lib/auth/client";
+import { getAuthErrorKind, getAuthErrorMessage, getValidationMessage } from "@/lib/auth/messages";
 import { signUpSchema, type SignUpInput } from "@/lib/validations";
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
@@ -20,32 +22,76 @@ export function RegisterForm() {
   const {
     register,
     handleSubmit,
+    setError,
+    clearErrors,
     formState: { errors },
   } = useForm<SignUpInput>({
     resolver: zodResolver(signUpSchema),
   });
 
   const onSubmit = (data: SignUpInput) => {
-    startTransition(async () => {
-      const result = await signUp.email({
-        name: data.name,
-        email: data.email,
-        password: data.password,
-        callbackURL: "/dashboard",
-      });
+    clearErrors("root");
+    clearErrors("email");
+    clearErrors("password");
 
-      if (result.error) {
-        toast.error(result.error.message ?? t("auth.createAccountFailed"));
-      } else {
+    startTransition(async () => {
+      try {
+        const identity = await checkAuthIdentityByEmail({ email: data.email });
+        if (identity.exists) {
+          const emailInUseMessage = t("auth.emailAlreadyInUse");
+          setError("email", { type: "server", message: emailInUseMessage });
+          toast.error(emailInUseMessage);
+          return;
+        }
+
+        const result = await signUp.email({
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          callbackURL: "/dashboard",
+        });
+
+        if (result.error) {
+          const authErrorKind = getAuthErrorKind(result.error.message);
+
+          if (authErrorKind === "email_already_in_use") {
+            const emailInUseMessage = t("auth.emailAlreadyInUse");
+            setError("email", { type: "server", message: emailInUseMessage });
+            toast.error(emailInUseMessage);
+            return;
+          }
+
+          const friendlyMessage = getAuthErrorMessage(
+            result.error.message ?? t("auth.createAccountFailed"),
+            t
+          );
+
+          setError("root", { type: "server", message: friendlyMessage });
+
+          toast.error(friendlyMessage);
+          return;
+        }
+
         toast.success(t("auth.createAccountSuccess"));
         router.push("/dashboard");
         router.refresh();
+      } catch (error) {
+        const rawMessage = error instanceof Error ? error.message : t("auth.unexpectedAuthError");
+        const friendlyMessage = getAuthErrorMessage(rawMessage, t);
+        setError("root", { type: "server", message: friendlyMessage });
+        toast.error(friendlyMessage);
       }
     });
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {errors.root?.message && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {errors.root.message}
+        </div>
+      )}
+
       <div>
         <label className="mb-1.5 block text-sm font-medium text-foreground">
           {t("auth.fullName")}
@@ -53,10 +99,11 @@ export function RegisterForm() {
         <input
           {...register("name")}
           placeholder={t("auth.yourName")}
-          className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-destructive"
+          aria-invalid={!!errors.name}
         />
         {errors.name && (
-          <p className="mt-1 text-xs text-destructive">{errors.name.message}</p>
+          <p className="mt-1 text-xs text-destructive">{getValidationMessage(errors.name.message, t)}</p>
         )}
       </div>
 
@@ -68,10 +115,11 @@ export function RegisterForm() {
           type="email"
           {...register("email")}
           placeholder={t("auth.emailPlaceholder")}
-          className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-destructive"
+          aria-invalid={!!errors.email}
         />
         {errors.email && (
-          <p className="mt-1 text-xs text-destructive">{errors.email.message}</p>
+          <p className="mt-1 text-xs text-destructive">{getValidationMessage(errors.email.message, t)}</p>
         )}
       </div>
 
@@ -84,7 +132,8 @@ export function RegisterForm() {
             type={showPassword ? "text" : "password"}
             {...register("password")}
             placeholder={t("auth.min8Chars")}
-            className="w-full rounded-xl border border-border bg-background px-4 py-2.5 pr-11 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full rounded-xl border border-border bg-background px-4 py-2.5 pr-11 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-destructive"
+            aria-invalid={!!errors.password}
           />
           <button
             type="button"
@@ -96,7 +145,7 @@ export function RegisterForm() {
           </button>
         </div>
         {errors.password && (
-          <p className="mt-1 text-xs text-destructive">{errors.password.message}</p>
+          <p className="mt-1 text-xs text-destructive">{getValidationMessage(errors.password.message, t)}</p>
         )}
       </div>
 
@@ -109,7 +158,8 @@ export function RegisterForm() {
             type={showConfirmPassword ? "text" : "password"}
             {...register("confirmPassword")}
             placeholder={t("auth.repeatPassword")}
-            className="w-full rounded-xl border border-border bg-background px-4 py-2.5 pr-11 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full rounded-xl border border-border bg-background px-4 py-2.5 pr-11 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-destructive"
+            aria-invalid={!!errors.confirmPassword}
           />
           <button
             type="button"
@@ -121,7 +171,7 @@ export function RegisterForm() {
           </button>
         </div>
         {errors.confirmPassword && (
-          <p className="mt-1 text-xs text-destructive">{errors.confirmPassword.message}</p>
+          <p className="mt-1 text-xs text-destructive">{getValidationMessage(errors.confirmPassword.message, t)}</p>
         )}
       </div>
 
