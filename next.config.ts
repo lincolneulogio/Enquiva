@@ -16,14 +16,7 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: { bodySizeLimit: "10mb" },
   },
-  async rewrites() {
-    return [
-      {
-        source: "/dashboard/:path*",
-        destination: "/:path*",
-      },
-    ];
-  },
+
 };
 
 export default nextConfig;

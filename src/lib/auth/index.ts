@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import { env } from "@/env";
 import { count } from "drizzle-orm";
+import { sendPasswordResetEmail } from "@/lib/mail";
 
 function parseTrustedOriginsEnv(): string[] {
   const raw = process.env.BETTER_AUTH_TRUSTED_ORIGINS;
@@ -52,7 +53,19 @@ export const auth = betterAuth({
   },
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: false,
+    requireEmailVerification: true,
+    autoSignIn: false,
+    sendResetPassword: async ({ user, url }) => {
+      await sendPasswordResetEmail({
+        email: user.email,
+        name: user.name,
+        url,
+      });
+    },
+  },
+  emailVerification: {
+    sendOnSignUp: false,
+    sendOnSignIn: false,
   },
   user: {
     additionalFields: {

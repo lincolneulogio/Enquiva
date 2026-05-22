@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { checkAuthIdentityByEmail } from "@/actions/auth";
+import { checkAuthIdentityByEmail, sendVerificationCode } from "@/actions/auth";
 import { signUp } from "@/lib/auth/client";
 import { getAuthErrorKind, getAuthErrorMessage, getValidationMessage } from "@/lib/auth/messages";
 import { signUpSchema, type SignUpInput } from "@/lib/validations";
@@ -72,8 +72,9 @@ export function RegisterForm() {
           return;
         }
 
+        await sendVerificationCode({ email: data.email });
         toast.success(t("auth.createAccountSuccess"));
-        router.push("/dashboard");
+        router.push(`/verify-account?email=${encodeURIComponent(data.email)}`);
         router.refresh();
       } catch (error) {
         const rawMessage = error instanceof Error ? error.message : t("auth.unexpectedAuthError");

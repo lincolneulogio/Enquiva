@@ -5,6 +5,7 @@ export type AuthErrorKind =
     | "forbidden_origin"
     | "email_already_in_use"
     | "invalid_credentials"
+    | "account_not_verified"
     | "unknown";
 
 const validationMessageMap: Record<string, string> = {
@@ -53,6 +54,10 @@ export function getAuthErrorKind(rawMessage: string | undefined): AuthErrorKind 
         return "invalid_credentials";
     }
 
+    if (normalized.includes("email not verified") || normalized.includes("verification") || normalized.includes("not verified")) {
+        return "account_not_verified";
+    }
+
     return "unknown";
 }
 
@@ -65,6 +70,7 @@ export function getAuthErrorMessage(rawMessage: string | undefined, t: Translate
     if (errorKind === "forbidden_origin") return t("auth.forbiddenOrigin");
     if (errorKind === "email_already_in_use") return t("auth.emailAlreadyInUse");
     if (errorKind === "invalid_credentials") return t("auth.invalidCredentials");
+    if (errorKind === "account_not_verified") return t("auth.accountNotVerified");
 
     return rawMessage;
 }

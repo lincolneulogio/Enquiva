@@ -1,55 +1,62 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { auth } from "@/lib/auth";
 
-// Route protection map — URLs reales (sin /dashboard prefix, el route group no agrega segmento)
-const PROTECTED_ROUTES: Record<string, string[]> = {
-  "/admin": ["super_admin", "admin"],
-  "/organizer": ["organizer", "super_admin"],
-  "/member": ["member", "organizer", "super_admin"],
-};
+const ROLES = {
+  admin: ["super_admin", "admin"],
+  organizer: ["super_admin", "admin", "organizer"],
+  member: ["super_admin", "admin", "organizer", "member"],
+} as const;
+
+const publicRoutes = new Set([
+  "/",
+  "/login",
+  "/register",
+  "/verify-account",
+  "/forgot-password",
+  "/reset-password",
+  "/events",
+]);
+
+const publicPatterns = [
+  "/reset-password/",
+  "/events/",
+  "/_next/",
+  "/api/",
+  "/favicon.ico",
+];
+
+function isPublicRoute(pathname: string): boolean {
+  if (publicRoutes.has(pathname)) return true;
+  return publicPatterns.some((p) => pathname.startsWith(p));
+}
+
+function getRequiredRole(pathname: string): string | null {
+  if (pathname.startsWith("/admin")) return "admin";
+  if (pathname.startsWith("/organizer")) return "organizer";
+  if (pathname.startsWith("/member")) return "member";
+  return null;
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Check if route needs protection
-  const protectedEntry = Object.entries(PROTECTED_ROUTES).find(([route]) =>
-    pathname === route || pathname.startsWith(route + "/")
-  );
+  if (isPublicRoute(pathname)) return NextResponse.next();
 
-  if (!protectedEntry) return NextResponse.next();
+  const hasSession =
+    request.cookies.has("better-auth.session_token") ||
+    request.cookies.has("session_token");
 
-  const [, allowedRoles] = protectedEntry;
-
-  // Get session
-  const session = await auth.api.getSession({
-    headers: request.headers,
-  });
-
-  if (!session?.user) {
+  if (!hasSession) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
+    loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
-  }
-
-  const userRole = (session.user as { role?: string }).role ?? "member";
-
-  if (!allowedRoles.includes(userRole)) {
-    // Redirect to appropriate dashboard
-    const dashboardMap: Record<string, string> = {
-      super_admin: "/admin",
-      admin: "/admin",
-      organizer: "/organizer",
-      member: "/member",
-    };
-    return NextResponse.redirect(
-      new URL(dashboardMap[userRole] ?? "/member", request.url)
-    );
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/admin", "/member/:path*", "/member", "/organizer/:path*", "/organizer"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|api).*)",
+  ],
 };

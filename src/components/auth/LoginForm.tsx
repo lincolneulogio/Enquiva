@@ -4,12 +4,13 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { checkAuthIdentityByEmail } from "@/actions/auth";
+import { checkAuthIdentityByEmail, sendVerificationCode } from "@/actions/auth";
 import { signIn } from "@/lib/auth/client";
 import { getAuthErrorKind, getAuthErrorMessage, getValidationMessage } from "@/lib/auth/messages";
 import { signInSchema, type SignInInput } from "@/lib/validations";
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import Link from "next/link";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 
 export function LoginForm() {
@@ -64,6 +65,15 @@ export function LoginForm() {
             return;
           }
 
+          if (authErrorKind === "account_not_verified") {
+            const verificationMessage = t("auth.accountNotVerified");
+            setError("root", { type: "server", message: verificationMessage });
+            toast.error(verificationMessage);
+            await sendVerificationCode({ email: data.email });
+            router.push(`/verify-account?email=${encodeURIComponent(data.email)}`);
+            return;
+          }
+
           const friendlyMessage = getAuthErrorMessage(
             result.error.message ?? t("auth.invalidCredentials"),
             t
@@ -80,6 +90,12 @@ export function LoginForm() {
       } catch (error) {
         const rawMessage = error instanceof Error ? error.message : t("auth.unexpectedAuthError");
         const friendlyMessage = getAuthErrorMessage(rawMessage, t);
+
+        if (getAuthErrorKind(rawMessage) === "account_not_verified") {
+          await sendVerificationCode({ email: data.email });
+          router.push(`/verify-account?email=${encodeURIComponent(data.email)}`);
+        }
+
         setError("root", { type: "server", message: friendlyMessage });
         toast.error(friendlyMessage);
       }
@@ -112,9 +128,17 @@ export function LoginForm() {
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-foreground">
-            {t("auth.password")}
-          </label>
+          <div className="mb-1.5 flex items-center justify-between">
+            <label className="text-sm font-medium text-foreground">
+              {t("auth.password")}
+            </label>
+            <Link
+              href="/forgot-password"
+              className="text-xs text-primary hover:underline"
+            >
+              {t("auth.forgotPassword")}
+            </Link>
+          </div>
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
