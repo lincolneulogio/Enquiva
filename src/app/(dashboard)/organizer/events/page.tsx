@@ -5,11 +5,16 @@ import { DeleteEventButton } from "./DeleteEventButton";
 import { categoryLabel, eventStatusLabel, formatEventDateShort, statusColor } from "@/lib/utils";
 import { getI18n } from "@/lib/i18n/server";
 import { ExportDataPanel } from "@/components/dashboard/ExportDataPanel";
+import { Suspense } from "react";
 import { getCategories } from "@/actions/events";
 
 interface OrganizerEventsPageProps {
     searchParams: Promise<{
         status?: string;
+        eventId?: string;
+        category?: string;
+        fromDate?: string;
+        toDate?: string;
     }>;
 }
 
@@ -32,10 +37,26 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
         ? (params.status as (typeof STATUS_FILTERS)[number]["value"])
         : "all";
 
-    const filteredEvents =
-        activeStatus === "all"
-            ? organizerEvents
-            : organizerEvents.filter(({ event }) => event.status === activeStatus);
+    let filteredEvents = organizerEvents;
+
+    if (activeStatus !== "all") {
+        filteredEvents = filteredEvents.filter(({ event }) => event.status === activeStatus);
+    }
+    if (params.eventId) {
+        filteredEvents = filteredEvents.filter(({ event }) => event.id === params.eventId);
+    }
+    if (params.category) {
+        filteredEvents = filteredEvents.filter(({ event }) => event.category === params.category);
+    }
+    if (params.fromDate) {
+        const fromDateVal = new Date(`${params.fromDate}T00:00:00.000`);
+        filteredEvents = filteredEvents.filter(({ event }) => new Date(event.date) >= fromDateVal);
+    }
+    if (params.toDate) {
+        const toDateVal = new Date(`${params.toDate}T23:59:59.999`);
+        filteredEvents = filteredEvents.filter(({ event }) => new Date(event.date) <= toDateVal);
+    }
+
     const exportEventOptions = organizerEvents.map(({ event }) => ({ id: event.id, title: event.title }));
     const exportCategoryOptions = categories.map((category) => ({
         value: category.slug,
@@ -89,14 +110,16 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                 })}
             </div>
 
-            <ExportDataPanel
-                resource="events"
-                scope="organizer"
-                eventOptions={exportEventOptions}
-                categoryOptions={exportCategoryOptions}
-                statusOptions={exportStatusOptions}
-                initialStatus={activeStatus}
-            />
+            <Suspense>
+                <ExportDataPanel
+                    resource="events"
+                    scope="organizer"
+                    eventOptions={exportEventOptions}
+                    categoryOptions={exportCategoryOptions}
+                    statusOptions={exportStatusOptions}
+                    initialStatus={activeStatus}
+                />
+            </Suspense>
 
             {filteredEvents.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">

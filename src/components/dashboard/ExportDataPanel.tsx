@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Download, FileSpreadsheet, FileText, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { getExportData, type ExportCategoryOption, type ExportEventOption, type ExportPayload, type ExportResource, type ExportScope } from "@/actions/exports";
@@ -98,12 +99,55 @@ export function ExportDataPanel({
 }: ExportDataPanelProps) {
     const t = useTranslations();
     const { locale } = useLocale();
-    const [eventId, setEventId] = useState("");
-    const [status, setStatus] = useState(initialStatus);
-    const [category, setCategory] = useState(initialCategory);
-    const [fromDate, setFromDate] = useState("");
-    const [toDate, setToDate] = useState("");
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
+    // Sync state from URL query parameters
+    const urlEventId = searchParams.get("eventId") || "";
+    const urlStatus = searchParams.get("status") || initialStatus;
+    const urlCategory = searchParams.get("category") || initialCategory;
+    const urlFromDate = searchParams.get("fromDate") || "";
+    const urlToDate = searchParams.get("toDate") || "";
+
+    const [eventId, setEventId] = useState(urlEventId);
+    const [status, setStatus] = useState(urlStatus);
+    const [category, setCategory] = useState(urlCategory);
+    const [fromDate, setFromDate] = useState(urlFromDate);
+    const [toDate, setToDate] = useState(urlToDate);
     const [loadingFormat, setLoadingFormat] = useState<"pdf" | "excel" | null>(null);
+
+    // Keep state synced when search params change externally (e.g. navigation or clean filters)
+    useEffect(() => {
+        setEventId(urlEventId);
+    }, [urlEventId]);
+
+    useEffect(() => {
+        setStatus(urlStatus);
+    }, [urlStatus]);
+
+    useEffect(() => {
+        setCategory(urlCategory);
+    }, [urlCategory]);
+
+    useEffect(() => {
+        setFromDate(urlFromDate);
+    }, [urlFromDate]);
+
+    useEffect(() => {
+        setToDate(urlToDate);
+    }, [urlToDate]);
+
+    const updateFilter = (key: string, value: string) => {
+        const params = new URLSearchParams(searchParams.toString());
+        if (value && value !== "all") {
+            params.set(key, value);
+        } else {
+            params.delete(key);
+        }
+        params.delete("page"); // Reset page number on filter changes
+        router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    };
 
     const hasEventFilter = eventOptions.length > 0;
     const hasStatusFilter = Boolean(statusOptions?.length);
@@ -153,127 +197,171 @@ export function ExportDataPanel({
     };
 
     return (
-        <div className={cn("rounded-2xl border border-border bg-card p-4 shadow-sm", className)}>
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                        <Download className="h-4 w-4 text-primary" />
-                        {t("common.export")}
+        <div className={cn("bg-card border border-border/60 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:shadow-md", className)}>
+            {/* Header: Title and Description */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-border/60 mb-5">
+                <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <Download className="h-5 w-5" />
                     </div>
-                    <p className="text-xs text-muted-foreground">{helperText}</p>
-                </div>
-
-                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end lg:justify-end">
-                    {hasEventFilter ? (
-                        <label className="flex min-w-[220px] flex-col gap-1 text-xs text-muted-foreground">
-                            {t("common.filterByEvent")}
-                            <select
-                                value={eventId}
-                                onChange={(event) => setEventId(event.target.value)}
-                                className="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
-                            >
-                                <option value="">{t("common.allEventsOption")}</option>
-                                {eventOptions.map((option) => (
-                                    <option key={option.id} value={option.id}>
-                                        {option.title}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                    ) : null}
-
-                    {hasCategoryFilter ? (
-                        <label className="flex min-w-[180px] flex-col gap-1 text-xs text-muted-foreground">
-                            {t("common.filterByCategory")}
-                            <select
-                                value={category}
-                                onChange={(event) => setCategory(event.target.value)}
-                                className="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
-                            >
-                                <option value="">{t("common.allCategoriesOption")}</option>
-                                {categoryOptions.map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                    ) : null}
-
-                    {hasStatusFilter ? (
-                        <label className="flex min-w-[180px] flex-col gap-1 text-xs text-muted-foreground">
-                            {t("common.filterByStatus")}
-                            <select
-                                value={status}
-                                onChange={(event) => setStatus(event.target.value)}
-                                className="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
-                            >
-                                {statusOptions?.map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                    ) : null}
-
-                    {enableDateRange ? (
-                        <>
-                            <label className="flex min-w-[170px] flex-col gap-1 text-xs text-muted-foreground">
-                                {t("common.fromDate")}
-                                <input
-                                    type="date"
-                                    value={fromDate}
-                                    max={toDate || undefined}
-                                    onChange={(event) => setFromDate(event.target.value)}
-                                    className="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
-                                />
-                            </label>
-
-                            <label className="flex min-w-[170px] flex-col gap-1 text-xs text-muted-foreground">
-                                {t("common.toDate")}
-                                <input
-                                    type="date"
-                                    value={toDate}
-                                    min={fromDate || undefined}
-                                    onChange={(event) => setToDate(event.target.value)}
-                                    className="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
-                                />
-                            </label>
-                        </>
-                    ) : null}
-
-                    <div className="flex items-center gap-2">
-                        <button
-                            type="button"
-                            onClick={() => handleExport("excel")}
-                            disabled={loadingFormat !== null}
-                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-500/15 disabled:opacity-60 dark:text-emerald-300"
-                        >
-                            <FileSpreadsheet className="h-4 w-4" />
-                            {loadingFormat === "excel" ? t("common.exporting") : t("common.exportExcel")}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => handleExport("pdf")}
-                            disabled={loadingFormat !== null}
-                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary/15 disabled:opacity-60"
-                        >
-                            <FileText className="h-4 w-4" />
-                            {loadingFormat === "pdf" ? t("common.exporting") : t("common.exportPdf")}
-                        </button>
+                    <div>
+                        <h3 className="text-base font-bold text-foreground leading-none">
+                            {t("common.export")}
+                        </h3>
+                        <p className="text-xs text-muted-foreground/80 mt-1">
+                            {helperText}
+                        </p>
                     </div>
                 </div>
+                {hasAnyFilter && (
+                    <div className="self-start sm:self-center flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/60 text-[11px] font-semibold text-muted-foreground border border-border/40">
+                        <Filter className="h-3.5 w-3.5 text-primary" />
+                        <span>{locale === "en" ? "Filters Active" : "Filtros Activos"}</span>
+                    </div>
+                )}
             </div>
 
-            {hasAnyFilter && (
-                <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-[11px] text-muted-foreground">
-                    <Filter className="h-3.5 w-3.5" />
-                    {locale === "en"
-                        ? "Exports respect the selected filters"
-                        : "La exportación respeta los filtros seleccionados"}
+            {/* Content: Single Row Responsive Filters and Actions */}
+            <div className="flex flex-wrap items-end gap-3.5 w-full">
+                {/* Event dropdown */}
+                {hasEventFilter && (
+                    <div className="flex-1 min-w-[200px] max-w-xs space-y-1.5">
+                        <label htmlFor="export-event-select" className="text-xs font-semibold text-muted-foreground tracking-wide block">
+                            {t("common.filterByEvent")}
+                        </label>
+                        <select
+                            id="export-event-select"
+                            value={eventId}
+                            onChange={(e) => {
+                                setEventId(e.target.value);
+                                updateFilter("eventId", e.target.value);
+                            }}
+                            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary h-10 transition-all hover:bg-background/80"
+                        >
+                            <option value="">{t("common.allEventsOption")}</option>
+                            {eventOptions.map((opt) => (
+                                <option key={opt.id} value={opt.id}>
+                                    {opt.title}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+
+                {/* Category dropdown */}
+                {hasCategoryFilter && (
+                    <div className="flex-1 min-w-[160px] max-w-[200px] space-y-1.5">
+                        <label htmlFor="export-category-select" className="text-xs font-semibold text-muted-foreground tracking-wide block">
+                            {t("common.filterByCategory")}
+                        </label>
+                        <select
+                            id="export-category-select"
+                            value={category}
+                            onChange={(e) => {
+                                setCategory(e.target.value);
+                                updateFilter("category", e.target.value);
+                            }}
+                            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary h-10 transition-all hover:bg-background/80"
+                        >
+                            <option value="">{t("common.allCategoriesOption")}</option>
+                            {categoryOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+
+                {/* Status dropdown */}
+                {hasStatusFilter && statusOptions && (
+                    <div className="flex-1 min-w-[140px] max-w-[180px] space-y-1.5">
+                        <label htmlFor="export-status-select" className="text-xs font-semibold text-muted-foreground tracking-wide block">
+                            {t("common.filterByStatus")}
+                        </label>
+                        <select
+                            id="export-status-select"
+                            value={status}
+                            onChange={(e) => {
+                                setStatus(e.target.value);
+                                updateFilter("status", e.target.value);
+                            }}
+                            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary h-10 transition-all hover:bg-background/80"
+                        >
+                            <option value="all">
+                                {locale === "en" ? "All states" : "Todos los estados"}
+                            </option>
+                            {statusOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+
+                {/* Date range inputs */}
+                {enableDateRange && (
+                    <>
+                        <div className="flex-1 min-w-[130px] max-w-[160px] space-y-1.5">
+                            <label htmlFor="export-from-date" className="text-xs font-semibold text-muted-foreground tracking-wide block">
+                                {t("common.fromDate")}
+                            </label>
+                            <input
+                                id="export-from-date"
+                                type="date"
+                                value={fromDate}
+                                onChange={(e) => {
+                                    setFromDate(e.target.value);
+                                    updateFilter("fromDate", e.target.value);
+                                }}
+                                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary h-10 transition-all hover:bg-background/80 block"
+                            />
+                        </div>
+                        <div className="flex-1 min-w-[130px] max-w-[160px] space-y-1.5">
+                            <label htmlFor="export-to-date" className="text-xs font-semibold text-muted-foreground tracking-wide block">
+                                {t("common.toDate")}
+                            </label>
+                            <input
+                                id="export-to-date"
+                                type="date"
+                                value={toDate}
+                                onChange={(e) => {
+                                    setToDate(e.target.value);
+                                    updateFilter("toDate", e.target.value);
+                                }}
+                                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary h-10 transition-all hover:bg-background/80 block"
+                            />
+                        </div>
+                    </>
+                )}
+
+                {/* Buttons block */}
+                <div className="flex items-center gap-2 mt-auto sm:ml-auto w-full sm:w-auto h-10 pt-2 sm:pt-0">
+                    <button
+                        onClick={() => handleExport("excel")}
+                        disabled={loadingFormat !== null}
+                        className={cn(
+                            "flex-1 sm:flex-initial flex items-center justify-center gap-1.5 h-10 px-4 rounded-xl text-xs font-semibold shadow-sm transition-all duration-200 active:scale-[0.98] disabled:opacity-50",
+                            "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/30 dark:hover:bg-emerald-950/40"
+                        )}
+                    >
+                        <FileSpreadsheet className="h-4 w-4" />
+                        <span>{loadingFormat === "excel" ? t("common.exporting") : t("common.exportExcel")}</span>
+                    </button>
+                    <button
+                        onClick={() => handleExport("pdf")}
+                        disabled={loadingFormat !== null}
+                        className={cn(
+                            "flex-1 sm:flex-initial flex items-center justify-center gap-1.5 h-10 px-4 rounded-xl text-xs font-semibold shadow-sm transition-all duration-200 active:scale-[0.98] disabled:opacity-50",
+                            "bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 dark:bg-violet-950/20 dark:text-violet-400 dark:border-violet-900/30 dark:hover:bg-violet-950/40"
+                        )}
+                    >
+                        <FileText className="h-4 w-4" />
+                        <span>{loadingFormat === "pdf" ? t("common.exporting") : t("common.exportPdf")}</span>
+                    </button>
                 </div>
-            )}
+            </div>
         </div>
     );
 }

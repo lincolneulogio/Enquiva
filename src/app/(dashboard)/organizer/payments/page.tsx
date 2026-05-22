@@ -1,17 +1,35 @@
-import { getOrganizerPayments } from "@/actions/payments";
+import { db } from "@/lib/db";
+import { payments as paymentsTable, registrations, events, users, transportBookings, transportRoutes } from "@/lib/db/schema";
+import { eq, desc, and, gte, lte } from "drizzle-orm";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { formatCurrency } from "@/lib/utils";
 import { PaymentStatusBadge } from "@/components/payments/PaymentStatusBadge";
 import Link from "next/link";
 import { getI18n } from "@/lib/i18n/server";
 import { ExportDataPanel } from "@/components/dashboard/ExportDataPanel";
+import { Suspense } from "react";
 import { getExportEventOptions } from "@/actions/exports";
 import { getCategories } from "@/actions/events";
 import { categoryLabel } from "@/lib/utils";
 import { getPaymentStatusLabel } from "@/lib/i18n/core";
 
-export default async function OrganizerPaymentsPage() {
+
+interface PageProps {
+  searchParams: Promise<{
+    eventId?: string;
+    category?: string;
+    status?: string;
+    fromDate?: string;
+    toDate?: string;
+  }>;
+}
+
+export default async function OrganizerPaymentsPage({ searchParams }: PageProps) {
   const { locale, t } = await getI18n();
-  const payments = await getOrganizerPayments();
+  const params = await searchParams;
+  const session = await auth.api.getSession({ headers: await headers() });
+  const organizerId = session!.user.id;
   const exportEventOptions = await getExportEventOptions("organizer");
   const exportCategoryOptions = (await getCategories()).map((category) => ({
     value: category.slug,
@@ -22,6 +40,45 @@ export default async function OrganizerPaymentsPage() {
     label: value === "all" ? t("common.all") : getPaymentStatusLabel(value, locale),
   }));
 
+  const conditions = [eq(events.organizerId, organizerId)];
+
+  if (params.eventId) {
+    conditions.push(eq(events.id, params.eventId));
+  }
+  if (params.category) {
+    conditions.push(eq(events.category, params.category));
+  }
+  if (params.status && params.status !== "all") {
+    conditions.push(eq(paymentsTable.status, params.status as any));
+  }
+  if (params.fromDate) {
+    conditions.push(gte(paymentsTable.createdAt, new Date(`${params.fromDate}T00:00:00.000`)));
+  }
+  if (params.toDate) {
+    conditions.push(lte(paymentsTable.createdAt, new Date(`${params.toDate}T23:59:59.999`)));
+  }
+
+  const payments = await db
+    .select({
+      payment: paymentsTable,
+      registration: registrations,
+      event: events,
+      attendee: users,
+      transportBooking: transportBookings,
+      transportRoute: transportRoutes,
+    })
+    .from(paymentsTable)
+    .innerJoin(
+      registrations,
+      eq(paymentsTable.registrationId, registrations.id)
+    )
+    .innerJoin(events, eq(registrations.eventId, events.id))
+    .innerJoin(users, eq(paymentsTable.userId, users.id))
+    .leftJoin(transportBookings, eq(transportBookings.id, paymentsTable.transportBookingId))
+    .leftJoin(transportRoutes, eq(transportRoutes.id, transportBookings.routeId))
+    .where(and(...conditions))
+    .orderBy(desc(paymentsTable.createdAt));
+
   return (
     <div className="space-y-6">
       <div>
@@ -31,13 +88,15 @@ export default async function OrganizerPaymentsPage() {
         </p>
       </div>
 
-      <ExportDataPanel
-        resource="payments"
-        scope="organizer"
-        eventOptions={exportEventOptions}
-        categoryOptions={exportCategoryOptions}
-        statusOptions={exportStatusOptions}
-      />
+      <Suspense>
+        <ExportDataPanel
+          resource="payments"
+          scope="organizer"
+          eventOptions={exportEventOptions}
+          categoryOptions={exportCategoryOptions}
+          statusOptions={exportStatusOptions}
+        />
+      </Suspense>
 
       {payments.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-border bg-card p-12 text-center">

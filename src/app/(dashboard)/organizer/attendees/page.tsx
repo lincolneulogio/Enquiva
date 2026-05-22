@@ -2,18 +2,30 @@ import { db } from "@/lib/db";
 import { registrations, events, users } from "@/lib/db/schema";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, gte, lte } from "drizzle-orm";
 import { Users } from "lucide-react";
 import { ManualCheckInButton } from "@/components/events/ManualCheckInButton";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale, getPluralLabel, getRegistrationStatusLabel } from "@/lib/i18n/core";
 import { ExportDataPanel } from "@/components/dashboard/ExportDataPanel";
+import { Suspense } from "react";
 import { getExportEventOptions } from "@/actions/exports";
 import { getCategories } from "@/actions/events";
 import { categoryLabel } from "@/lib/utils";
 
-export default async function OrganizerAttendeesPage() {
+interface PageProps {
+    searchParams: Promise<{
+        eventId?: string;
+        category?: string;
+        status?: string;
+        fromDate?: string;
+        toDate?: string;
+    }>;
+}
+
+export default async function OrganizerAttendeesPage({ searchParams }: PageProps) {
     const { t, locale } = await getI18n();
+    const params = await searchParams;
     const session = await auth.api.getSession({ headers: await headers() });
     const organizerId = session!.user.id;
     const exportEventOptions = await getExportEventOptions("organizer");
@@ -25,6 +37,24 @@ export default async function OrganizerAttendeesPage() {
         value,
         label: value === "all" ? t("common.all") : getRegistrationStatusLabel(value, locale),
     }));
+
+    const conditions = [eq(events.organizerId, organizerId)];
+    
+    if (params.eventId) {
+        conditions.push(eq(events.id, params.eventId));
+    }
+    if (params.category) {
+        conditions.push(eq(events.category, params.category));
+    }
+    if (params.status && params.status !== "all") {
+        conditions.push(eq(registrations.status, params.status as any));
+    }
+    if (params.fromDate) {
+        conditions.push(gte(registrations.registeredAt, new Date(`${params.fromDate}T00:00:00.000`)));
+    }
+    if (params.toDate) {
+        conditions.push(lte(registrations.registeredAt, new Date(`${params.toDate}T23:59:59.999`)));
+    }
 
     const rows = await db
         .select({
@@ -42,7 +72,7 @@ export default async function OrganizerAttendeesPage() {
         .from(registrations)
         .innerJoin(events, eq(registrations.eventId, events.id))
         .innerJoin(users, eq(registrations.userId, users.id))
-        .where(eq(events.organizerId, organizerId))
+        .where(and(...conditions))
         .orderBy(desc(registrations.registeredAt));
 
     const registrationWord = getPluralLabel(locale, "registration", "registrations", rows.length);
@@ -56,13 +86,15 @@ export default async function OrganizerAttendeesPage() {
                 </p>
             </div>
 
-            <ExportDataPanel
-                resource="registrations"
-                scope="organizer"
-                eventOptions={exportEventOptions}
-                categoryOptions={exportCategoryOptions}
-                statusOptions={exportStatusOptions}
-            />
+            <Suspense>
+                <ExportDataPanel
+                    resource="registrations"
+                    scope="organizer"
+                    eventOptions={exportEventOptions}
+                    categoryOptions={exportCategoryOptions}
+                    statusOptions={exportStatusOptions}
+                />
+            </Suspense>
 
             {rows.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">

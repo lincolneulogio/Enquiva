@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { registrations, events, users } from "@/lib/db/schema";
-import { eq, desc, count } from "drizzle-orm";
+import { eq, desc, count, and, gte, lte, type SQL } from "drizzle-orm";
 import { ClipboardList } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
@@ -10,10 +10,16 @@ import { TablePagination } from "@/components/dashboard/TablePagination";
 import { ExportDataPanel } from "@/components/dashboard/ExportDataPanel";
 import { getExportEventOptions } from "@/actions/exports";
 import { getCategories } from "@/actions/events";
+import { Suspense } from "react";
 
 interface AdminRegistrationsPageProps {
   searchParams: Promise<{
     page?: string;
+    eventId?: string;
+    category?: string;
+    status?: string;
+    fromDate?: string;
+    toDate?: string;
   }>;
 }
 
@@ -32,7 +38,6 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
   const requestedPage = Number(params.page ?? "1");
   const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
 
-  const [{ total }] = await db.select({ total: count() }).from(registrations);
   const exportEventOptions = await getExportEventOptions("admin");
   const exportCategoryOptions = (await getCategories()).map((category) => ({
     value: category.slug,
@@ -42,6 +47,34 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
     value,
     label: value === "all" ? t("common.all") : registrationStatusLabel(value, locale),
   }));
+
+  // Build filter conditions
+  const conditions: SQL[] = [];
+  if (params.eventId) {
+    conditions.push(eq(events.id, params.eventId));
+  }
+  if (params.category) {
+    conditions.push(eq(events.category, params.category));
+  }
+  if (params.status && params.status !== "all") {
+    conditions.push(eq(registrations.status, params.status as any));
+  }
+  if (params.fromDate) {
+    conditions.push(gte(registrations.registeredAt, new Date(`${params.fromDate}T00:00:00.000`)));
+  }
+  if (params.toDate) {
+    conditions.push(lte(registrations.registeredAt, new Date(`${params.toDate}T23:59:59.999`)));
+  }
+
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(registrations)
+    .innerJoin(events, eq(registrations.eventId, events.id))
+    .innerJoin(users, eq(registrations.userId, users.id))
+    .where(whereClause);
+
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
   const offset = (safePage - 1) * PAGE_SIZE;
@@ -68,9 +101,12 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
     .from(registrations)
     .innerJoin(events, eq(registrations.eventId, events.id))
     .innerJoin(users, eq(registrations.userId, users.id))
+    .where(whereClause)
     .orderBy(desc(registrations.registeredAt))
     .limit(PAGE_SIZE)
     .offset(offset);
+
+  const isFiltered = !!(params.eventId || params.category || (params.status && params.status !== "all") || params.fromDate || params.toDate);
 
   return (
     <div className="space-y-6">
@@ -81,23 +117,30 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
             count: total,
             label: total === 1 ? (locale === "en" ? "registration" : "inscripción") : (locale === "en" ? "registrations" : "inscripciones"),
           })}
+          {isFiltered && (
+            <span className="ml-2 text-xs text-primary font-medium">({locale === "en" ? "filtered" : "filtrado"})</span>
+          )}
         </p>
       </div>
 
-      <ExportDataPanel
-        resource="registrations"
-        scope="admin"
-        eventOptions={exportEventOptions}
-        categoryOptions={exportCategoryOptions}
-        statusOptions={exportStatusOptions}
-      />
+      <Suspense>
+        <ExportDataPanel
+          resource="registrations"
+          scope="admin"
+          eventOptions={exportEventOptions}
+          categoryOptions={exportCategoryOptions}
+          statusOptions={exportStatusOptions}
+        />
+      </Suspense>
 
       {allRegistrations.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
           <ClipboardList className="mx-auto h-10 w-10 text-muted-foreground/50" />
           <p className="mt-4 font-medium text-foreground">{t("dashboard.admin.noRegistrationsYet")}</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            {t("dashboard.admin.registrationsAppearHere")}
+            {isFiltered
+              ? (locale === "en" ? "No registrations match your filters." : "Ninguna inscripción coincide con los filtros.")
+              : t("dashboard.admin.registrationsAppearHere")}
           </p>
         </div>
       ) : (
@@ -172,6 +215,13 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
             totalPages={totalPages}
             totalItems={total}
             pageSize={PAGE_SIZE}
+            query={{
+              eventId: params.eventId,
+              category: params.category,
+              status: params.status,
+              fromDate: params.fromDate,
+              toDate: params.toDate,
+            }}
           />
         </div>
       )}
