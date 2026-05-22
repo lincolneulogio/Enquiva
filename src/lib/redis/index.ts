@@ -15,6 +15,14 @@ export const registrationRatelimit = new Ratelimit({
   prefix: "ratelimit:registration",
 });
 
+// Rate limiter for ticket verification: 30 requests per minute per IP
+export const ticketVerifyRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(30, "1 m"),
+  analytics: true,
+  prefix: "ratelimit:ticket_verify",
+});
+
 // Cache keys
 export const CACHE_KEYS = {
   publicEvents: "events:public",

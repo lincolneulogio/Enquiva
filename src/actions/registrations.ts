@@ -14,6 +14,7 @@ import {
 import { headers } from "next/headers";
 import { eq, and, count, inArray } from "drizzle-orm";
 import QRCode from "qrcode";
+import { generateTicketForRegistration } from "@/lib/tickets";
 import { revalidatePath } from "next/cache";
 import { generateTicketCode } from "@/lib/utils";
 import { env } from "@/env";
@@ -116,42 +117,8 @@ export async function registerForEvent(input: unknown) {
     .returning();
 
   if (status === "registered") {
-    const [existingTicket] = await db
-      .select({ code: tickets.code })
-      .from(tickets)
-      .where(eq(tickets.registrationId, registration.id))
-      .limit(1);
-
-    const ticketCode = existingTicket?.code ?? generateTicketCode();
-    const appUrl = env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
-    const qrPayload = `${appUrl}/ticket/${ticketCode}`;
-    const qrCode = await QRCode.toDataURL(qrPayload);
-
-    await db
-      .update(registrations)
-      .set({ qrCode })
-      .where(eq(registrations.id, registration.id));
-
-    const ticketMetadata = { eventId, userId: user.id };
-    await db
-      .insert(tickets)
-      .values({
-        registrationId: registration.id,
-        code: ticketCode,
-        qrCode,
-        status: "active",
-        metadata: ticketMetadata,
-      })
-      .onConflictDoUpdate({
-        target: [tickets.registrationId],
-        set: {
-          qrCode,
-          status: "active",
-          issuedAt: new Date(),
-          metadata: ticketMetadata,
-        },
-      });
-
+    // generate ticket (idempotent)
+    await generateTicketForRegistration(registration.id, eventId, user.id);
   }
 
   // Create notification for attendee

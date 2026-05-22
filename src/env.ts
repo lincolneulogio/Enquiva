@@ -5,6 +5,7 @@ export const env = createEnv({
   server: {
     DATABASE_URL: z.string().url(),
     BETTER_AUTH_SECRET: z.string().min(32),
+    TICKET_SIGNING_KEY: z.string().min(32),
     MAILTRAP_HOST: z.string().min(1),
     MAILTRAP_PORT: z.coerce.number().int().positive(),
     MAILTRAP_USER: z.string().min(1),
@@ -14,6 +15,7 @@ export const env = createEnv({
     PUSHER_APP_ID: z.string().min(1),
     PUSHER_SECRET: z.string().min(1),
     UPLOADTHING_SECRET: z.string().min(1),
+    UPLOADTHING_TOKEN: z.string().min(1).optional(),
     UPSTASH_REDIS_REST_URL: z.string().url(),
     UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
   },
@@ -26,6 +28,7 @@ export const env = createEnv({
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+    TICKET_SIGNING_KEY: process.env.TICKET_SIGNING_KEY,
     MAILTRAP_HOST: process.env.MAILTRAP_HOST,
     MAILTRAP_PORT: process.env.MAILTRAP_PORT,
     MAILTRAP_USER: process.env.MAILTRAP_USER,
@@ -35,6 +38,7 @@ export const env = createEnv({
     PUSHER_APP_ID: process.env.PUSHER_APP_ID,
     PUSHER_SECRET: process.env.PUSHER_SECRET,
     UPLOADTHING_SECRET: process.env.UPLOADTHING_SECRET,
+    UPLOADTHING_TOKEN: process.env.UPLOADTHING_TOKEN,
     UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,

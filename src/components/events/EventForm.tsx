@@ -114,30 +114,18 @@ export function EventForm({
         if (event) return;
 
         try {
-            const raw = localStorage.getItem(EVENT_DRAFT_STORAGE_KEY);
-            if (!raw) return;
-
-            const parsed = JSON.parse(raw) as {
-                values?: Partial<CreateEventInput>;
-                coverImage?: string | null;
-            };
-
-            if (parsed.values) {
-                reset({
-                    status: "draft",
-                    isVirtual: false,
-                    isFeatured: false,
-                    hasTransport: false,
-                    ...parsed.values,
-                });
-            }
-
-            if (parsed.coverImage !== undefined) {
-                setCoverImage(parsed.coverImage);
-            }
+            localStorage.removeItem(EVENT_DRAFT_STORAGE_KEY);
         } catch {
-            // Ignore malformed draft data
+            // Ignore storage issues
         }
+
+        reset({
+            status: "draft",
+            isVirtual: false,
+            isFeatured: false,
+            hasTransport: false,
+        });
+        setCoverImage(null);
     }, [event, reset]);
 
     useEffect(() => {
@@ -426,6 +414,7 @@ export function EventForm({
                                     <p className="text-sm text-muted-foreground">{t("events.form.coverImage")}</p>
                                     <UploadDropzone
                                         endpoint="eventCoverImage"
+                                        config={{ mode: "auto" }}
                                         onClientUploadComplete={(res) => {
                                             if (res[0]) setCoverImage(res[0].url);
                                         }}

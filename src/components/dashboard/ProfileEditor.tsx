@@ -16,6 +16,7 @@ import { UploadDropzone } from "@/lib/uploadthing/components";
 import { Eye, EyeOff, Loader2, Mail, Shield, User, ImageIcon, LockKeyhole, Phone } from "lucide-react";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { getRoleLabel } from "@/lib/i18n/core";
+import { normalizePeruPhone } from "@/lib/utils";
 
 interface ProfileEditorProps {
     user: {
@@ -185,7 +186,7 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
             try {
                 await updateCurrentUserProfile({
                     ...data,
-                    phone: data.phone?.trim() ? data.phone : null,
+                    phone: data.phone?.trim() ? normalizePeruPhone(data.phone) : null,
                     bio: data.bio?.trim() ? data.bio : null,
                     image: data.image?.trim() ? data.image : null,
                 });
@@ -255,11 +256,22 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
                         <Phone className="h-4 w-4" />
                         {t("profile.phoneLabel")}
                     </label>
-                    <input
-                        {...register("phone")}
-                        placeholder={t("profile.phonePlaceholder")}
-                        className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
-                    />
+                    <div className="flex overflow-hidden rounded-xl border border-border bg-background focus-within:border-primary">
+                        <span className="flex items-center border-r border-border bg-muted/60 px-3 text-sm font-medium text-muted-foreground">
+                            +51
+                        </span>
+                        <input
+                            {...register("phone")}
+                            inputMode="numeric"
+                            maxLength={9}
+                            placeholder="912345678"
+                            className="w-full px-4 py-2.5 text-sm focus:outline-none"
+                            onChange={(event) => {
+                                const digits = event.target.value.replace(/\D/g, "").slice(0, 9);
+                                setValue("phone", digits, { shouldDirty: true, shouldValidate: true });
+                            }}
+                        />
+                    </div>
                     <p className="mt-1 text-xs text-muted-foreground">
                         {t("profile.phoneHint")}
                     </p>

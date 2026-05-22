@@ -110,6 +110,21 @@ export function generateTicketCode(): string {
   return `TKT-${suffix}`;
 }
 
+export function normalizePeruPhone(value: string): string {
+  const digits = value.replace(/\D/g, "");
+  if (digits.startsWith("51") && digits.length === 11) {
+    return `+${digits}`;
+  }
+  if (digits.length === 9) {
+    return `+51${digits}`;
+  }
+  return value.trim();
+}
+
+export function isPeruPhoneNineDigits(value: string): boolean {
+  return /^\d{9}$/.test(value.replace(/\D/g, ""));
+}
+
 export function formatCurrency(
   value: number,
   currency = "USD",

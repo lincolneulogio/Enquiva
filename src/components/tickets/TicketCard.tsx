@@ -6,6 +6,7 @@ import { Ticket, Event, Registration } from "@/lib/db/schema";
 import { formatEventDate, registrationStatusLabel } from "@/lib/utils";
 import { PaymentStatusBadge } from "@/components/payments/PaymentStatusBadge";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
+import { useState } from "react";
 
 interface TicketCardProps {
   ticket?: Ticket | null;
@@ -78,7 +79,54 @@ export function TicketCard({ ticket, event, registration, paymentStatus }: Ticke
         >
           {hasTransport ? t("ticket.manageTransport") : t("ticket.paymentSummary")}
         </Link>
+        <button
+          onClick={() => {
+            if (!qr) return;
+            const a = document.createElement("a");
+            a.href = qr;
+            a.download = `${event.slug ?? event.title}-ticket.png`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+          }}
+          className="rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground hover:bg-secondary transition"
+        >
+          {t("ticket.download")}
+        </button>
+        <ResendButton registrationId={registration.id} />
       </div>
     </div>
+  );
+}
+
+function ResendButton({ registrationId }: { registrationId: string }) {
+  const [loading, setLoading] = useState(false);
+  const t = useTranslations();
+
+  async function resend() {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/tickets/resend", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ registrationId }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      // show toast in app (omitted)
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={resend}
+      disabled={loading}
+      className="rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground hover:bg-secondary transition"
+    >
+      {loading ? "Enviando..." : t("ticket.resend")}
+    </button>
   );
 }

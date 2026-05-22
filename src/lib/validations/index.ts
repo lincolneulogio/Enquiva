@@ -50,6 +50,19 @@ export const eventStatusValues = [
 
 const isValidDateInput = (value: string) => !Number.isNaN(new Date(value).getTime());
 
+const normalizePeruPhoneValue = (value: unknown) => {
+  if (typeof value !== "string") return value;
+  const digits = value.replace(/\D/g, "");
+  if (digits.startsWith("51") && digits.length === 11) return `+${digits}`;
+  if (digits.length === 9) return `+51${digits}`;
+  return value.trim();
+};
+
+const optionalUrl = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? null : value),
+  z.string().url("Ingresa una URL válida").optional().nullable()
+);
+
 const baseEventSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(200),
   description: z.string().min(20, "Description must be at least 20 characters"),
@@ -75,11 +88,11 @@ const baseEventSchema = z.object({
       message: "Invalid end date format",
     }),
   location: z.string().max(300).optional().nullable(),
-  locationUrl: z.string().url().optional().nullable(),
+  locationUrl: optionalUrl,
   isVirtual: z.boolean().default(false),
-  virtualLink: z.string().url().optional().nullable(),
+  virtualLink: optionalUrl,
   capacity: z.number().int().positive().optional().nullable(),
-  coverImage: z.string().url().optional().nullable(),
+  coverImage: optionalUrl,
   status: z.enum(eventStatusValues).default("draft"),
   isFeatured: z.boolean().default(false),
   hasTransport: z.boolean().default(false),
@@ -138,10 +151,10 @@ export const updatePaymentStatusSchema = z.object({
 
 export const createRegistrationSchema = z.object({
   eventId: z.string().uuid(),
-  contactPhone: z
-    .string()
-    .trim()
-    .regex(peruPhoneRegex, "Phone must follow format +519XXXXXXXX"),
+  contactPhone: z.preprocess(
+    normalizePeruPhoneValue,
+    z.string().regex(peruPhoneRegex, "Phone must follow format +519XXXXXXXX")
+  ),
   notes: z.string().max(500).optional(),
 });
 
@@ -155,10 +168,12 @@ export const checkInSchema = z.object({
 export const updateProfileSchema = z.object({
   name: z.string().min(2).max(100),
   phone: z.preprocess(
-    (value) => (typeof value === "string" && value.trim() === "" ? null : value),
+    (value) => {
+      if (typeof value === "string" && value.trim() === "") return null;
+      return normalizePeruPhoneValue(value);
+    },
     z
       .string()
-      .trim()
       .regex(peruPhoneRegex, "Phone must follow format +519XXXXXXXX")
       .optional()
       .nullable()

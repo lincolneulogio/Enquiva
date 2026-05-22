@@ -25,6 +25,9 @@ import {
   PUSHER_EVENTS,
 } from "@/lib/pusher/server";
 import { revalidatePath } from "next/cache";
+import { generateTicketForRegistration } from "@/lib/tickets";
+import { sendTicketEmailWithPdf } from "@/lib/mail";
+import { env } from "@/env";
 
 type AuthenticatedContext = {
   user: NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>["user"];
@@ -184,6 +187,34 @@ export async function updatePaymentStatus(input: UpdatePaymentStatusInput) {
   );
 
   revalidatePath(`/events/${event.slug}`);
+
+  // If payment approved, ensure ticket is issued and an email is sent
+  if (updated.status === "approved") {
+    // Check if ticket already exists
+    const [existingTicket] = await db
+      .select()
+      .from(payments as any) // hack to reuse select shape
+      .where(eq(payments.id, updated.id))
+      .limit(1);
+
+    // Generate ticket for the registration (idempotent in helper)
+    const ticket = await generateTicketForRegistration(registration.id, event.id, payment.userId);
+
+    // Send ticket email to attendee
+    const [attendee] = await db.select({ email: users.email, name: users.name }).from(users).where(eq(users.id, payment.userId)).limit(1);
+    try {
+      await sendTicketEmailWithPdf({
+        email: attendee.email,
+        name: attendee.name,
+        eventTitle: event.title,
+        ticketUrl: `${env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "")}/ticket/${ticket.code}`,
+        qrDataUrl: ticket.qrCode,
+        code: ticket.code,
+      });
+    } catch (err) {
+      console.error("Failed to send ticket email:", err);
+    }
+  }
 
   return { success: true, payment: updated };
 }

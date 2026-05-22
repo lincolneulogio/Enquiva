@@ -254,6 +254,7 @@ export const tickets = pgTable("tickets", {
     .references(() => registrations.id, { onDelete: "cascade" }),
   code: text("code").notNull().unique(),
   qrCode: text("qr_code").notNull(),
+  signature: text("signature"),
   status: ticketStatusEnum("status").notNull().default("active"),
   issuedAt: timestamp("issued_at").notNull().defaultNow(),
   checkedInAt: timestamp("checked_in_at"),
@@ -262,6 +263,16 @@ export const tickets = pgTable("tickets", {
   uniqueIndex("tickets_registration_unique_idx").on(t.registrationId),
   index("tickets_status_idx").on(t.status),
 ]);
+
+export const scanLogs = pgTable("ticket_scan_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ticketId: uuid("ticket_id").notNull().references(() => tickets.id, { onDelete: "cascade" }),
+  scannedBy: text("scanned_by"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  result: text("result").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => [index("ticket_scan_logs_ticket_idx").on(t.ticketId)]);
 
 // ─── Transport ────────────────────────────────────────────────────────────────
 

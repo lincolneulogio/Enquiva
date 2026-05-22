@@ -17,7 +17,7 @@ export const uploadRouter = {
     .middleware(async () => {
       const user = await getUser();
       if (!user) throw new Error("Unauthorized");
-      if (user.role !== "organizer" && user.role !== "super_admin") {
+      if (user.role !== "organizer" && user.role !== "super_admin" && user.role !== "admin") {
         throw new Error("Only organizers can upload event images");
       }
       return { userId: user.id };
@@ -48,7 +48,7 @@ export const uploadRouter = {
     .middleware(async () => {
       const user = await getUser();
       if (!user) throw new Error("Unauthorized");
-      if (user.role !== "organizer" && user.role !== "super_admin") {
+      if (user.role !== "organizer" && user.role !== "super_admin" && user.role !== "admin") {
         throw new Error("Only organizers can upload attachments");
       }
       return { userId: user.id };

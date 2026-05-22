@@ -7,6 +7,7 @@ import { registerForEvent, cancelRegistration } from "@/actions/registrations";
 import { Loader2, CheckCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+import { normalizePeruPhone } from "@/lib/utils";
 
 interface RegisterButtonProps {
   eventId: string;
@@ -18,8 +19,6 @@ interface RegisterButtonProps {
   currentStatus?: "registered" | "waitlisted" | "checked_in" | "cancelled" | null;
   registrationId?: string;
 }
-
-const PERU_PHONE_REGEX = /^\+519\d{8}$/;
 
 export function RegisterButton({
   eventId,
@@ -35,7 +34,9 @@ export function RegisterButton({
   const t = useTranslations();
   const [isPending, startTransition] = useTransition();
   const [optimisticStatus, setOptimisticStatus] = useState(currentStatus);
-  const [contactPhone, setContactPhone] = useState(userPhone ?? "");
+  const [contactPhone, setContactPhone] = useState(
+    userPhone?.replace(/^\+51/, "") ?? ""
+  );
 
   const mapRegistrationError = (message: string) => {
     const normalized = message.toLowerCase();
@@ -130,12 +131,19 @@ export function RegisterButton({
         <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {t("register.confirmContactPhone")}
         </label>
-        <input
-          value={contactPhone}
-          onChange={(event) => setContactPhone(event.target.value)}
-          placeholder={t("register.contactPhonePlaceholder")}
-          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
-        />
+        <div className="flex overflow-hidden rounded-lg border border-border bg-background focus-within:border-primary">
+          <span className="flex items-center border-r border-border bg-muted/60 px-3 text-sm font-medium text-muted-foreground">
+            +51
+          </span>
+          <input
+            inputMode="numeric"
+            maxLength={9}
+            value={contactPhone}
+            onChange={(event) => setContactPhone(event.target.value.replace(/\D/g, "").slice(0, 9))}
+            placeholder="912345678"
+            className="w-full px-3 py-2 text-sm focus:outline-none"
+          />
+        </div>
         <p className="mt-1 text-xs text-muted-foreground">
           {t("register.peruPhoneFormat")}
         </p>
@@ -143,8 +151,8 @@ export function RegisterButton({
 
       <button
         onClick={() => {
-          const normalizedPhone = contactPhone.trim();
-          if (!PERU_PHONE_REGEX.test(normalizedPhone)) {
+          const normalizedPhone = normalizePeruPhone(contactPhone);
+          if (!/^\+519\d{8}$/.test(normalizedPhone)) {
             toast.error(t("register.invalidPhoneFormat"));
             return;
           }
