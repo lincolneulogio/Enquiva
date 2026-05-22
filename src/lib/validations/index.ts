@@ -93,6 +93,14 @@ const baseEventSchema = z.object({
   virtualLink: optionalUrl,
   capacity: z.number().int().positive().optional().nullable(),
   coverImage: optionalUrl,
+  price: z.preprocess(
+    (value) => {
+      if (value === "" || value === null || value === undefined) return null;
+      const num = Number(value);
+      return Number.isNaN(num) ? null : num;
+    },
+    z.number().positive("El precio debe ser mayor a 0").optional().nullable()
+  ),
   status: z.enum(eventStatusValues).default("draft"),
   isFeatured: z.boolean().default(false),
   hasTransport: z.boolean().default(false),

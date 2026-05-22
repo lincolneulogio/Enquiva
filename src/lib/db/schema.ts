@@ -148,6 +148,7 @@ export const events = pgTable(
     status: eventStatusEnum("status").notNull().default("draft"),
     isFeatured: boolean("is_featured").notNull().default(false),
     createdAt: timestamp("created_at").notNull().defaultNow(),
+    price: numeric("price", { precision: 10, scale: 2 }),
     hasTransport: boolean("has_transport").notNull().default(false),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

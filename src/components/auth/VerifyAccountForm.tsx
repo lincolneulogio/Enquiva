@@ -51,8 +51,7 @@ export function VerifyAccountForm({ initialEmail }: { initialEmail?: string }) {
       try {
         await confirmVerificationCode(data);
         toast.success(t("auth.accountVerified"));
-        router.push("/login");
-        router.refresh();
+        router.replace("/login");
       } catch (error) {
         const message = getAuthErrorMessage(error instanceof Error ? error.message : t("auth.unexpectedAuthError"), t);
         setError("root", { type: "server", message });

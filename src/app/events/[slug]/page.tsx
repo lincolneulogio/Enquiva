@@ -124,6 +124,10 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                   <span className="font-semibold text-foreground">Estado:</span>{" "}
                   <span>{eventStatusLabel}</span>
                 </p>
+                <p>
+                  <span className="font-semibold text-foreground">Precio:</span>{" "}
+                  <span>{event.price && Number(event.price) > 0 ? `S/ ${Number(event.price).toFixed(2)}` : "Gratuito"}</span>
+                </p>
               </div>
             </div>
 

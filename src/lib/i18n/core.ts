@@ -645,6 +645,8 @@ const translations: Record<Locale, TranslationDictionary> = {
                 optional: "(opcional)",
                 capacityPlaceholder: "Déjalo vacío para ilimitado",
                 capacityHelp: "Para eventos presenciales, define un límite de asientos si es necesario.",
+                price: "Precio (S/.)",
+                priceHelp: "Si el evento es gratuito, deja este campo vacío.",
                 coverImage: "Imagen de portada",
                 removeImage: "Quitar",
                 status: "Estado",
@@ -687,6 +689,12 @@ const translations: Record<Locale, TranslationDictionary> = {
                 invalidAmount: "Ingresa un monto válido mayor a 0",
                 success: "Pago registrado como pagado ✅",
                 failed: "No se pudo registrar el pago",
+            },
+            checkout: {
+                title: "Finalizar pago",
+                subtitle: "Completa el pago para {event}",
+                alreadyPaid: "Ya has pagado este evento. ¡Gracias!",
+                paymentSubmitted: "Tu pago está pendiente de revisión por el organizador.",
             },
         },
         transport: {
@@ -1387,6 +1395,8 @@ const translations: Record<Locale, TranslationDictionary> = {
                 optional: "(optional)",
                 capacityPlaceholder: "Leave empty for unlimited",
                 capacityHelp: "For in-person events, set a seat limit if needed.",
+                price: "Price (S/.)",
+                priceHelp: "Leave empty if the event is free.",
                 coverImage: "Cover image",
                 removeImage: "Remove",
                 status: "Status",
@@ -1429,6 +1439,12 @@ const translations: Record<Locale, TranslationDictionary> = {
                 invalidAmount: "Enter a valid amount greater than 0",
                 success: "Payment registered as paid ✅",
                 failed: "Could not register payment",
+            },
+            checkout: {
+                title: "Complete payment",
+                subtitle: "Complete payment for {event}",
+                alreadyPaid: "You've already paid for this event. Thank you!",
+                paymentSubmitted: "Your payment is pending review by the organizer.",
             },
         },
         transport: {

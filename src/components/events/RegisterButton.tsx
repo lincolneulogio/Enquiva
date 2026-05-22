@@ -136,7 +136,11 @@ export function RegisterButton({
               if (result.success) {
                 setOptimisticStatus("registered");
                 toast.success(t("register.registrationSuccess"));
-                router.push(hasTransport ? "/member/transport" : "/member/tickets");
+                if (result.requiresPayment && result.registrationId) {
+                  router.push(`/member/payments/new/${result.registrationId}`);
+                } else {
+                  router.push(hasTransport ? "/member/transport" : "/member/tickets");
+                }
               }
             } catch (error) {
               setOptimisticStatus(null);

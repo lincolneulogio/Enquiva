@@ -74,8 +74,7 @@ export function RegisterForm() {
 
         await sendVerificationCode({ email: data.email });
         toast.success(t("auth.createAccountSuccess"));
-        router.push(`/verify-account?email=${encodeURIComponent(data.email)}`);
-        router.refresh();
+        router.replace(`/verify-account?email=${encodeURIComponent(data.email)}`);
       } catch (error) {
         const rawMessage = error instanceof Error ? error.message : t("auth.unexpectedAuthError");
         const friendlyMessage = getAuthErrorMessage(rawMessage, t);

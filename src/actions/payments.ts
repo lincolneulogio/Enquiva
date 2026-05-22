@@ -57,9 +57,61 @@ async function requireAdminOrHigherWithHeaders(): Promise<AuthenticatedContext> 
   return context;
 }
 
-export async function createPayment(_input: CreatePaymentInput) {
-  await requireAuthWithHeaders();
-  throw new Error("El pago directo por evento ya no está habilitado. Usa el flujo de transporte.");
+export async function createPayment(input: CreatePaymentInput) {
+  const { user } = await requireAuthWithHeaders();
+  const validated = createPaymentSchema.parse(input);
+
+  const [registration] = await db
+    .select()
+    .from(registrations)
+    .where(eq(registrations.id, validated.registrationId))
+    .limit(1);
+
+  if (!registration || registration.userId !== user.id) {
+    throw new Error("Registration not found or not yours");
+  }
+
+  const [existingPayment] = await db
+    .select()
+    .from(payments)
+    .where(
+      and(
+        eq(payments.registrationId, registration.id),
+        eq(payments.userId, user.id),
+        eq(payments.status, "pending")
+      )
+    )
+    .limit(1);
+
+  if (!existingPayment) {
+    throw new Error("No pending payment found for this registration");
+  }
+
+  await db
+    .update(payments)
+    .set({
+      method: validated.method,
+      reference: validated.reference ?? null,
+      receiptUrl: validated.receiptUrl ?? null,
+      receiptFileName: validated.receiptFileName ?? null,
+      notes: validated.notes ?? null,
+      updatedAt: new Date(),
+    })
+    .where(eq(payments.id, existingPayment.id));
+
+  await db.insert(notifications).values({
+    userId: registration.userId,
+    type: "payment_submitted",
+    title: "Pago registrado",
+    message: `Has registrado un pago de S/ ${existingPayment.amount} vía ${validated.method}. Un organizador lo revisará pronto.`,
+    metadata: {
+      registrationId: registration.id,
+      paymentId: existingPayment.id,
+      method: validated.method,
+    },
+  });
+
+  return { success: true };
 }
 
 export async function getPaymentCheckoutContext(registrationId: string) {
@@ -190,14 +242,6 @@ export async function updatePaymentStatus(input: UpdatePaymentStatusInput) {
 
   // If payment approved, ensure ticket is issued and an email is sent
   if (updated.status === "approved") {
-    // Check if ticket already exists
-    const [existingTicket] = await db
-      .select()
-      .from(payments as any) // hack to reuse select shape
-      .where(eq(payments.id, updated.id))
-      .limit(1);
-
-    // Generate ticket for the registration (idempotent in helper)
     const ticket = await generateTicketForRegistration(registration.id, event.id, payment.userId);
 
     // Send ticket email to attendee

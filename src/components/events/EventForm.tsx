@@ -100,11 +100,12 @@ export function EventForm({
                 isVirtual: event.isVirtual,
                 virtualLink: event.virtualLink ?? undefined,
                 capacity: event.capacity ?? undefined,
+                price: event.price ? Number(event.price) : undefined,
                 status: event.status,
                 isFeatured: event.isFeatured,
                 hasTransport: event.hasTransport,
             }
-            : { status: "draft", isVirtual: false, isFeatured: false, hasTransport: false },
+            : { status: "draft", isVirtual: false, isFeatured: false, hasTransport: false, price: undefined },
     });
 
     const isVirtual = watch("isVirtual");
@@ -383,6 +384,32 @@ export function EventForm({
                             )}
                         </div>
                     )}
+
+                    <div>
+                        <label className="mb-1.5 block text-sm font-medium text-foreground">
+                            {t("events.form.price")} <span className="font-normal text-muted-foreground">{t("events.form.optional")}</span>
+                        </label>
+                        <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">S/</span>
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                {...register("price", {
+                                    setValueAs: (value) => {
+                                        if (value === "" || value === null || value === undefined) return undefined;
+                                        const num = Number(value);
+                                        return Number.isNaN(num) ? undefined : num;
+                                    },
+                                })}
+                                placeholder="0.00"
+                                className="w-full rounded-xl border border-border bg-background pl-9 pr-4 py-2.5 text-sm focus:border-primary focus:outline-none"
+                            />
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            {t("events.form.priceHelp")}
+                        </p>
+                    </div>
                 </div>
 
                 <div className="space-y-6">

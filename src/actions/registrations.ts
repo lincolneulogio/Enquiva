@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { registrations, events, notifications, users, tickets } from "@/lib/db/schema";
+import { registrations, events, notifications, users, tickets, payments } from "@/lib/db/schema";
 import { auth } from "@/lib/auth";
 import { createRegistrationSchema, checkInSchema } from "@/lib/validations";
 import { pusherServer, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/server";
@@ -118,8 +118,19 @@ export async function registerForEvent(input: unknown) {
     })
     .returning();
 
-  if (status === "registered") {
-    // generate ticket (idempotent)
+  const isPaid = event.price && Number(event.price) > 0;
+  let requiresPayment = false;
+
+  if (isPaid) {
+    requiresPayment = true;
+    await db.insert(payments).values({
+      registrationId: registration.id,
+      userId: attendee.id,
+      amount: event.price!.toString(),
+      currency: "PEN",
+      status: "pending",
+    });
+  } else {
     await generateTicketForRegistration(registration.id, eventId, attendee.id);
   }
 
@@ -242,6 +253,8 @@ export async function registerForEvent(input: unknown) {
     status,
     registration,
     ticketCode: issuedTicket?.code ?? null,
+    requiresPayment,
+    registrationId: registration.id,
   };
 }
 

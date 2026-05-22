@@ -82,6 +82,7 @@ export async function createEvent(input: CreateEventInput) {
     .insert(events)
     .values({
       ...validated,
+      price: validated.price != null ? String(validated.price) : null,
       organizerId: user.id,
       slug,
       date: new Date(validated.date),
@@ -113,10 +114,15 @@ export async function updateEvent(eventId: string, input: UpdateEventInput) {
     throw new Error("Not authorized to edit this event");
   }
 
+  const priceValue = validated.price !== undefined
+    ? (validated.price != null ? String(validated.price) : null)
+    : undefined;
+
   const [updated] = await db
     .update(events)
     .set({
       ...validated,
+      price: priceValue,
       date: validated.date ? new Date(validated.date) : undefined,
       endDate: validated.endDate ? new Date(validated.endDate) : undefined,
       updatedAt: new Date(),
