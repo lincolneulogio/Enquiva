@@ -13,12 +13,8 @@ import {
 } from "@/lib/redis";
 import { headers } from "next/headers";
 import { eq, and, count, inArray } from "drizzle-orm";
-import QRCode from "qrcode";
 import { generateTicketForRegistration } from "@/lib/tickets";
 import { revalidatePath } from "next/cache";
-import { generateTicketCode } from "@/lib/utils";
-import { env } from "@/env";
-import { randomUUID } from "node:crypto";
 
 async function requireAuth() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -29,17 +25,14 @@ async function requireAuth() {
 // ─── Register for Event ────────────────────────────────────────────────────────
 
 export async function registerForEvent(input: unknown) {
-  let sessionUser: { id: string; name: string; email: string } | null = null;
-  try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    sessionUser = session?.user ?? null;
-  } catch (error) {
-    console.error("Session lookup failed during phone-first registration", error);
-    sessionUser = null;
-  }
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) throw new Error("Debes iniciar sesión para registrarte en un evento.");
+
+  const sessionUser = session.user;
+
   const validated = createRegistrationSchema.parse(input);
   const eventId = validated.eventId;
-  const normalizedContactPhone = validated.contactPhone.trim();
+  const contactPhone = validated.contactPhone ? validated.contactPhone.trim() : null;
 
   // Rate limiting
   const headersList = await headers();
@@ -65,44 +58,12 @@ export async function registerForEvent(input: unknown) {
     throw new Error("REGISTRATION_CLOSED_EVENT_EXPIRED");
   }
 
-  const [userByPhone] = await db
-    .select({
-      id: users.id,
-      name: users.name,
-      email: users.email,
-      phone: users.phone,
-    })
-    .from(users)
-    .where(eq(users.phone, normalizedContactPhone))
-    .limit(1);
-
-  const attendee = sessionUser
-    ? {
-      id: sessionUser.id,
-      name: sessionUser.name,
-      email: sessionUser.email,
-      phone: userByPhone?.phone ?? normalizedContactPhone,
-    }
-    : userByPhone ?? {
-      id: `guest_${randomUUID()}`,
-      name: `Invitado ${normalizedContactPhone.slice(-4)}`,
-      email: `guest+${normalizedContactPhone.replace(/\D/g, "")}-${randomUUID().slice(0, 8)}@guest.encuentro.local`,
-      phone: normalizedContactPhone,
-    };
-
-  if (!sessionUser && !userByPhone) {
-    await db.insert(users).values({
-      id: attendee.id,
-      name: attendee.name,
-      email: attendee.email,
-      phone: attendee.phone,
-      emailVerified: false,
-      role: "member",
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-  }
+  const attendee = {
+    id: sessionUser.id,
+    name: sessionUser.name,
+    email: sessionUser.email,
+    phone: contactPhone,
+  };
 
   // Check if already registered
   const [existing] = await db
@@ -139,27 +100,19 @@ export async function registerForEvent(input: unknown) {
     }
   }
 
-  await db
-    .update(users)
-    .set({
-      phone: normalizedContactPhone,
-      updatedAt: new Date(),
-    })
-    .where(eq(users.id, attendee.id));
-
   const [registration] = await db
     .insert(registrations)
     .values({
       eventId,
       userId: attendee.id,
       status,
-      contactPhone: normalizedContactPhone,
+      contactPhone,
     })
     .onConflictDoUpdate({
       target: [registrations.eventId, registrations.userId],
       set: {
         status,
-        contactPhone: normalizedContactPhone,
+        contactPhone,
         registeredAt: new Date(),
       },
     })
@@ -221,7 +174,7 @@ export async function registerForEvent(input: unknown) {
           eventTitle: event.title,
           registrationId: registration.id,
           attendeeId: attendee.id,
-          attendeePhone: normalizedContactPhone,
+          attendeePhone: contactPhone,
         },
       }));
 
@@ -289,8 +242,6 @@ export async function registerForEvent(input: unknown) {
     status,
     registration,
     ticketCode: issuedTicket?.code ?? null,
-    requiresAccountCompletion: !sessionUser,
-    matchedExistingPhoneUser: !sessionUser && Boolean(userByPhone),
   };
 }
 

@@ -154,7 +154,7 @@ export const createRegistrationSchema = z.object({
   contactPhone: z.preprocess(
     normalizePeruPhoneValue,
     z.string().regex(peruPhoneRegex, "Phone must follow format +519XXXXXXXX")
-  ),
+  ).optional(),
   notes: z.string().max(500).optional(),
 });
 

@@ -7,12 +7,9 @@ import { getUserPayments } from "@/actions/payments";
 import { RegisterButton } from "@/components/events/RegisterButton";
 import { TicketCard } from "@/components/tickets/TicketCard";
 import { PublicHeader } from "@/components/shared/PublicHeader";
-import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
 import Link from "next/link";
 import Image from "next/image";
 import { categoryColor, categoryLabel, cn, formatEventDate } from "@/lib/utils";
-import { eq as drizzleEq } from "drizzle-orm";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
 
@@ -38,13 +35,6 @@ export default async function EventDetailPage({ params }: EventPageProps) {
 
   const sessionHeaders = await headers();
   const session = await auth.api.getSession({ headers: sessionHeaders });
-  const [currentUser] = session?.user
-    ? await db
-      .select({ phone: users.phone })
-      .from(users)
-      .where(drizzleEq(users.id, session.user.id))
-      .limit(1)
-    : [null];
 
   let registrationData = null;
   try {
@@ -146,7 +136,6 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                 hasTransport={event.hasTransport}
                 currentStatus={registration?.status}
                 registrationId={registration?.id}
-                userPhone={currentUser?.phone ?? null}
               />
 
               <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">

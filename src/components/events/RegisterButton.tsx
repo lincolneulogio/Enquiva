@@ -6,14 +6,13 @@ import { toast } from "sonner";
 import { registerForEvent, cancelRegistration } from "@/actions/registrations";
 import { Loader2, CheckCircle, Clock } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
-import { normalizePeruPhone } from "@/lib/utils";
+import Link from "next/link";
 
 interface RegisterButtonProps {
   eventId: string;
   isAuthenticated: boolean;
   isRegistrationClosed?: boolean;
   closedReason?: string | null;
-  userPhone?: string | null;
   hasTransport?: boolean;
   currentStatus?: "registered" | "waitlisted" | "checked_in" | "cancelled" | null;
   registrationId?: string;
@@ -24,7 +23,6 @@ export function RegisterButton({
   isAuthenticated,
   isRegistrationClosed = false,
   closedReason,
-  userPhone,
   hasTransport = false,
   currentStatus,
   registrationId,
@@ -33,9 +31,6 @@ export function RegisterButton({
   const t = useTranslations();
   const [isPending, startTransition] = useTransition();
   const [optimisticStatus, setOptimisticStatus] = useState(currentStatus);
-  const [contactPhone, setContactPhone] = useState(
-    userPhone?.replace(/^\+51/, "") ?? ""
-  );
 
   const mapRegistrationError = (message: string) => {
     const normalized = message.toLowerCase();
@@ -113,71 +108,35 @@ export function RegisterButton({
     );
   }
 
+  if (!isAuthenticated) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-5 text-center">
+        <p className="mb-3 text-sm text-muted-foreground">
+          {t("register.signInToRegister")}
+        </p>
+        <Link
+          href="/login?callbackUrl=/events"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          {t("register.signInOptional")}
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
-      {!isAuthenticated && (
-        <div className="rounded-xl border border-border bg-card px-3 py-2 text-xs text-muted-foreground">
-          <p>
-            {t("register.haveAccountPrompt")}{" "}
-            <a href="/login?callbackUrl=/events" className="font-medium text-primary hover:underline">
-              {t("register.signInOptional")}
-            </a>
-          </p>
-        </div>
-      )}
-
-      <div className="rounded-xl border border-border bg-card p-3 text-left">
-        <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {t("register.confirmContactPhone")}
-        </label>
-        <div className="flex overflow-hidden rounded-lg border border-border bg-background focus-within:border-primary">
-          <span className="flex items-center border-r border-border bg-muted/60 px-3 text-sm font-medium text-muted-foreground">
-            +51
-          </span>
-          <input
-            inputMode="numeric"
-            maxLength={9}
-            value={contactPhone}
-            onChange={(event) => setContactPhone(event.target.value.replace(/\D/g, "").slice(0, 9))}
-            placeholder="912345678"
-            className="w-full px-3 py-2 text-sm focus:outline-none"
-          />
-        </div>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {t("register.peruPhoneFormat")}
-        </p>
-      </div>
-
       <button
         onClick={() => {
-          const normalizedPhone = normalizePeruPhone(contactPhone);
-          if (!/^\+519\d{8}$/.test(normalizedPhone)) {
-            toast.error(t("register.invalidPhoneFormat"));
-            return;
-          }
-
           startTransition(async () => {
             try {
               const result = await registerForEvent({
                 eventId,
-                contactPhone: normalizedPhone,
               });
               if (result.success) {
                 setOptimisticStatus("registered");
                 toast.success(t("register.registrationSuccess"));
-
-                if (!isAuthenticated) {
-                  if (result.ticketCode) {
-                    router.push(`/ticket/${result.ticketCode}?from=phone-signup`);
-                    return;
-                  }
-
-                  router.refresh();
-                  return;
-                }
-
                 router.push(hasTransport ? "/member/transport" : "/member/tickets");
-                return;
               }
             } catch (error) {
               setOptimisticStatus(null);
