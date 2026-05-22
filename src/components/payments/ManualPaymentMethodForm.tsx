@@ -201,6 +201,14 @@ export function ManualPaymentMethodForm({
                   setIsUploading(false);
                   toast.error(err.message);
                 }}
+                content={{
+                  label: t("payments.manual.uploadDragDrop"),
+                  allowedContent: t("payments.manual.uploadAllowedContent") || "Imagen o PDF (hasta 2MB)",
+                  button({ ready, isUploading }) {
+                    if (isUploading) return t("common.loading");
+                    return t("payments.manual.uploadButton");
+                  }
+                }}
                 appearance={{
                   container: "rounded-xl border border-dashed border-border bg-background px-4 py-3 text-sm text-muted-foreground hover:border-primary hover:text-primary transition-colors",
                   uploadIcon: "h-4 w-4",

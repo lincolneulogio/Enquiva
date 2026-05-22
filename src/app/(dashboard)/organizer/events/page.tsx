@@ -26,7 +26,7 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
     const params = await searchParams;
     const organizerEvents = await getOrganizerEvents();
     const categories = await getCategories();
-    const categoryMap = Object.fromEntries(categories.map((category) => [category.slug, category.label]));
+    const categoryMap = Object.fromEntries(categories.map((category) => [category.slug, categoryLabel(category.slug, locale)]));
 
     const activeStatus = STATUS_FILTERS.some((f) => f.value === params.status)
         ? (params.status as (typeof STATUS_FILTERS)[number]["value"])
@@ -39,7 +39,7 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
     const exportEventOptions = organizerEvents.map(({ event }) => ({ id: event.id, title: event.title }));
     const exportCategoryOptions = categories.map((category) => ({
         value: category.slug,
-        label: category.label,
+        label: categoryLabel(category.slug, locale),
     }));
     const exportStatusOptions = STATUS_FILTERS.map((filter) => ({
         value: filter.value,
@@ -135,7 +135,7 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                                 {filteredEvents.map(({ event, attendeeCount }) => (
                                     <tr key={event.id} className="hover:bg-muted/30 transition-colors">
                                         <td className="px-4 py-3 font-medium text-foreground">{event.title}</td>
-                                        <td className="px-4 py-3 text-muted-foreground">{categoryMap[event.category] ?? categoryLabel(event.category, locale)}</td>
+                                        <td className="px-4 py-3 text-muted-foreground">{categoryLabel(event.category, locale)}</td>
                                         <td className="px-4 py-3 text-muted-foreground">{formatEventDateShort(event.date, locale)}</td>
                                         <td className="px-4 py-3">
                                             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor(event.status)}`}>

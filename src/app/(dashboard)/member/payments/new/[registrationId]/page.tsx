@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, Bus, Ticket, CreditCard, Calendar, MapPin } from "lucide-react";
 import { getPaymentCheckoutContext } from "@/actions/payments";
-import { getEventPaymentMethods } from "@/actions/payment-methods";
+import { getEventPaymentMethods, getActivePaymentMethods } from "@/actions/payment-methods";
 import { getI18n } from "@/lib/i18n/server";
 import { ManualPaymentMethodForm } from "@/components/payments/ManualPaymentMethodForm";
 import { notFound, redirect } from "next/navigation";
@@ -56,7 +56,16 @@ export default async function MemberPaymentCheckoutPage({ params }: Props) {
   }
 
   const isAlreadyPaid = payment && payment.status === "approved";
-  const eventMethods = await getEventPaymentMethods(event.id);
+  let eventMethods = await getEventPaymentMethods(event.id);
+
+  // Fallback: If no event-specific payment methods are configured but there is an amount to pay (e.g. paid transport for free event)
+  if (eventMethods.length === 0 && paymentAmount > 0) {
+    try {
+      eventMethods = await getActivePaymentMethods();
+    } catch (err) {
+      console.error("Failed to load active fallback payment methods:", err);
+    }
+  }
 
   // Dynamic breakdown prices
   const eventPrice = Number(event.price);
@@ -84,7 +93,7 @@ export default async function MemberPaymentCheckoutPage({ params }: Props) {
       <div className="fe-glass border border-border bg-card rounded-3xl p-6 shadow-sm space-y-4">
         <h2 className="font-semibold text-foreground text-lg flex items-center gap-2 pb-3 border-b border-border/85">
           <CreditCard className="h-5 w-5 text-primary" />
-          Resumen de tu Inscripción Consolidada
+          {t("payments.checkout.consolidatedSummary")}
         </h2>
         
         <div className="space-y-3.5">
@@ -96,11 +105,11 @@ export default async function MemberPaymentCheckoutPage({ params }: Props) {
               </div>
               <div>
                 <h3 className="font-semibold text-foreground text-sm">{event.title}</h3>
-                <p className="text-xs text-muted-foreground">Entrada General al Evento</p>
+                <p className="text-xs text-muted-foreground">{t("payments.checkout.generalEntry")}</p>
               </div>
             </div>
             <span className="font-semibold text-foreground text-sm">
-              {eventPrice > 0 ? `S/ ${eventPrice.toFixed(2)}` : "Gratis"}
+              {eventPrice > 0 ? `S/ ${eventPrice.toFixed(2)}` : t("payments.checkout.gratis")}
             </span>
           </div>
 
@@ -112,12 +121,12 @@ export default async function MemberPaymentCheckoutPage({ params }: Props) {
                   <Bus className="h-4.5 w-4.5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-foreground text-sm">Servicio de Transporte Ida y Vuelta</h3>
+                  <h3 className="font-semibold text-foreground text-sm">{t("payments.checkout.roundTripTransport")}</h3>
                   <p className="text-xs text-muted-foreground">
-                    Ruta: {transportDetails.routeName} ({transportDetails.seats} asiento{transportDetails.seats > 1 ? "s" : ""})
+                    {t("payments.checkout.routeLabel")}: {transportDetails.routeName} ({t("payments.checkout.seatsCount", { count: transportDetails.seats, suffix: transportDetails.seats > 1 ? "s" : "" })})
                   </p>
                   <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
-                    <MapPin className="h-3 w-3 shrink-0" /> Punto de Partida: {transportDetails.departurePoint}
+                    <MapPin className="h-3 w-3 shrink-0" /> {t("payments.checkout.departurePointLabel")}: {transportDetails.departurePoint}
                   </p>
                 </div>
               </div>
@@ -129,7 +138,7 @@ export default async function MemberPaymentCheckoutPage({ params }: Props) {
 
           {/* Total Consolidated */}
           <div className="flex items-center justify-between pt-4 border-t border-dashed border-border/80">
-            <span className="font-bold text-foreground text-base">Total Consolidado a Transferir:</span>
+            <span className="font-bold text-foreground text-base">{t("payments.checkout.totalConsolidated")}</span>
             <span className="text-xl font-bold text-primary bg-primary/5 px-4 py-1.5 rounded-xl border border-primary/10">
               S/ {paymentAmount.toFixed(2)}
             </span>

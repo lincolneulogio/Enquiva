@@ -41,13 +41,13 @@ export default async function AdminEventTransportPage({ params }: Props) {
                     className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                     <ArrowLeft className="h-3.5 w-3.5" />
-                    Volver a Transporte
+                    {t("dashboard.admin.backToTransport") || "Volver a Transporte"}
                 </Link>
                 <div className="mt-3 flex items-center gap-3">
                     <Bus className="h-7 w-7 text-blue-500" />
                     <div>
                         <h1 className="font-display text-3xl font-semibold text-foreground">
-                            {t("dashboard.organizer.transportTitle") || "Transporte"} (Administrador)
+                            {t("dashboard.admin.transportAdminTitle") || "Transporte (Administrador)"}
                         </h1>
                         <p className="mt-0.5 text-muted-foreground">{event.title}</p>
                     </div>
@@ -57,7 +57,7 @@ export default async function AdminEventTransportPage({ params }: Props) {
             {!event.hasTransport && (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-5 py-4">
                     <p className="text-sm text-amber-800 dark:text-amber-300">
-                        <strong>Nota:</strong> {t("dashboard.organizer.transportDisabledNote") || "Este evento no tiene habilitada la opción de transporte."}{" "}
+                        <strong>{t("common.note")}:</strong> {t("dashboard.organizer.transportDisabledNote") || "Este evento no tiene habilitada la opción de transporte."}{" "}
                         {t("dashboard.organizer.enableTransportHint") || "Actívala en la edición del evento para que los asistentes puedan ver y reservar las rutas."}
                     </p>
                 </div>

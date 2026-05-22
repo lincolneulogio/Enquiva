@@ -31,10 +31,10 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
     const [{ total }] = await db.select({ total: count() }).from(events);
     const exportEventOptions = await getExportEventOptions("admin");
     const categories = await getCategories();
-    const categoryMap = Object.fromEntries(categories.map((category) => [category.slug, category.label]));
+    const categoryMap = Object.fromEntries(categories.map((category) => [category.slug, categoryLabel(category.slug, locale)]));
     const exportCategoryOptions = categories.map((category) => ({
         value: category.slug,
-        label: category.label,
+        label: categoryLabel(category.slug, locale),
     }));
     const exportStatusOptions = EVENT_STATUS_VALUES.map((value) => ({
         value,
@@ -130,7 +130,7 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                                         <td className="px-4 py-3 text-muted-foreground">{rowStart + index + 1}</td>
                                         <td className="px-4 py-3 font-medium text-foreground">{event.title}</td>
                                         <td className="px-4 py-3 text-muted-foreground">{event.organizerName ?? "—"}</td>
-                                        <td className="px-4 py-3 text-muted-foreground">{categoryMap[event.category] ?? categoryLabel(event.category, locale)}</td>
+                                        <td className="px-4 py-3 text-muted-foreground">{categoryLabel(event.category, locale)}</td>
                                         <td className="px-4 py-3 text-muted-foreground">
                                             {new Date(event.date).toLocaleDateString(getIntlLocale(locale), {
                                                 month: "short",

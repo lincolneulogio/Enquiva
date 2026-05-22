@@ -1,8 +1,9 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { registrations, events, notifications, users, tickets, payments, transportRoutes, transportBookings } from "@/lib/db/schema";
+import { registrations, events, notifications, users, tickets, payments, transportRoutes, transportBookings, accounts } from "@/lib/db/schema";
 import { auth } from "@/lib/auth";
+import { verifyPassword } from "better-auth/crypto";
 import { createRegistrationSchema, checkInSchema } from "@/lib/validations";
 import { pusherServer, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/server";
 import {
@@ -316,8 +317,33 @@ export async function registerForEvent(input: unknown) {
 
 // ─── Cancel Registration ──────────────────────────────────────────────────────
 
-export async function cancelRegistration(registrationId: string) {
+export async function cancelRegistration(registrationId: string, password?: string) {
   const user = await requireAuth();
+
+  // Verify password first if user has a local credential configured (email/password login)
+  const [account] = await db
+    .select({ password: accounts.password })
+    .from(accounts)
+    .where(
+      and(
+        eq(accounts.userId, user.id),
+        eq(accounts.providerId, "email")
+      )
+    )
+    .limit(1);
+
+  if (account && account.password) {
+    if (!password) {
+      throw new Error("Se requiere ingresar la contraseña para cancelar la inscripción.");
+    }
+    const isPasswordValid = await verifyPassword({
+      hash: account.password,
+      password: password,
+    });
+    if (!isPasswordValid) {
+      throw new Error("Contraseña incorrecta. No se pudo cancelar la inscripción.");
+    }
+  }
 
   const [reg] = await db
     .select()

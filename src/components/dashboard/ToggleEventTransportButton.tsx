@@ -35,7 +35,7 @@ export function ToggleEventTransportButton({
                     );
                 }
             } catch (e) {
-                toast.error(e instanceof Error ? e.message : "Error al actualizar transporte");
+                toast.error(e instanceof Error ? e.message : t("transport.manager.updateTransportError") || "Error al actualizar transporte");
             }
         });
     };
@@ -59,8 +59,8 @@ export function ToggleEventTransportButton({
                 <Bus className="h-4 w-4" />
             )}
             {hasTransport
-                ? "Desactivar Transporte"
-                : "Habilitar Transporte"}
+                ? t("transport.manager.deactivateTransport") || "Desactivar Transporte"
+                : t("transport.manager.enableTransport") || "Habilitar Transporte"}
         </button>
     );
 }

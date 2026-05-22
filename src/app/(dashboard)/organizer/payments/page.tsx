@@ -15,7 +15,7 @@ export default async function OrganizerPaymentsPage() {
   const exportEventOptions = await getExportEventOptions("organizer");
   const exportCategoryOptions = (await getCategories()).map((category) => ({
     value: category.slug,
-    label: category.label,
+    label: categoryLabel(category.slug, locale),
   }));
   const exportStatusOptions = ["all", "pending", "approved", "rejected"].map((value) => ({
     value,

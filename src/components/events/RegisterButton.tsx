@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { registerForEvent, cancelRegistration } from "@/actions/registrations";
+import Swal from "sweetalert2";
 import { 
   Loader2, 
   CheckCircle, 
@@ -21,6 +22,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import Link from "next/link";
+import { confirmDeleteAction } from "@/lib/ui/confirm";
 
 interface RegisterButtonProps {
   eventId: string;
@@ -43,6 +45,7 @@ interface RegisterButtonProps {
     isActive: boolean;
   }>;
   eventPrice?: number;
+  paymentStatus?: "pending" | "approved" | "rejected" | null;
 }
 
 export function RegisterButton({
@@ -55,6 +58,7 @@ export function RegisterButton({
   registrationId,
   transportRoutes = [],
   eventPrice = 0,
+  paymentStatus = null,
 }: RegisterButtonProps) {
   const router = useRouter();
   const t = useTranslations();
@@ -177,6 +181,89 @@ export function RegisterButton({
     });
   };
 
+  const handleCancelClick = async () => {
+    // 1. Confirm cancellation with the user first
+    const confirmed = await confirmDeleteAction({
+      title: "¿Cancelar tu inscripción?",
+      text: "¿Estás seguro de que deseas cancelar tu inscripción al evento? Esta acción liberará tu cupo y cancelará automáticamente cualquier reserva de transporte asociada.",
+      confirmText: "Sí, continuar",
+      cancelText: "No, mantener activa",
+      tone: "danger",
+    });
+
+    if (!confirmed) return;
+
+    // 2. Request user's password for security verification using a custom premium SweetAlert2 dialog
+    const { value: password, isConfirmed } = await Swal.fire({
+      title: "Verificación de Seguridad",
+      text: "Ingresa tu contraseña para confirmar la cancelación de tu reserva:",
+      input: "password",
+      inputPlaceholder: "Contraseña",
+      inputAttributes: {
+        autocapitalize: "off",
+        autocorrect: "off",
+        required: "true",
+      },
+      showCancelButton: true,
+      confirmButtonText: "Confirmar Cancelación",
+      cancelButtonText: "Cancelar",
+      reverseButtons: true,
+      buttonsStyling: false,
+      focusCancel: true,
+      customClass: {
+        popup: "fe-swal-popup fe-swal-popup--danger",
+        title: "fe-swal-title",
+        htmlContainer: "fe-swal-text",
+        input: "w-full mt-4 px-3.5 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm bg-card text-foreground transition-all placeholder:text-muted-foreground",
+        actions: "fe-swal-actions mt-6",
+        confirmButton: "fe-swal-confirm fe-swal-confirm--danger",
+        cancelButton: "fe-swal-cancel",
+      },
+      inputValidator: (value) => {
+        if (!value) {
+          return "¡Debes ingresar tu contraseña para continuar!";
+        }
+      }
+    });
+
+    if (!isConfirmed || !password) return;
+
+    // 3. Process cancellation in transition with the server action
+    startTransition(async () => {
+      setOptimisticStatus("cancelled");
+      try {
+        const result = await cancelRegistration(registrationId!, password);
+        if (result.success) {
+          toast.success(t("register.registrationCancelled"));
+          router.refresh();
+        } else {
+          throw new Error("Contraseña incorrecta.");
+        }
+      } catch (error) {
+        setOptimisticStatus("registered");
+        const errorMessage = error instanceof Error ? error.message : t("register.registrationCancelFailed");
+        
+        // Show premium red SweetAlert2 error dialog if password was incorrect
+        await Swal.fire({
+          title: "Error de Seguridad",
+          text: errorMessage.includes("Contraseña") || errorMessage.includes("incorrecta")
+            ? "La contraseña ingresada es incorrecta. Tu inscripción permanece activa."
+            : "No se pudo procesar la cancelación. Inténtalo de nuevo.",
+          icon: "error",
+          confirmButtonText: "Entendido",
+          buttonsStyling: false,
+          customClass: {
+            popup: "fe-swal-popup fe-swal-popup--danger",
+            title: "fe-swal-title",
+            htmlContainer: "fe-swal-text",
+            actions: "fe-swal-actions mt-4",
+            confirmButton: "fe-swal-confirm fe-swal-confirm--danger",
+          }
+        });
+      }
+    });
+  };
+
   if (optimisticStatus === "registered" || optimisticStatus === "checked_in") {
     return (
       <div className="space-y-2">
@@ -185,25 +272,20 @@ export function RegisterButton({
           {optimisticStatus === "checked_in" ? t("register.checkedIn") : t("register.youreRegistered")}
         </div>
         {optimisticStatus === "registered" && registrationId && (
-          <button
-            onClick={() => {
-              startTransition(async () => {
-                setOptimisticStatus("cancelled");
-                try {
-                  await cancelRegistration(registrationId);
-                  toast.success(t("register.registrationCancelled"));
-                  router.refresh();
-                } catch {
-                  setOptimisticStatus("registered");
-                  toast.error(t("register.registrationCancelFailed"));
-                }
-              });
-            }}
-            disabled={isPending}
-            className="block w-full rounded-xl border border-border py-2 text-center text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition-colors"
-          >
-            {isPending ? <Loader2 className="mx-auto h-3 w-3 animate-spin" /> : t("register.cancelRegistration")}
-          </button>
+          paymentStatus === "approved" ? (
+            <div className="rounded-xl bg-muted/60 p-3 border border-border/80 text-center text-xs text-muted-foreground leading-relaxed">
+              <span className="font-semibold text-foreground">Inscripción confirmada y pagada</span>
+              <p className="mt-0.5 text-[11px]">Si necesitas cancelar o solicitar un reembolso, por favor ponte en contacto con el organizador.</p>
+            </div>
+          ) : (
+            <button
+              onClick={handleCancelClick}
+              disabled={isPending}
+              className="block w-full rounded-xl border border-border py-2 text-center text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition-colors disabled:opacity-50"
+            >
+              {isPending ? <Loader2 className="mx-auto h-3 w-3 animate-spin" /> : t("register.cancelRegistration")}
+            </button>
+          )
         )}
       </div>
     );

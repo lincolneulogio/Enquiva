@@ -36,7 +36,7 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
   const exportEventOptions = await getExportEventOptions("admin");
   const exportCategoryOptions = (await getCategories()).map((category) => ({
     value: category.slug,
-    label: category.label,
+    label: categoryLabel(category.slug, locale),
   }));
   const exportStatusOptions = ["all", "registered", "checked_in", "waitlisted", "cancelled"].map((value) => ({
     value,

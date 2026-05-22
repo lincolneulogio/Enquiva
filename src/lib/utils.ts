@@ -72,6 +72,39 @@ export function categoryLabel(category: string, locale: Locale = defaultLocale):
 }
 
 export function categoryColor(category: string): string {
+  if (!category) return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300";
+  
+  // Normalize the category text (lower case, replace spaces/dashes, remove accents)
+  const normalized = category
+    .toLowerCase()
+    .trim()
+    .replace(/[\s-]+/g, "_")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  const keyMap: Record<string, string> = {
+    estudio_biblico: "bible_study",
+    bible_study: "bible_study",
+    adoracion: "worship",
+    worship: "worship",
+    retiro: "retreat",
+    retreat: "retreat",
+    juventud: "youth",
+    youth: "youth",
+    caridad: "charity",
+    charity: "charity",
+    conferencia: "conference",
+    conference: "conference",
+    oracion: "prayer",
+    prayer: "prayer",
+    alcance_comunitario: "outreach",
+    outreach: "outreach",
+    comunidad: "fellowship",
+    fellowship: "fellowship",
+  };
+
+  const canonicalKey = keyMap[normalized] || normalized;
+
   const colors: Record<string, string> = {
     worship: "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300",
     retreat: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
@@ -84,7 +117,7 @@ export function categoryColor(category: string): string {
     fellowship: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300",
     other: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300",
   };
-  return colors[category] ?? colors.other;
+  return colors[canonicalKey] ?? colors.other;
 }
 
 export function statusColor(status: string): string {

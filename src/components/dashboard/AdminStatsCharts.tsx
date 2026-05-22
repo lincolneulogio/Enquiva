@@ -13,7 +13,8 @@ import {
   Cell,
   Legend,
 } from "recharts";
-import { useTranslations } from "@/components/providers/LocaleProvider";
+import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
+import { categoryLabel } from "@/lib/utils";
 
 type MonthlyDataPoint = {
   month: string;
@@ -35,6 +36,12 @@ const COLORS = ["#7c3aed", "#e11d48", "#ea580c", "#16a34a", "#d97706", "#4f46e5"
 
 export function AdminStatsCharts({ monthlyData, categoryData }: AdminStatsChartsProps) {
   const t = useTranslations();
+  const { locale } = useLocale();
+
+  const translatedCategoryData = categoryData.map((item) => ({
+    ...item,
+    name: categoryLabel(item.name, locale),
+  }));
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -76,7 +83,7 @@ export function AdminStatsCharts({ monthlyData, categoryData }: AdminStatsCharts
         <h3 className="mb-4 font-display text-lg font-semibold text-foreground">
           {t("dashboard.admin.eventsByCategory")}
         </h3>
-        {categoryData.length === 0 ? (
+        {translatedCategoryData.length === 0 ? (
           <div className="flex h-[240px] items-center justify-center text-sm text-muted-foreground">
             {t("dashboard.admin.noCategoriesYet")}
           </div>
@@ -84,7 +91,7 @@ export function AdminStatsCharts({ monthlyData, categoryData }: AdminStatsCharts
           <ResponsiveContainer width="100%" height={240}>
             <PieChart>
               <Pie
-                data={categoryData}
+                data={translatedCategoryData}
                 cx="50%"
                 cy="50%"
                 innerRadius={60}
@@ -92,7 +99,7 @@ export function AdminStatsCharts({ monthlyData, categoryData }: AdminStatsCharts
                 paddingAngle={3}
                 dataKey="value"
               >
-                {categoryData.map((_, index) => (
+                {translatedCategoryData.map((_, index) => (
                   <Cell key={index} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>

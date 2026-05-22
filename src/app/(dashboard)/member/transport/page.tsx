@@ -3,8 +3,30 @@ import { Bus, Calendar, Ticket } from "lucide-react";
 import { getMemberTransportOptions, getMyTransportBookings } from "@/actions/transport";
 import { TransportBookingForm, CancelTransportButton } from "@/components/tickets/TransportBookingForm";
 import { getI18n } from "@/lib/i18n/server";
-import { getPluralLabel } from "@/lib/i18n/core";
+import { getPluralLabel, getPaymentStatusLabel } from "@/lib/i18n/core";
 import { getEventPaymentMethods } from "@/actions/payment-methods";
+
+const PAYMENT_STATUS_STYLES: Record<string, string> = {
+  pending: "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300",
+  approved: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
+  rejected: "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400",
+};
+
+const BOOKING_STATUS_STYLES: Record<string, string> = {
+  pending: "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300",
+  confirmed: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
+  cancelled: "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400",
+};
+
+function getBookingStatusLabel(status: string, locale: string) {
+  const labels: Record<string, Record<string, string>> = {
+    pending: { es: "Pendiente", en: "Pending" },
+    confirmed: { es: "Confirmado", en: "Confirmed" },
+    cancelled: { es: "Cancelado", en: "Cancelled" },
+  };
+  return labels[status]?.[locale] ?? status;
+}
+
 
 export default async function MemberTransportPage() {
     const { t, locale } = await getI18n();
@@ -122,29 +144,81 @@ export default async function MemberTransportPage() {
             ))}
 
             {myBookings.length > 0 && (
-                <section className="space-y-3">
+                <section className="space-y-4">
                     <h2 className="font-display text-xl font-semibold text-foreground">{t("dashboard.member.myBookings")}</h2>
-                    <div className="space-y-3">
+                    <div className="grid gap-4">
                         {myBookings.map((booking) => {
                             const seatWord = getPluralLabel(locale, t("dashboard.member.seatsLabel"), `${t("dashboard.member.seatsLabel")}s`, booking.seats);
+                            const payStatus = booking.paymentStatus ?? "pending";
+                            const bookStatus = booking.status ?? "pending";
                             return (
-                                <div key={booking.id} className="rounded-xl border border-border bg-card p-4">
-                                    <div className="flex flex-wrap items-center justify-between gap-3">
-                                        <div>
-                                            <p className="font-medium text-foreground">{booking.routeName}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {booking.seats} {seatWord} · S/. {Number(booking.paymentAmount).toFixed(2)}
+                                <div key={booking.id} className="rounded-2xl border border-border bg-card p-5 shadow-sm hover:shadow-md transition-all duration-200">
+                                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                                        <div className="space-y-1.5">
+                                            <h3 className="font-semibold text-foreground text-lg leading-tight">{booking.routeName}</h3>
+                                            <p className="text-sm font-medium text-muted-foreground">
+                                                {booking.seats} {seatWord} · <span className="font-semibold text-foreground">S/. {Number(booking.paymentAmount).toFixed(2)}</span>
                                             </p>
+                                            <div className="space-y-0.5 mt-2">
+                                                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                                    <span className="font-medium">Salida:</span>
+                                                    <span>{booking.departurePoint}</span>
+                                                </p>
+                                                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                                    <span className="font-medium">Fecha/Hora:</span>
+                                                    <span>
+                                                        {new Date(booking.departureTime).toLocaleDateString(locale === "es" ? "es-PE" : "en-US", {
+                                                            weekday: "long",
+                                                            month: "short",
+                                                            day: "numeric",
+                                                            hour: "2-digit",
+                                                            minute: "2-digit",
+                                                        })}
+                                                    </span>
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-                                                {t("dashboard.member.paymentLabel")}: {booking.paymentStatus}
-                                            </span>
-                                            <p className="mt-1 text-xs text-muted-foreground">{t("dashboard.member.bookingStatusLabel")}: {booking.status}</p>
+                                        <div className="flex flex-col sm:items-end gap-2 shrink-0">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-muted-foreground">{t("dashboard.member.paymentLabel")}:</span>
+                                                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${PAYMENT_STATUS_STYLES[payStatus] ?? PAYMENT_STATUS_STYLES.pending}`}>
+                                                    {getPaymentStatusLabel(payStatus, locale as any)}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-muted-foreground">{t("dashboard.member.bookingStatusLabel")}:</span>
+                                                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${BOOKING_STATUS_STYLES[bookStatus] ?? BOOKING_STATUS_STYLES.pending}`}>
+                                                    {getBookingStatusLabel(bookStatus, locale)}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
-                                    {booking.status === "pending" && (
-                                        <div className="mt-3">
+                                    
+                                    {payStatus === "pending" && (
+                                        <div className="mt-4 p-4 rounded-xl bg-amber-500/5 border border-amber-500/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                            <div className="text-xs text-amber-800 dark:text-amber-300">
+                                                <p className="font-semibold flex items-center gap-1">
+                                                    <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                                                    Requiere pago consolidado
+                                                </p>
+                                                <p className="text-muted-foreground mt-0.5">Puedes completar el pago consolidado (entrada + transporte) de forma unificada.</p>
+                                            </div>
+                                            <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                                                {booking.status === "pending" && (
+                                                    <CancelTransportButton bookingId={booking.id} />
+                                                )}
+                                                <Link
+                                                    href={`/member/payments/new/${booking.registrationId}`}
+                                                    className="inline-flex items-center justify-center rounded-xl bg-amber-600 px-4 py-2 text-xs font-bold text-white hover:bg-amber-700 active:bg-amber-800 transition-colors shadow-sm hover:shadow"
+                                                >
+                                                    Pagar S/. {Number(booking.paymentAmount).toFixed(2)}
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {payStatus !== "pending" && booking.status === "pending" && (
+                                        <div className="mt-4 flex justify-end">
                                             <CancelTransportButton bookingId={booking.id} />
                                         </div>
                                     )}

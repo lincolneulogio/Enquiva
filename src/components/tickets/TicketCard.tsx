@@ -62,6 +62,21 @@ export function TicketCard({ ticket, event, registration, paymentStatus }: Ticke
         </p>
       </div>
 
+      {paymentStatus === "pending" && (
+        <div className="rounded-2xl border border-amber-200/50 bg-amber-500/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-pulse">
+          <div className="space-y-0.5 text-left">
+            <p className="font-semibold text-amber-800 dark:text-amber-400 text-sm">{t("ticket.pendingPayment")}</p>
+            <p className="text-xs text-muted-foreground">{t("ticket.pendingPaymentHelp")}</p>
+          </div>
+          <Link
+            href={`/member/payments/new/${registration.id}`}
+            className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-center shrink-0 transition"
+          >
+            {t("ticket.payOrUploadReceipt")}
+          </Link>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-3 text-sm">
         <Link
           href="/member/tickets"
@@ -126,7 +141,7 @@ function ResendButton({ registrationId }: { registrationId: string }) {
       disabled={loading}
       className="rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground hover:bg-secondary transition"
     >
-      {loading ? "Enviando..." : t("ticket.resend")}
+      {loading ? t("ticket.sending") : t("ticket.resend")}
     </button>
   );
 }

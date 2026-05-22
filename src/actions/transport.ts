@@ -9,8 +9,10 @@ import {
     events,
     notifications,
     users,
+    accounts,
 } from "@/lib/db/schema";
 import { auth } from "@/lib/auth";
+import { verifyPassword } from "better-auth/crypto";
 import { headers } from "next/headers";
 import { eq, and, sql, desc, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -265,6 +267,7 @@ export async function getMyTransportBookings() {
             eventId: transportRoutes.eventId,
             paymentStatus: payments.status,
             paymentAmount: payments.amount,
+            registrationId: payments.registrationId,
         })
         .from(transportBookings)
         .innerJoin(transportRoutes, eq(transportBookings.routeId, transportRoutes.id))
@@ -480,8 +483,33 @@ export async function bookTransport(input: z.infer<typeof bookTransportSchema>) 
     return { success: true, booking, payment };
 }
 
-export async function cancelTransportBooking(bookingId: string) {
+export async function cancelTransportBooking(bookingId: string, password?: string) {
     const user = await requireAuth();
+
+    // Verify password first if user has a local credential configured (email/password login)
+    const [account] = await db
+        .select({ password: accounts.password })
+        .from(accounts)
+        .where(
+            and(
+                eq(accounts.userId, user.id),
+                eq(accounts.providerId, "email")
+            )
+        )
+        .limit(1);
+
+    if (account && account.password) {
+        if (!password) {
+            throw new Error("Se requiere ingresar la contraseña para cancelar la reserva.");
+        }
+        const isPasswordValid = await verifyPassword({
+            hash: account.password,
+            password: password,
+        });
+        if (!isPasswordValid) {
+            throw new Error("Contraseña incorrecta. No se pudo cancelar la reserva de transporte.");
+        }
+    }
 
     const [booking] = await db
         .select()

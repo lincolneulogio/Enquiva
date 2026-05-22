@@ -19,7 +19,7 @@ export default async function OrganizerAttendeesPage() {
     const exportEventOptions = await getExportEventOptions("organizer");
     const exportCategoryOptions = (await getCategories()).map((category) => ({
         value: category.slug,
-        label: category.label,
+        label: categoryLabel(category.slug, locale),
     }));
     const exportStatusOptions = ["all", "registered", "checked_in", "waitlisted", "cancelled"].map((value) => ({
         value,

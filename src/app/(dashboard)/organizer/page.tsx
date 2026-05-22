@@ -147,7 +147,7 @@ export default async function OrganizerDashboardPage() {
                       {formatEventDateShort(event.date, locale)}
                     </td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">
-                      {categoryMap[event.category] ?? categoryLabel(event.category, locale)}
+                      {categoryLabel(event.category, locale)}
                     </td>
                     <td className="px-6 py-4">
                       <span

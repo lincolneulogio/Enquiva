@@ -260,14 +260,15 @@ export function TransportRoutesManager({
 
                         <div>
                             <label className="mb-1.5 block text-sm font-medium text-foreground">
-                                Precio por asiento (S/.) * (Ida y Vuelta)
+                                {t("transport.manager.seatPrice") || "Precio por asiento (S/.) *"}{" "}
+                                <span className="text-xs font-normal text-muted-foreground">({t("transport.manager.roundTrip") || "Ida y Vuelta"})</span>
                             </label>
                             <input
                                 type="number"
                                 min={0}
                                 step="0.50"
                                 className={inputClass}
-                                placeholder="Ej: 15.00 (Incluye ida y vuelta)"
+                                placeholder={t("transport.manager.pricePlaceholderWithNote") || "Ej: 15.00 (Incluye ida y vuelta)"}
                                 value={form.pricePerSeat}
                                 onChange={(e) => setForm({ ...form, pricePerSeat: e.target.value })}
                             />
@@ -311,7 +312,7 @@ export function TransportRoutesManager({
                             }}
                             className="rounded-xl border border-border px-4 py-2 text-sm hover:bg-secondary transition-colors"
                         >
-                            Cancelar
+                            {t("common.cancel") || "Cancelar"}
                         </button>
                         <button
                             type="button"
@@ -377,7 +378,7 @@ export function TransportRoutesManager({
                                                 </span>
                                             )}
                                             <span className="font-medium text-foreground">
-                                                S/. {Number(route.pricePerSeat).toFixed(2)} / Asiento (Ida y Vuelta)
+                                                S/. {Number(route.pricePerSeat).toFixed(2)} / {t("transport.manager.perSeatRoundTrip") || "Asiento (Ida y Vuelta)"}
                                             </span>
                                         </div>
 

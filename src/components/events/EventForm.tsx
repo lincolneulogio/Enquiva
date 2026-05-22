@@ -13,7 +13,8 @@ import { Loader2, ImageIcon, MapPin, Video, Star, Bus, Smartphone, QrCode, Walle
 import Image from "next/image";
 import type { Event } from "@/lib/db/schema";
 import type { FieldErrors } from "react-hook-form";
-import { useTranslations } from "@/components/providers/LocaleProvider";
+import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
+import { categoryLabel } from "@/lib/utils";
 import { getRoutesByEvent } from "@/actions/transport";
 import { TransportRoutesManager } from "@/components/dashboard/TransportRoutesManager";
 
@@ -66,6 +67,7 @@ export function EventForm({
     canFeature = false,
 }: EventFormProps) {
     const t = useTranslations();
+    const { locale } = useLocale();
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [coverImage, setCoverImage] = useState<string | null>(event?.coverImage ?? null);
@@ -289,12 +291,12 @@ export function EventForm({
 
     const coverDropzoneAppearance = {
         container:
-            "h-48 w-full rounded-xl border border-dashed border-primary/25 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-3 transition-colors hover:border-primary/40 hover:from-primary/15",
-        uploadIcon: "h-6 w-6 text-primary/80",
-        label: "text-sm font-semibold text-foreground",
-        allowedContent: "text-[11px] text-muted-foreground",
+            "h-48 w-full rounded-xl border border-dashed border-primary/25 bg-gradient-to-br from-primary/5 via-muted/10 to-transparent p-4 transition-all duration-300 hover:border-primary/40 hover:from-primary/10 hover:shadow-sm cursor-pointer",
+        uploadIcon: "h-7 w-7 text-primary/70 transition-transform duration-300 hover:scale-110",
+        label: "text-xs font-semibold text-foreground tracking-wide mt-1.5",
+        allowedContent: "text-[10px] text-muted-foreground/80 mt-0.5 font-medium",
         button:
-            "mt-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:bg-primary/90",
+            "mt-3 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-md shadow-primary/15 transition-all duration-300 hover:bg-primary/95 hover:shadow-lg hover:shadow-primary/25 active:scale-95",
     };
 
     return (
@@ -346,7 +348,7 @@ export function EventForm({
                                 <option value="">{t("events.form.selectCategory")}</option>
                                 {categories.map((cat) => (
                                     <option key={cat.slug} value={cat.slug}>
-                                        {cat.label}
+                                        {categoryLabel(cat.slug, locale)}
                                     </option>
                                 ))}
                             </select>
@@ -578,6 +580,14 @@ export function EventForm({
                                         }}
                                         onUploadError={(err) => {
                                             toast.error(err.message);
+                                        }}
+                                        content={{
+                                            label: t("events.form.uploadDragDrop"),
+                                            allowedContent: t("events.form.uploadAllowedContent"),
+                                            button({ ready, isUploading }) {
+                                                if (isUploading) return t("common.loading");
+                                                return t("events.form.uploadButton");
+                                            }
                                         }}
                                         appearance={coverDropzoneAppearance}
                                     />

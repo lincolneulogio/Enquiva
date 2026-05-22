@@ -142,6 +142,15 @@
   margin-top: 0.5rem;
 }
 
+/* Fix SweetAlert2 input overflow */
+.fe-swal-popup .swal2-input {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 1rem 0 0 0 !important;
+  height: 2.75rem !important;
+}
+
 .fe-swal-actions {
   margin-top: 1rem;
   gap: 0.5rem;

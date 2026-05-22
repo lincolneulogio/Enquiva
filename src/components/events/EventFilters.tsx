@@ -2,7 +2,8 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useTranslations } from "@/components/providers/LocaleProvider";
+import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
+import { categoryLabel } from "@/lib/utils";
 
 interface CategoryOption {
   slug: string;
@@ -22,6 +23,7 @@ export function EventFilters({ currentFilters, categories }: EventFiltersProps) 
   const router = useRouter();
   const pathname = usePathname();
   const t = useTranslations();
+  const { locale } = useLocale();
 
   function applyFilter(key: string, value: string | undefined) {
     const params = new URLSearchParams();
@@ -79,7 +81,7 @@ export function EventFilters({ currentFilters, categories }: EventFiltersProps) 
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               )}
             >
-              {cat.label}
+              {categoryLabel(cat.slug, locale)}
             </button>
           ))}
         </div>

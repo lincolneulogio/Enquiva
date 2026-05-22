@@ -153,7 +153,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                     categoryMeta?.colorClass || categoryColor(event.category)
                   )}
                 >
-                  {categoryMeta?.label || categoryLabel(event.category)}
+                  {categoryLabel(event.category, locale)}
                 </span>
               </div>
 
@@ -317,6 +317,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                 registrationId={registration?.id}
                 transportRoutes={serializedRoutes}
                 eventPrice={event.price ? Number(event.price) : 0}
+                paymentStatus={paymentForRegistration?.payment?.status}
               />
 
               <div className="fe-glass rounded-3xl p-5 shadow-sm">

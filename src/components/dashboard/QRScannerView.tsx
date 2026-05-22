@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, TransitionStartFunction } from "react";
+import { useState } from "react";
 import dynamic from "next/dynamic";
 import { 
   Camera, 
@@ -9,13 +9,12 @@ import {
   AlertTriangle, 
   XCircle, 
   RefreshCw,
-  User,
   Calendar,
-  Mail,
   Clock,
   QrCode
 } from "lucide-react";
 import { toast } from "sonner";
+import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 
 // Cargamos el QRScanner de manera dinámica con SSR desactivado para evitar fallas con navigator/window
 const QRScanner = dynamic(() => import("./QRScanner"), { ssr: false });
@@ -34,18 +33,20 @@ interface ScanResultData {
 }
 
 export function QRScannerView() {
+  const t = useTranslations();
+  const { locale } = useLocale();
   const [showScanner, setShowScanner] = useState(false);
+  const [cameraLoading, setCameraLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ScanResultData | null>(null);
-  const [scannedAttendee, setScannedAttendee] = useState<{ name?: string; email?: string } | null>(null);
 
   const handleQRDetected = async (detectedText: string) => {
     if (!detectedText) return;
     
     setLoading(true);
     setResult(null);
-    setScannedAttendee(null);
     setShowScanner(false); // Apagamos el lector mientras procesamos
+    setCameraLoading(false);
 
     try {
       let code = "";
@@ -64,13 +65,13 @@ export function QRScannerView() {
           code = parsed.code || "";
           signature = parsed.signature || parsed.s || "";
         } catch {
-          // Si es texto plano plano, asumimos que puede ser el código y no trae firma (generará error criptográfico correcto en la API)
+          // Si es texto plano plano, asumimos que puede ser el código
           code = detectedText.trim();
         }
       }
 
       if (!code) {
-        throw new Error("No se pudo detectar un código de ticket válido.");
+        throw new Error(t("scanner.noValidCode"));
       }
 
       // Consumimos la API de verificación de tickets
@@ -90,22 +91,21 @@ export function QRScannerView() {
       });
 
       if (data.success) {
-        toast.success("¡Check-in realizado con éxito!");
-        // Opcional: si la API retornase datos de usuario podríamos guardarlo, por ahora mockeamos con los metadatos de respuesta o mostramos el éxito
+        toast.success(t("scanner.successToast"));
       } else {
-        if (data.error === "Ticket not valid" || data.status === "used") {
-          toast.warning("Atención: Este ticket ya fue utilizado.");
+        if (data.error === "Ticket not valid" || data.status === "used" || data.ticket?.status === "used") {
+          toast.warning(t("scanner.alreadyUsedToast"));
         } else {
-          toast.error(`Error de verificación: ${data.error || "Código inválido"}`);
+          toast.error(t("scanner.invalidToast", { error: data.error || "Código inválido" }));
         }
       }
     } catch (err) {
       console.error(err);
       setResult({
         success: false,
-        error: err instanceof Error ? err.message : "Error inesperado al leer el código",
+        error: err instanceof Error ? err.message : t("scanner.processError"),
       });
-      toast.error("Error al procesar el ticket QR.");
+      toast.error(t("scanner.processError"));
     } finally {
       setLoading(false);
     }
@@ -113,8 +113,19 @@ export function QRScannerView() {
 
   const resetScanner = () => {
     setResult(null);
-    setScannedAttendee(null);
+    setCameraLoading(true);
     setShowScanner(true);
+  };
+
+  const startScanner = () => {
+    setResult(null);
+    setCameraLoading(true);
+    setShowScanner(true);
+  };
+
+  const stopScanner = () => {
+    setShowScanner(false);
+    setCameraLoading(false);
   };
 
   return (
@@ -128,9 +139,9 @@ export function QRScannerView() {
           <div className="mx-auto w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-2">
             <QrCode className="h-6 w-6" />
           </div>
-          <h2 className="text-xl font-bold text-foreground">Control de Acceso por QR</h2>
+          <h2 className="text-xl font-bold text-foreground">{t("scanner.title")}</h2>
           <p className="text-sm text-muted-foreground">
-            Escanea el código QR de la entrada para verificar y confirmar la asistencia instantáneamente.
+            {t("scanner.subtitle")}
           </p>
         </div>
 
@@ -140,7 +151,31 @@ export function QRScannerView() {
             {showScanner ? (
               <div className="space-y-4">
                 <div className="relative rounded-2xl overflow-hidden border border-primary/20 bg-black aspect-video max-h-72 mx-auto flex items-center justify-center">
-                  <QRScanner onResult={handleQRDetected} />
+                  
+                  {/* Glassmorphic Loader over pitch black screen during activation */}
+                  {cameraLoading && (
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/85 backdrop-blur-sm space-y-4 animate-in fade-in duration-300">
+                      <div className="relative flex items-center justify-center">
+                        <RefreshCw className="h-10 w-10 text-primary animate-spin" />
+                        <Camera className="h-4 w-4 text-primary absolute animate-pulse" />
+                      </div>
+                      <p className="text-sm font-semibold text-white/90 tracking-wide animate-pulse">
+                        {t("scanner.cameraStarting")}
+                      </p>
+                    </div>
+                  )}
+
+                  <QRScanner
+                    onResult={handleQRDetected}
+                    onError={(err) => {
+                      toast.error(t("scanner.cameraError"));
+                      setShowScanner(false);
+                      setCameraLoading(false);
+                    }}
+                    onScanStart={() => {
+                      setCameraLoading(false);
+                    }}
+                  />
                   
                   {/* Superposición estética de guía de escaneo */}
                   <div className="absolute inset-0 pointer-events-none border-[16px] border-black/40 flex items-center justify-center">
@@ -156,11 +191,11 @@ export function QRScannerView() {
                 
                 <button
                   type="button"
-                  onClick={() => setShowScanner(false)}
+                  onClick={stopScanner}
                   className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
                 >
                   <CameraOff className="h-4 w-4" />
-                  Apagar Cámara
+                  {t("scanner.turnOffCamera")}
                 </button>
               </div>
             ) : (
@@ -169,16 +204,16 @@ export function QRScannerView() {
                   <Camera className="h-8 w-8" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-foreground">Cámara apagada</p>
-                  <p className="text-xs text-muted-foreground">Habilita tu cámara web o móvil para iniciar el escaneo de entradas.</p>
+                  <p className="text-sm font-medium text-foreground">{t("scanner.cameraOff")}</p>
+                  <p className="text-xs text-muted-foreground">{t("scanner.cameraOffHelp")}</p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowScanner(true)}
+                  onClick={startScanner}
                   className="fe-btn-glow inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all duration-300"
                 >
                   <Camera className="h-4 w-4" />
-                  Iniciar Escáner
+                  {t("scanner.turnOnCamera")}
                 </button>
               </div>
             )}
@@ -190,8 +225,8 @@ export function QRScannerView() {
           <div className="py-12 flex flex-col items-center justify-center space-y-4">
             <RefreshCw className="h-10 w-10 text-primary animate-spin" />
             <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">Verificando firma digital...</p>
-              <p className="text-xs text-muted-foreground">Comprobando autenticidad en la base de datos de EncuentroDeFe.</p>
+              <p className="text-sm font-medium text-foreground">{t("scanner.verifying")}</p>
+              <p className="text-xs text-muted-foreground">{t("scanner.verifyingHelp")}</p>
             </div>
           </div>
         )}
@@ -207,8 +242,8 @@ export function QRScannerView() {
                   <CheckCircle2 className="h-9 w-9" />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-lg font-bold text-emerald-600">ACCESO AUTORIZADO</h3>
-                  <p className="text-xs text-muted-foreground">La entrada es válida y el check-in ha sido registrado con éxito.</p>
+                  <h3 className="text-lg font-bold text-emerald-600">{t("scanner.accessGranted")}</h3>
+                  <p className="text-xs text-muted-foreground">{t("scanner.accessGrantedHelp")}</p>
                 </div>
 
                 <div className="border-t border-border/60 pt-4 text-left space-y-2.5 text-sm">
@@ -220,7 +255,7 @@ export function QRScannerView() {
                   )}
                   {result.ticket && (
                     <div className="flex items-center justify-between text-xs text-muted-foreground bg-background/50 p-2 rounded-lg border">
-                      <span>CÓDIGO DE TICKET:</span>
+                      <span>{t("scanner.ticketCode")}</span>
                       <span className="font-mono font-bold text-foreground">{result.ticket.code}</span>
                     </div>
                   )}
@@ -235,8 +270,8 @@ export function QRScannerView() {
                   <AlertTriangle className="h-9 w-9" />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-lg font-bold text-amber-600">TICKET YA UTILIZADO</h3>
-                  <p className="text-xs text-muted-foreground">Esta entrada ya fue escaneada con anterioridad y no puede reutilizarse.</p>
+                  <h3 className="text-lg font-bold text-amber-600">{t("scanner.ticketUsed")}</h3>
+                  <p className="text-xs text-muted-foreground">{t("scanner.ticketUsedHelp")}</p>
                 </div>
 
                 <div className="border-t border-border/60 pt-4 text-left space-y-2.5 text-sm">
@@ -244,17 +279,21 @@ export function QRScannerView() {
                     <div className="flex items-center gap-2 text-foreground font-medium">
                       <Clock className="h-4 w-4 shrink-0 text-amber-500" />
                       <span>
-                        Primer Check-in:{" "}
-                        {new Date(result.ticket.checkedInAt).toLocaleString("es-PE", {
-                          dateStyle: "short",
-                          timeStyle: "medium",
+                        {t("scanner.firstCheckin", {
+                          time: new Date(result.ticket.checkedInAt).toLocaleString(
+                            locale === "en" ? "en-US" : "es-PE",
+                            {
+                              dateStyle: "short",
+                              timeStyle: "medium",
+                            }
+                          )
                         })}
                       </span>
                     </div>
                   )}
                   {result.ticket && (
                     <div className="flex items-center justify-between text-xs text-muted-foreground bg-background/50 p-2 rounded-lg border">
-                      <span>CÓDIGO DE TICKET:</span>
+                      <span>{t("scanner.ticketCode")}</span>
                       <span className="font-mono font-bold text-foreground">{result.ticket.code}</span>
                     </div>
                   )}
@@ -269,13 +308,13 @@ export function QRScannerView() {
                   <XCircle className="h-9 w-9" />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-lg font-bold text-destructive">ACCESO DENEGADO</h3>
-                  <p className="text-xs text-muted-foreground">La firma criptográfica del ticket es inválida o la entrada ha sido manipulada.</p>
+                  <h3 className="text-lg font-bold text-destructive">{t("scanner.accessDenied")}</h3>
+                  <p className="text-xs text-muted-foreground">{t("scanner.accessDeniedHelp")}</p>
                 </div>
 
                 <div className="border-t border-border/60 pt-4 text-left p-3 bg-destructive/5 rounded-xl border border-destructive/10">
-                  <p className="text-xs font-semibold text-destructive uppercase tracking-wider mb-1">Detalle del Error:</p>
-                  <p className="text-sm font-medium text-foreground">{result.error || "Firma criptográfica inválida"}</p>
+                  <p className="text-xs font-semibold text-destructive uppercase tracking-wider mb-1">{t("scanner.errorDetail")}</p>
+                  <p className="text-sm font-medium text-foreground">{result.error || t("scanner.accessDeniedHelp")}</p>
                 </div>
               </div>
             )}
@@ -287,7 +326,7 @@ export function QRScannerView() {
               className="fe-btn-glow inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all duration-300"
             >
               <RefreshCw className="h-4 w-4" />
-              Escanear Otra Entrada
+              {t("scanner.scanAnother")}
             </button>
           </div>
         )}

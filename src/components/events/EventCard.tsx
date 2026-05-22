@@ -63,7 +63,7 @@ export async function EventCard({ event, className, categoryMap }: EventCardProp
               categoryMeta?.colorClass || categoryColor(event.category)
             )}
           >
-            {categoryMeta?.label || categoryLabel(event.category, locale)}
+            {categoryLabel(event.category, locale)}
           </span>
         </div>
 

@@ -82,10 +82,10 @@ export default async function AdminTransportOverviewPage({ searchParams }: Admin
             {/* Header */}
             <div>
                 <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
-                    {t("dashboard.admin.transport") || "Control de Transporte Global"}
+                    {t("dashboard.admin.transport")}
                 </h1>
                 <p className="mt-1 text-muted-foreground">
-                    Supervisión y administración del servicio de movilidad de todos los eventos en la plataforma.
+                    {t("dashboard.admin.transportDescription")}
                 </p>
             </div>
 
@@ -93,21 +93,21 @@ export default async function AdminTransportOverviewPage({ searchParams }: Admin
             <div className="grid gap-4 sm:grid-cols-3">
                 {[
                     {
-                        label: "Eventos Totales",
+                        label: t("dashboard.admin.transportTotalEvents"),
                         value: total,
                         icon: ShieldAlert,
                         color: "text-amber-500",
                         bg: "bg-amber-500/10",
                     },
                     {
-                        label: "Con Transporte Activo",
+                        label: t("dashboard.admin.transportActiveEvents"),
                         value: totalWithTransport,
                         icon: Bus,
                         color: "text-blue-500",
                         bg: "bg-blue-500/10",
                     },
                     {
-                        label: "Rutas en Plataforma",
+                        label: t("dashboard.admin.transportTotalRoutes"),
                         value: totalRoutes ?? 0,
                         icon: Route,
                         color: "text-green-500",
@@ -137,14 +137,14 @@ export default async function AdminTransportOverviewPage({ searchParams }: Admin
             {allEvents.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
                     <Bus className="mx-auto h-12 w-12 text-muted-foreground/30" />
-                    <p className="mt-4 font-semibold text-foreground">No hay eventos registrados</p>
+                    <p className="mt-4 font-semibold text-foreground">{t("dashboard.admin.transportNoEvents")}</p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        Aún no se ha creado ningún evento en la plataforma.
+                        {t("dashboard.admin.transportNoEventsHelp")}
                     </p>
                 </div>
             ) : (
                 <div className="space-y-4">
-                    <h2 className="font-display text-lg font-semibold text-foreground">Lista de Eventos Registrados</h2>
+                    <h2 className="font-display text-lg font-semibold text-foreground">{t("dashboard.admin.transportRegisteredEvents")}</h2>
                     
                     <div className="overflow-hidden rounded-2xl border border-border bg-card">
                         <p className="px-3 pt-2 text-[11px] text-muted-foreground sm:hidden">↔ Scroll</p>
@@ -152,13 +152,13 @@ export default async function AdminTransportOverviewPage({ searchParams }: Admin
                             <table className="w-full min-w-[900px] text-sm">
                                 <thead>
                                     <tr className="border-b border-border bg-muted/50">
-                                        <th className="px-4 py-3.5 text-left font-medium text-muted-foreground">Evento</th>
-                                        <th className="px-4 py-3.5 text-left font-medium text-muted-foreground">Organizador</th>
-                                        <th className="px-4 py-3.5 text-left font-medium text-muted-foreground">Fecha</th>
-                                        <th className="px-4 py-3.5 text-left font-medium text-muted-foreground">Estado</th>
-                                        <th className="px-4 py-3.5 text-left font-medium text-muted-foreground">Transporte</th>
-                                        <th className="px-4 py-3.5 text-center font-medium text-muted-foreground">Métricas</th>
-                                        <th className="px-4 py-3.5 text-right font-medium text-muted-foreground">Acciones</th>
+                                        <th className="px-4 py-3.5 text-left font-medium text-muted-foreground">{t("common.event")}</th>
+                                        <th className="px-4 py-3.5 text-left font-medium text-muted-foreground">{t("common.organizer")}</th>
+                                        <th className="px-4 py-3.5 text-left font-medium text-muted-foreground">{t("common.date")}</th>
+                                        <th className="px-4 py-3.5 text-left font-medium text-muted-foreground">{t("common.status")}</th>
+                                        <th className="px-4 py-3.5 text-left font-medium text-muted-foreground">{t("common.transport")}</th>
+                                        <th className="px-4 py-3.5 text-center font-medium text-muted-foreground">{t("dashboard.admin.transportMetrics")}</th>
+                                        <th className="px-4 py-3.5 text-right font-medium text-muted-foreground">{t("common.actions")}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
@@ -182,12 +182,12 @@ export default async function AdminTransportOverviewPage({ searchParams }: Admin
                                                 {event.hasTransport ? (
                                                     <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
                                                         <CheckCircle2 className="h-3.5 w-3.5" />
-                                                        Habilitado
+                                                        {t("dashboard.admin.transportEnabled")}
                                                     </span>
                                                 ) : (
                                                     <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
                                                         <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-                                                        Desactivado
+                                                        {t("dashboard.admin.transportDisabled")}
                                                     </span>
                                                 )}
                                             </td>
@@ -195,10 +195,10 @@ export default async function AdminTransportOverviewPage({ searchParams }: Admin
                                                 {event.hasTransport ? (
                                                     <div className="inline-flex items-center gap-4 text-xs">
                                                         <span className="text-muted-foreground">
-                                                            Rutas: <strong className="text-foreground">{event.routesCount}</strong>
+                                                            {t("dashboard.admin.transportRoutesLabel")}: <strong className="text-foreground">{event.routesCount}</strong>
                                                         </span>
                                                         <span className="text-muted-foreground">
-                                                            Pasajeros: <strong className="text-foreground">{event.totalBookedSeats}</strong>
+                                                            {t("dashboard.admin.transportPassengersLabel")}: <strong className="text-foreground">{event.totalBookedSeats}</strong>
                                                         </span>
                                                     </div>
                                                 ) : (
@@ -217,7 +217,7 @@ export default async function AdminTransportOverviewPage({ searchParams }: Admin
                                                             href={`/admin/events/${event.id}/transport`}
                                                             className="inline-flex items-center gap-1.5 rounded-xl bg-secondary px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary/80 transition-colors"
                                                         >
-                                                            Rutas
+                                                            {t("dashboard.admin.transportRoutesBtn")}
                                                             <ArrowRight className="h-3.5 w-3.5" />
                                                         </Link>
                                                     )}

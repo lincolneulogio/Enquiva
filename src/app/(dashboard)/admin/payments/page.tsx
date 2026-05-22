@@ -26,7 +26,7 @@ export default async function AdminPaymentsPage({ searchParams }: AdminPaymentsP
   const exportEventOptions = await getExportEventOptions("admin");
   const exportCategoryOptions = (await getCategories()).map((category) => ({
     value: category.slug,
-    label: category.label,
+    label: categoryLabel(category.slug, locale),
   }));
   const exportStatusOptions = ["all", "pending", "approved", "rejected"].map((value) => ({
     value,
