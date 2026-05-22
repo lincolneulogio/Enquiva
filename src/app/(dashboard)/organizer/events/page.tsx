@@ -1,4 +1,8 @@
-import { getOrganizerEvents } from "@/actions/events";
+import { db } from "@/lib/db";
+import { events, registrations } from "@/lib/db/schema";
+import { eq, desc, and, gte, lte, count, sql } from "drizzle-orm";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { Calendar, Plus } from "lucide-react";
 import { DeleteEventButton } from "./DeleteEventButton";
@@ -7,16 +11,10 @@ import { getI18n } from "@/lib/i18n/server";
 import { ExportDataPanel } from "@/components/dashboard/ExportDataPanel";
 import { Suspense } from "react";
 import { getCategories } from "@/actions/events";
+import { TablePagination } from "@/components/dashboard/TablePagination";
+import { getExportEventOptions } from "@/actions/exports";
 
-interface OrganizerEventsPageProps {
-    searchParams: Promise<{
-        status?: string;
-        eventId?: string;
-        category?: string;
-        fromDate?: string;
-        toDate?: string;
-    }>;
-}
+const PAGE_SIZE = 10;
 
 const STATUS_FILTERS = [
     { value: "all", labelKey: "common.all" },
@@ -26,38 +24,83 @@ const STATUS_FILTERS = [
     { value: "completed", labelKey: "eventStatus.completed" },
 ] as const;
 
+interface OrganizerEventsPageProps {
+    searchParams: Promise<{
+        page?: string;
+        status?: string;
+        eventId?: string;
+        category?: string;
+        fromDate?: string;
+        toDate?: string;
+    }>;
+}
+
 export default async function OrganizerEventsPage({ searchParams }: OrganizerEventsPageProps) {
     const { locale, t } = await getI18n();
     const params = await searchParams;
-    const organizerEvents = await getOrganizerEvents();
+    const session = await auth.api.getSession({ headers: await headers() });
+    const organizerId = session!.user.id;
+
+    const requestedPage = Number(params.page ?? "1");
+    const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
+
     const categories = await getCategories();
-    const categoryMap = Object.fromEntries(categories.map((category) => [category.slug, categoryLabel(category.slug, locale)]));
 
     const activeStatus = STATUS_FILTERS.some((f) => f.value === params.status)
         ? (params.status as (typeof STATUS_FILTERS)[number]["value"])
         : "all";
 
-    let filteredEvents = organizerEvents;
+    // Build filter conditions
+    const conditions = [eq(events.organizerId, organizerId)];
 
     if (activeStatus !== "all") {
-        filteredEvents = filteredEvents.filter(({ event }) => event.status === activeStatus);
+        conditions.push(eq(events.status, activeStatus));
     }
     if (params.eventId) {
-        filteredEvents = filteredEvents.filter(({ event }) => event.id === params.eventId);
+        conditions.push(eq(events.id, params.eventId));
     }
     if (params.category) {
-        filteredEvents = filteredEvents.filter(({ event }) => event.category === params.category);
+        conditions.push(eq(events.category, params.category));
     }
     if (params.fromDate) {
-        const fromDateVal = new Date(`${params.fromDate}T00:00:00.000`);
-        filteredEvents = filteredEvents.filter(({ event }) => new Date(event.date) >= fromDateVal);
+        conditions.push(gte(events.date, new Date(`${params.fromDate}T00:00:00.000`)));
     }
     if (params.toDate) {
-        const toDateVal = new Date(`${params.toDate}T23:59:59.999`);
-        filteredEvents = filteredEvents.filter(({ event }) => new Date(event.date) <= toDateVal);
+        conditions.push(lte(events.date, new Date(`${params.toDate}T23:59:59.999`)));
     }
 
-    const exportEventOptions = organizerEvents.map(({ event }) => ({ id: event.id, title: event.title }));
+    const whereClause = and(...conditions);
+
+    const [{ total }] = await db
+        .select({ total: count() })
+        .from(events)
+        .where(whereClause);
+
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    const safePage = Math.min(currentPage, totalPages);
+    const offset = (safePage - 1) * PAGE_SIZE;
+
+    const filteredEvents = await db
+        .select({
+            event: events,
+            attendeeCount: sql<number>`count(${registrations.id})::int`,
+        })
+        .from(events)
+        .leftJoin(
+            registrations,
+            and(
+                eq(registrations.eventId, events.id),
+                eq(registrations.status, "registered")
+            )
+        )
+        .where(whereClause)
+        .groupBy(events.id)
+        .orderBy(desc(events.createdAt))
+        .limit(PAGE_SIZE)
+        .offset(offset);
+
+    // Export options (all organizer events, unfiltered)
+    const exportEventOptions = await getExportEventOptions("organizer");
     const exportCategoryOptions = categories.map((category) => ({
         value: category.slug,
         label: categoryLabel(category.slug, locale),
@@ -74,8 +117,8 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                     <h1 className="font-display text-3xl font-semibold text-foreground">{t("dashboard.organizer.myEvents")}</h1>
                     <p className="mt-1 text-muted-foreground">
                         {t("dashboard.organizer.createdByYou", {
-                            count: organizerEvents.length,
-                            label: organizerEvents.length === 1 ? "evento" : "eventos",
+                            count: total,
+                            label: total === 1 ? "evento" : "eventos",
                         })}
                     </p>
                 </div>
@@ -188,6 +231,20 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                             </tbody>
                         </table>
                     </div>
+                    <TablePagination
+                        basePath="/organizer/events"
+                        currentPage={safePage}
+                        totalPages={totalPages}
+                        totalItems={total}
+                        pageSize={PAGE_SIZE}
+                        query={{
+                            status: activeStatus !== "all" ? activeStatus : undefined,
+                            eventId: params.eventId,
+                            category: params.category,
+                            fromDate: params.fromDate,
+                            toDate: params.toDate,
+                        }}
+                    />
                 </div>
             )}
         </div>

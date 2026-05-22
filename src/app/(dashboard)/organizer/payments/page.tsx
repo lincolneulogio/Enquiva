@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { payments as paymentsTable, registrations, events, users, transportBookings, transportRoutes } from "@/lib/db/schema";
-import { eq, desc, and, gte, lte } from "drizzle-orm";
+import { eq, desc, and, gte, lte, count } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { formatCurrency } from "@/lib/utils";
@@ -13,10 +13,13 @@ import { getExportEventOptions } from "@/actions/exports";
 import { getCategories } from "@/actions/events";
 import { categoryLabel } from "@/lib/utils";
 import { getPaymentStatusLabel } from "@/lib/i18n/core";
+import { TablePagination } from "@/components/dashboard/TablePagination";
 
+const PAGE_SIZE = 10;
 
 interface PageProps {
   searchParams: Promise<{
+    page?: string;
     eventId?: string;
     category?: string;
     status?: string;
@@ -30,6 +33,10 @@ export default async function OrganizerPaymentsPage({ searchParams }: PageProps)
   const params = await searchParams;
   const session = await auth.api.getSession({ headers: await headers() });
   const organizerId = session!.user.id;
+
+  const requestedPage = Number(params.page ?? "1");
+  const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
+
   const exportEventOptions = await getExportEventOptions("organizer");
   const exportCategoryOptions = (await getCategories()).map((category) => ({
     value: category.slug,
@@ -58,6 +65,20 @@ export default async function OrganizerPaymentsPage({ searchParams }: PageProps)
     conditions.push(lte(paymentsTable.createdAt, new Date(`${params.toDate}T23:59:59.999`)));
   }
 
+  const whereClause = and(...conditions);
+
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(paymentsTable)
+    .innerJoin(registrations, eq(paymentsTable.registrationId, registrations.id))
+    .innerJoin(events, eq(registrations.eventId, events.id))
+    .innerJoin(users, eq(paymentsTable.userId, users.id))
+    .where(whereClause);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const offset = (safePage - 1) * PAGE_SIZE;
+
   const payments = await db
     .select({
       payment: paymentsTable,
@@ -68,16 +89,15 @@ export default async function OrganizerPaymentsPage({ searchParams }: PageProps)
       transportRoute: transportRoutes,
     })
     .from(paymentsTable)
-    .innerJoin(
-      registrations,
-      eq(paymentsTable.registrationId, registrations.id)
-    )
+    .innerJoin(registrations, eq(paymentsTable.registrationId, registrations.id))
     .innerJoin(events, eq(registrations.eventId, events.id))
     .innerJoin(users, eq(paymentsTable.userId, users.id))
     .leftJoin(transportBookings, eq(transportBookings.id, paymentsTable.transportBookingId))
     .leftJoin(transportRoutes, eq(transportRoutes.id, transportBookings.routeId))
-    .where(and(...conditions))
-    .orderBy(desc(paymentsTable.createdAt));
+    .where(whereClause)
+    .orderBy(desc(paymentsTable.createdAt))
+    .limit(PAGE_SIZE)
+    .offset(offset);
 
   return (
     <div className="space-y-6">
@@ -155,6 +175,20 @@ export default async function OrganizerPaymentsPage({ searchParams }: PageProps)
               </tbody>
             </table>
           </div>
+          <TablePagination
+            basePath="/organizer/payments"
+            currentPage={safePage}
+            totalPages={totalPages}
+            totalItems={total}
+            pageSize={PAGE_SIZE}
+            query={{
+              eventId: params.eventId,
+              category: params.category,
+              status: params.status,
+              fromDate: params.fromDate,
+              toDate: params.toDate,
+            }}
+          />
         </div>
       )}
     </div>

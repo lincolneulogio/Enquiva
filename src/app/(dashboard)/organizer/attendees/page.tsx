@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { registrations, events, users } from "@/lib/db/schema";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { eq, desc, and, gte, lte } from "drizzle-orm";
+import { eq, desc, and, gte, lte, count } from "drizzle-orm";
 import { Users } from "lucide-react";
 import { ManualCheckInButton } from "@/components/events/ManualCheckInButton";
 import { getI18n } from "@/lib/i18n/server";
@@ -12,9 +12,13 @@ import { Suspense } from "react";
 import { getExportEventOptions } from "@/actions/exports";
 import { getCategories } from "@/actions/events";
 import { categoryLabel } from "@/lib/utils";
+import { TablePagination } from "@/components/dashboard/TablePagination";
+
+const PAGE_SIZE = 10;
 
 interface PageProps {
     searchParams: Promise<{
+        page?: string;
         eventId?: string;
         category?: string;
         status?: string;
@@ -28,6 +32,10 @@ export default async function OrganizerAttendeesPage({ searchParams }: PageProps
     const params = await searchParams;
     const session = await auth.api.getSession({ headers: await headers() });
     const organizerId = session!.user.id;
+
+    const requestedPage = Number(params.page ?? "1");
+    const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
+
     const exportEventOptions = await getExportEventOptions("organizer");
     const exportCategoryOptions = (await getCategories()).map((category) => ({
         value: category.slug,
@@ -39,7 +47,7 @@ export default async function OrganizerAttendeesPage({ searchParams }: PageProps
     }));
 
     const conditions = [eq(events.organizerId, organizerId)];
-    
+
     if (params.eventId) {
         conditions.push(eq(events.id, params.eventId));
     }
@@ -55,6 +63,19 @@ export default async function OrganizerAttendeesPage({ searchParams }: PageProps
     if (params.toDate) {
         conditions.push(lte(registrations.registeredAt, new Date(`${params.toDate}T23:59:59.999`)));
     }
+
+    const whereClause = and(...conditions);
+
+    const [{ total }] = await db
+        .select({ total: count() })
+        .from(registrations)
+        .innerJoin(events, eq(registrations.eventId, events.id))
+        .innerJoin(users, eq(registrations.userId, users.id))
+        .where(whereClause);
+
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    const safePage = Math.min(currentPage, totalPages);
+    const offset = (safePage - 1) * PAGE_SIZE;
 
     const rows = await db
         .select({
@@ -72,17 +93,19 @@ export default async function OrganizerAttendeesPage({ searchParams }: PageProps
         .from(registrations)
         .innerJoin(events, eq(registrations.eventId, events.id))
         .innerJoin(users, eq(registrations.userId, users.id))
-        .where(and(...conditions))
-        .orderBy(desc(registrations.registeredAt));
+        .where(whereClause)
+        .orderBy(desc(registrations.registeredAt))
+        .limit(PAGE_SIZE)
+        .offset(offset);
 
-    const registrationWord = getPluralLabel(locale, "registration", "registrations", rows.length);
+    const registrationWord = getPluralLabel(locale, "registration", "registrations", total);
 
     return (
         <div className="space-y-6">
             <div>
                 <h1 className="font-display text-3xl font-semibold text-foreground">{t("dashboard.organizer.attendeesTitle")}</h1>
                 <p className="mt-1 text-muted-foreground">
-                    {t("dashboard.organizer.attendeesSummary", { count: rows.length, label: registrationWord })}
+                    {t("dashboard.organizer.attendeesSummary", { count: total, label: registrationWord })}
                 </p>
             </div>
 
@@ -171,6 +194,20 @@ export default async function OrganizerAttendeesPage({ searchParams }: PageProps
                             </tbody>
                         </table>
                     </div>
+                    <TablePagination
+                        basePath="/organizer/attendees"
+                        currentPage={safePage}
+                        totalPages={totalPages}
+                        totalItems={total}
+                        pageSize={PAGE_SIZE}
+                        query={{
+                            eventId: params.eventId,
+                            category: params.category,
+                            status: params.status,
+                            fromDate: params.fromDate,
+                            toDate: params.toDate,
+                        }}
+                    />
                 </div>
             )}
         </div>
