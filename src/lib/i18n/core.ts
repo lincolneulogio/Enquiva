@@ -446,6 +446,8 @@ const translations: Record<Locale, TranslationDictionary> = {
         },
         register: {
             signInToRegister: "Inicia sesión para registrarte",
+            haveAccountPrompt: "¿Ya tienes una cuenta?",
+            signInOptional: "Inicia sesión",
             checkedIn: "Check-in realizado",
             youreRegistered: "¡Ya estás registrado!",
             registrationClosed: "Inscripciones cerradas",
@@ -612,6 +614,10 @@ const translations: Record<Locale, TranslationDictionary> = {
                 codeLabel: "Código",
                 statusLabel: "Estado",
                 showToOrganizer: "Muestra esta pantalla al organizador para validación/check-in.",
+                accountPromptTitle: "Guarda tu acceso para próximos eventos",
+                accountPromptDescription: "Crea una cuenta o inicia sesión para gestionar tus inscripciones y tickets más rápido.",
+                createAccountCta: "Crear cuenta",
+                signInCta: "Iniciar sesión",
             },
         },
         events: {
@@ -1182,6 +1188,8 @@ const translations: Record<Locale, TranslationDictionary> = {
         },
         register: {
             signInToRegister: "Sign in to register",
+            haveAccountPrompt: "Already have an account?",
+            signInOptional: "Sign in",
             checkedIn: "Checked in",
             youreRegistered: "You're registered!",
             registrationClosed: "Registrations closed",
@@ -1348,6 +1356,10 @@ const translations: Record<Locale, TranslationDictionary> = {
                 codeLabel: "Code",
                 statusLabel: "Status",
                 showToOrganizer: "Show this screen to the organizer for validation/check-in.",
+                accountPromptTitle: "Save your access for upcoming events",
+                accountPromptDescription: "Create an account or sign in to manage your registrations and tickets faster.",
+                createAccountCta: "Create account",
+                signInCta: "Sign in",
             },
         },
         events: {

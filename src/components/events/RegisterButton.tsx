@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { registerForEvent, cancelRegistration } from "@/actions/registrations";
 import { Loader2, CheckCircle, Clock } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import { normalizePeruPhone } from "@/lib/utils";
 
@@ -64,17 +63,6 @@ export function RegisterButton({
     return message;
   };
 
-  if (!isAuthenticated) {
-    return (
-      <a
-        href={`/login?callbackUrl=/events`}
-        className="block w-full rounded-xl bg-primary py-3 text-center text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-      >
-        {t("register.signInToRegister")}
-      </a>
-    );
-  }
-
   if (optimisticStatus === "registered" || optimisticStatus === "checked_in") {
     return (
       <div className="space-y-2">
@@ -127,6 +115,17 @@ export function RegisterButton({
 
   return (
     <div className="space-y-3">
+      {!isAuthenticated && (
+        <div className="rounded-xl border border-border bg-card px-3 py-2 text-xs text-muted-foreground">
+          <p>
+            {t("register.haveAccountPrompt")}{" "}
+            <a href="/login?callbackUrl=/events" className="font-medium text-primary hover:underline">
+              {t("register.signInOptional")}
+            </a>
+          </p>
+        </div>
+      )}
+
       <div className="rounded-xl border border-border bg-card p-3 text-left">
         <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {t("register.confirmContactPhone")}
@@ -166,6 +165,17 @@ export function RegisterButton({
               if (result.success) {
                 setOptimisticStatus("registered");
                 toast.success(t("register.registrationSuccess"));
+
+                if (!isAuthenticated) {
+                  if (result.ticketCode) {
+                    router.push(`/ticket/${result.ticketCode}?from=phone-signup`);
+                    return;
+                  }
+
+                  router.refresh();
+                  return;
+                }
+
                 router.push(hasTransport ? "/member/transport" : "/member/tickets");
                 return;
               }

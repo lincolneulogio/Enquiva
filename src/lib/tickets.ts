@@ -19,27 +19,35 @@ export async function generateTicketForRegistration(registrationId: string, even
 
   const ticketMetadata = { eventId, userId };
 
-  const [ticket] = await db
-    .insert(tickets)
-    .values({
-      registrationId,
-      code: ticketCode,
-      qrCode: qrDataUrl,
-      signature,
-      status: "active",
-      metadata: ticketMetadata,
-    })
-    .onConflictDoUpdate({
-      target: [tickets.registrationId],
-      set: {
-        qrCode: qrDataUrl,
-        status: "active",
-        issuedAt,
-        signature,
-        metadata: ticketMetadata,
-      },
-    })
-    .returning();
+  const [existingTicket] = await db
+    .select()
+    .from(tickets)
+    .where(eq(tickets.registrationId, registrationId))
+    .limit(1);
+
+  const ticket = existingTicket
+    ? (await db
+        .update(tickets)
+        .set({
+          qrCode: qrDataUrl,
+          status: "active",
+          issuedAt,
+          signature,
+          metadata: ticketMetadata,
+        })
+        .where(eq(tickets.id, existingTicket.id))
+        .returning())[0]
+    : (await db
+        .insert(tickets)
+        .values({
+          registrationId,
+          code: ticketCode,
+          qrCode: qrDataUrl,
+          signature,
+          status: "active",
+          metadata: ticketMetadata,
+        })
+        .returning())[0];
 
   await db
     .update(registrations)

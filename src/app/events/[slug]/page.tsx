@@ -163,17 +163,19 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                 <p className="mt-1 text-sm text-muted-foreground">{t("public.eventDetail.organizerDescription")}</p>
               </div>
 
-              <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-                <h3 className="text-lg font-semibold text-foreground">{t("public.eventDetail.quickLinksTitle")}</h3>
-                <div className="mt-4 space-y-2 text-sm">
-                  <Link href="/member/events" className="block text-primary hover:underline">
-                    {t("public.eventDetail.reviewRegistrations")}
-                  </Link>
-                  <Link href="/member/payments" className="block text-primary hover:underline">
-                    {t("public.eventDetail.checkPaymentHistory")}
-                  </Link>
+              {isAuthenticated && (
+                <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+                  <h3 className="text-lg font-semibold text-foreground">{t("public.eventDetail.quickLinksTitle")}</h3>
+                  <div className="mt-4 space-y-2 text-sm">
+                    <Link href="/member/events" className="block text-primary hover:underline">
+                      {t("public.eventDetail.reviewRegistrations")}
+                    </Link>
+                    <Link href="/member/payments" className="block text-primary hover:underline">
+                      {t("public.eventDetail.checkPaymentHistory")}
+                    </Link>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

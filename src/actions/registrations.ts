@@ -18,6 +18,7 @@ import { generateTicketForRegistration } from "@/lib/tickets";
 import { revalidatePath } from "next/cache";
 import { generateTicketCode } from "@/lib/utils";
 import { env } from "@/env";
+import { randomUUID } from "node:crypto";
 
 async function requireAuth() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -28,15 +29,27 @@ async function requireAuth() {
 // ─── Register for Event ────────────────────────────────────────────────────────
 
 export async function registerForEvent(input: unknown) {
-  const user = await requireAuth();
+  let sessionUser: { id: string; name: string; email: string } | null = null;
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    sessionUser = session?.user ?? null;
+  } catch (error) {
+    console.error("Session lookup failed during phone-first registration", error);
+    sessionUser = null;
+  }
   const validated = createRegistrationSchema.parse(input);
   const eventId = validated.eventId;
+  const normalizedContactPhone = validated.contactPhone.trim();
 
   // Rate limiting
   const headersList = await headers();
   const ip = headersList.get("x-forwarded-for") ?? "anonymous";
-  const { success } = await registrationRatelimit.limit(ip);
-  if (!success) throw new Error("Too many requests. Please try again later.");
+  try {
+    const { success } = await registrationRatelimit.limit(ip);
+    if (!success) throw new Error("Too many requests. Please try again later.");
+  } catch (error) {
+    console.error("Registration rate limit unavailable, continuing without enforcement", error);
+  }
 
   // Check event exists and is published
   const [event] = await db
@@ -52,12 +65,51 @@ export async function registerForEvent(input: unknown) {
     throw new Error("REGISTRATION_CLOSED_EVENT_EXPIRED");
   }
 
+  const [userByPhone] = await db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      phone: users.phone,
+    })
+    .from(users)
+    .where(eq(users.phone, normalizedContactPhone))
+    .limit(1);
+
+  const attendee = sessionUser
+    ? {
+      id: sessionUser.id,
+      name: sessionUser.name,
+      email: sessionUser.email,
+      phone: userByPhone?.phone ?? normalizedContactPhone,
+    }
+    : userByPhone ?? {
+      id: `guest_${randomUUID()}`,
+      name: `Invitado ${normalizedContactPhone.slice(-4)}`,
+      email: `guest+${normalizedContactPhone.replace(/\D/g, "")}-${randomUUID().slice(0, 8)}@guest.encuentro.local`,
+      phone: normalizedContactPhone,
+    };
+
+  if (!sessionUser && !userByPhone) {
+    await db.insert(users).values({
+      id: attendee.id,
+      name: attendee.name,
+      email: attendee.email,
+      phone: attendee.phone,
+      emailVerified: false,
+      role: "member",
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  }
+
   // Check if already registered
   const [existing] = await db
     .select()
     .from(registrations)
     .where(
-      and(eq(registrations.eventId, eventId), eq(registrations.userId, user.id))
+      and(eq(registrations.eventId, eventId), eq(registrations.userId, attendee.id))
     )
     .limit(1);
 
@@ -87,22 +139,19 @@ export async function registerForEvent(input: unknown) {
     }
   }
 
-  // Upsert registration
-  const normalizedContactPhone = validated.contactPhone.trim();
-
   await db
     .update(users)
     .set({
       phone: normalizedContactPhone,
       updatedAt: new Date(),
     })
-    .where(eq(users.id, user.id));
+    .where(eq(users.id, attendee.id));
 
   const [registration] = await db
     .insert(registrations)
     .values({
       eventId,
-      userId: user.id,
+      userId: attendee.id,
       status,
       contactPhone: normalizedContactPhone,
     })
@@ -118,12 +167,18 @@ export async function registerForEvent(input: unknown) {
 
   if (status === "registered") {
     // generate ticket (idempotent)
-    await generateTicketForRegistration(registration.id, eventId, user.id);
+    await generateTicketForRegistration(registration.id, eventId, attendee.id);
   }
+
+  const [issuedTicket] = await db
+    .select({ code: tickets.code })
+    .from(tickets)
+    .where(eq(tickets.registrationId, registration.id))
+    .limit(1);
 
   // Create notification for attendee
   await db.insert(notifications).values({
-    userId: user.id,
+    userId: attendee.id,
     type: "registration_confirmed",
     title: "Registration Confirmed!",
     message: `You're registered for "${event.title}"`,
@@ -131,7 +186,7 @@ export async function registerForEvent(input: unknown) {
   });
 
   // Invalidate unread count cache
-  await invalidateCache(CACHE_KEYS.userNotificationsCount(user.id));
+  await invalidateCache(CACHE_KEYS.userNotificationsCount(attendee.id));
 
   // Notify organizer and admin roles about a new registration
   if (status === "registered") {
@@ -142,18 +197,18 @@ export async function registerForEvent(input: unknown) {
 
     const recipientIds = new Set<string>();
 
-    if (event.organizerId && event.organizerId !== user.id) {
+    if (event.organizerId && event.organizerId !== attendee.id) {
       recipientIds.add(event.organizerId);
     }
 
     for (const adminUser of adminUsers) {
-      if (adminUser.id !== user.id) {
+      if (adminUser.id !== attendee.id) {
         recipientIds.add(adminUser.id);
       }
     }
 
     const registrationAlertTitle = "Nuevo registro en evento";
-    const registrationAlertMessage = `${user.name} se registró en \"${event.title}\".`;
+    const registrationAlertMessage = `${attendee.name} se registró en \"${event.title}\".`;
 
     if (recipientIds.size > 0) {
       const alertPayload = Array.from(recipientIds).map((recipientId) => ({
@@ -165,30 +220,38 @@ export async function registerForEvent(input: unknown) {
           eventId,
           eventTitle: event.title,
           registrationId: registration.id,
-          attendeeId: user.id,
+          attendeeId: attendee.id,
+          attendeePhone: normalizedContactPhone,
         },
       }));
 
       await db.insert(notifications).values(alertPayload);
 
-      await Promise.all([
-        ...Array.from(recipientIds).map((recipientId) =>
+      await Promise.all(
+        Array.from(recipientIds).map((recipientId) =>
           invalidateCache(CACHE_KEYS.userNotificationsCount(recipientId))
-        ),
-        ...Array.from(recipientIds).map((recipientId) =>
-          pusherServer.trigger(
-            PUSHER_CHANNELS.userNotifications(recipientId),
-            PUSHER_EVENTS.notificationCreated,
-            {
-              title: registrationAlertTitle,
-              message: registrationAlertMessage,
-              type: "event_updated",
-              eventId,
-              registrationId: registration.id,
-            }
+        )
+      );
+
+      try {
+        await Promise.all(
+          Array.from(recipientIds).map((recipientId) =>
+            pusherServer.trigger(
+              PUSHER_CHANNELS.userNotifications(recipientId),
+              PUSHER_EVENTS.notificationCreated,
+              {
+                title: registrationAlertTitle,
+                message: registrationAlertMessage,
+                type: "event_updated",
+                eventId,
+                registrationId: registration.id,
+              }
+            )
           )
-        ),
-      ]);
+        );
+      } catch (error) {
+        console.error("Realtime organizer notification failed", error);
+      }
     }
   }
 
@@ -203,17 +266,32 @@ export async function registerForEvent(input: unknown) {
       )
     );
 
-  await pusherServer.trigger(
-    PUSHER_CHANNELS.event(eventId),
-    PUSHER_EVENTS.attendeeCountUpdated,
-    { eventId, count: newCount }
-  );
+  try {
+    await pusherServer.trigger(
+      PUSHER_CHANNELS.event(eventId),
+      PUSHER_EVENTS.attendeeCountUpdated,
+      { eventId, count: newCount }
+    );
+  } catch (error) {
+    console.error("Realtime attendee count push failed", error);
+  }
 
   // Update Redis attendee count
-  await redis.set(CACHE_KEYS.eventAttendeesCount(eventId), newCount);
+  try {
+    await redis.set(CACHE_KEYS.eventAttendeesCount(eventId), newCount);
+  } catch (error) {
+    console.error("Redis attendee count update failed", error);
+  }
 
   revalidatePath(`/events/${event.slug}`);
-  return { success: true, status, registration };
+  return {
+    success: true,
+    status,
+    registration,
+    ticketCode: issuedTicket?.code ?? null,
+    requiresAccountCompletion: !sessionUser,
+    matchedExistingPhoneUser: !sessionUser && Boolean(userByPhone),
+  };
 }
 
 // ─── Cancel Registration ──────────────────────────────────────────────────────

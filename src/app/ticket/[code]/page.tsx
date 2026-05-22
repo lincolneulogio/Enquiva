@@ -4,14 +4,18 @@ import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { formatEventDate } from "@/lib/utils";
 import { getI18n } from "@/lib/i18n/server";
+import Link from "next/link";
 
 interface TicketPublicPageProps {
   params: Promise<{ code: string }>;
+  searchParams: Promise<{ from?: string }>;
 }
 
-export default async function TicketPublicPage({ params }: TicketPublicPageProps) {
+export default async function TicketPublicPage({ params, searchParams }: TicketPublicPageProps) {
   const { t } = await getI18n();
   const { code } = await params;
+  const query = await searchParams;
+  const showAccountPrompt = query.from === "phone-signup";
 
   const [record] = await db
     .select({ ticket: tickets, registration: registrations, event: events })
@@ -51,6 +55,27 @@ export default async function TicketPublicPage({ params }: TicketPublicPageProps
         <div className="mt-8 rounded-2xl border border-dashed border-border bg-background/60 p-4 text-sm text-muted-foreground">
           {t("public.ticket.showToOrganizer")}
         </div>
+
+        {showAccountPrompt && (
+          <div className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+            <p className="text-sm font-semibold text-foreground">{t("public.ticket.accountPromptTitle")}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t("public.ticket.accountPromptDescription")}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link
+                href="/register"
+                className="inline-flex items-center rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                {t("public.ticket.createAccountCta")}
+              </Link>
+              <Link
+                href="/login"
+                className="inline-flex items-center rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-muted"
+              >
+                {t("public.ticket.signInCta")}
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
