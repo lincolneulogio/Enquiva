@@ -248,3 +248,39 @@
     transform: translateY(-4px);
   }
 }
+
+/* Premium button glow */
+.fe-btn-glow {
+  position: relative;
+  isolation: isolate;
+}
+.fe-btn-glow::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.3), hsl(var(--accent) / 0.2), hsl(var(--primary) / 0.3));
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.fe-btn-glow:hover::after {
+  opacity: 1;
+}
+
+/* Glass card utility */
+.fe-glass {
+  background: hsl(var(--card) / 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid hsl(var(--border) / 0.7);
+}
+
+/* Smooth page transitions */
+main {
+  animation: fe-fade-in 0.35s ease-out;
+}
+@keyframes fe-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

@@ -260,14 +260,14 @@ export function TransportRoutesManager({
 
                         <div>
                             <label className="mb-1.5 block text-sm font-medium text-foreground">
-                                {t("transport.manager.seatPrice")}
+                                Precio por asiento (S/.) * (Ida y Vuelta)
                             </label>
                             <input
                                 type="number"
                                 min={0}
                                 step="0.50"
                                 className={inputClass}
-                                placeholder={t("transport.manager.pricePlaceholder")}
+                                placeholder="Ej: 15.00 (Incluye ida y vuelta)"
                                 value={form.pricePerSeat}
                                 onChange={(e) => setForm({ ...form, pricePerSeat: e.target.value })}
                             />
@@ -377,7 +377,7 @@ export function TransportRoutesManager({
                                                 </span>
                                             )}
                                             <span className="font-medium text-foreground">
-                                                S/. {Number(route.pricePerSeat).toFixed(2)} / {t("transport.manager.perSeat")}
+                                                S/. {Number(route.pricePerSeat).toFixed(2)} / Asiento (Ida y Vuelta)
                                             </span>
                                         </div>
 

@@ -217,6 +217,34 @@ export async function toggleRouteActive(routeId: string, isActive: boolean) {
     return { success: true };
 }
 
+export async function toggleEventTransport(eventId: string, hasTransport: boolean) {
+    const user = await requireOrganizerOrHigher();
+
+    // Check permission
+    const [event] = await db
+        .select({ id: events.id, organizerId: events.organizerId })
+        .from(events)
+        .where(eq(events.id, eventId))
+        .limit(1);
+
+    if (!event) throw new Error("Evento no encontrado");
+    if (
+        !["admin", "super_admin"].includes(user.role ?? "") &&
+        event.organizerId !== user.id
+    )
+        throw new Error("No tienes permiso para gestionar este evento");
+
+    await db
+        .update(events)
+        .set({ hasTransport, updatedAt: new Date() })
+        .where(eq(events.id, eventId));
+
+    revalidatePath(`/organizer/transport`);
+    revalidatePath(`/organizer/events/${eventId}`);
+    revalidatePath(`/admin/transport`);
+    return { success: true };
+}
+
 // ─── Member: Reservar transporte ─────────────────────────────────────────────
 
 export async function getMyTransportBookings() {

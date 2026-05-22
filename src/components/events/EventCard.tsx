@@ -26,10 +26,10 @@ export async function EventCard({ event, className, categoryMap }: EventCardProp
       data-aos="fade-up"
       data-aos-duration="650"
       className={cn(
-        "flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-card/95 shadow-sm transition-all duration-300",
+        "flex h-full flex-col overflow-hidden rounded-3xl border border-border/70 bg-card/60 shadow-sm backdrop-blur-sm transition-all duration-500",
         isEventExpired
           ? "cursor-not-allowed border-destructive/25 bg-muted/40"
-          : "hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl",
+          : "hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.3)]",
         className
       )}
     >
@@ -46,8 +46,9 @@ export async function EventCard({ event, className, categoryMap }: EventCardProp
             )}
           />
         ) : (
-          <div className="relative flex h-full items-center justify-center bg-gradient-to-br from-secondary to-muted/80">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_30%,hsl(var(--primary)/0.16),transparent_40%),radial-gradient(circle_at_80%_70%,hsl(var(--accent)/0.14),transparent_45%)]" />
+          <div className="relative flex h-full items-center justify-center bg-gradient-to-br from-secondary via-secondary to-muted/80">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_30%,hsl(var(--primary)/0.2),transparent_40%),radial-gradient(circle_at_80%_70%,hsl(var(--accent)/0.18),transparent_45%)]" />
+            <div className="absolute inset-0 animate-pulse bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/0.04),transparent_60%)]" />
             <span className="relative text-5xl opacity-30">✦</span>
           </div>
         )}
@@ -154,9 +155,9 @@ export async function EventCard({ event, className, categoryMap }: EventCardProp
 
         <div className="mt-3 border-t border-border/70 pt-3">
           {!isEventExpired ? (
-            <div className="inline-flex w-full items-center justify-between rounded-xl border border-primary/20 bg-primary/[0.10] px-3.5 py-2 text-sm transition-colors group-hover:bg-primary/[0.12]">
+            <div className="inline-flex w-full items-center justify-between rounded-xl border border-primary/20 bg-gradient-to-r from-primary/[0.10] to-primary/[0.06] px-3.5 py-2 text-sm transition-all duration-300 group-hover:from-primary/[0.14] group-hover:to-primary/[0.08] group-hover:shadow-sm">
               <span className="font-medium text-primary">{t("common.view")}</span>
-              <ArrowUpRight className="h-4 w-4 text-primary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              <ArrowUpRight className="h-4 w-4 text-primary transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </div>
           ) : (
             <div className="inline-flex w-full items-center justify-center rounded-xl border border-destructive/20 bg-destructive/[0.08] px-3.5 py-2 text-sm font-medium text-destructive/90">

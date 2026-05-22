@@ -6,13 +6,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createEventSchema, type CreateEventInput } from "@/lib/validations";
 import { createEvent, updateEvent } from "@/actions/events";
+import { getActivePaymentMethods, setEventPaymentMethods } from "@/actions/payment-methods";
 import { UploadDropzone } from "@/lib/uploadthing/components";
 import { toast } from "sonner";
-import { Loader2, ImageIcon, MapPin, Video, Star, Bus } from "lucide-react";
+import { Loader2, ImageIcon, MapPin, Video, Star, Bus, Smartphone, QrCode, Wallet } from "lucide-react";
 import Image from "next/image";
 import type { Event } from "@/lib/db/schema";
 import type { FieldErrors } from "react-hook-form";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+import { getRoutesByEvent } from "@/actions/transport";
+import { TransportRoutesManager } from "@/components/dashboard/TransportRoutesManager";
 
 interface CategoryOption {
     slug: string;
@@ -66,8 +69,12 @@ export function EventForm({
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [coverImage, setCoverImage] = useState<string | null>(event?.coverImage ?? null);
+    const [allPaymentMethods, setAllPaymentMethods] = useState<Array<{ id: string; type: string; label: string; holderName: string }>>([]);
+    const [selectedPaymentMethodIds, setSelectedPaymentMethodIds] = useState<string[]>([]);
     const [highlightedField, setHighlightedField] = useState<keyof CreateEventInput | null>(null);
     const highlightTimeoutRef = useRef<number | null>(null);
+    const [routes, setRoutes] = useState<any[]>([]);
+    const [loadingRoutes, setLoadingRoutes] = useState(false);
 
     const getLocalizedValidationMessage = (message?: string) => {
         if (!message) return t("events.form.requiredFieldsError");
@@ -110,6 +117,50 @@ export function EventForm({
 
     const isVirtual = watch("isVirtual");
     const hasTransport = watch("hasTransport");
+
+    useEffect(() => {
+        (async () => {
+            const methods = await getActivePaymentMethods();
+            setAllPaymentMethods(methods);
+        })();
+    }, []);
+
+    useEffect(() => {
+        if (!event?.id || !hasTransport) return;
+        
+        let active = true;
+        (async () => {
+            setLoadingRoutes(true);
+            try {
+                const fetched = await getRoutesByEvent(event.id);
+                if (active) {
+                    setRoutes(fetched.map((r) => ({
+                        ...r,
+                        departureTime: new Date(r.departureTime),
+                        returnTime: r.returnTime ? new Date(r.returnTime) : null,
+                        bookedSeats: Number(r.bookedSeats),
+                    })));
+                }
+            } catch (err) {
+                console.error("Failed to load routes", err);
+            } finally {
+                if (active) setLoadingRoutes(false);
+            }
+        })();
+
+        return () => {
+            active = false;
+        };
+    }, [event?.id, hasTransport]);
+
+    useEffect(() => {
+        if (!event?.id) return;
+        (async () => {
+            const { getEventPaymentMethods } = await import("@/actions/payment-methods");
+            const selected = await getEventPaymentMethods(event.id!);
+            setSelectedPaymentMethodIds(selected.map((m) => m.id));
+        })();
+    }, [event?.id]);
 
     useEffect(() => {
         if (event) return;
@@ -188,6 +239,11 @@ export function EventForm({
                     : await createEvent(payload);
 
                 if (result.success) {
+                    const savedEventId = event?.id ?? result.event?.id;
+                    if (savedEventId) {
+                        await setEventPaymentMethods(savedEventId, selectedPaymentMethodIds);
+                    }
+
                     if (!event) {
                         try {
                             localStorage.removeItem(EVENT_DRAFT_STORAGE_KEY);
@@ -233,7 +289,7 @@ export function EventForm({
 
     const coverDropzoneAppearance = {
         container:
-            "h-32 w-full rounded-xl border border-dashed border-primary/25 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-3 transition-colors hover:border-primary/40 hover:from-primary/15",
+            "h-48 w-full rounded-xl border border-dashed border-primary/25 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-3 transition-colors hover:border-primary/40 hover:from-primary/15",
         uploadIcon: "h-6 w-6 text-primary/80",
         label: "text-sm font-semibold text-foreground",
         allowedContent: "text-[11px] text-muted-foreground",
@@ -367,9 +423,9 @@ export function EventForm({
                                 type="number"
                                 {...register("capacity", {
                                     setValueAs: (value) => {
-                                        if (value === "" || value === null || value === undefined) return undefined;
+                                        if (value === "" || value === null || value === undefined) return null;
                                         const num = Number(value);
-                                        return Number.isNaN(num) ? undefined : num;
+                                        return Number.isNaN(num) ? null : num;
                                     },
                                 })}
                                 placeholder={t("events.form.capacityPlaceholder")}
@@ -410,6 +466,81 @@ export function EventForm({
                             {t("events.form.priceHelp")}
                         </p>
                     </div>
+
+                    {allPaymentMethods.length > 0 && watch("price") && Number(watch("price")) > 0 && (
+                        <div className="rounded-xl border border-border p-4 space-y-3">
+                            <h3 className="text-sm font-semibold text-foreground">{t("events.form.paymentMethodsTitle")}</h3>
+                            <p className="text-xs text-muted-foreground">{t("events.form.paymentMethodsHelp")}</p>
+                            <div className="flex flex-wrap gap-2">
+                                {allPaymentMethods.map((pm) => {
+                                    const selected = selectedPaymentMethodIds.includes(pm.id);
+                                    const IconMap: Record<string, React.ComponentType<{ className?: string }>> = { yape: Smartphone, plin: QrCode, cash: Wallet };
+                                    const PmIcon = IconMap[pm.type] ?? Wallet;
+                                    return (
+                                        <button
+                                            key={pm.id}
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedPaymentMethodIds((prev) =>
+                                                    prev.includes(pm.id)
+                                                        ? prev.filter((id) => id !== pm.id)
+                                                        : [...prev, pm.id]
+                                                );
+                                            }}
+                                            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
+                                                selected
+                                                    ? "border-primary bg-primary/10 text-primary"
+                                                    : "border-border bg-background text-foreground hover:bg-muted"
+                                            }`}
+                                        >
+                                            <PmIcon className="h-4 w-4 shrink-0" />
+                                            <span className="truncate">{pm.label}</span>
+                                            <span className="text-xs text-muted-foreground">({pm.holderName})</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {hasTransport && (
+                        <div className="mt-6 space-y-4">
+                            {event?.id ? (
+                                loadingRoutes ? (
+                                    <div className="rounded-2xl border border-border bg-card p-8 flex items-center justify-center">
+                                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                        <span className="ml-2 text-sm text-muted-foreground">Cargando rutas de transporte...</span>
+                                    </div>
+                                ) : (
+                                    <div className="rounded-2xl border border-border bg-card p-6">
+                                        <TransportRoutesManager
+                                            eventId={event.id}
+                                            initialRoutes={routes}
+                                        />
+                                    </div>
+                                )
+                            ) : (
+                                <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-6 space-y-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="rounded-xl bg-blue-500/10 p-2.5">
+                                            <Bus className="h-5 w-5 text-blue-500 animate-pulse" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-foreground">
+                                                Configuración de Rutas de Transporte
+                                            </h3>
+                                            <p className="text-xs text-muted-foreground">
+                                                El transporte para este evento quedará habilitado automáticamente.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="rounded-xl bg-background/50 border border-border/40 p-4 text-sm text-muted-foreground">
+                                        ✨ <strong>¡Excelente elección!</strong> Al guardar este nuevo evento, se creará su registro en la base de datos y podrás configurar y añadir todas las rutas de salida, horarios y precios inmediatamente desde la consola de transporte.
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <div className="space-y-6">
@@ -422,8 +553,8 @@ export function EventForm({
                                         src={coverImage}
                                         alt="Cover"
                                         width={400}
-                                        height={200}
-                                        className="h-40 w-full object-cover"
+                                        height={400}
+                                        className="h-96 w-full object-contain bg-muted"
                                     />
                                     <button
                                         type="button"
@@ -434,7 +565,7 @@ export function EventForm({
                                     </button>
                                 </div>
                             ) : (
-                                <div className="flex h-72 flex-col items-center justify-center gap-2 px-4 text-center text-muted-foreground">
+                                <div className="flex h-96 flex-col items-center justify-center gap-2 px-4 text-center text-muted-foreground">
                                     <div className="rounded-full bg-primary/10 p-2.5">
                                         <ImageIcon className="h-5 w-5 text-primary animate-pulse" />
                                     </div>

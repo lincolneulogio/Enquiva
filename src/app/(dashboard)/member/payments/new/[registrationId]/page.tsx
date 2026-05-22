@@ -1,9 +1,13 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Bus, Ticket, CreditCard, Calendar, MapPin } from "lucide-react";
 import { getPaymentCheckoutContext } from "@/actions/payments";
+import { getEventPaymentMethods } from "@/actions/payment-methods";
 import { getI18n } from "@/lib/i18n/server";
 import { ManualPaymentMethodForm } from "@/components/payments/ManualPaymentMethodForm";
 import { notFound, redirect } from "next/navigation";
+import { db } from "@/lib/db";
+import { transportBookings, transportRoutes } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 interface Props {
   params: Promise<{ registrationId: string }>;
@@ -22,15 +26,44 @@ export default async function MemberPaymentCheckoutPage({ params }: Props) {
 
   const { registration, event, payment } = data;
 
-  const price = Number(event.price);
-  if (!price || price <= 0) {
+  // Determine amount to pay
+  const paymentAmount = payment ? Number(payment.amount) : Number(event.price);
+  if (paymentAmount <= 0) {
     redirect("/member/tickets");
   }
 
+  let transportDetails = null;
+  if (payment?.transportBookingId) {
+    try {
+      const [booking] = await db
+        .select({
+          seats: transportBookings.seats,
+          routeName: transportRoutes.name,
+          pricePerSeat: transportRoutes.pricePerSeat,
+          departurePoint: transportRoutes.departurePoint,
+        })
+        .from(transportBookings)
+        .innerJoin(transportRoutes, eq(transportBookings.routeId, transportRoutes.id))
+        .where(eq(transportBookings.id, payment.transportBookingId))
+        .limit(1);
+      
+      if (booking) {
+        transportDetails = booking;
+      }
+    } catch (err) {
+      console.error("Failed to load transport details for checkout:", err);
+    }
+  }
+
   const isAlreadyPaid = payment && payment.status === "approved";
+  const eventMethods = await getEventPaymentMethods(event.id);
+
+  // Dynamic breakdown prices
+  const eventPrice = Number(event.price);
+  const transportPrice = transportDetails ? Number(transportDetails.pricePerSeat) * transportDetails.seats : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-2xl mx-auto">
       <div>
         <Link
           href="/member/payments"
@@ -39,19 +72,69 @@ export default async function MemberPaymentCheckoutPage({ params }: Props) {
           <ArrowLeft className="h-3.5 w-3.5" />
           {t("dashboard.member.payments")}
         </Link>
-        <h1 className="mt-3 font-display text-3xl font-semibold text-foreground">
+        <h1 className="mt-3 font-display text-3xl font-bold text-foreground">
           {t("payments.checkout.title")}
         </h1>
-        <p className="mt-1 text-muted-foreground">
+        <p className="mt-1 text-muted-foreground text-sm">
           {t("payments.checkout.subtitle", { event: event.title })}
         </p>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <h2 className="font-semibold text-foreground">{event.title}</h2>
-        <p className="mt-1 text-2xl font-bold text-primary">
-          S/ {price.toFixed(2)}
-        </p>
+      {/* Payment Breakdown Card */}
+      <div className="fe-glass border border-border bg-card rounded-3xl p-6 shadow-sm space-y-4">
+        <h2 className="font-semibold text-foreground text-lg flex items-center gap-2 pb-3 border-b border-border/85">
+          <CreditCard className="h-5 w-5 text-primary" />
+          Resumen de tu Inscripción Consolidada
+        </h2>
+        
+        <div className="space-y-3.5">
+          {/* Event Entry */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex gap-2.5">
+              <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                <Ticket className="h-4.5 w-4.5" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground text-sm">{event.title}</h3>
+                <p className="text-xs text-muted-foreground">Entrada General al Evento</p>
+              </div>
+            </div>
+            <span className="font-semibold text-foreground text-sm">
+              {eventPrice > 0 ? `S/ ${eventPrice.toFixed(2)}` : "Gratis"}
+            </span>
+          </div>
+
+          {/* Transport Booking (if applicable) */}
+          {transportDetails && (
+            <div className="flex items-start justify-between gap-4 pt-3.5 border-t border-border/50 animate-fadeIn">
+              <div className="flex gap-2.5">
+                <div className="h-9 w-9 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0 mt-0.5">
+                  <Bus className="h-4.5 w-4.5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground text-sm">Servicio de Transporte Ida y Vuelta</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Ruta: {transportDetails.routeName} ({transportDetails.seats} asiento{transportDetails.seats > 1 ? "s" : ""})
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                    <MapPin className="h-3 w-3 shrink-0" /> Punto de Partida: {transportDetails.departurePoint}
+                  </p>
+                </div>
+              </div>
+              <span className="font-semibold text-foreground text-sm">
+                S/ {transportPrice.toFixed(2)}
+              </span>
+            </div>
+          )}
+
+          {/* Total Consolidated */}
+          <div className="flex items-center justify-between pt-4 border-t border-dashed border-border/80">
+            <span className="font-bold text-foreground text-base">Total Consolidado a Transferir:</span>
+            <span className="text-xl font-bold text-primary bg-primary/5 px-4 py-1.5 rounded-xl border border-primary/10">
+              S/ {paymentAmount.toFixed(2)}
+            </span>
+          </div>
+        </div>
       </div>
 
       {isAlreadyPaid ? (
@@ -67,8 +150,9 @@ export default async function MemberPaymentCheckoutPage({ params }: Props) {
           registrationId={registration.id}
           eventTitle={event.title}
           eventSlug={event.slug}
-          defaultAmount={price}
+          defaultAmount={paymentAmount}
           existingMethod={payment?.method ?? null}
+          eventMethods={eventMethods}
         />
       )}
     </div>

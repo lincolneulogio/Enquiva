@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { registrations, events, notifications, users, tickets, payments } from "@/lib/db/schema";
+import { registrations, events, notifications, users, tickets, payments, transportRoutes, transportBookings } from "@/lib/db/schema";
 import { auth } from "@/lib/auth";
 import { createRegistrationSchema, checkInSchema } from "@/lib/validations";
 import { pusherServer, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/server";
@@ -12,7 +12,7 @@ import {
   registrationRatelimit,
 } from "@/lib/redis";
 import { headers } from "next/headers";
-import { eq, and, count, inArray } from "drizzle-orm";
+import { eq, and, count, inArray, sql } from "drizzle-orm";
 import { generateTicketForRegistration } from "@/lib/tickets";
 import { revalidatePath } from "next/cache";
 
@@ -118,7 +118,59 @@ export async function registerForEvent(input: unknown) {
     })
     .returning();
 
-  const isPaid = event.price && Number(event.price) > 0;
+  const eventPrice = event.price ? Number(event.price) : 0;
+  let transportPrice = 0;
+  let transportBooking = null;
+
+  if (validated.routeId) {
+    const seats = validated.seats || 1;
+    const [route] = await db
+      .select()
+      .from(transportRoutes)
+      .where(and(eq(transportRoutes.id, validated.routeId), eq(transportRoutes.isActive, true)))
+      .limit(1);
+
+    if (!route) throw new Error("La ruta de transporte seleccionada no está disponible.");
+
+    // Check seats availability
+    const [{ bookedCount }] = await db
+      .select({
+        bookedCount: sql<number>`COALESCE(SUM(seats), 0)`,
+      })
+      .from(transportBookings)
+      .where(
+        and(
+          eq(transportBookings.routeId, validated.routeId),
+          sql`${transportBookings.status} != 'cancelled'`
+        )
+      );
+
+    const available = route.totalSeats - Number(bookedCount);
+    if (seats > available) {
+      throw new Error(`Solo quedan ${available} asientos disponibles en la ruta "${route.name}".`);
+    }
+
+    transportPrice = Number(route.pricePerSeat) * seats;
+
+    // Create transport booking record
+    const bookingStatus = (eventPrice + transportPrice > 0) ? "pending" : "confirmed";
+
+    const [insertedBooking] = await db
+      .insert(transportBookings)
+      .values({
+        routeId: validated.routeId,
+        registrationId: registration.id,
+        userId: attendee.id,
+        seats,
+        status: bookingStatus,
+        notes: validated.notes ?? null,
+      })
+      .returning();
+    transportBooking = insertedBooking;
+  }
+
+  const totalAmount = eventPrice + transportPrice;
+  const isPaid = totalAmount > 0;
   let requiresPayment = false;
 
   if (isPaid) {
@@ -126,9 +178,13 @@ export async function registerForEvent(input: unknown) {
     await db.insert(payments).values({
       registrationId: registration.id,
       userId: attendee.id,
-      amount: event.price!.toString(),
+      amount: totalAmount.toFixed(2),
+      transportBookingId: transportBooking?.id ?? null,
       currency: "PEN",
       status: "pending",
+      notes: transportBooking 
+        ? `Inscripción consolidada con servicio de transporte (${validated.seats} asiento${validated.seats && validated.seats > 1 ? "s" : ""})`
+        : `Inscripción al evento`,
     });
   } else {
     await generateTicketForRegistration(registration.id, eventId, attendee.id);
@@ -318,8 +374,8 @@ export async function cancelRegistration(registrationId: string) {
 
 export async function checkInAttendee(input: unknown) {
   const user = await requireAuth();
-  if (user.role !== "organizer" && user.role !== "super_admin") {
-    throw new Error("Only organizers can check in attendees");
+  if (user.role !== "organizer" && user.role !== "super_admin" && user.role !== "admin") {
+    throw new Error("Only organizers or administrators can check in attendees");
   }
 
   const validated = checkInSchema.parse(input);
@@ -374,7 +430,7 @@ export async function getUserRegistrations() {
 
 export async function getEventAttendees(eventId: string) {
   const user = await requireAuth();
-  if (user.role !== "organizer" && user.role !== "super_admin") {
+  if (user.role !== "organizer" && user.role !== "super_admin" && user.role !== "admin") {
     throw new Error("Unauthorized");
   }
 

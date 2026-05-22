@@ -199,6 +199,41 @@ export async function updatePaymentStatus(input: UpdatePaymentStatusInput) {
     .where(eq(payments.id, validated.paymentId))
     .returning();
 
+  if (payment.transportBookingId) {
+    const bookingStatus = validated.status === "approved" ? "confirmed" : validated.status === "rejected" ? "cancelled" : "pending";
+    await db
+      .update(transportBookings)
+      .set({
+        status: bookingStatus,
+        updatedAt: new Date(),
+      })
+      .where(eq(transportBookings.id, payment.transportBookingId));
+
+    if (validated.status === "approved") {
+      const [booking] = await db
+        .select({ routeId: transportBookings.routeId })
+        .from(transportBookings)
+        .where(eq(transportBookings.id, payment.transportBookingId))
+        .limit(1);
+
+      if (booking) {
+        const [route] = await db
+          .select({ name: transportRoutes.name })
+          .from(transportRoutes)
+          .where(eq(transportRoutes.id, booking.routeId))
+          .limit(1);
+
+        await db.insert(notifications).values({
+          userId: payment.userId,
+          type: "payment_status_updated",
+          title: "¡Reserva de transporte confirmada!",
+          message: `Tu reserva de transporte para "${route?.name ?? "la ruta"}" fue aprobada y confirmada.`,
+          metadata: { paymentId: payment.id, bookingId: payment.transportBookingId },
+        });
+      }
+    }
+  }
+
   await db.insert(notifications).values({
     userId: payment.userId,
     type: "payment_status_updated",

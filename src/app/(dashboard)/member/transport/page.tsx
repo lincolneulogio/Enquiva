@@ -4,6 +4,7 @@ import { getMemberTransportOptions, getMyTransportBookings } from "@/actions/tra
 import { TransportBookingForm, CancelTransportButton } from "@/components/tickets/TransportBookingForm";
 import { getI18n } from "@/lib/i18n/server";
 import { getPluralLabel } from "@/lib/i18n/core";
+import { getEventPaymentMethods } from "@/actions/payment-methods";
 
 export default async function MemberTransportPage() {
     const { t, locale } = await getI18n();
@@ -12,7 +13,18 @@ export default async function MemberTransportPage() {
         getMyTransportBookings(),
     ]);
 
-    const hasAnyRoute = options.some((o) => o.routes.length > 0);
+    // Fetch dynamic payment methods for each event option
+    const optionsWithPayments = await Promise.all(
+        options.map(async (eventItem) => {
+            const paymentMethods = await getEventPaymentMethods(eventItem.eventId);
+            return {
+                ...eventItem,
+                paymentMethods,
+            };
+        })
+    );
+
+    const hasAnyRoute = optionsWithPayments.some((o) => o.routes.length > 0);
 
     return (
         <div className="space-y-8">
@@ -23,7 +35,7 @@ export default async function MemberTransportPage() {
                 </p>
             </div>
 
-            {options.length === 0 && (
+            {optionsWithPayments.length === 0 && (
                 <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
                     <Ticket className="mx-auto h-10 w-10 text-muted-foreground/50" />
                     <p className="mt-4 font-medium text-foreground">{t("dashboard.member.noActiveEvents")}</p>
@@ -39,7 +51,7 @@ export default async function MemberTransportPage() {
                 </div>
             )}
 
-            {options.length > 0 && !hasAnyRoute && (
+            {optionsWithPayments.length > 0 && !hasAnyRoute && (
                 <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
                     <Bus className="mx-auto h-10 w-10 text-muted-foreground/50" />
                     <p className="mt-4 font-medium text-foreground">{t("dashboard.member.noRoutesAvailable")}</p>
@@ -55,7 +67,7 @@ export default async function MemberTransportPage() {
                 </div>
             )}
 
-            {options.map((eventItem) => (
+            {optionsWithPayments.map((eventItem) => (
                 <section key={eventItem.registrationId} className="space-y-3">
                     <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-primary" />
@@ -100,6 +112,7 @@ export default async function MemberTransportPage() {
                                             availableSeats: route.availableSeats,
                                         }}
                                         registrationId={eventItem.registrationId}
+                                        paymentMethods={eventItem.paymentMethods}
                                     />
                                 )
                             )}

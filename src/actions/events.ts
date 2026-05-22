@@ -64,8 +64,8 @@ export async function getCategories(): Promise<Pick<Category, "slug" | "label" |
 
 async function requireOrganizer() {
   const user = await requireAuth();
-  if (user.role !== "organizer" && user.role !== "super_admin") {
-    throw new Error("Only organizers can perform this action");
+  if (user.role !== "organizer" && user.role !== "super_admin" && user.role !== "admin") {
+    throw new Error("Only organizers or administrators can perform this action");
   }
   return user;
 }
@@ -110,7 +110,7 @@ export async function updateEvent(eventId: string, input: UpdateEventInput) {
     .limit(1);
 
   if (!existing) throw new Error("Event not found");
-  if (existing.organizerId !== user.id && user.role !== "super_admin") {
+  if (existing.organizerId !== user.id && user.role !== "super_admin" && user.role !== "admin") {
     throw new Error("Not authorized to edit this event");
   }
 
@@ -156,7 +156,7 @@ export async function deleteEvent(eventId: string) {
     .limit(1);
 
   if (!existing) throw new Error("Event not found");
-  if (existing.organizerId !== user.id && user.role !== "super_admin") {
+  if (existing.organizerId !== user.id && user.role !== "super_admin" && user.role !== "admin") {
     throw new Error("Not authorized to delete this event");
   }
 

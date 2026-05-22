@@ -275,6 +275,44 @@ export const scanLogs = pgTable("ticket_scan_logs", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (t) => [index("ticket_scan_logs_ticket_idx").on(t.ticketId)]);
 
+// ─── Payment Methods ───────────────────────────────────────────────────────────
+
+export const paymentMethodTypeEnum = pgEnum("payment_method_type", [
+  "yape",
+  "plin",
+  "cash",
+]);
+
+export const paymentMethods = pgTable("payment_methods", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  type: paymentMethodTypeEnum("type").notNull(),
+  label: text("label").notNull(),
+  qrCodeUrl: text("qr_code_url"),
+  phone: text("phone"),
+  holderName: text("holder_name").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const eventPaymentMethods = pgTable(
+  "event_payment_methods",
+  {
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    paymentMethodId: uuid("payment_method_id")
+      .notNull()
+      .references(() => paymentMethods.id, { onDelete: "cascade" }),
+  },
+  (t) => [
+    uniqueIndex("event_payment_methods_unique_idx").on(t.eventId, t.paymentMethodId),
+  ]
+);
+
+export type PaymentMethod = typeof paymentMethods.$inferSelect;
+export type NewPaymentMethod = typeof paymentMethods.$inferInsert;
+
 // ─── Transport ────────────────────────────────────────────────────────────────
 
 export const transportRoutes = pgTable(

@@ -164,6 +164,8 @@ export const createRegistrationSchema = z.object({
     z.string().regex(peruPhoneRegex, "Phone must follow format +519XXXXXXXX")
   ).optional(),
   notes: z.string().max(500).optional(),
+  routeId: z.string().uuid().optional().nullable(),
+  seats: z.number().int().min(1).max(5).optional().nullable(),
 });
 
 export const checkInSchema = z.object({
