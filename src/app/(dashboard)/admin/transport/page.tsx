@@ -9,8 +9,8 @@ import { Bus, Calendar, Route, Users, ArrowRight, ShieldAlert, CheckCircle2, Ale
 import { getI18n } from "@/lib/i18n/server";
 import { formatEventDateShort, eventStatusLabel, statusColor } from "@/lib/utils";
 import { getIntlLocale } from "@/lib/i18n/core";
-import { TablePagination } from "@/components/dashboard/TablePagination";
-import { ToggleEventTransportButton } from "@/components/dashboard/ToggleEventTransportButton";
+import { TablePagination } from "@/components/dashboard";
+import { ToggleEventTransportButton } from "@/components/dashboard";
 
 interface AdminTransportPageProps {
     searchParams: Promise<{

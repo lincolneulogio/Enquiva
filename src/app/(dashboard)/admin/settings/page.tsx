@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { User, Mail, Shield } from "lucide-react";
-import { BackfillPendingPaymentsButton } from "@/components/dashboard/BackfillPendingPaymentsButton";
+import { BackfillPendingPaymentsButton } from "@/components/dashboard";
 import { getI18n } from "@/lib/i18n/server";
 import { getRoleLabel } from "@/lib/i18n/core";
 

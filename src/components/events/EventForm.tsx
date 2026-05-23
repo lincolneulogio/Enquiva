@@ -16,7 +16,7 @@ import type { FieldErrors } from "react-hook-form";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { categoryLabel } from "@/lib/utils";
 import { getRoutesByEvent } from "@/actions/transport";
-import { TransportRoutesManager } from "@/components/dashboard/TransportRoutesManager";
+import { TransportRoutesManager } from "@/components/dashboard";
 
 interface CategoryOption {
     slug: string;

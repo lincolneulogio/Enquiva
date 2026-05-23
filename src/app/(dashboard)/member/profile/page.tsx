@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { ProfileEditor } from "@/components/dashboard/ProfileEditor";
+import { ProfileEditor } from "@/components/dashboard";
 import { getI18n } from "@/lib/i18n/server";
 
 export default async function MemberProfilePage() {

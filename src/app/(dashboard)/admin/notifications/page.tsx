@@ -1,9 +1,9 @@
 import { getNotificationsPaginated } from "@/actions/notifications";
 import { Bell } from "lucide-react";
-import { MarkAllReadButton } from "@/components/dashboard/MarkAllReadButton";
+import { MarkAllReadButton } from "@/components/dashboard";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
-import { TablePagination } from "@/components/dashboard/TablePagination";
+import { TablePagination } from "@/components/dashboard";
 
 interface AdminNotificationsPageProps {
     searchParams: Promise<{

@@ -7,7 +7,7 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { getRoutesByEvent } from "@/actions/transport";
-import { TransportRoutesManager } from "@/components/dashboard/TransportRoutesManager";
+import { TransportRoutesManager } from "@/components/dashboard";
 import { getI18n } from "@/lib/i18n/server";
 
 interface Props {

@@ -8,7 +8,7 @@ import { RoleSelector } from "./RoleSelector";
 import { DeleteUserButton } from "./DeleteUserButton";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale, getRoleLabel } from "@/lib/i18n/core";
-import { TablePagination } from "@/components/dashboard/TablePagination";
+import { TablePagination } from "@/components/dashboard";
 
 interface AdminUsersPageProps {
     searchParams: Promise<{

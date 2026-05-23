@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { updateRolePermission } from "@/actions/admin";
-import type { AppRole, Permission } from "@/lib/rbac";
+import type { AppRole, Permission } from "@/lib/auth/rbac";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 
 interface PermissionToggleCellProps {

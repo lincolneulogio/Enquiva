@@ -8,10 +8,10 @@ import { Calendar, Plus } from "lucide-react";
 import { DeleteEventButton } from "./DeleteEventButton";
 import { categoryLabel, eventStatusLabel, formatEventDateShort, statusColor } from "@/lib/utils";
 import { getI18n } from "@/lib/i18n/server";
-import { ExportDataPanel } from "@/components/dashboard/ExportDataPanel";
+import { ExportDataPanel } from "@/components/dashboard";
 import { Suspense } from "react";
 import { getCategories } from "@/actions/events";
-import { TablePagination } from "@/components/dashboard/TablePagination";
+import { TablePagination } from "@/components/dashboard";
 import { getExportEventOptions } from "@/actions/exports";
 
 const PAGE_SIZE = 10;

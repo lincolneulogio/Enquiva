@@ -7,12 +7,12 @@ import { Users } from "lucide-react";
 import { ManualCheckInButton } from "@/components/events/ManualCheckInButton";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale, getPluralLabel, getRegistrationStatusLabel } from "@/lib/i18n/core";
-import { ExportDataPanel } from "@/components/dashboard/ExportDataPanel";
+import { ExportDataPanel } from "@/components/dashboard";
 import { Suspense } from "react";
 import { getExportEventOptions } from "@/actions/exports";
 import { getCategories } from "@/actions/events";
 import { categoryLabel } from "@/lib/utils";
-import { TablePagination } from "@/components/dashboard/TablePagination";
+import { TablePagination } from "@/components/dashboard";
 
 const PAGE_SIZE = 10;
 

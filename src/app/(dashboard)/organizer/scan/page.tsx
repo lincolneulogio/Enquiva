@@ -1,4 +1,4 @@
-import { QRScannerView } from "@/components/dashboard/QRScannerView";
+import { QRScannerView } from "@/components/dashboard";
 import { getI18n } from "@/lib/i18n/server";
 
 export const metadata = {

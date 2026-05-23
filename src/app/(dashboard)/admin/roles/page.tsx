@@ -3,7 +3,7 @@ import { roles, users } from "@/lib/db/schema";
 import { count, eq } from "drizzle-orm";
 import { RoleEditor } from "./RoleEditor";
 import { Shield } from "lucide-react";
-import { SeedRolesButton } from "@/components/dashboard/SeedRolesButton";
+import { SeedRolesButton } from "@/components/dashboard";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";

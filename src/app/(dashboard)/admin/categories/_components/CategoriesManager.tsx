@@ -70,7 +70,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
 
     const onCreate = () => {
         if (!newItem.slug.trim() || !newItem.label.trim()) {
-            toast.toast.error(t("dashboard.admin.slugRequiredLabelRequired"));
+            toast.error(t("dashboard.admin.slugRequiredLabelRequired"));
             return;
         }
 
