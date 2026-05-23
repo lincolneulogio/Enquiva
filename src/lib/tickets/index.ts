@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { generateTicketCode } from "@/lib/utils";
 import { env } from "@/env";
 
-export async function generateTicketForRegistration(registrationId: string, eventId: string, userId: string) {
+export async function generateTicketForRegistration(registrationId: string, eventId: string, userId: string, tx: any = db) {
   const ticketCode = generateTicketCode();
   const appUrl = env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
   const issuedAt = new Date();
@@ -19,14 +19,14 @@ export async function generateTicketForRegistration(registrationId: string, even
 
   const ticketMetadata = { eventId, userId };
 
-  const [existingTicket] = await db
+  const [existingTicket] = await tx
     .select()
     .from(tickets)
     .where(eq(tickets.registrationId, registrationId))
     .limit(1);
 
   const ticket = existingTicket
-    ? (await db
+    ? (await tx
         .update(tickets)
         .set({
           qrCode: qrDataUrl,
@@ -37,7 +37,7 @@ export async function generateTicketForRegistration(registrationId: string, even
         })
         .where(eq(tickets.id, existingTicket.id))
         .returning())[0]
-    : (await db
+    : (await tx
         .insert(tickets)
         .values({
           registrationId,
@@ -49,7 +49,7 @@ export async function generateTicketForRegistration(registrationId: string, even
         })
         .returning())[0];
 
-  await db
+  await tx
     .update(registrations)
     .set({ qrCode: qrDataUrl })
     .where(eq(registrations.id, registrationId));

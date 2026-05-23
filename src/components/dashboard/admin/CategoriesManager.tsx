@@ -272,7 +272,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                                                 {COLOR_OPTIONS.map((option) => (
                                                     <option key={option.value} value={option.value}>
                                                         {t(option.labelKey)}
-                                                    </option>
+                                                     </option>
                                                 ))}
                                             </select>
                                         </div>

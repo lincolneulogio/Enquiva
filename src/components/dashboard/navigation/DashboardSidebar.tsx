@@ -25,7 +25,7 @@ import {
 import { signOut } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { normalizeRole, type AppRole } from "@/lib/rbac";
+import { normalizeRole, type AppRole } from "@/lib/auth/rbac";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 
 interface NavItem {

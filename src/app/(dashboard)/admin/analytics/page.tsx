@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AdminStatsCharts } from "@/components/dashboard/AdminStatsCharts";
+import { AdminStatsCharts } from "@/components/dashboard";
 import { getAdminDashboardStats, type AdminStatsRange } from "@/lib/analytics/admin";
 import { Users, CalendarDays, Ticket } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";

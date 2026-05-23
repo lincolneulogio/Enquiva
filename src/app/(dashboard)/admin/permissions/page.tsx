@@ -6,9 +6,9 @@ import {
     ROLE_ORDER,
     ROLE_BADGE_STYLES,
     normalizeRole,
-} from "@/lib/rbac";
+} from "@/lib/auth/rbac";
 import { getPermissionMatrix } from "@/actions/admin";
-import { PermissionToggleCell } from "@/components/dashboard/PermissionToggleCell";
+import { PermissionToggleCell } from "@/components/dashboard";
 import { getI18n } from "@/lib/i18n/server";
 import { getPermissionLabel, getRoleLabel } from "@/lib/i18n/core";
 

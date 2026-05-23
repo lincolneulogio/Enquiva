@@ -8,7 +8,7 @@ import { signOut } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
 import { useTranslations, useLocale } from "@/components/providers/LocaleProvider";
 import { getRoleLabel } from "@/lib/i18n/core";
-import { ROLE_BADGE_STYLES, normalizeRole } from "@/lib/rbac";
+import { ROLE_BADGE_STYLES, normalizeRole } from "@/lib/auth/rbac";
 
 interface TopbarUserMenuProps {
   user: {

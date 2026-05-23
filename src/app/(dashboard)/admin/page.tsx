@@ -1,4 +1,4 @@
-import { AdminStatsCharts } from "@/components/dashboard/AdminStatsCharts";
+import { AdminStatsCharts } from "@/components/dashboard";
 import { Users, CalendarDays, BadgeCheck, Ticket } from "lucide-react";
 import { getAdminDashboardStats } from "@/lib/analytics/admin";
 import { getI18n } from "@/lib/i18n/server";

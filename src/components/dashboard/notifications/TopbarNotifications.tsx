@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { Bell, CheckCheck, Info, CalendarClock, BadgeCheck, CreditCard, UserPlus, BellRing } from "lucide-react";
+import { Bell, CheckCheck, Info, CalendarClock, CreditCard, UserPlus, BellRing } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getRecentNotifications, markNotificationsAsRead } from "@/actions/notifications";

@@ -16,7 +16,7 @@ import {
 import { getI18n } from "@/lib/i18n/server";
 import { getPaymentStatusLabel } from "@/lib/i18n/core";
 import { categoryLabel, eventStatusLabel, formatCurrency, formatEventDateShort, registrationStatusLabel } from "@/lib/utils";
-import type { AppRole } from "@/lib/rbac";
+import type { AppRole } from "@/lib/auth/rbac";
 
 export type ExportScope = "admin" | "organizer";
 export type ExportResource = "events" | "registrations" | "payments";

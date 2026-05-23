@@ -1,8 +1,8 @@
 import { getNotifications, getUnreadNotificationsCount } from "@/actions/notifications";
-import { LanguageSwitcher } from "@/components/dashboard/LanguageSwitcher";
-import { TopbarUserMenu } from "@/components/dashboard/TopbarUserMenu";
-import { TopbarNotifications } from "@/components/dashboard/TopbarNotifications";
-import { SidebarMenuButton } from "@/components/dashboard/SidebarMenuButton";
+import { LanguageSwitcher } from "./LanguageSwitcher";
+import { TopbarUserMenu } from "./TopbarUserMenu";
+import { TopbarNotifications } from "../notifications/TopbarNotifications";
+import { SidebarMenuButton } from "./SidebarMenuButton";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 
 interface DashboardTopbarProps {

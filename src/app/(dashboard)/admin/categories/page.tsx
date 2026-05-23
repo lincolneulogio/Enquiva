@@ -1,5 +1,5 @@
 import { getAllCategories } from "@/actions/admin";
-import { CategoriesManager } from "@/components/dashboard/CategoriesManager";
+import { CategoriesManager } from "@/components/dashboard";
 import { getI18n } from "@/lib/i18n/server";
 
 export default async function AdminCategoriesPage() {

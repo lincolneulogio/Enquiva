@@ -7,13 +7,12 @@ import { formatCurrency } from "@/lib/utils";
 import { PaymentStatusBadge } from "@/components/payments/PaymentStatusBadge";
 import Link from "next/link";
 import { getI18n } from "@/lib/i18n/server";
-import { ExportDataPanel } from "@/components/dashboard/ExportDataPanel";
+import { ExportDataPanel, TablePagination } from "@/components/dashboard";
 import { Suspense } from "react";
 import { getExportEventOptions } from "@/actions/exports";
 import { getCategories } from "@/actions/events";
 import { categoryLabel } from "@/lib/utils";
 import { getPaymentStatusLabel } from "@/lib/i18n/core";
-import { TablePagination } from "@/components/dashboard/TablePagination";
 
 const PAGE_SIZE = 10;
 

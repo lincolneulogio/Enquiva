@@ -14,7 +14,7 @@ import {
     normalizeRole,
     type AppRole,
     type Permission,
-} from "@/lib/rbac";
+} from "@/lib/auth/rbac";
 
 async function requireSuperAdmin() {
     const session = await auth.api.getSession({ headers: await headers() });

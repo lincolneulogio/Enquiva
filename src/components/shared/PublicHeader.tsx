@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { normalizeRole } from "@/lib/rbac";
+import { normalizeRole } from "@/lib/auth/rbac";
 import { getI18n } from "@/lib/i18n/server";
 import { PublicMobileMenu } from "@/components/shared/PublicMobileMenu";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
