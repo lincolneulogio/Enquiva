@@ -6,19 +6,31 @@ import { eq } from "drizzle-orm";
 import { sendTicketEmailWithPdf } from "@/lib/mail";
 import { env } from "@/env";
 import { headers } from "next/headers";
+import { z } from "zod";
+
+const resendSchema = z.object({
+  registrationId: z.string().uuid("Formato de UUID inválido"),
+});
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const registrationId = String(body.registrationId ?? "");
-    if (!registrationId) return NextResponse.json({ success: false, error: "Missing registrationId" }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
+    
+    // 1. Validate request body input with Zod
+    const validation = resendSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json({ success: false, error: validation.error.issues[0]?.message || "Invalid registrationId" }, { status: 400 });
+    }
+    const { registrationId } = validation.data;
 
+    // 2. Authenticate the requester
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 
     const [registration] = await db.select().from(registrations).where(eq(registrations.id, registrationId)).limit(1);
     if (!registration) return NextResponse.json({ success: false, error: "Registration not found" }, { status: 404 });
 
+    // 3. Authorize the action
     const userId = session.user.id;
     if (registration.userId !== userId && session.user.role !== "admin" && session.user.role !== "organizer" && session.user.role !== "super_admin") {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });

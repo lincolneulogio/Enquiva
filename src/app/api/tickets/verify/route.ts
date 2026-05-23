@@ -6,10 +6,23 @@ import crypto from "crypto";
 import { env } from "@/env";
 import { ticketVerifyRatelimit } from "@/lib/redis";
 import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    // 1. Authenticate the user performing the scan
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 2. Authorize the user (must be admin, super_admin, or organizer)
+    const role = session.user.role;
+    if (role !== "admin" && role !== "super_admin" && role !== "organizer") {
+      return NextResponse.json({ success: false, error: "Forbidden: No tienes permisos para escanear tickets" }, { status: 403 });
+    }
+
+    const body = await req.json().catch(() => ({}));
     const code = String(body.code ?? "").trim();
     const providedSignature = String(body.signature ?? body.s ?? "").trim();
     if (!code) return NextResponse.json({ success: false, error: "Missing code" }, { status: 400 });
@@ -30,6 +43,13 @@ export async function POST(req: Request) {
 
     if (!registration) {
       return NextResponse.json({ success: false, error: "Registration not found" }, { status: 404 });
+    }
+
+    const [eventRecord] = await db.select().from(events).where(eq(events.id, registration.eventId)).limit(1);
+
+    // 3. For organizers, enforce event ownership
+    if (role === "organizer" && eventRecord && eventRecord.organizerId !== session.user.id) {
+      return NextResponse.json({ success: false, error: "Forbidden: No puedes verificar tickets de un evento que no organizas" }, { status: 403 });
     }
 
     if (!providedSignature) {
@@ -61,8 +81,6 @@ export async function POST(req: Request) {
       .where(eq(registrations.id, ticket.registrationId));
 
     await db.insert(scanLogs).values({ ticketId: ticket.id, result: "ok" }).returning();
-
-    const [eventRecord] = await db.select().from(events).where(eq(events.id, registration.eventId)).limit(1);
 
     return NextResponse.json({ success: true, ticket: updatedTicket, event: eventRecord ?? null });
   } catch (err) {

@@ -15,12 +15,22 @@ export async function POST(request: NextRequest) {
   const socketId = params.get("socket_id")!;
   const channelName = params.get("channel_name")!;
 
-  // Only allow users to subscribe to their own private channels
+  // 1. Only allow users to subscribe to their own private user channels
   if (
     channelName.startsWith("private-user-") &&
     !channelName.includes(session.user.id)
   ) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // 2. Restrict the private admin dashboard channel to admin/super_admin/organizer roles
+  if (
+    channelName === "private-admin-dashboard" &&
+    session.user.role !== "admin" &&
+    session.user.role !== "super_admin" &&
+    session.user.role !== "organizer"
+  ) {
+    return NextResponse.json({ error: "Forbidden: No tienes permisos para este canal" }, { status: 403 });
   }
 
   const presenceData =
