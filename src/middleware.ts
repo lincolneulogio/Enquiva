@@ -1,12 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const ROLES = {
-  admin: ["super_admin", "admin"],
-  organizer: ["super_admin", "admin", "organizer"],
-  member: ["super_admin", "admin", "organizer", "member"],
-} as const;
-
 const publicRoutes = new Set([
   "/",
   "/login",
@@ -28,13 +22,6 @@ const publicPatterns = [
 function isPublicRoute(pathname: string): boolean {
   if (publicRoutes.has(pathname)) return true;
   return publicPatterns.some((p) => pathname.startsWith(p));
-}
-
-function getRequiredRole(pathname: string): string | null {
-  if (pathname.startsWith("/admin")) return "admin";
-  if (pathname.startsWith("/organizer")) return "organizer";
-  if (pathname.startsWith("/member")) return "member";
-  return null;
 }
 
 export async function proxy(request: NextRequest) {
