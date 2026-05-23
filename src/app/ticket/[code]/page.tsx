@@ -52,7 +52,22 @@ export default async function TicketPublicPage({ params, searchParams }: TicketP
           </p>
         </div>
 
-        <div className="mt-8 rounded-2xl border border-dashed border-border bg-background/60 p-4 text-sm text-muted-foreground">
+        {record.ticket.qrCode && (
+          <div className="mt-8 flex flex-col items-center justify-center">
+            <div className="rounded-3xl border border-primary/10 bg-white p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 hover:shadow-[0_12px_40px_rgba(75,26,181,0.08)]">
+              <img
+                src={record.ticket.qrCode}
+                alt="Código QR del Ticket"
+                className="h-48 w-48 rounded-xl object-contain"
+              />
+            </div>
+            <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-primary/70">
+              {t("public.ticket.scanHelper") || "Escanea este código en la entrada"}
+            </p>
+          </div>
+        )}
+
+        <div className="mt-8 rounded-2xl border border-dashed border-border bg-background/60 p-4 text-center text-sm text-muted-foreground">
           {t("public.ticket.showToOrganizer")}
         </div>
 

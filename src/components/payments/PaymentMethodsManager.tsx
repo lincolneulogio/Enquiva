@@ -163,7 +163,7 @@ export function PaymentMethodsManager({ methods }: Props) {
           Nuevo medio de pago
         </button>
       ) : (
-        <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
+        <div className="max-w-2xl rounded-2xl border border-border bg-card p-6 space-y-5 shadow-sm">
           <h3 className="font-semibold text-foreground">
             {editingId ? "Editar medio de pago" : "Nuevo medio de pago"}
           </h3>
@@ -239,7 +239,7 @@ export function PaymentMethodsManager({ methods }: Props) {
         </div>
       )}
 
-      <div className="space-y-3">
+      <div className="max-w-2xl space-y-3">
         {methods.length === 0 && (
           <p className="text-sm text-muted-foreground">No hay medios de pago registrados.</p>
         )}
