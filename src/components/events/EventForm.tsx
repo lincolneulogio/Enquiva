@@ -129,7 +129,7 @@ export function EventForm({
 
     useEffect(() => {
         if (!event?.id || !hasTransport) return;
-        
+
         let active = true;
         (async () => {
             setLoadingRoutes(true);
@@ -469,7 +469,7 @@ export function EventForm({
                         </p>
                     </div>
 
-                    {allPaymentMethods.length > 0 && watch("price") && Number(watch("price")) > 0 && (
+                    {allPaymentMethods.length > 0 && !!watch("price") && Number(watch("price")) > 0 && (
                         <div className="rounded-xl border border-border p-4 space-y-3">
                             <h3 className="text-sm font-semibold text-foreground">{t("events.form.paymentMethodsTitle")}</h3>
                             <p className="text-xs text-muted-foreground">{t("events.form.paymentMethodsHelp")}</p>
@@ -489,11 +489,10 @@ export function EventForm({
                                                         : [...prev, pm.id]
                                                 );
                                             }}
-                                            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
-                                                selected
-                                                    ? "border-primary bg-primary/10 text-primary"
-                                                    : "border-border bg-background text-foreground hover:bg-muted"
-                                            }`}
+                                            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${selected
+                                                ? "border-primary bg-primary/10 text-primary"
+                                                : "border-border bg-background text-foreground hover:bg-muted"
+                                                }`}
                                         >
                                             <PmIcon className="h-4 w-4 shrink-0" />
                                             <span className="truncate">{pm.label}</span>

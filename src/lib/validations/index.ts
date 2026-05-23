@@ -58,10 +58,12 @@ const normalizePeruPhoneValue = (value: unknown) => {
   return value.trim();
 };
 
-const optionalUrl = z.preprocess(
-  (value) => (typeof value === "string" && value.trim() === "" ? null : value),
-  z.string().url("Ingresa una URL válida").optional().nullable()
-);
+const optionalUrl = z
+  .string()
+  .optional()
+  .nullable()
+  .transform((val) => (val == null || val.trim() === "" ? null : val))
+  .pipe(z.string().url("Ingresa una URL válida").optional().nullable());
 
 const baseEventSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(200),
@@ -93,14 +95,16 @@ const baseEventSchema = z.object({
   virtualLink: optionalUrl,
   capacity: z.number().int().positive().optional().nullable(),
   coverImage: optionalUrl,
-  price: z.preprocess(
-    (value) => {
+  price: z
+    .union([z.string(), z.number()])
+    .optional()
+    .nullable()
+    .transform((value) => {
       if (value === "" || value === null || value === undefined) return null;
       const num = Number(value);
       return Number.isNaN(num) ? null : num;
-    },
-    z.number().positive("El precio debe ser mayor a 0").optional().nullable()
-  ),
+    })
+    .pipe(z.number().positive("El precio debe ser mayor a 0").optional().nullable()),
   status: z.enum(eventStatusValues).default("draft"),
   isFeatured: z.boolean().default(false),
   hasTransport: z.boolean().default(false),
@@ -228,8 +232,8 @@ export const markNotificationsReadSchema = z.object({
 
 export type SignUpInput = z.infer<typeof signUpSchema>;
 export type SignInInput = z.infer<typeof signInSchema>;
-export type CreateEventInput = z.infer<typeof createEventSchema>;
-export type UpdateEventInput = z.infer<typeof updateEventSchema>;
+export type CreateEventInput = z.input<typeof createEventSchema>;
+export type UpdateEventInput = z.input<typeof updateEventSchema>;
 export type EventFilterInput = z.infer<typeof eventFilterSchema>;
 export type CreateRegistrationInput = z.infer<typeof createRegistrationSchema>;
 export type CheckInInput = z.infer<typeof checkInSchema>;
