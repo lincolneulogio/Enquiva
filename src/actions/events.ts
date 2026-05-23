@@ -199,9 +199,20 @@ export async function getPublicEvents(filterInput?: unknown) {
   try {
     const [results, totalCount, totalRegistrations] = await Promise.all([
       db
-        .select()
+        .select({
+          event: events,
+          attendeeCount: sql<number>`count(${registrations.id})::int`,
+        })
         .from(events)
+        .leftJoin(
+          registrations,
+          and(
+            eq(registrations.eventId, events.id),
+            inArray(registrations.status, ["registered", "checked_in"])
+          )
+        )
         .where(and(...conditions))
+        .groupBy(events.id)
         .orderBy(desc(events.date))
         .limit(filter.limit)
         .offset(offset),
@@ -221,29 +232,9 @@ export async function getPublicEvents(filterInput?: unknown) {
         ),
     ]);
 
-    const eventIds = results.map((event) => event.id);
-    const attendeeCountMap = new Map<string, number>();
-
-    if (eventIds.length > 0) {
-      const attendeeCounts = await db
-        .select({ eventId: registrations.eventId, count: count() })
-        .from(registrations)
-        .where(
-          and(
-            inArray(registrations.eventId, eventIds),
-            inArray(registrations.status, ["registered", "checked_in"])
-          )
-        )
-        .groupBy(registrations.eventId);
-
-      for (const item of attendeeCounts) {
-        attendeeCountMap.set(item.eventId, item.count);
-      }
-    }
-
-    const eventsWithAttendeeCount = results.map((event) => ({
-      ...event,
-      attendeeCount: attendeeCountMap.get(event.id) ?? 0,
+    const eventsWithAttendeeCount = results.map((row) => ({
+      ...row.event,
+      attendeeCount: row.attendeeCount ?? 0,
     }));
 
     const result = {

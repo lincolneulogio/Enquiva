@@ -29,7 +29,7 @@ export async function EventCard({ event, className, categoryMap }: EventCardProp
         "flex h-full flex-col overflow-hidden rounded-3xl border border-border/70 bg-card/60 shadow-sm backdrop-blur-sm transition-all duration-500",
         isEventExpired
           ? "cursor-not-allowed border-destructive/25 bg-muted/40"
-          : "hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.3)]",
+          : "fe-glow-hover hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.3)]",
         className
       )}
     >
