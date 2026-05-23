@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { roles, payments, registrations } from "@/lib/db/schema";
 import { eq, and, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { requireSuperAdmin } from "./helpers";
+import { requireSuperAdmin } from "./users";
 
 const DEFAULT_ROLES = [
     {

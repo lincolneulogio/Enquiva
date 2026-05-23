@@ -11,7 +11,20 @@ import {
     type AppRole,
     type Permission,
 } from "@/lib/auth/rbac";
-import { requireSuperAdmin } from "./helpers";
+
+export async function requireSuperAdmin() {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user) throw new Error("Unauthorized");
+    if (session.user.role !== "super_admin") throw new Error("Forbidden");
+    return session.user;
+}
+
+export async function requireAdminOrSuper() {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user) throw new Error("Unauthorized");
+    if (session.user.role !== "admin" && session.user.role !== "super_admin") throw new Error("Forbidden");
+    return session.user;
+}
 
 export async function updateUserRole(
     userId: string,

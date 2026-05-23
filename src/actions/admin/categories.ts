@@ -3,7 +3,7 @@ import { categories } from "@/lib/db/schema";
 import type { Category } from "@/lib/db/schema";
 import { eq, asc, sql as sqlExpr } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { requireAdminOrSuper } from "./helpers";
+import { requireAdminOrSuper } from "./users";
 
 export async function getAllCategories(): Promise<Category[]> {
     await requireAdminOrSuper();

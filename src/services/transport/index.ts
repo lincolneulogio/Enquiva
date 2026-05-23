@@ -1,4 +1,1 @@
-export * from "./route.service";
-export * from "./booking-queries.service";
-export * from "./booking.service";
-export * from "./admin.service";
+// Consolidated - Entrypoint is services/transport.service.ts
