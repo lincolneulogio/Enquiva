@@ -122,10 +122,10 @@ export function categoryColor(category: string): string {
 
 export function statusColor(status: string): string {
   const colors: Record<string, string> = {
-    draft: "bg-gray-100 text-gray-800",
-    published: "bg-green-100 text-green-800",
-    cancelled: "bg-red-100 text-red-800",
-    completed: "bg-blue-100 text-blue-800",
+    draft: "bg-slate-100 text-slate-900 border border-slate-200 dark:bg-slate-900/30 dark:text-slate-400 dark:border-slate-850/30",
+    published: "bg-green-100 text-green-900 border border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/30",
+    cancelled: "bg-red-100 text-red-900 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/30",
+    completed: "bg-blue-100 text-blue-900 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800/30",
   };
   return colors[status] ?? colors.draft;
 }
