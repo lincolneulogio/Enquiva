@@ -5,7 +5,10 @@ import Image from "next/image";
 import { Ticket, Event, Registration } from "@/lib/db/schema";
 import { formatEventDate, registrationStatusLabel } from "@/lib/utils";
 import { PaymentStatusBadge } from "@/components/payments/PaymentStatusBadge";
-import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
+import {
+  useLocale,
+  useTranslations,
+} from "@/components/providers/LocaleProvider";
 import { useState } from "react";
 
 interface TicketCardProps {
@@ -15,7 +18,12 @@ interface TicketCardProps {
   paymentStatus?: string;
 }
 
-export function TicketCard({ ticket, event, registration, paymentStatus }: TicketCardProps) {
+export function TicketCard({
+  ticket,
+  event,
+  registration,
+  paymentStatus,
+}: TicketCardProps) {
   const { locale } = useLocale();
   const t = useTranslations();
   const qr = ticket?.qrCode;
@@ -25,8 +33,12 @@ export function TicketCard({ ticket, event, registration, paymentStatus }: Ticke
     <div className="space-y-4 rounded-3xl border border-border bg-card p-6 shadow-sm">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">{t("ticket.yourTicket")}</p>
-          <h3 className="text-lg font-semibold text-foreground">{event.title}</h3>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">
+            {t("ticket.yourTicket")}
+          </p>
+          <h3 className="text-lg font-semibold text-foreground">
+            {event.title}
+          </h3>
         </div>
         {paymentStatus && <PaymentStatusBadge status={paymentStatus} />}
       </div>
@@ -52,10 +64,16 @@ export function TicketCard({ ticket, event, registration, paymentStatus }: Ticke
           {formatEventDate(event.date, locale)}
         </p>
         <p className="text-sm text-muted-foreground">
-          {t("ticket.registrationStatus")}: <span className="font-medium text-foreground">{registrationStatusLabel(registration.status, locale)}</span>
+          {t("ticket.registrationStatus")}:{" "}
+          <span className="font-medium text-foreground">
+            {registrationStatusLabel(registration.status, locale)}
+          </span>
         </p>
         <p className="text-sm text-muted-foreground">
-          {t("ticket.ticketCode")}: <span className="font-medium text-foreground">{ticket?.code ?? t("ticket.generating")}</span>
+          {t("ticket.ticketCode")}:{" "}
+          <span className="font-medium text-foreground">
+            {ticket?.code ?? t("ticket.generating")}
+          </span>
         </p>
         <p className="text-xs text-muted-foreground">
           {t("ticket.secureQrHelp")}
@@ -65,8 +83,12 @@ export function TicketCard({ ticket, event, registration, paymentStatus }: Ticke
       {paymentStatus === "pending" && (
         <div className="rounded-2xl border border-amber-200/50 bg-amber-500/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-pulse">
           <div className="space-y-0.5 text-left">
-            <p className="font-semibold text-amber-800 dark:text-amber-400 text-sm">{t("ticket.pendingPayment")}</p>
-            <p className="text-xs text-muted-foreground">{t("ticket.pendingPaymentHelp")}</p>
+            <p className="font-semibold text-amber-800 dark:text-amber-400 text-sm">
+              {t("ticket.pendingPayment")}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("ticket.pendingPaymentHelp")}
+            </p>
           </div>
           <Link
             href={`/member/payments/new/${registration.id}`}
@@ -85,14 +107,12 @@ export function TicketCard({ ticket, event, registration, paymentStatus }: Ticke
           {t("ticket.viewAllTickets")}
         </Link>
         <Link
-          href={
-            hasTransport
-              ? "/member/transport"
-              : "/member/payments"
-          }
+          href={hasTransport ? "/member/transport" : "/member/payments"}
           className="rounded-full bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-wide text-primary-foreground hover:bg-primary/90 transition"
         >
-          {hasTransport ? t("ticket.manageTransport") : t("ticket.paymentSummary")}
+          {hasTransport
+            ? t("ticket.manageTransport")
+            : t("ticket.paymentSummary")}
         </Link>
         <button
           onClick={() => {

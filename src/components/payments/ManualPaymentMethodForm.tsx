@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createPayment } from "@/actions/payments";
@@ -43,7 +43,7 @@ export function ManualPaymentMethodForm({
 }: ManualPaymentMethodFormProps) {
   const t = useTranslations();
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [isSaving, setIsSaving] = useState(false);
   const firstMethodId = eventMethods[0]?.id ?? "";
   const [methodId, setMethodId] = useState<string>(existingMethod ?? firstMethodId);
   const [reference, setReference] = useState<string>("");
@@ -53,27 +53,28 @@ export function ManualPaymentMethodForm({
 
   const currentMethod = eventMethods.find((m) => m.id === methodId);
 
-  const submit = () => {
-    startTransition(async () => {
-      try {
-        await createPayment({
-          registrationId,
-          amount: defaultAmount,
-          currency: "PEN",
-          method: currentMethod?.type ?? "manual",
-          reference: reference.trim() || undefined,
-          receiptUrl: receiptUrl ?? undefined,
-          receiptFileName: receiptFileName ?? undefined,
-          notes: `Pago vía ${currentMethod?.label} para ${eventTitle}`,
-        });
+  const submit = async () => {
+    setIsSaving(true);
+    try {
+      await createPayment({
+        registrationId,
+        amount: defaultAmount,
+        currency: "PEN",
+        method: currentMethod?.type ?? "manual",
+        reference: reference.trim() || undefined,
+        receiptUrl: receiptUrl ?? undefined,
+        receiptFileName: receiptFileName ?? undefined,
+        notes: `Pago vía ${currentMethod?.label} para ${eventTitle}`,
+      });
 
-        toast.success(t("payments.manual.success"));
-        router.push(`/events/${eventSlug}`);
-        router.refresh();
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : t("payments.manual.failed"));
-      }
-    });
+      toast.success(t("payments.manual.success"));
+      setIsSaving(false);
+      router.push(`/events/${eventSlug}`);
+      router.refresh();
+    } catch (error) {
+      setIsSaving(false);
+      toast.error(error instanceof Error ? error.message : t("payments.manual.failed"));
+    }
   };
 
   if (eventMethods.length === 0) {
@@ -106,7 +107,7 @@ export function ManualPaymentMethodForm({
                   key={em.id}
                   type="button"
                   onClick={() => setMethodId(em.id)}
-          disabled={isPending || isUploading}
+                  disabled={isSaving || isUploading}
                   className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors ${
                     isActive
                       ? "border-primary bg-primary/10 text-primary"
@@ -229,18 +230,18 @@ export function ManualPaymentMethodForm({
             onChange={(e) => setReference(e.target.value)}
             placeholder={t("payments.manual.referencePlaceholder")}
             className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            disabled={isPending}
+            disabled={isSaving}
           />
         </div>
 
         <button
           type="button"
           onClick={submit}
-          disabled={isPending}
+          disabled={isSaving || isUploading}
           className="fe-btn-glow inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isPending || isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {isUploading ? "Subiendo comprobante..." : isPending ? t("payments.manual.saving") : `Pagar S/ ${defaultAmount.toFixed(2)} vía ${currentMethod?.label ?? "seleccionado"}`}
+          {isSaving || isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {isUploading ? "Subiendo comprobante..." : isSaving ? t("payments.manual.saving") : `Pagar S/ ${defaultAmount.toFixed(2)} vía ${currentMethod?.label ?? "seleccionado"}`}
         </button>
       </div>
     </div>

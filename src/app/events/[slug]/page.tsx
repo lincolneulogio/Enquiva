@@ -15,7 +15,24 @@ import { getIntlLocale } from "@/lib/i18n/core";
 import { db } from "@/lib/db";
 import { transportRoutes, transportBookings } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { Calendar, MapPin, Clock, AlertTriangle, Route, ArrowRight, Bus, Users, Ticket, Coins, ChevronRight, CreditCard, FileText, ShieldCheck, CheckCircle2, Info } from "lucide-react";
+import {
+  Calendar,
+  MapPin,
+  Clock,
+  AlertTriangle,
+  Route,
+  ArrowRight,
+  Bus,
+  Users,
+  Ticket,
+  Coins,
+  ChevronRight,
+  CreditCard,
+  FileText,
+  ShieldCheck,
+  CheckCircle2,
+  Info,
+} from "lucide-react";
 
 interface EventPageProps {
   params: Promise<{
@@ -45,7 +62,12 @@ export default async function EventDetailPage({ params }: EventPageProps) {
       routes = await db
         .select()
         .from(transportRoutes)
-        .where(and(eq(transportRoutes.eventId, event.id), eq(transportRoutes.isActive, true)))
+        .where(
+          and(
+            eq(transportRoutes.eventId, event.id),
+            eq(transportRoutes.isActive, true),
+          ),
+        )
         .orderBy(transportRoutes.departureTime);
 
       serializedRoutes = routes.map((r) => ({
@@ -53,8 +75,16 @@ export default async function EventDetailPage({ params }: EventPageProps) {
         eventId: r.eventId,
         name: r.name,
         departurePoint: r.departurePoint,
-        departureTime: r.departureTime instanceof Date ? r.departureTime.toISOString() : String(r.departureTime),
-        returnTime: r.returnTime instanceof Date ? r.returnTime.toISOString() : r.returnTime ? String(r.returnTime) : null,
+        departureTime:
+          r.departureTime instanceof Date
+            ? r.departureTime.toISOString()
+            : String(r.departureTime),
+        returnTime:
+          r.returnTime instanceof Date
+            ? r.returnTime.toISOString()
+            : r.returnTime
+              ? String(r.returnTime)
+              : null,
         pricePerSeat: String(r.pricePerSeat),
         totalSeats: Number(r.totalSeats),
         description: r.description,
@@ -62,21 +92,27 @@ export default async function EventDetailPage({ params }: EventPageProps) {
       }));
 
       // Calculate total seats capacity
-      totalTransportSeats = routes.reduce((sum, r) => sum + Number(r.totalSeats), 0);
+      totalTransportSeats = routes.reduce(
+        (sum, r) => sum + Number(r.totalSeats),
+        0,
+      );
 
       // Fetch dynamic passenger bookings
       if (routes.length > 0) {
         const [bookingSum] = await db
           .select({
-            booked: sql<number>`COALESCE(SUM(${transportBookings.seats}), 0)::int`
+            booked: sql<number>`COALESCE(SUM(${transportBookings.seats}), 0)::int`,
           })
           .from(transportBookings)
-          .innerJoin(transportRoutes, eq(transportBookings.routeId, transportRoutes.id))
+          .innerJoin(
+            transportRoutes,
+            eq(transportBookings.routeId, transportRoutes.id),
+          )
           .where(
             and(
               eq(transportRoutes.eventId, event.id),
-              sql`${transportBookings.status} != 'cancelled'`
-            )
+              sql`${transportBookings.status} != 'cancelled'`,
+            ),
           );
         totalBookedTransportSeats = bookingSum?.booked ?? 0;
       }
@@ -94,11 +130,13 @@ export default async function EventDetailPage({ params }: EventPageProps) {
       month: "short",
       hour: "2-digit",
       minute: "2-digit",
-      hour12: true
+      hour12: true,
     });
   };
 
-  const categoryMeta = categories.find((category) => category.slug === event.category);
+  const categoryMeta = categories.find(
+    (category) => category.slug === event.category,
+  );
 
   const sessionHeaders = await headers();
   const session = await auth.api.getSession({ headers: sessionHeaders });
@@ -121,7 +159,8 @@ export default async function EventDetailPage({ params }: EventPageProps) {
     typeof event.capacity === "number" &&
     (event.attendeeCount ?? 0) >= event.capacity;
   const isEventExpired = new Date(event.date).getTime() <= Date.now();
-  const isRegistrationClosed = isEventExpired || Boolean(isFull) || event.status !== "published";
+  const isRegistrationClosed =
+    isEventExpired || Boolean(isFull) || event.status !== "published";
   const registrationClosedReason = isEventExpired
     ? t("register.eventExpired")
     : isFull
@@ -144,17 +183,15 @@ export default async function EventDetailPage({ params }: EventPageProps) {
       <section className="relative overflow-hidden border-b border-border fe-gradient-mesh px-4 py-8 md:py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl">
           <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-start lg:gap-12">
-            
             {/* LEFT COLUMN: Main Info */}
             <div className="space-y-6 md:space-y-8">
-              
               {/* Category Badge & Title */}
               <div className="space-y-3">
                 <div>
                   <span
                     className={cn(
                       "inline-flex rounded-xl px-3 py-1 text-xs font-bold uppercase tracking-wider border",
-                      categoryMeta?.colorClass || categoryColor(event.category)
+                      categoryMeta?.colorClass || categoryColor(event.category),
                     )}
                   >
                     {categoryLabel(event.category, locale)}
@@ -194,7 +231,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                   </span>
                   Información del Evento
                 </h3>
-                
+
                 <div className="grid gap-4 sm:grid-cols-2">
                   {/* Date & Time */}
                   <div className="flex gap-4 p-4 rounded-2xl border border-border/50 bg-background/50 hover:bg-background transition-colors">
@@ -202,8 +239,12 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                       <Calendar className="h-5 w-5" />
                     </div>
                     <div className="space-y-1">
-                      <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Fecha y Hora</span>
-                      <span className="font-semibold text-foreground text-sm leading-tight block">{formatEventDate(event.date)}</span>
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                        Fecha y Hora
+                      </span>
+                      <span className="font-semibold text-foreground text-sm leading-tight block">
+                        {formatEventDate(event.date)}
+                      </span>
                     </div>
                   </div>
 
@@ -213,9 +254,14 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                       <MapPin className="h-5 w-5" />
                     </div>
                     <div className="space-y-1">
-                      <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Ubicación</span>
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                        Ubicación
+                      </span>
                       <span className="font-semibold text-foreground text-sm leading-tight block">
-                        {event.location ?? (event.isVirtual ? t("common.virtualEvent") : t("common.locationTbd"))}
+                        {event.location ??
+                          (event.isVirtual
+                            ? t("common.virtualEvent")
+                            : t("common.locationTbd"))}
                       </span>
                     </div>
                   </div>
@@ -226,8 +272,13 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                       <Users className="h-5 w-5" />
                     </div>
                     <div className="space-y-1">
-                      <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Capacidad Total</span>
-                      <span className="font-semibold text-foreground text-sm leading-tight block">{event.capacity ?? t("public.eventDetail.unlimited")} personas</span>
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                        Capacidad Total
+                      </span>
+                      <span className="font-semibold text-foreground text-sm leading-tight block">
+                        {event.capacity ?? t("public.eventDetail.unlimited")}{" "}
+                        personas
+                      </span>
                     </div>
                   </div>
 
@@ -237,9 +288,13 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                       <Coins className="h-5 w-5" />
                     </div>
                     <div className="space-y-1">
-                      <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">Costo de Entrada</span>
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                        Costo de Entrada
+                      </span>
                       <span className="font-bold text-primary text-base block">
-                        {event.price && Number(event.price) > 0 ? `S/ ${Number(event.price).toFixed(2)}` : "Gratuita"}
+                        {event.price && Number(event.price) > 0
+                          ? `S/ ${Number(event.price).toFixed(2)}`
+                          : "Gratuita"}
                       </span>
                     </div>
                   </div>
@@ -273,9 +328,15 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                   <div className="rounded-2xl bg-amber-50/85 border border-amber-200/50 dark:bg-amber-950/20 dark:border-amber-900/30 p-4 flex items-start gap-3 shadow-sm">
                     <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
                     <div className="space-y-1 text-xs leading-relaxed text-amber-900 dark:text-amber-200">
-                      <p className="font-bold text-amber-800 dark:text-amber-400">¡El transporte NO está incluido en la entrada!</p>
+                      <p className="font-bold text-amber-800 dark:text-amber-400">
+                        ¡El transporte NO está incluido en la entrada!
+                      </p>
                       <p>
-                        El precio de la <strong>Entrada al Evento</strong> es independiente del costo del transporte. Los precios indicados en las rutas son <strong>por asiento</strong> y corresponden al pasaje de traslado. Deberás seleccionarlo y pagarlo al momento de tu registro.
+                        El precio de la <strong>Entrada al Evento</strong> es
+                        independiente del costo del transporte. Los precios
+                        indicados en las rutas son <strong>por asiento</strong>{" "}
+                        y corresponden al pasaje de traslado. Deberás
+                        seleccionarlo y pagarlo al momento de tu registro.
                       </p>
                     </div>
                   </div>
@@ -289,7 +350,8 @@ export default async function EventDetailPage({ params }: EventPageProps) {
 
                     {routes.length === 0 ? (
                       <p className="text-sm text-muted-foreground italic bg-background/50 p-4 rounded-xl text-center border border-dashed border-border/80">
-                        No se han configurado rutas de transporte activas para este evento aún.
+                        No se han configurado rutas de transporte activas para
+                        este evento aún.
                       </p>
                     ) : (
                       <div className="grid gap-4">
@@ -304,7 +366,9 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                                   {route.name}
                                 </h5>
                                 {route.description && (
-                                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{route.description}</p>
+                                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                                    {route.description}
+                                  </p>
                                 )}
                               </div>
 
@@ -312,20 +376,23 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                                 <div className="flex items-center gap-2">
                                   <MapPin className="h-4 w-4 text-blue-500 shrink-0" />
                                   <span>
-                                    <strong>Partida:</strong> {route.departurePoint}
+                                    <strong>Partida:</strong>{" "}
+                                    {route.departurePoint}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <Clock className="h-4 w-4 text-blue-500 shrink-0" />
                                   <span>
-                                    <strong>Salida:</strong> {formatRouteDateTime(route.departureTime)}
+                                    <strong>Salida:</strong>{" "}
+                                    {formatRouteDateTime(route.departureTime)}
                                   </span>
                                 </div>
                                 {route.returnTime && (
                                   <div className="flex items-center gap-2 sm:col-span-2 mt-1 pt-2 border-t border-border/40">
                                     <ArrowRight className="h-4 w-4 text-emerald-500 shrink-0" />
                                     <span>
-                                      <strong>Retorno estimado:</strong> {formatRouteDateTime(route.returnTime)}
+                                      <strong>Retorno estimado:</strong>{" "}
+                                      {formatRouteDateTime(route.returnTime)}
                                     </span>
                                   </div>
                                 )}
@@ -333,7 +400,9 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                             </div>
 
                             <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-2 border-t md:border-t-0 pt-4 md:pt-0 border-border/60 shrink-0">
-                              <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/60">Pasaje por asiento</span>
+                              <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/60">
+                                Pasaje por asiento
+                              </span>
                               <span className="font-bold text-lg text-primary bg-primary/10 px-4 py-1.5 rounded-2xl border border-primary/20 transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
                                 S/ {Number(route.pricePerSeat).toFixed(2)}
                               </span>
@@ -368,11 +437,17 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                   <Users className="h-6 w-6" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 leading-none">{t("public.eventDetail.attendeesLabel")}</p>
-                  <p className="text-3xl font-extrabold text-foreground leading-none pt-1">
-                    {(event.attendeeCount ?? 0).toLocaleString(getIntlLocale(locale))}
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 leading-none">
+                    {t("public.eventDetail.attendeesLabel")}
                   </p>
-                  <p className="text-xs text-muted-foreground font-medium pt-0.5">{t("public.eventDetail.attendingSuffix")}</p>
+                  <p className="text-3xl font-extrabold text-foreground leading-none pt-1">
+                    {(event.attendeeCount ?? 0).toLocaleString(
+                      getIntlLocale(locale),
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground font-medium pt-0.5">
+                    {t("public.eventDetail.attendingSuffix")}
+                  </p>
                 </div>
               </div>
 
@@ -384,7 +459,9 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                       <Bus className="h-6 w-6" />
                     </div>
                     <div className="space-y-1">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 leading-none">Pasajeros Bus</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 leading-none">
+                        Pasajeros Bus
+                      </p>
                       <p className="text-3xl font-extrabold text-foreground leading-none pt-1">
                         {totalBookedTransportSeats}
                         <span className="text-sm font-normal text-muted-foreground/85 ml-1">
@@ -392,15 +469,25 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                         </span>
                       </p>
                       <p className="text-xs text-muted-foreground font-medium pt-0.5">
-                        asientos reservados ({Math.round(totalTransportSeats > 0 ? (totalBookedTransportSeats / totalTransportSeats) * 100 : 0)}% ocupado)
+                        asientos reservados (
+                        {Math.round(
+                          totalTransportSeats > 0
+                            ? (totalBookedTransportSeats /
+                                totalTransportSeats) *
+                                100
+                            : 0,
+                        )}
+                        % ocupado)
                       </p>
                     </div>
                   </div>
                   <div className="space-y-1.5">
                     <div className="w-full bg-muted dark:bg-muted/50 rounded-full h-2 overflow-hidden shadow-inner border border-border/20">
-                      <div 
-                        className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full transition-all duration-500 ease-out" 
-                        style={{ width: `${Math.min(100, Math.round((totalBookedTransportSeats / totalTransportSeats) * 100))}%` }}
+                      <div
+                        className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full transition-all duration-500 ease-out"
+                        style={{
+                          width: `${Math.min(100, Math.round((totalBookedTransportSeats / totalTransportSeats) * 100))}%`,
+                        }}
                       ></div>
                     </div>
                   </div>
@@ -413,9 +500,15 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                   <ShieldCheck className="h-6 w-6" />
                 </div>
                 <div className="space-y-1 flex-1">
-                  <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 leading-none">{t("common.organizer")}</h3>
-                  <p className="text-base font-bold text-foreground leading-snug pt-1">{t("public.eventDetail.organizerName")}</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed pt-0.5">{t("public.eventDetail.organizerDescription")}</p>
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 leading-none">
+                    {t("common.organizer")}
+                  </h3>
+                  <p className="text-base font-bold text-foreground leading-snug pt-1">
+                    {t("public.eventDetail.organizerName")}
+                  </p>
+                  <p className="text-xs text-muted-foreground leading-relaxed pt-0.5">
+                    {t("public.eventDetail.organizerDescription")}
+                  </p>
                 </div>
               </div>
 
@@ -427,23 +520,27 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                     {t("public.eventDetail.quickLinksTitle")}
                   </h3>
                   <div className="space-y-2 text-sm">
-                    <Link 
-                      href="/member/events" 
+                    <Link
+                      href="/member/events"
                       className="flex items-center justify-between p-2.5 rounded-xl border border-border/30 hover:border-primary/30 hover:bg-primary/5 transition-all duration-300 text-foreground/90 hover:text-primary group"
                     >
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
-                        <span className="font-medium text-xs">{t("public.eventDetail.reviewRegistrations")}</span>
+                        <span className="font-medium text-xs">
+                          {t("public.eventDetail.reviewRegistrations")}
+                        </span>
                       </div>
                       <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform duration-300 group-hover:translate-x-0.5" />
                     </Link>
-                    <Link 
-                      href="/member/payments" 
+                    <Link
+                      href="/member/payments"
                       className="flex items-center justify-between p-2.5 rounded-xl border border-border/30 hover:border-primary/30 hover:bg-primary/5 transition-all duration-300 text-foreground/90 hover:text-primary group"
                     >
                       <div className="flex items-center gap-2">
                         <CreditCard className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
-                        <span className="font-medium text-xs">{t("public.eventDetail.checkPaymentHistory")}</span>
+                        <span className="font-medium text-xs">
+                          {t("public.eventDetail.checkPaymentHistory")}
+                        </span>
                       </div>
                       <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform duration-300 group-hover:translate-x-0.5" />
                     </Link>
@@ -451,7 +548,6 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                 </div>
               )}
             </div>
-
           </div>
         </div>
       </section>
