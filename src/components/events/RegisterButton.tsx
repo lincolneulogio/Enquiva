@@ -310,6 +310,20 @@ export function RegisterButton({
     );
   }
 
+  if (optimisticStatus === "cancelled") {
+    return (
+      <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4.5 flex flex-col gap-2 shadow-sm text-center">
+        <div className="flex items-center justify-center gap-2 text-amber-600 dark:text-amber-400 font-semibold text-sm">
+          <AlertTriangle className="h-4.5 w-4.5 shrink-0 animate-pulse" />
+          Inscripción Cancelada
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Tu inscripción para este evento ha sido cancelada. Para garantizar la disponibilidad de vacantes y evitar reservas repetitivas, el auto-registro ha sido deshabilitado. Ponte en contacto con el organizador si deseas reactivar tu participación.
+        </p>
+      </div>
+    );
+  }
+
   if (optimisticStatus === "waitlisted") {
     return (
       <div className="flex items-center justify-center gap-2 rounded-xl bg-amber-50 py-3 text-sm font-medium text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">

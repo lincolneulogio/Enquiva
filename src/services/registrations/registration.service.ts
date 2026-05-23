@@ -71,7 +71,7 @@ export class RegistrationService {
         phone: contactPhone,
       };
 
-      // 2. Comprobar si ya existe un registro activo
+      // 2. Comprobar si ya existe un registro
       const [existing] = await tx
         .select()
         .from(registrations)
@@ -80,7 +80,10 @@ export class RegistrationService {
         )
         .limit(1);
 
-      if (existing && existing.status !== "cancelled") {
+      if (existing) {
+        if (existing.status === "cancelled") {
+          throw new Error("Tu inscripción fue cancelada. Por favor, contacta al administrador del evento para reactivar tu cupo.");
+        }
         throw new Error("You are already registered for this event");
       }
 
