@@ -1,7 +1,7 @@
-import { RouteService } from "./transport/route.service";
-import { BookingQueriesService } from "./transport/booking-queries.service";
-import { BookingService } from "./transport/booking.service";
-import { TransportAdminService } from "./transport/admin.service";
+import { RouteService } from "../route/route.service";
+import { BookingQueriesService } from "../booking/booking-queries.service";
+import { BookingService } from "../booking/booking.service";
+import { TransportAdminService } from "../admin/admin.service";
 
 export class TransportService {
   // Routes

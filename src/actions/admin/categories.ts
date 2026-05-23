@@ -1,3 +1,5 @@
+"use server";
+
 import { db } from "@/lib/db";
 import { categories } from "@/lib/db/schema";
 import type { Category } from "@/lib/db/schema";

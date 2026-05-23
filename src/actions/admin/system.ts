@@ -1,3 +1,5 @@
+"use server";
+
 import { db } from "@/lib/db";
 import { roles, payments, registrations } from "@/lib/db/schema";
 import { eq, and, inArray, isNull } from "drizzle-orm";

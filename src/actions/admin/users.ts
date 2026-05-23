@@ -1,3 +1,5 @@
+"use server";
+
 import { db } from "@/lib/db";
 import { users, rolePermissions } from "@/lib/db/schema";
 import { eq, count, and } from "drizzle-orm";
