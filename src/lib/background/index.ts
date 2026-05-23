@@ -1,4 +1,4 @@
-import { after } from "next/after";
+import { after } from "next/server";
 
 /**
  * Ejecuta una tarea asíncrona en segundo plano sin bloquear la respuesta HTTP principal.

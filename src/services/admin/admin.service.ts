@@ -54,6 +54,8 @@ export class TransportAdminService {
     if (!payment || !payment.transportBookingId)
         throw new Error("Pago de transporte no encontrado");
 
+    const bookingId: string = payment.transportBookingId;
+
     return db.transaction(async (tx) => {
         await tx
             .update(payments)
@@ -68,12 +70,12 @@ export class TransportAdminService {
         await tx
             .update(transportBookings)
             .set({ status: "confirmed", updatedAt: new Date() })
-            .where(eq(transportBookings.id, payment.transportBookingId));
+            .where(eq(transportBookings.id, bookingId));
 
         const [booking] = await tx
             .select({ userId: transportBookings.userId, routeId: transportBookings.routeId })
             .from(transportBookings)
-            .where(eq(transportBookings.id, payment.transportBookingId))
+            .where(eq(transportBookings.id, bookingId))
             .limit(1);
 
         if (booking) {
@@ -88,7 +90,7 @@ export class TransportAdminService {
                 type: "payment_status_updated",
                 title: "¡Reserva de transporte confirmada!",
                 message: `Tu reserva para "${route?.name ?? "la ruta"}" fue aprobada. Nos vemos en el punto de salida.`,
-                metadata: { paymentId, bookingId: payment.transportBookingId },
+                metadata: { paymentId, bookingId },
             });
         }
     });
@@ -107,6 +109,8 @@ export class TransportAdminService {
     if (!payment || !payment.transportBookingId)
         throw new Error("Pago de transporte no encontrado");
 
+    const bookingId: string = payment.transportBookingId;
+
     return db.transaction(async (tx) => {
         await tx
             .update(payments)
@@ -122,12 +126,12 @@ export class TransportAdminService {
         await tx
             .update(transportBookings)
             .set({ status: "cancelled", updatedAt: new Date() })
-            .where(eq(transportBookings.id, payment.transportBookingId));
+            .where(eq(transportBookings.id, bookingId));
 
         const [booking] = await tx
             .select({ userId: transportBookings.userId })
             .from(transportBookings)
-            .where(eq(transportBookings.id, payment.transportBookingId))
+            .where(eq(transportBookings.id, bookingId))
             .limit(1);
 
         if (booking) {
@@ -136,7 +140,7 @@ export class TransportAdminService {
                 type: "payment_status_updated",
                 title: "Reserva de transporte rechazada",
                 message: reason ?? "Tu reserva de transporte fue rechazada. Contacta al organizador.",
-                metadata: { paymentId, bookingId: payment.transportBookingId },
+                metadata: { paymentId, bookingId },
             });
         }
     });

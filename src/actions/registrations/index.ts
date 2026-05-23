@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createRegistrationSchema, checkInSchema } from "@/lib/validations";
-import { RegistrationService } from "@/services/registration.service";
+import { RegistrationService } from "@/services/registrations/registration.service";
 import { registrationRatelimit } from "@/lib/redis";
 
 async function requireAuth() {

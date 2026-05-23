@@ -9,7 +9,7 @@ import {
   type CreatePaymentInput,
   type UpdatePaymentStatusInput,
 } from "@/lib/validations";
-import { PaymentService } from "@/services/payment.service";
+import { PaymentService } from "@/services/payments/payment.service";
 
 type AuthenticatedContext = {
   user: NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>["user"];

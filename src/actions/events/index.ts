@@ -3,7 +3,7 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { EventService } from "@/services/event.service";
+import { EventService } from "@/services/events/event.service";
 import type { Category } from "@/lib/db/schema";
 import {
   type CreateEventInput,

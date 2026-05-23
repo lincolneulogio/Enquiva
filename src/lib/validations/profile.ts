@@ -1,35 +1,20 @@
 import { z } from "zod";
 import { peruPhoneRegex } from "./auth";
 
-const normalizePeruPhoneValue = (value: unknown) => {
-  if (typeof value !== "string") return value;
-  const digits = value.replace(/\D/g, "");
-  if (digits.startsWith("51") && digits.length === 11) return `+${digits}`;
-  if (digits.length === 9) return `+51${digits}`;
-  return value.trim();
-};
-
 export const updateProfileSchema = z.object({
   name: z.string().min(2).max(100),
-  phone: z.preprocess(
-    (value) => {
-      if (typeof value === "string" && value.trim() === "") return null;
-      return normalizePeruPhoneValue(value);
-    },
-    z
-      .string()
-      .regex(peruPhoneRegex, "Phone must follow format +519XXXXXXXX")
-      .optional()
-      .nullable()
-  ),
-  bio: z.preprocess(
-    (value) => (typeof value === "string" && value.trim() === "" ? null : value),
-    z.string().max(500).optional().nullable()
-  ),
-  image: z.preprocess(
-    (value) => (typeof value === "string" && value.trim() === "" ? null : value),
-    z.string().url().optional().nullable()
-  ),
+  phone: z
+    .union([
+      z.string().regex(peruPhoneRegex, "Phone must follow format +519XXXXXXXX"),
+      z.literal(""),
+    ])
+    .optional()
+    .nullable(),
+  bio: z.string().max(500).optional().nullable(),
+  image: z
+    .union([z.string().url("Invalid URL"), z.literal("")])
+    .optional()
+    .nullable(),
 });
 
 export const updatePasswordSchema = z

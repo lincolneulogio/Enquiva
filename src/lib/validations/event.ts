@@ -27,7 +27,7 @@ const optionalUrl = z
   .optional()
   .nullable()
   .transform((val) => (val == null || val.trim() === "" ? null : val))
-  .pipe(z.string().url("Ingresa una URL válida").optional().nullable());
+  .pipe(z.string().url("Ingresa una URL válida").nullable());
 
 const baseEventSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(200),
@@ -68,7 +68,7 @@ const baseEventSchema = z.object({
       const num = Number(value);
       return Number.isNaN(num) ? null : num;
     })
-    .pipe(z.number().positive("El precio debe ser mayor a 0").optional().nullable()),
+    .pipe(z.number().positive("El precio debe ser mayor a 0").nullable()),
   status: z.enum(eventStatusValues).default("draft"),
   isFeatured: z.boolean().default(false),
   hasTransport: z.boolean().default(false),

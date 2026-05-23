@@ -3,7 +3,7 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { TransportService } from "@/services/transport.service";
+import { TransportService } from "@/services/transport/transport.service";
 import { z } from "zod";
 
 // ─── Auth Helpers ─────────────────────────────────────────────────────────────
