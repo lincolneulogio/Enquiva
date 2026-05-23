@@ -37,7 +37,7 @@ function getRequiredRole(pathname: string): string | null {
   return null;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (isPublicRoute(pathname)) return NextResponse.next();
@@ -54,6 +54,8 @@ export async function middleware(request: NextRequest) {
 
   return NextResponse.next();
 }
+
+export { proxy as middleware };
 
 export const config = {
   matcher: [
