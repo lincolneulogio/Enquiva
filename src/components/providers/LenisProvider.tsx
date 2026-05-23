@@ -40,11 +40,17 @@ export function LenisProvider({ children }: LenisProviderProps) {
         });
 
         lenisRef.current = lenis;
+        if (typeof window !== "undefined") {
+            (window as any).lenis = lenis;
+        }
 
         return () => {
             lenis.destroy();
             if (lenisRef.current === lenis) {
                 lenisRef.current = null;
+            }
+            if (typeof window !== "undefined" && (window as any).lenis === lenis) {
+                (window as any).lenis = null;
             }
         };
     }, [isDashboardRoute]);

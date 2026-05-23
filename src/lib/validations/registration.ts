@@ -17,7 +17,7 @@ export const createRegistrationSchema = z.object({
   ).optional(),
   notes: z.string().max(500).optional(),
   routeId: z.string().uuid().optional().nullable(),
-  seats: z.number().int().min(1).max(5).optional().nullable(),
+  seats: z.number().int().min(1).max(1).optional().nullable(),
 });
 
 export const checkInSchema = z.object({

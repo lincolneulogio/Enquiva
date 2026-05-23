@@ -86,13 +86,28 @@ export function RegisterButton({
 
   // Lock body scroll when modal is open to hide scrollbar and prevent background scrolling
   useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+
     if (isModalOpen) {
-      document.body.style.overflow = "hidden";
+      html.style.overflow = "hidden";
+      body.style.overflow = "hidden";
+      if (typeof window !== "undefined" && (window as any).lenis) {
+        (window as any).lenis.stop();
+      }
     } else {
-      document.body.style.overflow = "";
+      html.style.overflow = "";
+      body.style.overflow = "";
+      if (typeof window !== "undefined" && (window as any).lenis) {
+        (window as any).lenis.start();
+      }
     }
     return () => {
-      document.body.style.overflow = "";
+      html.style.overflow = "";
+      body.style.overflow = "";
+      if (typeof window !== "undefined" && (window as any).lenis) {
+        (window as any).lenis.start();
+      }
     };
   }, [isModalOpen]);
 
@@ -129,7 +144,11 @@ export function RegisterButton({
 
   const handleRegisterSubmit = () => {
     // Basic phone validation if transport selected
-    if (wantsTransport && contactPhone.trim() !== "") {
+    if (wantsTransport) {
+      if (contactPhone.trim() === "") {
+        toast.error("El teléfono de contacto es obligatorio para coordinar el transporte.");
+        return;
+      }
       const cleanPhone = contactPhone.replace(/\D/g, "");
       if (cleanPhone.length < 9) {
         toast.error("Por favor, ingresa un número de teléfono válido.");
@@ -391,7 +410,7 @@ export function RegisterButton({
             </div>
 
             {/* Scrollable Content */}
-            <div className="p-6 overflow-y-auto space-y-6 text-sm flex-1">
+            <div className="p-6 overflow-y-auto space-y-6 text-sm flex-1" data-lenis-prevent>
               
               {/* Transport Optional Question */}
               <div className="space-y-3">
@@ -481,41 +500,10 @@ export function RegisterButton({
                     </div>
                   </div>
 
-                  {/* Seat Counter */}
-                  <div className="flex items-center justify-between pt-1">
-                    <div className="space-y-0.5">
-                      <label className="text-xs font-semibold text-foreground uppercase tracking-wider block flex items-center gap-1">
-                        <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                        Cantidad de asientos:
-                      </label>
-                      <span className="text-xs text-muted-foreground">Máximo 5 asientos por inscripción</span>
-                    </div>
-                    
-                    <div className="flex items-center gap-3 bg-card border border-border rounded-xl p-1 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => setSeatsCount(prev => Math.max(1, prev - 1))}
-                        disabled={seatsCount <= 1}
-                        className="h-8 w-8 rounded-lg flex items-center justify-center font-bold text-lg text-foreground hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent"
-                      >
-                        -
-                      </button>
-                      <span className="w-6 text-center font-semibold text-base text-foreground">{seatsCount}</span>
-                      <button
-                        type="button"
-                        onClick={() => setSeatsCount(prev => Math.min(5, prev + 1))}
-                        disabled={seatsCount >= 5}
-                        className="h-8 w-8 rounded-lg flex items-center justify-center font-bold text-lg text-foreground hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-
                   {/* Contact Phone (Optional but highly recommended) */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-foreground uppercase tracking-wider block">
-                      Teléfono de contacto para el bus:
+                      Teléfono de contacto para el bus <span className="text-rose-500 font-bold">* (Obligatorio)</span>:
                     </label>
                     <input
                       type="tel"
