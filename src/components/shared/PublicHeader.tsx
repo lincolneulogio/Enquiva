@@ -54,14 +54,34 @@ export async function PublicHeader() {
                     </Link>
 
                     {user ? (
-                        <>
+                        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card/45 p-1 pl-1.5 pr-1.5 sm:pr-3.5 shadow-sm transition-all duration-300 hover:bg-card/90 hover:border-primary/20 hover:shadow-md backdrop-blur-sm">
+                            {/* User Avatar */}
+                            <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-xs select-none">
+                                {user.image ? (
+                                    <img src={user.image} alt={user.name ?? ""} className="h-full w-full object-cover" />
+                                ) : (
+                                    <span>{user.name ? user.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "U"}</span>
+                                )}
+                            </div>
+                            
+                            {/* User Details */}
+                            <div className="hidden sm:flex flex-col text-left">
+                                <span className="text-xs font-bold text-foreground leading-tight max-w-[140px] truncate">
+                                    {user.name}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground leading-none max-w-[140px] truncate mt-0.5">
+                                    {user.email}
+                                </span>
+                            </div>
+
+                            {/* Go to Dashboard Button */}
                             <Link
                                 href={dashboardPath}
-                                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                                className="rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground transition-all duration-300 hover:bg-primary/95 shadow-sm hover:scale-101 shrink-0"
                             >
                                 {t("common.goToDashboard")}
                             </Link>
-                        </>
+                        </div>
                     ) : (
                         <>
                             <Link href="/login" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
