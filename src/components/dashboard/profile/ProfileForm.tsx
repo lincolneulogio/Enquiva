@@ -1,0 +1,189 @@
+"use client";
+
+import { useTransition } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { updateCurrentUserProfile } from "@/actions/profile";
+import { updateProfileSchema, type UpdateProfileInput } from "@/lib/validations";
+import { Loader2, Mail, Shield, User, Phone } from "lucide-react";
+import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
+import { getRoleLabel } from "@/lib/i18n/core";
+import { normalizePeruPhone } from "@/lib/utils";
+import { AvatarUploadCard } from "./AvatarUploadCard";
+
+interface ProfileFormProps {
+  user: {
+    name: string;
+    email: string;
+    role: string;
+    phone: string | null;
+    bio: string | null;
+    image: string | null;
+  };
+}
+
+export function ProfileForm({ user }: ProfileFormProps) {
+  const router = useRouter();
+  const t = useTranslations();
+  const { locale } = useLocale();
+  const [isProfilePending, startProfileTransition] = useTransition();
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<UpdateProfileInput>({
+    resolver: zodResolver(updateProfileSchema),
+    defaultValues: {
+      name: user.name ?? "",
+      phone: user.phone ?? "",
+      bio: user.bio ?? "",
+      image: user.image ?? "",
+    },
+  });
+
+  const previewImage = watch("image") || user.image;
+
+  const onSubmit = (data: UpdateProfileInput) => {
+    startProfileTransition(async () => {
+      try {
+        await updateCurrentUserProfile({
+          ...data,
+          phone: data.phone?.trim() ? normalizePeruPhone(data.phone) : null,
+          bio: data.bio?.trim() ? data.bio : null,
+          image: data.image?.trim() ? data.image : null,
+        });
+        toast.success(t("dashboard.profile.profileUpdated"));
+        router.refresh();
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : t("dashboard.profile.profileUpdateError"),
+        );
+      }
+    });
+  };
+
+  return (
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-5 rounded-xl border border-border bg-card p-6"
+    >
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-foreground">
+          {t("common.fullName")} *
+        </label>
+        <input
+          {...register("name")}
+          placeholder={t("common.fullName")}
+          className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
+        />
+        {errors.name && (
+          <p className="mt-1 text-xs text-destructive">{errors.name.message}</p>
+        )}
+      </div>
+
+      <div>
+        <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-foreground">
+          <Phone className="h-4 w-4" />
+          {t("profile.phoneLabel")}
+        </label>
+        <div className="flex overflow-hidden rounded-xl border border-border bg-background focus-within:border-primary">
+          <span className="flex items-center border-r border-border bg-muted/60 px-3 text-sm font-medium text-muted-foreground">
+            +51
+          </span>
+          <input
+            {...register("phone")}
+            inputMode="numeric"
+            maxLength={9}
+            placeholder="912345678"
+            className="w-full px-4 py-2.5 text-sm focus:outline-none"
+            onChange={(event) => {
+              const digits = event.target.value.replace(/\D/g, "").slice(0, 9);
+              setValue("phone", digits, { shouldDirty: true, shouldValidate: true });
+            }}
+          />
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">{t("profile.phoneHint")}</p>
+        {errors.phone && (
+          <p className="mt-1 text-xs text-destructive">{errors.phone.message}</p>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        <label className="block text-sm font-semibold tracking-wide text-foreground">
+          {t("dashboard.profile.profilePhoto")}
+        </label>
+        
+        <AvatarUploadCard
+          previewImage={previewImage}
+          onUploadSuccess={(url) => setValue("image", url, { shouldDirty: true, shouldTouch: true, shouldValidate: true })}
+          onRemove={() => setValue("image", "", { shouldDirty: true, shouldTouch: true, shouldValidate: true })}
+        />
+
+        <p className="text-xs text-muted-foreground">{t("dashboard.profile.optionalManualUrl")}</p>
+        <input
+          {...register("image")}
+          placeholder={t("profile.avatarUrlPlaceholder")}
+          className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
+        />
+        {errors.image && (
+          <p className="mt-1 text-xs text-destructive">{errors.image.message}</p>
+        )}
+      </div>
+
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-foreground">
+          {t("dashboard.profile.bio")}
+        </label>
+        <textarea
+          {...register("bio")}
+          rows={4}
+          placeholder={t("dashboard.profile.tellUsAboutYou")}
+          className="w-full resize-none rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
+        />
+        {errors.bio && (
+          <p className="mt-1 text-xs text-destructive">{errors.bio.message}</p>
+        )}
+      </div>
+
+      <div className="rounded-xl border border-border bg-background p-4">
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <Mail className="h-4 w-4" />
+            <span>{t("common.email")}:</span>
+            <span className="font-medium text-foreground">{user.email}</span>
+          </div>
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <Shield className="h-4 w-4" />
+            <span>{t("common.role")}:</span>
+            <span className="font-medium capitalize text-foreground">
+              {getRoleLabel(user.role, locale)}
+            </span>
+          </div>
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <User className="h-4 w-4" />
+            <span>{t("common.account")}:</span>
+            <span className="font-medium text-foreground">
+              {t("dashboard.profile.accountInfoEditable")}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        disabled={isProfilePending}
+        className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        {isProfilePending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+        {isProfilePending ? t("common.saving") : t("common.saveChanges")}
+      </button>
+    </form>
+  );
+}
