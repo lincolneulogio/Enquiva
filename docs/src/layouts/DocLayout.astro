@@ -213,6 +213,7 @@ const nextPage =
         <div class="flex items-center gap-2 sm:gap-4">
           <!-- Mobile Search Button -->
           <button
+            id="mobile-search-btn"
             class="lg:hidden flex h-9 w-9 items-center justify-center rounded-xl border border-foreground/15 bg-foreground/3 hover:bg-foreground/8 active:scale-95 transition-all text-[#cb6916]"
             aria-label="Buscar"
           >
@@ -533,10 +534,10 @@ const nextPage =
 
       <!-- Modal Content -->
       <div
-        class="relative mx-auto mt-20 sm:mt-24 w-full max-w-xl bg-card border border-border shadow-2xl rounded-2xl overflow-hidden"
+        class="relative mx-4 sm:mx-auto mt-20 sm:mt-24 w-full max-w-xl bg-background border border-foreground/20 dark:border-foreground/25 shadow-2xl rounded-2xl overflow-hidden"
       >
         <!-- Search Input Header -->
-        <div class="flex items-center gap-3 px-4 py-3 border-b border-border bg-muted/30">
+        <div class="flex items-center gap-3 px-4 py-3 border-b border-foreground/10 dark:border-foreground/15 bg-foreground/3">
           <Search className="h-5 w-5 text-muted-foreground shrink-0" />
           <input
             type="text"
@@ -548,10 +549,10 @@ const nextPage =
           />
           <button
             id="close-search"
-            class="p-1 rounded-md text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-colors"
+            class="p-1 rounded-md text-muted-foreground hover:bg-foreground/5 hover:text-foreground transition-colors"
             aria-label="Cerrar búsqueda"
           >
-            <kbd class="font-mono text-[10px] px-1.5 py-0.5 border border-border rounded shadow-sm bg-background select-none">ESC</kbd>
+            <kbd class="font-mono text-[10px] px-1.5 py-0.5 border border-foreground/20 dark:border-foreground/30 rounded shadow-sm bg-foreground/5 select-none">ESC</kbd>
           </button>
         </div>
 
@@ -592,8 +593,9 @@ const nextPage =
           const input = document.getElementById('search-input');
           const results = document.getElementById('search-results');
           const btn = document.getElementById('search-btn');
+          const mobileBtn = document.getElementById('mobile-search-btn');
 
-          if (!modal || !btn) return;
+          if (!modal) return;
 
           const openModal = () => {
             modal.classList.remove('hidden');
@@ -617,9 +619,17 @@ const nextPage =
           };
 
           // Evitar registrar listeners duplicados con page-load de Astro
-          const newBtn = btn.cloneNode(true);
-          btn.parentNode.replaceChild(newBtn, btn);
-          newBtn.addEventListener('click', openModal);
+          if (btn) {
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            newBtn.addEventListener('click', openModal);
+          }
+
+          if (mobileBtn) {
+            const newMobileBtn = mobileBtn.cloneNode(true);
+            mobileBtn.parentNode.replaceChild(newMobileBtn, mobileBtn);
+            newMobileBtn.addEventListener('click', openModal);
+          }
 
           backdrop.addEventListener('click', closeModal);
 
