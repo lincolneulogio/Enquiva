@@ -31,9 +31,9 @@ export async function DashboardTopbar({ user }: DashboardTopbarProps) {
       className="fixed inset-x-0 top-0 z-30 flex w-full min-w-0 items-center justify-between border-b border-border bg-background/95 px-4 pb-3.5 pt-3 backdrop-blur-md sm:px-6 lg:sticky lg:bg-background/80"
       style={{ paddingTop: "calc(env(safe-area-inset-top) + 0.75rem)" }}
     >
-      <div className="flex min-w-0 items-center gap-2.5">
+      <div className="flex min-w-0 shrink-0 items-center gap-2.5">
         <SidebarMenuButton />
-        <div className="hidden font-display text-lg text-foreground sm:block lg:hidden">
+        <div className="hidden truncate font-display text-lg text-foreground md:block lg:hidden">
           EncuentroDeFe
         </div>
       </div>
@@ -41,10 +41,11 @@ export async function DashboardTopbar({ user }: DashboardTopbarProps) {
       <div className="flex min-w-0 max-w-full items-center gap-2 overflow-visible sm:gap-3">
         <Link
           href="/"
-          className="hidden sm:flex h-9 items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+          title="Ir a web"
+          className="hidden sm:flex h-9 items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 lg:px-4 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
         >
           <Globe className="h-4 w-4" />
-          <span>Ir a web</span>
+          <span className="hidden lg:inline">Ir a web</span>
         </Link>
 
         <ThemeToggle />

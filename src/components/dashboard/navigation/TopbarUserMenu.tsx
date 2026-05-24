@@ -101,9 +101,9 @@ export function TopbarUserMenu({ user }: TopbarUserMenuProps) {
         </div>
 
         {/* Nombre y rol */}
-        <div className="hidden md:block">
-          <p className="text-sm font-medium leading-none text-foreground">{user.name}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground truncate max-w-[120px]">{user.email}</p>
+        <div className="hidden min-w-0 md:block">
+          <p className="max-w-[100px] truncate text-sm font-medium leading-none text-foreground lg:max-w-[150px]">{user.name}</p>
+          <p className="mt-0.5 max-w-[100px] truncate text-xs text-muted-foreground lg:max-w-[150px]">{user.email}</p>
         </div>
 
         {/* Badge de rol */}
@@ -122,10 +122,10 @@ export function TopbarUserMenu({ user }: TopbarUserMenuProps) {
       <button
         onClick={handleSignOut}
         title={t("common.signOut")}
-        className="hidden items-center gap-1.5 rounded-xl border border-border bg-secondary/50 px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive md:flex"
+        className="hidden items-center gap-1.5 rounded-xl border border-border bg-secondary/50 px-2 py-2 text-sm text-muted-foreground transition-colors hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive md:flex lg:px-3"
       >
         <LogOut className="h-4 w-4" />
-        <span className="hidden md:block">{t("common.signOut")}</span>
+        <span className="hidden lg:block">{t("common.signOut")}</span>
       </button>
     </div>
   );
