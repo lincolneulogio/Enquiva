@@ -1,4 +1,5 @@
 ---
+import { ViewTransitions } from "astro:transitions";
 import type { MarkdownLayoutProps } from "astro";
 import "../styles/global.css";
 import {
@@ -126,6 +127,7 @@ const nextPage =
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
     <title>{title} – EncuentroDeFe Docs</title>
+    <ViewTransitions />
 
     <!-- Theme Script to prevent flash of wrong mode -->
     <script is:inline>
@@ -216,6 +218,10 @@ const nextPage =
             <Sun className="h-5 w-5 hidden dark:block" />
             <Moon className="h-5 w-5 dark:hidden" />
           </button>
+          
+          <!-- User Profile Widget -->
+          <div id="docs-user-profile" class="hidden sm:flex items-center gap-2.5 border-l border-foreground/15 pl-4 ml-1">
+          </div>
         </div>
       </div>
     </header>
@@ -646,7 +652,7 @@ const nextPage =
     
     <!-- Client-side RBAC Sync Script -->
     <script is:inline>
-      document.addEventListener('DOMContentLoaded', async () => {
+      const initDocsAuth = async () => {
         try {
           const mainAppUrl = window.location.hostname === 'localhost' 
               ? 'http://localhost:3000' 
@@ -682,11 +688,36 @@ const nextPage =
                 }
               }
             });
+
+            // 3. Render User Profile Widget
+            const profileContainer = document.getElementById('docs-user-profile');
+            if (profileContainer && data.user) {
+              const user = data.user;
+              const roleColor = user.role === 'super_admin' ? 'bg-[#15803d]' : user.role === 'admin' ? 'bg-[#cb6916]' : 'bg-[#2563eb]';
+              const roleDisplay = user.role === 'super_admin' ? 'Súper Admin' : user.role === 'admin' ? 'Administrador' : user.role === 'organizer' ? 'Organizador' : 'Miembro';
+              
+              profileContainer.innerHTML = `
+                <span class="mr-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white shadow-sm flex items-center ${roleColor}">${roleDisplay}</span>
+                <div class="flex flex-col text-right ml-1">
+                  <span class="text-xs font-bold text-foreground leading-tight max-w-[120px] truncate">${user.name || 'Usuario'}</span>
+                  <span class="text-[10px] text-muted-foreground leading-none max-w-[120px] truncate mt-0.5">${user.email || ''}</span>
+                </div>
+                <div class="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-foreground/15 bg-foreground/5 shadow-sm">
+                  ${user.image 
+                    ? `<img src="${user.image}" alt="${user.name}" class="h-full w-full object-cover" />` 
+                    : `<span class="text-xs font-bold text-[#cb6916]">${(user.name || 'U').charAt(0).toUpperCase()}</span>`
+                  }
+                </div>
+              `;
+              profileContainer.classList.remove('hidden');
+            }
           }
         } catch(e) {
           console.warn("RBAC Docs Sync failed. Silently ignoring.", e);
         }
-      });
+      };
+
+      document.addEventListener('astro:page-load', initDocsAuth);
     </script>
   </body>
 </html>

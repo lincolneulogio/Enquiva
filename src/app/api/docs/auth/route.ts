@@ -51,7 +51,13 @@ export async function GET(req: Request) {
 
         return NextResponse.json({
             role: role,
-            permissions: userPermissions
+            permissions: userPermissions,
+            user: {
+                name: session.user.name,
+                email: session.user.email,
+                image: session.user.image,
+                role: session.user.role // original role for display
+            }
         }, { headers: headersList });
 
     } catch (error) {
