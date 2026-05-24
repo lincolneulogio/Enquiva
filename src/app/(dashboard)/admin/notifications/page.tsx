@@ -2,7 +2,7 @@ import { getNotificationsPaginated } from "@/actions/notifications";
 import { Bell } from "lucide-react";
 import { MarkAllReadButton } from "@/components/dashboard";
 import { getI18n } from "@/lib/i18n/server";
-import { getIntlLocale } from "@/lib/i18n/core";
+import { getIntlLocale, translateNotification } from "@/lib/i18n/core";
 import { TablePagination } from "@/components/dashboard";
 
 interface AdminNotificationsPageProps {
@@ -66,27 +66,35 @@ export default async function AdminNotificationsPage({ searchParams }: AdminNoti
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
-                                {items.map((n, index) => (
-                                    <tr key={n.id} className="hover:bg-muted/30 transition-colors">
-                                        <td className="px-4 py-3 text-muted-foreground">{rowStart + index + 1}</td>
-                                        <td className="px-4 py-3">
-                                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${n.read ? "bg-secondary text-foreground" : "bg-primary/10 text-primary"}`}>
-                                                {n.read ? "Leída" : "No leída"}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 font-medium text-foreground">{n.title}</td>
-                                        <td className="px-4 py-3 text-muted-foreground">{n.message}</td>
-                                        <td className="px-4 py-3 text-muted-foreground">
-                                            {new Date(n.createdAt).toLocaleDateString(getIntlLocale(locale), {
-                                                month: "short",
-                                                day: "numeric",
-                                                year: "numeric",
-                                                hour: "numeric",
-                                                minute: "2-digit",
-                                            })}
-                                        </td>
-                                    </tr>
-                                ))}
+                                {items.map((n, index) => {
+                                    const { title: displayTitle, message: displayMessage } = translateNotification(
+                                        n.type,
+                                        n.title,
+                                        n.message,
+                                        locale
+                                    );
+                                    return (
+                                        <tr key={n.id} className="hover:bg-muted/30 transition-colors">
+                                            <td className="px-4 py-3 text-muted-foreground">{rowStart + index + 1}</td>
+                                            <td className="px-4 py-3">
+                                                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${n.read ? "bg-secondary text-foreground" : "bg-primary/10 text-primary"}`}>
+                                                    {n.read ? "Leída" : "No leída"}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 font-medium text-foreground">{displayTitle}</td>
+                                            <td className="px-4 py-3 text-muted-foreground">{displayMessage}</td>
+                                            <td className="px-4 py-3 text-muted-foreground">
+                                                {new Date(n.createdAt).toLocaleDateString(getIntlLocale(locale), {
+                                                    month: "short",
+                                                    day: "numeric",
+                                                    year: "numeric",
+                                                    hour: "numeric",
+                                                    minute: "2-digit",
+                                                })}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>

@@ -2,7 +2,7 @@ import { getNotifications } from "@/actions/notifications";
 import { Bell } from "lucide-react";
 import { MarkAllReadButton } from "@/components/dashboard";
 import { getI18n } from "@/lib/i18n/server";
-import { getIntlLocale } from "@/lib/i18n/core";
+import { getIntlLocale, translateNotification } from "@/lib/i18n/core";
 
 export default async function MemberNotificationsPage() {
     const { locale, t } = await getI18n();
@@ -38,23 +38,30 @@ export default async function MemberNotificationsPage() {
                 </div>
             ) : (
                 <div className="space-y-2">
-                    {items.map((n) => (
-                        <div
-                            key={n.id}
-                            className={`flex items-start gap-4 rounded-xl border p-4 transition-colors ${n.read
-                                ? "border-border bg-card"
-                                : "border-primary/20 bg-primary/5"
-                                }`}
-                        >
+                    {items.map((n) => {
+                        const { title: displayTitle, message: displayMessage } = translateNotification(
+                            n.type,
+                            n.title,
+                            n.message,
+                            locale
+                        );
+                        return (
                             <div
-                                className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${n.read ? "bg-muted" : "bg-primary/10"
+                                key={n.id}
+                                className={`flex items-start gap-4 rounded-xl border p-4 transition-colors ${n.read
+                                    ? "border-border bg-card"
+                                    : "border-primary/20 bg-primary/5"
                                     }`}
                             >
-                                <Bell className={`h-4 w-4 ${n.read ? "text-muted-foreground" : "text-primary"}`} />
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-sm font-medium text-foreground">{n.title}</p>
-                                <p className="mt-0.5 text-sm text-muted-foreground">{n.message}</p>
+                                <div
+                                    className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${n.read ? "bg-muted" : "bg-primary/10"
+                                        }`}
+                                >
+                                    <Bell className={`h-4 w-4 ${n.read ? "text-muted-foreground" : "text-primary"}`} />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium text-foreground">{displayTitle}</p>
+                                    <p className="mt-0.5 text-sm text-muted-foreground">{displayMessage}</p>
                                 <p className="mt-1 text-xs text-muted-foreground">
                                     {new Date(n.createdAt).toLocaleDateString(getIntlLocale(locale), {
                                         month: "short",
@@ -68,8 +75,9 @@ export default async function MemberNotificationsPage() {
                             {!n.read && (
                                 <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
                             )}
-                        </div>
-                    ))}
+                            </div>
+                        );
+                    })}
                 </div>
             )}
         </div>

@@ -1806,3 +1806,89 @@ export function getPaymentStatusLabel(status: string, locale: Locale): string {
 export function getPluralLabel(locale: Locale, singular: string, plural: string, count: number): string {
     return count === 1 ? singular : plural;
 }
+
+export function translateNotification(
+    type: string,
+    title: string,
+    message: string,
+    locale: string
+): { title: string; message: string } {
+    if (locale !== "es") {
+        // En inglés mantenemos los textos tal como se guardaron originalmente
+        return { title, message };
+    }
+
+    let translatedTitle = title;
+    let translatedMessage = message;
+
+    switch (type) {
+        case "registration_confirmed":
+            if (title === "Registration Confirmed!") {
+                translatedTitle = "¡Inscripción confirmada!";
+            }
+            translatedMessage = message.replace("You're registered for", "Te has inscrito en");
+            break;
+
+        case "waitlist_promoted":
+            if (title === "Great news! You're in!") {
+                translatedTitle = "¡Buenas noticias! ¡Ya estás dentro!";
+            }
+            if (message === "A spot opened up and you've been registered from the waitlist.") {
+                translatedMessage = "Se liberó un cupo y te has inscrito desde la lista de espera.";
+            }
+            break;
+
+        case "event_published":
+            if (title === "New Event Published") {
+                translatedTitle = "Nuevo evento publicado";
+            }
+            translatedMessage = message.replace("Check out", "Descubre").replace("!", "!");
+            break;
+
+        case "event_cancelled":
+            if (title === "Event Cancelled") {
+                translatedTitle = "Evento cancelado";
+            }
+            translatedMessage = message.replace("has been cancelled.", "ha sido cancelado.");
+            break;
+
+        case "event_updated":
+            if (title === "Event Details Updated" || title === "Nuevo registro en evento") {
+                translatedTitle = title === "Event Details Updated" ? "Detalles del evento actualizados" : "Nuevo registro en evento";
+            }
+            translatedMessage = message
+                .replace("Check for changes in", "Revisa los cambios en")
+                .replace("se registró en", "se registró en");
+            break;
+
+        case "event_reminder":
+            if (title === "Event Reminder") {
+                translatedTitle = "Recordatorio de evento";
+            }
+            translatedMessage = message.replace("is coming up soon!", "comenzará pronto!");
+            break;
+
+        case "payment_submitted":
+            if (title === "Payment Submitted") {
+                translatedTitle = "Pago registrado";
+            }
+            translatedMessage = message
+                .replace("Your payment of", "Tu pago de")
+                .replace("is pending review.", "está pendiente de revisión.");
+            break;
+
+        case "payment_status_updated":
+            if (title === "Payment Status Updated") {
+                translatedTitle = "Estado de pago actualizado";
+            }
+            translatedMessage = message
+                .replace("Your payment of", "Tu pago de")
+                .replace("has been approved.", "ha sido aprobado.")
+                .replace("has been rejected.", "ha sido rechazado.")
+                .replace("has been approved", "ha sido aprobado")
+                .replace("has been rejected", "ha sido rechazado");
+            break;
+    }
+
+    return { title: translatedTitle, message: translatedMessage };
+}

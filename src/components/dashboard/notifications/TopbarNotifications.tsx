@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getRecentNotifications, markNotificationsAsRead } from "@/actions/notifications";
 import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
-import { getIntlLocale } from "@/lib/i18n/core";
+import { getIntlLocale, translateNotification } from "@/lib/i18n/core";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 
 type NotificationItem = {
@@ -181,6 +181,12 @@ export function TopbarNotifications({
                             <div className="space-y-1">
                                 {items.map((n) => {
                                     const Icon = iconForType(n.type);
+                                    const { title: displayTitle, message: displayMessage } = translateNotification(
+                                        n.type,
+                                        n.title,
+                                        n.message,
+                                        locale
+                                    );
                                     return (
                                         <button
                                             key={n.id}
@@ -202,8 +208,8 @@ export function TopbarNotifications({
                                                     <Icon className={cn("h-4 w-4", n.read ? "text-muted-foreground" : "text-primary")} />
                                                 </div>
                                                 <div className="min-w-0 flex-1">
-                                                    <p className="truncate text-sm font-medium text-foreground">{n.title}</p>
-                                                    <p className="line-clamp-2 text-xs text-muted-foreground">{n.message}</p>
+                                                    <p className="truncate text-sm font-medium text-foreground">{displayTitle}</p>
+                                                    <p className="line-clamp-2 text-xs text-muted-foreground">{displayMessage}</p>
                                                     <p className="mt-1 text-[11px] text-muted-foreground">
                                                         {new Date(n.createdAt).toLocaleDateString(getIntlLocale(locale), {
                                                             month: "short",
