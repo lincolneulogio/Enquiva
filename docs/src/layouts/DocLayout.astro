@@ -23,6 +23,8 @@ import {
   History,
   LifeBuoy,
   TerminalSquare,
+  Menu,
+  X,
 } from "lucide-react";
 
 interface Frontmatter {
@@ -163,7 +165,14 @@ const nextPage =
         class="max-w-8xl mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8"
       >
         <!-- Left Section: Brand Logo -->
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3 sm:gap-4">
+          <button
+            id="mobile-menu-btn"
+            class="lg:hidden flex h-9 w-9 items-center justify-center rounded-xl border border-foreground/15 bg-foreground/3 hover:bg-foreground/8 active:scale-95 transition-all text-[#cb6916]"
+            aria-label="Abrir menú"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
           <a href="/docs" class="flex items-center gap-2.5 group">
             <div
               class="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white shadow-md transition-all group-hover:scale-105 active:scale-95 bg-[#cb6916]"
@@ -171,18 +180,19 @@ const nextPage =
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <span
-              class="font-display text-lg font-bold tracking-tight text-foreground transition-opacity hover:opacity-90"
+              class="font-display text-lg font-bold tracking-tight text-foreground transition-opacity hover:opacity-90 flex items-center"
             >
-              EncuentroDeFe <span
-                class="text-xs font-semibold bg-[#cb6916]/10 text-[#cb6916] border border-[#cb6916]/20 px-2 py-0.5 rounded-full ml-1"
+              <span class="hidden sm:inline">EncuentroDeFe</span>
+              <span
+                class="text-[10px] sm:text-xs font-semibold bg-[#cb6916]/10 text-[#cb6916] border border-[#cb6916]/20 px-2 py-0.5 rounded-full ml-1"
                 >Docs</span
               >
             </span>
           </a>
         </div>
 
-        <!-- Middle Section: Simulated Search Box -->
-        <div class="hidden md:flex flex-1 max-w-md mx-8">
+        <!-- Middle Section: Simulated Search Box (Desktop Only) -->
+        <div class="hidden lg:flex flex-1 max-w-md mx-8">
           <div
             id="search-btn"
             class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl border border-foreground/15 bg-foreground/3 text-muted-foreground/60 select-none cursor-pointer hover:bg-foreground/5 hover:border-foreground/20 transition-all"
@@ -200,13 +210,23 @@ const nextPage =
         </div>
 
         <!-- Right Section: Actions -->
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2 sm:gap-4">
+          <!-- Mobile Search Button -->
+          <button
+            class="lg:hidden flex h-9 w-9 items-center justify-center rounded-xl border border-foreground/15 bg-foreground/3 hover:bg-foreground/8 active:scale-95 transition-all text-[#cb6916]"
+            aria-label="Buscar"
+          >
+            <Search className="h-4.5 w-4.5" />
+          </button>
+
           <!-- Main App Link -->
           <a
             href={mainAppUrl}
-            class="text-xs font-semibold bg-[#cb6916]/10 text-[#cb6916] border border-[#cb6916]/20 hover:bg-[#cb6916]/18 transition-all px-3 py-1.5 rounded-xl select-none"
+            class="text-xs font-semibold bg-[#cb6916]/10 text-[#cb6916] border border-[#cb6916]/20 hover:bg-[#cb6916]/18 transition-all px-3 py-1.5 rounded-xl select-none flex items-center"
           >
-            Volver a la App ↗
+            <span class="hidden sm:inline">Volver a la App</span>
+            <span class="sm:hidden">App</span>
+            <span class="ml-1">↗</span>
           </a>
 
           <!-- Theme Toggle Button -->
@@ -220,19 +240,31 @@ const nextPage =
           </button>
           
           <!-- User Profile Widget -->
-          <div id="docs-user-profile" class="hidden sm:flex items-center gap-2.5 border-l border-foreground/15 pl-4 ml-1">
+          <div id="docs-user-profile" class="hidden items-center gap-2.5 border-l border-foreground/15 pl-4 ml-1">
           </div>
         </div>
       </div>
     </header>
 
     <!-- Main Container Grid -->
-    <div class="flex-1 w-full max-w-8xl mx-auto flex">
-      <!-- Left Sidebar: Category Navigation (docs.astro.build inspired) -->
+    <div class="flex-1 w-full max-w-8xl mx-auto flex relative">
+      <!-- Mobile Sidebar Overlay -->
+      <div id="mobile-sidebar-overlay" class="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm hidden lg:hidden transition-opacity opacity-0 duration-300"></div>
+
+      <!-- Left Sidebar: Category Navigation -->
       <aside
-        class="hidden lg:block w-72 shrink-0 border-r border-foreground/5 py-8 pl-4 pr-6 bg-foreground/[0.01]"
+        id="mobile-sidebar"
+        class="fixed inset-y-0 left-0 z-50 w-72 shrink-0 border-r border-foreground/10 bg-background lg:bg-foreground/[0.01] transform -translate-x-full lg:translate-x-0 transition-transform duration-300 lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:block overflow-y-auto"
       >
-        <div class="sticky top-24 space-y-6">
+        <!-- Mobile Header (Only visible on small screens inside sidebar) -->
+        <div class="flex lg:hidden items-center justify-between p-4 border-b border-foreground/5 mb-4">
+          <span class="font-display font-bold text-foreground">Menú de Docs</span>
+          <button id="close-mobile-menu" class="p-2 rounded-xl border border-foreground/15 bg-foreground/3 text-muted-foreground hover:text-foreground active:scale-95 transition-all">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div class="space-y-6 lg:py-6 lg:pl-4 lg:pr-6 pb-12 px-6">
           {
             navigation.map((group) => (
               <div class="space-y-2 nav-group" data-permission={group.requiredPermission || ""}>
@@ -697,8 +729,8 @@ const nextPage =
               const roleDisplay = user.role === 'super_admin' ? 'Súper Admin' : user.role === 'admin' ? 'Administrador' : user.role === 'organizer' ? 'Organizador' : 'Miembro';
               
               profileContainer.innerHTML = `
-                <span class="mr-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white shadow-sm flex items-center ${roleColor}">${roleDisplay}</span>
-                <div class="flex flex-col text-right ml-1">
+                <span class="hidden lg:flex mr-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white shadow-sm items-center ${roleColor}">${roleDisplay}</span>
+                <div class="hidden md:flex flex-col text-right ml-1">
                   <span class="text-xs font-bold text-foreground leading-tight max-w-[120px] truncate">${user.name || 'Usuario'}</span>
                   <span class="text-[10px] text-muted-foreground leading-none max-w-[120px] truncate mt-0.5">${user.email || ''}</span>
                 </div>
@@ -710,6 +742,7 @@ const nextPage =
                 </div>
               `;
               profileContainer.classList.remove('hidden');
+              profileContainer.classList.add('flex');
             }
           }
         } catch(e) {
@@ -718,6 +751,36 @@ const nextPage =
       };
 
       document.addEventListener('astro:page-load', initDocsAuth);
+
+      // Mobile Menu Logic
+      const initMobileMenu = () => {
+        const btn = document.getElementById('mobile-menu-btn');
+        const closeBtn = document.getElementById('close-mobile-menu');
+        const sidebar = document.getElementById('mobile-sidebar');
+        const overlay = document.getElementById('mobile-sidebar-overlay');
+        
+        const toggleMenu = (open) => {
+          if (!sidebar || !overlay) return;
+          if (open) {
+            sidebar.classList.remove('-translate-x-full');
+            overlay.classList.remove('hidden');
+            // Allow display block to apply before fading in
+            setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+            document.body.style.overflow = 'hidden'; // prevent scrolling behind
+          } else {
+            sidebar.classList.add('-translate-x-full');
+            overlay.classList.add('opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 300); // Wait for transition
+            document.body.style.overflow = '';
+          }
+        };
+
+        if (btn) btn.addEventListener('click', () => toggleMenu(true));
+        if (closeBtn) closeBtn.addEventListener('click', () => toggleMenu(false));
+        if (overlay) overlay.addEventListener('click', () => toggleMenu(false));
+      };
+
+      document.addEventListener('astro:page-load', initMobileMenu);
     </script>
   </body>
 </html>
