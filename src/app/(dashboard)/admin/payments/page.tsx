@@ -14,6 +14,7 @@ import { getExportEventOptions } from "@/actions/exports";
 import { getCategories } from "@/actions/events";
 import { categoryLabel } from "@/lib/utils";
 import { Suspense } from "react";
+import { PaymentNotesButton } from "@/components/payments/PaymentNotesButton";
 
 interface AdminPaymentsPageProps {
   searchParams: Promise<{
@@ -212,9 +213,12 @@ export default async function AdminPaymentsPage({ searchParams }: AdminPaymentsP
                             <span className="text-xs text-muted-foreground">{t("common.noReceipt")}</span>
                           )}
                           {payment.notes && (
-                            <div className="mt-1 text-[11px] text-muted-foreground bg-muted/65 p-2 rounded-xl border border-border/80 max-w-[220px] max-h-[80px] overflow-y-auto whitespace-pre-line font-mono leading-tight">
-                              {payment.notes}
-                            </div>
+                            <PaymentNotesButton
+                              notes={payment.notes}
+                              eventName={event.title}
+                              attendeeName={attendee.name ?? undefined}
+                              amountFormatted={formatCurrency(Number(payment.amount), payment.currency, locale)}
+                            />
                           )}
                         </div>
                       </td>
