@@ -59,10 +59,10 @@ export async function EventCard({
       data-aos="fade-up"
       data-aos-duration="650"
       className={cn(
-        "flex h-full flex-col overflow-hidden rounded-3xl border border-border/70 bg-card/60 shadow-sm backdrop-blur-sm",
+        "flex h-full flex-col overflow-hidden rounded-3xl border border-border/80 bg-background/60 backdrop-blur-md hover:shadow-[0_12px_30px_-10px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_30px_-10px_rgba(0,0,0,0.5)] hover:border-primary/35",
         isEventExpired
           ? "cursor-not-allowed border-destructive/25 bg-muted/40"
-          : "fe-glow-hover hover:border-primary/40 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.3)]",
+          : "fe-glow-hover",
         className,
       )}
     >
@@ -74,7 +74,7 @@ export async function EventCard({
             <div className="absolute inset-0 select-none overflow-hidden opacity-25 blur-[40px] dark:opacity-15 pointer-events-none">
               <Image
                 src={event.coverImage}
-                alt=""
+                alt={`Imagen de ${event.title}`}
                 fill
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 className="object-cover"
@@ -105,10 +105,10 @@ export async function EventCard({
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/25 to-transparent z-20" />
 
         {/* Category badge */}
-        <div className="absolute left-3 top-3">
+        <div className="absolute left-3 top-3 z-30">
           <span
             className={cn(
-              "rounded-full px-2.5 py-1 text-xs font-medium shadow-sm",
+              "rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm border border-white/10 backdrop-blur-md",
               categoryMeta?.colorClass || categoryColor(event.category),
             )}
           >
@@ -118,8 +118,8 @@ export async function EventCard({
 
         {/* Featured badge */}
         {event.isFeatured && (
-          <div className="absolute right-3 top-3">
-            <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground shadow-sm">
+          <div className="absolute right-3 top-3 z-30">
+            <span className="rounded-full bg-accent/90 border border-white/15 px-2.5 py-1 text-xs font-semibold text-accent-foreground shadow-sm backdrop-blur-md">
               {t("common.featured")}
             </span>
           </div>
@@ -129,7 +129,7 @@ export async function EventCard({
         {isUserRegistered && (
           <div
             className={cn(
-              "absolute right-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold text-emerald-950 bg-emerald-100 border border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800 shadow-md backdrop-blur-sm",
+              "absolute right-3 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold text-emerald-950 bg-emerald-100/90 border border-emerald-300 dark:bg-emerald-950/90 dark:text-emerald-300 dark:border-emerald-800 shadow-md backdrop-blur-md",
               event.isFeatured ? "top-12" : "top-3",
             )}
           >
@@ -138,16 +138,16 @@ export async function EventCard({
           </div>
         )}
 
-        <div className="absolute bottom-3 left-3">
-          <span className="inline-flex items-center gap-1 rounded-full border border-white/35 bg-black/35 px-2.5 py-1 text-xs font-medium text-white/95 backdrop-blur-sm">
+        <div className="absolute bottom-3 left-3 z-30">
+          <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/45 px-2.5 py-1 text-[11px] font-medium text-white shadow-sm backdrop-blur-md">
             <Calendar className="h-3 w-3" />
             {formatEventDateShort(event.date, locale)}
           </span>
         </div>
 
         {isEventExpired && (
-          <div className="absolute inset-0 flex items-end p-3">
-            <span className="inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/85 px-2.5 py-1 text-xs font-medium text-destructive-foreground shadow-sm">
+          <div className="absolute inset-0 flex items-end p-3 z-30 bg-black/10 backdrop-blur-[1px]">
+            <span className="inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/90 px-2.5 py-1 text-xs font-semibold text-destructive-foreground shadow-sm">
               <Lock className="h-3.5 w-3.5" />
               {t("register.registrationClosed")}
             </span>
@@ -159,93 +159,82 @@ export async function EventCard({
       <div className="flex flex-1 flex-col p-4 sm:p-5">
         <h3
           className={cn(
-            "mb-1.5 line-clamp-2 font-display text-[1.9rem] font-semibold leading-tight text-foreground transition-colors",
-            !isEventExpired && "group-hover:text-primary",
+            "mb-2 line-clamp-2 font-display text-lg sm:text-xl font-bold leading-snug text-foreground transition-colors group-hover:text-primary",
+            isEventExpired && "text-muted-foreground",
           )}
         >
           {event.title}
         </h3>
 
-        <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+        <p className="mb-4 line-clamp-2 text-xs sm:text-sm leading-relaxed text-muted-foreground">
           {truncate(event.description, 120)}
         </p>
 
         {/* Meta */}
-        <div className="space-y-1.5 text-xs text-muted-foreground">
-          <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-background/70 px-3 py-1.5">
-            <span className="inline-flex h-5 w-5 items-center justify-center rounded-lg bg-primary/10">
+        <div className="space-y-2 text-xs text-muted-foreground mt-auto">
+          {/* Date */}
+          <div className="flex items-center gap-2.5 rounded-2xl border border-border/30 bg-secondary/5 dark:bg-secondary/5 px-3 py-2 transition-all hover:bg-secondary/15 hover:border-border/50">
+            <span className="inline-flex h-6.5 w-6.5 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/10 shrink-0">
               <Calendar className="h-3.5 w-3.5 text-primary" />
             </span>
-            <span className="font-medium text-foreground/90">
+            <span className="font-semibold text-foreground/90 leading-none">
               {formatEventDateShort(event.date, locale)}
             </span>
           </div>
 
-          <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-background/70 px-3 py-1.5">
-            <span className="inline-flex h-5 w-5 items-center justify-center rounded-lg bg-primary/10">
-              <MapPin className="h-3.5 w-3.5 text-primary" />
+          {/* Location */}
+          <div className="flex items-center gap-2.5 rounded-2xl border border-border/30 bg-secondary/5 dark:bg-secondary/5 px-3 py-2 transition-all hover:bg-secondary/15 hover:border-border/50">
+            <span className="inline-flex h-6.5 w-6.5 items-center justify-center rounded-xl bg-violet-500/10 text-violet-500 shrink-0 border border-violet-500/10 dark:text-violet-400">
+              <MapPin className="h-3.5 w-3.5 text-violet-500 dark:text-violet-400" />
             </span>
-            <span className="line-clamp-1">
+            <span className="font-semibold text-foreground/80 leading-none truncate flex-1">
               {isVirtual
                 ? t("common.virtualEvent")
                 : (event.location ?? t("common.locationTbd"))}
             </span>
           </div>
 
-          {event.capacity != null && (
-            <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-background/70 px-3 py-1.5">
-              <span className="inline-flex h-5 w-5 items-center justify-center rounded-lg bg-primary/10">
-                <Users className="h-3.5 w-3.5 text-primary" />
-              </span>
-              <span className="line-clamp-1">
-                {t("common.registeredCount", {
-                  count: event.attendeeCount ?? 0,
-                  capacity: event.capacity,
-                })}
-                {isFull && (
-                  <span className="ml-1 font-medium text-destructive">
-                    ({t("common.full")})
-                  </span>
-                )}
-              </span>
-            </div>
-          )}
-
-          {event.capacity == null && (
-            <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-background/70 px-3 py-1.5">
-              <span className="inline-flex h-5 w-5 items-center justify-center rounded-lg bg-primary/10">
-                <Users className="h-3.5 w-3.5 text-primary" />
-              </span>
-              <span className="line-clamp-1">
-                {isVirtual
+          {/* Capacity/Registered */}
+          <div className="flex items-center gap-2.5 rounded-2xl border border-border/30 bg-secondary/5 dark:bg-secondary/5 px-3 py-2 transition-all hover:bg-secondary/15 hover:border-border/50">
+            <span className="inline-flex h-6.5 w-6.5 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 shrink-0 border border-emerald-500/10 dark:text-emerald-400">
+              <Users className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" />
+            </span>
+            <span className="font-semibold text-foreground/80 leading-none truncate flex-1">
+              {event.capacity != null ? (
+                <>
+                  {t("common.registeredCount", {
+                    count: event.attendeeCount ?? 0,
+                    capacity: event.capacity,
+                  })}
+                  {isFull && (
+                    <span className="ml-1 font-bold text-destructive">
+                      ({t("common.full")})
+                    </span>
+                  )}
+                </>
+              ) : (
+                isVirtual
                   ? `${t("public.eventDetail.capacityLabel")}: ${t("public.eventDetail.unlimited")}`
-                  : t("common.registered")}
-              </span>
-            </div>
-          )}
+                  : t("common.registered")
+              )}
+            </span>
+          </div>
         </div>
 
-        <div className="mt-3 border-t border-border/70 pt-3">
+        <div className="mt-4 border-t border-border/50 pt-4">
           {!isEventExpired ? (
             <div
               className={cn(
-                "inline-flex w-full items-center justify-between rounded-xl border px-3.5 py-2 text-sm transition-all duration-300 shadow-sm",
+                "inline-flex w-full items-center justify-between rounded-2xl border px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-all duration-300 shadow-sm",
                 isUserRegistered
-                  ? "border-emerald-500/20 bg-emerald-500/5 group-hover:bg-emerald-500/10"
-                  : "border-primary/20 bg-gradient-to-r from-primary/[0.10] to-primary/[0.06] group-hover:from-primary/[0.14] group-hover:to-primary/[0.08]",
+                  ? "border-emerald-500/25 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-600 group-hover:shadow-md group-hover:shadow-emerald-500/10"
+                  : "border-primary/25 bg-primary/5 text-primary group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary group-hover:shadow-lg group-hover:shadow-primary/20",
               )}
             >
-              <span
-                className={cn(
-                  "font-medium flex items-center gap-1.5",
-                  isUserRegistered
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-primary",
-                )}
-              >
+              <span className="font-bold flex items-center gap-1.5">
                 {isUserRegistered ? (
                   <>
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse group-hover:bg-white transition-colors duration-300" />
                     Ver mi Inscripción
                   </>
                 ) : (
@@ -253,20 +242,17 @@ export async function EventCard({
                 )}
               </span>
               <ArrowUpRight
-                className={cn(
-                  "h-4 w-4 transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5",
-                  isUserRegistered ? "text-emerald-500" : "text-primary",
-                )}
+                className="h-4 w-4 transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
               />
             </div>
           ) : (
-            <div className="inline-flex w-full items-center justify-center rounded-xl border border-destructive/20 bg-destructive/[0.08] px-3.5 py-2 text-sm font-medium text-destructive/90">
+            <div className="inline-flex w-full items-center justify-center rounded-2xl border border-destructive/20 bg-destructive/[0.08] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-destructive/90">
               {t("register.eventExpired")}
             </div>
           )}
 
           {!isEventExpired && isFull && (
-            <div className="mt-2 inline-flex w-full items-center justify-center rounded-xl border border-amber-500/25 bg-amber-500/10 px-3.5 py-2 text-sm font-medium text-amber-700 dark:text-amber-400">
+            <div className="mt-2 inline-flex w-full items-center justify-center rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-700 dark:text-amber-400">
               {t("register.eventFull")}
             </div>
           )}

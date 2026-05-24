@@ -648,8 +648,8 @@ const translations: Record<Locale, TranslationDictionary> = {
                 },
             },
             events: {
-                title: "Eventos comunitarios",
-                subtitle: "Descubre eventos significativos en tu comunidad de fe",
+                title: "Eventos Disponibles",
+                subtitle: "Descubre los próximos eventos en tu comunidad de fe",
                 noEventsFound: "No se encontraron eventos",
                 adjustFilters: "Prueba ajustando los filtros o vuelve a intentarlo más tarde.",
                 showingEvents: "Mostrando {count} de {total} eventos",
