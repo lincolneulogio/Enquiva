@@ -1,4 +1,7 @@
-import { getNotifications, getUnreadNotificationsCount } from "@/actions/notifications";
+import {
+  getNotifications,
+  getUnreadNotificationsCount,
+} from "@/actions/notifications";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { TopbarUserMenu } from "./TopbarUserMenu";
 import { TopbarNotifications } from "../notifications/TopbarNotifications";
@@ -31,7 +34,7 @@ export async function DashboardTopbar({ user }: DashboardTopbarProps) {
       <div className="flex min-w-0 items-center gap-2.5">
         <SidebarMenuButton />
         <div className="hidden font-display text-lg text-foreground sm:block lg:hidden">
-        EncuentroDeFe
+          EncuentroDeFe
         </div>
       </div>
 
