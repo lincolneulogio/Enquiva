@@ -2,13 +2,13 @@ import nodemailer from "nodemailer";
 import { env } from "@/env";
 
 export const transporter = nodemailer.createTransport({
-  host: env.MAILTRAP_HOST,
-  port: env.MAILTRAP_PORT,
+  host: env.SMTP_HOST,
+  port: env.SMTP_PORT,
   secure: false,
   requireTLS: true,
   auth: {
-    user: env.MAILTRAP_USER,
-    pass: env.MAILTRAP_PASS,
+    user: env.SMTP_USER,
+    pass: env.SMTP_PASS,
   },
   tls: {
     rejectUnauthorized: false,
