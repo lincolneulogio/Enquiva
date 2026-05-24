@@ -1,0 +1,25 @@
+{
+  "name": "encuentrodefe-docs-astro-v4",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --port 3001",
+    "start": "astro dev --port 3001",
+    "build": "astro build",
+    "preview": "astro preview --port 3001"
+  },
+  "dependencies": {
+    "astro": "^4.15.0",
+    "@astrojs/react": "^3.6.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "lucide-react": "^0.378.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.3.0"
+  },
+  "devDependencies": {
+    "tailwindcss": "^4.0.0",
+    "@tailwindcss/vite": "^4.0.0"
+  }
+}
