@@ -153,6 +153,36 @@ const nextPage =
       }
       window.localStorage.setItem("theme", theme);
     </script>
+    <script define:vars={{ mainAppUrl }}>
+      async function checkAuth() {
+        try {
+          const res = await fetch(`${mainAppUrl}api/auth/get-session`, {
+            credentials: "include"
+          });
+          if (!res.ok) throw new Error("No autenticado");
+          
+          const data = await res.json();
+          if (!data || !data.session) {
+            throw new Error("No hay sesión activa");
+          } else {
+            // Mostrar avatar del usuario si se verificó correctamente
+            const profileDiv = document.getElementById("docs-user-profile");
+            if (profileDiv && data.user) {
+              profileDiv.classList.remove("hidden");
+              profileDiv.classList.add("flex");
+              profileDiv.innerHTML = `
+                <div title="${data.user.email}" class="h-8 w-8 shrink-0 rounded-full bg-[#cb6916] text-white flex items-center justify-center text-xs font-bold shadow-sm ring-2 ring-background">
+                  ${data.user.name.charAt(0).toUpperCase()}
+                </div>
+              `;
+            }
+          }
+        } catch (e) {
+          window.location.href = `${mainAppUrl}login?redirect=${encodeURIComponent(window.location.href)}`;
+        }
+      }
+      checkAuth();
+    </script>
   </head>
   <body
     class="bg-[#f6efe8] text-[#402410] dark:bg-[#120904] dark:text-[#f6efe8] min-h-screen flex flex-col font-sans antialiased"
