@@ -72,8 +72,24 @@ export default function QRScanner({ onResult, onError, onScanStart }: QRScannerP
       console.log = origLog;
       console.warn = origWarn;
       console.error = origError;
+
+      // Stop active media stream tracks manually to force release the hardware camera lock immediately
+      if (videoRef.current && videoRef.current.srcObject) {
+        try {
+          const stream = videoRef.current.srcObject as MediaStream;
+          stream.getTracks().forEach((track) => track.stop());
+        } catch (e) {
+          console.error("Failed to stop media tracks on cleanup:", e);
+        }
+        videoRef.current.srcObject = null;
+      }
+
       if (readerRef.current) {
-        readerRef.current.reset();
+        try {
+          readerRef.current.reset();
+        } catch (e) {
+          console.error("Failed to reset zxing reader:", e);
+        }
       }
     };
   }, [onResult, onError, onScanStart]);

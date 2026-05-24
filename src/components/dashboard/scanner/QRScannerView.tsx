@@ -52,20 +52,30 @@ export function QRScannerView() {
       let code = "";
       let signature = "";
 
-      // Intentamos parsear como URL
-      if (detectedText.startsWith("http://") || detectedText.startsWith("https://")) {
-        const parsedUrl = new URL(detectedText);
-        const segments = parsedUrl.pathname.split("/");
-        code = segments[segments.length - 1] || "";
-        signature = parsedUrl.searchParams.get("s") || parsedUrl.searchParams.get("signature") || "";
+      // Robusto: comprobamos si el texto contiene '/ticket/' en cualquier posición (con o sin protocolo http/https)
+      if (detectedText.includes("/ticket/")) {
+        const ticketIndex = detectedText.indexOf("/ticket/");
+        const pathAndQuery = detectedText.substring(ticketIndex); // Ej: "/ticket/TKT-TTZCF5?s=abcdef..." o "/ticket/TKT-TTZCF5"
+        
+        const [path, queryStr] = pathAndQuery.split("?");
+        const segments = path.split("/");
+        
+        // Remove trailing empty segments if any (e.g. from trailing slashes)
+        const cleanSegments = segments.filter(Boolean);
+        code = cleanSegments[cleanSegments.length - 1] || "";
+        
+        if (queryStr) {
+          const searchParams = new URLSearchParams(queryStr);
+          signature = searchParams.get("s") || searchParams.get("signature") || "";
+        }
       } else {
-        // En caso de que no venga la URL completa, sino un formato JSON o similar
+        // En caso de que no venga la URL, sino un formato JSON o similar
         try {
           const parsed = JSON.parse(detectedText);
           code = parsed.code || "";
           signature = parsed.signature || parsed.s || "";
         } catch {
-          // Si es texto plano plano, asumimos que puede ser el código
+          // Si es texto plano plano, asumimos que es el código
           code = detectedText.trim();
         }
       }
