@@ -29,9 +29,11 @@ export async function proxy(request: NextRequest) {
 
   if (isPublicRoute(pathname)) return NextResponse.next();
 
-  const hasSession =
-    request.cookies.has("better-auth.session_token") ||
-    request.cookies.has("session_token");
+  const hasSession = request.cookies.getAll().some(
+    (cookie) =>
+      cookie.name.includes("better-auth.session_token") ||
+      cookie.name.includes("session_token")
+  );
 
   if (!hasSession) {
     const loginUrl = new URL("/login", request.url);
