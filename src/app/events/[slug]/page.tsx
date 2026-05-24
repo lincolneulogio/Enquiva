@@ -205,16 +205,29 @@ export default async function EventDetailPage({ params }: EventPageProps) {
 
               {/* Cover Image */}
               {event.coverImage && (
-                <div className="group relative overflow-hidden rounded-3xl border border-border bg-muted shadow-md hover:shadow-lg transition-all duration-300">
-                  <Image
-                    src={event.coverImage}
-                    alt={event.title}
-                    width={1200}
-                    height={675}
-                    className="h-72 w-full object-cover md:h-[450px] transition-transform duration-700 ease-out group-hover:scale-103"
-                    priority
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="group relative overflow-hidden rounded-3xl border border-border bg-secondary/15 shadow-md hover:shadow-lg transition-all duration-300 w-full flex items-center justify-center">
+                  {/* Ambient blurred background glow */}
+                  <div className="absolute inset-0 select-none overflow-hidden opacity-20 blur-[100px] dark:opacity-10 pointer-events-none">
+                    <Image
+                      src={event.coverImage}
+                      alt=""
+                      fill
+                      sizes="100vw"
+                      className="object-cover"
+                    />
+                  </div>
+                  
+                  {/* Main Image */}
+                  <div className="relative w-full overflow-hidden flex items-center justify-center">
+                    <Image
+                      src={event.coverImage}
+                      alt={event.title}
+                      width={1200}
+                      height={675}
+                      className="w-full h-auto max-h-[500px] object-contain transition-all duration-700 ease-out group-hover:scale-[1.01] z-10"
+                      priority
+                    />
+                  </div>
                 </div>
               )}
 

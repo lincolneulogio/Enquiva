@@ -61,7 +61,7 @@ export function TopbarUserMenu({ user }: TopbarUserMenuProps) {
       >
         <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full bg-secondary">
           {user.image ? (
-            <Image src={user.image} alt={user.name ?? ""} fill className="object-cover" />
+            <Image src={user.image} alt={user.name ?? ""} fill sizes="28px" className="object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-foreground/70">
               {user.name?.[0]?.toUpperCase()}
@@ -92,7 +92,7 @@ export function TopbarUserMenu({ user }: TopbarUserMenuProps) {
         {/* Avatar */}
         <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full bg-secondary sm:h-7 sm:w-7">
           {user.image ? (
-            <Image src={user.image} alt={user.name ?? ""} fill className="object-cover" />
+            <Image src={user.image} alt={user.name ?? ""} fill sizes="28px" className="object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-foreground/70">
               {user.name?.[0]?.toUpperCase()}

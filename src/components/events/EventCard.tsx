@@ -67,26 +67,42 @@ export async function EventCard({
       )}
     >
       {/* Cover Image */}
-      <div className="relative h-48 overflow-hidden bg-secondary">
+      <div className="relative w-full overflow-hidden bg-secondary/15 flex items-center justify-center border-b border-border/50">
         {event.coverImage ? (
-          <Image
-            src={event.coverImage}
-            alt={event.title}
-            fill
-            className={cn(
-              "object-cover transition-transform duration-500",
-              isEventExpired ? "grayscale-[0.35]" : "group-hover:scale-105",
-            )}
-          />
+          <>
+            {/* Ambient blurred background glow */}
+            <div className="absolute inset-0 select-none overflow-hidden opacity-25 blur-[40px] dark:opacity-15 pointer-events-none">
+              <Image
+                src={event.coverImage}
+                alt=""
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                className="object-cover"
+              />
+            </div>
+            {/* Main fully visible image */}
+            <div className="relative w-full overflow-hidden flex items-center justify-center p-0.5">
+              <Image
+                src={event.coverImage}
+                alt={event.title}
+                width={600}
+                height={400}
+                className={cn(
+                  "w-full h-auto max-h-[220px] object-contain transition-all duration-700 ease-out z-10",
+                  isEventExpired ? "grayscale-[0.35]" : "group-hover:scale-[1.02]",
+                )}
+              />
+            </div>
+          </>
         ) : (
-          <div className="relative flex h-full items-center justify-center bg-gradient-to-br from-secondary via-secondary to-muted/80">
+          <div className="relative flex h-48 w-full items-center justify-center bg-gradient-to-br from-secondary via-secondary to-muted/80">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_30%,hsl(var(--primary)/0.2),transparent_40%),radial-gradient(circle_at_80%_70%,hsl(var(--accent)/0.18),transparent_45%)]" />
             <div className="absolute inset-0 animate-pulse bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/0.04),transparent_60%)]" />
             <span className="relative text-5xl opacity-30">✦</span>
           </div>
         )}
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/30 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/25 to-transparent z-20" />
 
         {/* Category badge */}
         <div className="absolute left-3 top-3">

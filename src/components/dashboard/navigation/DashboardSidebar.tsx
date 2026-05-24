@@ -194,7 +194,7 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
           <div className="mb-3 flex items-center gap-3">
             <div className="relative h-8 w-8 overflow-hidden rounded-full bg-sidebar-accent">
               {user.image ? (
-                <Image src={user.image} alt={user.name ?? ""} fill className="object-cover" />
+                <Image src={user.image} alt={user.name ?? ""} fill sizes="32px" className="object-cover" />
               ) : (
                 <div className="flex h-full items-center justify-center text-xs font-semibold text-sidebar-foreground">
                   {user.name?.[0]?.toUpperCase()}
@@ -258,7 +258,7 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
           <div className="mb-3 flex items-center gap-3">
             <div className="relative h-8 w-8 overflow-hidden rounded-full bg-sidebar-accent">
               {user.image ? (
-                <Image src={user.image} alt={user.name ?? ""} fill className="object-cover" />
+                <Image src={user.image} alt={user.name ?? ""} fill sizes="32px" className="object-cover" />
               ) : (
                 <div className="flex h-full items-center justify-center text-xs font-semibold text-sidebar-foreground">
                   {user.name?.[0]?.toUpperCase()}
