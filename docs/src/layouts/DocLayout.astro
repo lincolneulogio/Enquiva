@@ -14,6 +14,14 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  HelpCircle,
+  Video,
+  Database,
+  Shield,
+  Activity,
+  History,
+  LifeBuoy,
+  TerminalSquare,
 } from "lucide-react";
 
 interface Frontmatter {
@@ -65,12 +73,25 @@ const navigation = [
       { label: "Guía del Miembro", path: "/miembro", icon: User },
       { label: "Guía del Organizador", path: "/organizador", icon: Calendar },
       { label: "Guía del Administrador", path: "/admin", icon: Settings },
+      { label: "Preguntas Frecuentes", path: "/faq", icon: HelpCircle },
+      { label: "Videotutoriales", path: "/videotutoriales", icon: Video },
     ],
   },
   {
     group: "Desarrolladores",
     items: [
       { label: "Arquitectura Técnica", path: "/arquitectura", icon: Cpu },
+      { label: "Setup Local", path: "/setup-local", icon: TerminalSquare },
+      { label: "Esquema de BD", path: "/base-de-datos", icon: Database },
+      { label: "Roles y Permisos", path: "/auth-roles", icon: Shield },
+      { label: "Tiempo Real (WS)", path: "/websockets", icon: Activity },
+    ],
+  },
+  {
+    group: "Plataforma",
+    items: [
+      { label: "Registro de Cambios", path: "/changelog", icon: History },
+      { label: "Soporte y Contacto", path: "/soporte", icon: LifeBuoy },
     ],
   },
 ];
