@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { roles, rolePermissions } from "@/lib/db/schema";
-import { PERMISSIONS_BY_ROLE, ROLE_LABELS, type AppRole } from "@/lib/rbac";
+import { PERMISSIONS_BY_ROLE, ROLE_LABELS, type AppRole } from "@/lib/auth/rbac";
 
 const roleColors: Record<AppRole, string> = {
   super_admin: "cyan",
