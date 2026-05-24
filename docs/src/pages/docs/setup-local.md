@@ -4,7 +4,7 @@ description: "Guía paso a paso para clonar, configurar y ejecutar EncuentroDeFe
 layout: "../../layouts/DocLayout.astro"
 ---
 
-Esta guía está diseñada para desarrolladores que desean contribuir al código base de EncuentroDeFe. El proyecto utiliza **Next.js 16**, **Drizzle ORM** y **PostgreSQL**. Sigue estos pasos para tener un entorno funcional en minutos.
+Esta guía está diseñada para desarrolladores que desean contribuir al código base de EncuentroDeFe. El proyecto  utiliza **Next.js 16**, **Drizzle ORM** y **PostgreSQL**. Sigue estos pasos para tener un entorno funcional en minutos.
 
 ---
 
