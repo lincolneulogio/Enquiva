@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Loader2, Bus, MapPin, Clock, Users, CreditCard, X, Upload, Smartphone, QrCode, Wallet } from "lucide-react";
+import { Loader2, Bus, MapPin, Clock, Users, CreditCard, X, Upload, Smartphone, QrCode, Wallet, Copy, Download } from "lucide-react";
 import { bookTransport, cancelTransportBooking } from "@/actions/transport";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
@@ -64,11 +64,50 @@ export function TransportBookingForm({
     const currentMethod = paymentMethods.find((m) => m.id === methodId);
     const method = currentMethod?.type ?? "";
 
+    const downloadQr = async (url: string, filename: string) => {
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = blobUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(blobUrl);
+            toast.success("Código QR guardado en tu galería");
+        } catch (error) {
+            window.open(url, "_blank");
+            toast.info("Mantén presionada la imagen para guardarla en tu galería.");
+        }
+    };
+
+    const MobileInstructions = () => (
+        <div className="mt-3 rounded-2xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 p-3.5 text-left text-xs text-amber-800 dark:text-amber-300">
+            <div className="flex gap-2.5 items-start">
+                <span className="text-base shrink-0 mt-0.5">📱</span>
+                <div className="space-y-1">
+                    <p className="font-bold">¿Pagando desde tu celular?</p>
+                    <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+                        <li><strong>Copia el número</strong> de teléfono de arriba e ingresa a Yape/Plin para realizar el pago de forma rápida.</li>
+                        <li>O <strong>descarga el código QR</strong>, abre Yape/Plin, ve a la opción "Escanear" y selecciona "Imagen de galería" para pagar al instante.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    );
+
     const totalPrice = Number(route.pricePerSeat) * seats;
 
     const handleSubmit = () => {
         if (!method) {
             toast.error(t("transport.booking.methodRequired"));
+            return;
+        }
+
+        if (currentMethod?.type !== "cash" && !receiptUrl) {
+            toast.error(t("transport.booking.receiptRequired"));
             return;
         }
 
@@ -183,47 +222,115 @@ export function TransportBookingForm({
                             </div>
                         </div>
 
-                        {currentMethod?.type === "yape" && currentMethod?.qrCodeUrl && (
-                            <div className="sm:col-span-2 rounded-xl border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900 p-4 text-center">
-                                <p className="mb-1 text-sm font-medium text-green-850 dark:text-green-300">Paga con Yape</p>
-                                <p className="mb-3 text-xs text-green-700 dark:text-green-400">
-                                    Titular: <span className="font-semibold">{currentMethod.holderName}</span>
-                                    {currentMethod.phone && <> · Tel: <span className="font-semibold">{currentMethod.phone}</span></>}
-                                </p>
-                                <Image src={currentMethod.qrCodeUrl} alt="Yape QR" width={180} height={180} className="mx-auto rounded-lg shadow-sm" />
+                        {currentMethod?.type === "yape" && (
+                            <div className="sm:col-span-2 rounded-2xl border border-green-200/50 bg-green-50/40 dark:border-green-900/30 dark:bg-green-950/10 p-5 text-center space-y-4">
+                                <div>
+                                    <p className="text-sm font-bold text-green-800 dark:text-green-400 flex items-center justify-center gap-1.5">
+                                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-white text-[10px]">✓</span>
+                                        Paga con Yape
+                                    </p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        Titular: <span className="font-semibold text-foreground">{currentMethod.holderName}</span>
+                                    </p>
+                                </div>
+
+                                {currentMethod.phone && (
+                                    <div className="flex items-center justify-between gap-3 rounded-xl bg-background dark:bg-zinc-900/50 border border-green-100 dark:border-green-900/20 px-3.5 py-2">
+                                        <div className="text-left">
+                                            <span className="block text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Teléfono Yape</span>
+                                            <span className="font-mono text-sm font-bold text-foreground">{currentMethod.phone}</span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(currentMethod.phone!);
+                                                toast.success("¡Número de Yape copiado!");
+                                            }}
+                                            className="flex items-center gap-1.5 rounded-lg bg-green-600 hover:bg-green-700 active:scale-95 transition-all text-white px-3 py-1.5 text-xs font-semibold shrink-0"
+                                        >
+                                            <Copy className="h-3 w-3" />
+                                            Copiar
+                                        </button>
+                                    </div>
+                                )}
+
+                                {currentMethod.qrCodeUrl && (
+                                    <div className="space-y-3">
+                                        <div className="relative mx-auto w-44 h-44 rounded-xl overflow-hidden border border-green-100 dark:border-green-900/30 bg-white p-2">
+                                            <Image src={currentMethod.qrCodeUrl} alt="Yape QR" width={160} height={160} className="mx-auto rounded-lg object-contain h-full w-full" />
+                                        </div>
+                                        
+                                        <button
+                                            type="button"
+                                            onClick={() => downloadQr(currentMethod.qrCodeUrl!, `qr-yape-bus-${currentMethod.holderName.replace(/\s+/g, "-").toLowerCase()}.png`)}
+                                            className="inline-flex items-center gap-1.5 text-xs font-bold text-green-700 dark:text-green-400 hover:underline active:scale-95 transition-all"
+                                        >
+                                            <Download className="h-3.5 w-3.5" />
+                                            Guardar QR en Galería
+                                        </button>
+                                    </div>
+                                )}
+
+                                <MobileInstructions />
                             </div>
                         )}
 
-                        {currentMethod?.type === "plin" && currentMethod?.qrCodeUrl && (
-                            <div className="sm:col-span-2 rounded-xl border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-900 p-4 text-center">
-                                <p className="mb-1 text-sm font-medium text-blue-850 dark:text-blue-300">Paga con Plin</p>
-                                <p className="mb-3 text-xs text-blue-700 dark:text-blue-400">
-                                    Titular: <span className="font-semibold">{currentMethod.holderName}</span>
-                                    {currentMethod.phone && <> · Tel: <span className="font-semibold">{currentMethod.phone}</span></>}
-                                </p>
-                                <Image src={currentMethod.qrCodeUrl} alt="Plin QR" width={180} height={180} className="mx-auto rounded-lg shadow-sm" />
-                            </div>
-                        )}
+                        {currentMethod?.type === "plin" && (
+                            <div className="sm:col-span-2 rounded-2xl border border-blue-200/50 bg-blue-50/40 dark:border-blue-900/30 dark:bg-blue-950/10 p-5 text-center space-y-4">
+                                <div>
+                                    <p className="text-sm font-bold text-blue-800 dark:text-blue-400 flex items-center justify-center gap-1.5">
+                                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-white text-[10px]">✓</span>
+                                        Paga con Plin
+                                    </p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        Titular: <span className="font-semibold text-foreground">{currentMethod.holderName}</span>
+                                    </p>
+                                </div>
 
-                        {currentMethod?.type === "yape" && !currentMethod?.qrCodeUrl && (
-                            <div className="sm:col-span-2 rounded-xl border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900 p-3 text-sm text-green-850 dark:text-green-300">
-                                <p className="font-semibold">Yapea a:</p>
-                                <p className="text-green-700 dark:text-green-400">Titular: {currentMethod.holderName}</p>
-                                {currentMethod.phone && <p className="text-green-700 dark:text-green-400">Teléfono: <span className="font-bold">{currentMethod.phone}</span></p>}
-                            </div>
-                        )}
+                                {currentMethod.phone && (
+                                    <div className="flex items-center justify-between gap-3 rounded-xl bg-background dark:bg-zinc-900/50 border border-blue-100 dark:border-blue-900/20 px-3.5 py-2">
+                                        <div className="text-left">
+                                            <span className="block text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Teléfono Plin</span>
+                                            <span className="font-mono text-sm font-bold text-foreground">{currentMethod.phone}</span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(currentMethod.phone!);
+                                                toast.success("¡Número de Plin copiado!");
+                                            }}
+                                            className="flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 active:scale-95 transition-all text-white px-3 py-1.5 text-xs font-semibold shrink-0"
+                                        >
+                                            <Copy className="h-3 w-3" />
+                                            Copiar
+                                        </button>
+                                    </div>
+                                )}
 
-                        {currentMethod?.type === "plin" && !currentMethod?.qrCodeUrl && (
-                            <div className="sm:col-span-2 rounded-xl border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-900 p-3 text-sm text-blue-850 dark:text-blue-300">
-                                <p className="font-semibold">Plinea a:</p>
-                                <p className="text-blue-700 dark:text-blue-400">Titular: {currentMethod.holderName}</p>
-                                {currentMethod.phone && <p className="text-blue-700 dark:text-green-400">Teléfono: <span className="font-bold">{currentMethod.phone}</span></p>}
+                                {currentMethod.qrCodeUrl && (
+                                    <div className="space-y-3">
+                                        <div className="relative mx-auto w-44 h-44 rounded-xl overflow-hidden border border-blue-100 dark:border-blue-900/30 bg-white p-2">
+                                            <Image src={currentMethod.qrCodeUrl} alt="Plin QR" width={160} height={160} className="mx-auto rounded-lg object-contain h-full w-full" />
+                                        </div>
+                                        
+                                        <button
+                                            type="button"
+                                            onClick={() => downloadQr(currentMethod.qrCodeUrl!, `qr-plin-bus-${currentMethod.holderName.replace(/\s+/g, "-").toLowerCase()}.png`)}
+                                            className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 dark:text-blue-400 hover:underline active:scale-95 transition-all"
+                                        >
+                                            <Download className="h-3.5 w-3.5" />
+                                            Guardar QR en Galería
+                                        </button>
+                                    </div>
+                                )}
+
+                                <MobileInstructions />
                             </div>
                         )}
 
                         {currentMethod?.type === "cash" && (
-                            <div className="sm:col-span-2 rounded-xl border border-purple-200 bg-purple-50 dark:bg-purple-950/20 dark:border-purple-900 p-4 text-sm">
-                                <p className="font-semibold text-purple-805 dark:text-purple-300">Pagarás en efectivo el día del viaje</p>
+                            <div className="sm:col-span-2 rounded-xl border border-purple-200 bg-purple-50 dark:bg-purple-950/10 dark:border-purple-900/30 p-4 text-sm">
+                                <p className="font-semibold text-purple-800 dark:text-purple-300">Pagarás en efectivo el día del viaje</p>
                                 <p className="mt-1 text-purple-700 dark:text-purple-400">Lleva el monto exacto (<span className="font-semibold">S/. {totalPrice.toFixed(2)}</span>) y paga al momento de abordar el bus (Ida y Vuelta).</p>
                             </div>
                         )}
