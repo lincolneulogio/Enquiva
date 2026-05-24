@@ -12,12 +12,12 @@ Esta sección describe la arquitectura técnica, el modelo de base de datos rela
 
 El proyecto utiliza un stack de última generación optimizado para velocidad extrema, respuestas instantáneas y tipado estático seguro de extremo a extremo:
 
-* **Framework:** Next.js 15.1 (App Router) con Server Actions y componentes de servidor optimizados.
-* **Librería de Interfaz:** React 19 y Tailwind CSS v4 para diseño web ultra veloz.
-* **Base de Datos & ORM:** Drizzle ORM conectado a una base de datos PostgreSQL de alto rendimiento.
-* **Autenticación:** `better-auth` v1.1.11, que maneja sesiones seguras basadas en cookies con compatibilidad nativa para middleware de Next.js.
-* **Sincronización en Tiempo Real:** **Pusher** para transmisiones WebSocket bidireccionales en tiempo real (notificaciones de pagos y cambios de asistencia en el scanner).
-* **Carga de Archivos:** **Uploadthing** v7 para subida directa y segura de comprobantes de pago de los asistentes a la nube.
+* **Framework:** Next.js 16.2.6 (App Router) con Server Actions y componentes de servidor optimizados.
+* **Librería de Interfaz:** React 19.2.6 y Tailwind CSS v4.3.0 para diseño web ultra veloz.
+* **Base de Datos & ORM:** Drizzle ORM (v0.45.2) conectado a una base de datos PostgreSQL de alto rendimiento.
+* **Autenticación:** `better-auth` v1.6.11, que maneja sesiones seguras basadas en cookies con compatibilidad nativa para middleware de Next.js.
+* **Sincronización en Tiempo Real:** **Pusher** (v5.3.3) para transmisiones WebSocket bidireccionales en tiempo real (notificaciones de pagos y cambios de asistencia en el scanner).
+* **Carga de Archivos:** **Uploadthing** v7.7.4 para subida directa y segura de comprobantes de pago de los asistentes a la nube.
 
 ---
 

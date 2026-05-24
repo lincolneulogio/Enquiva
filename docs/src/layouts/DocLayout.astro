@@ -11,11 +11,8 @@ import {
   Search,
   Sun,
   Moon,
-  Github,
   ChevronLeft,
   ChevronRight,
-  HelpCircle,
-  Edit3,
 } from "lucide-react";
 
 interface Frontmatter {
@@ -34,6 +31,17 @@ const currentPath = Astro.url.pathname;
 
 const mainAppUrl =
   import.meta.env.PUBLIC_MAIN_APP_URL || "http://localhost:3000/";
+
+// Search Index Generation
+const allDocs = await Astro.glob('../pages/docs/*.md');
+const searchIndex = allDocs.map(doc => ({
+  title: doc.frontmatter.title || 'Documentación',
+  url: doc.url?.replace(/\/$/, '') || '',
+  headings: doc.getHeadings().map((h) => ({
+    text: h.text,
+    slug: h.slug
+  }))
+}));
 
 // Helper to check active nav link
 const isActive = (path: string) => {
@@ -138,6 +146,7 @@ const nextPage =
         <!-- Middle Section: Simulated Search Box -->
         <div class="hidden md:flex flex-1 max-w-md mx-8">
           <div
+            id="search-btn"
             class="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl border border-foreground/15 bg-foreground/3 text-muted-foreground/60 select-none cursor-pointer hover:bg-foreground/5 hover:border-foreground/20 transition-all"
           >
             <Search className="h-4.5 w-4.5 text-[#cb6916] shrink-0" />
@@ -171,17 +180,6 @@ const nextPage =
             <Sun className="h-5 w-5 hidden dark:block" />
             <Moon className="h-5 w-5 dark:hidden" />
           </button>
-
-          <!-- GitHub Repo Link -->
-          <a
-            href="https://github.com/LincolEulogio/SistemaEventsFIN"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="flex h-9 w-9 items-center justify-center rounded-xl border border-foreground/15 bg-foreground/3 hover:bg-foreground/8 hover:scale-105 active:scale-95 transition-all text-[#cb6916]"
-            aria-label="GitHub Repository"
-          >
-            <Github className="h-5 w-5" />
-          </a>
         </div>
       </div>
     </header>
@@ -299,7 +297,7 @@ const nextPage =
                       <li class={`pl-${(h.depth - 1) * 3} -ml-[1px]`}>
                         <a
                           href={`#${h.slug}`}
-                          class="block py-0.5 text-foreground/60 hover:text-[#cb6916] transition-colors border-l-2 border-transparent hover:border-[#cb6916]/40 pl-3 leading-relaxed"
+                          class="toc-link block py-0.5 text-foreground/60 hover:text-[#cb6916] transition-colors border-l-2 border-transparent hover:border-[#cb6916]/40 pl-3 leading-relaxed rounded-r-lg"
                         >
                           {h.text}
                         </a>
@@ -310,29 +308,7 @@ const nextPage =
             )
           }
 
-          <!-- Useful helpers -->
-          <div
-            class="pt-4 space-y-3 select-none text-xs font-medium text-foreground/50 border-t border-foreground/8"
-          >
-            <a
-              href="https://github.com/LincolEulogio/SistemaEventsFIN/issues"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="flex items-center gap-2 hover:text-[#cb6916] transition-colors"
-            >
-              <HelpCircle className="h-4 w-4 text-[#cb6916]/75" />
-              ¿Preguntas? Danos tu feedback
-            </a>
-            <a
-              href="https://github.com/LincolEulogio/SistemaEventsFIN/edit/main/docs"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="flex items-center gap-2 hover:text-[#cb6916] transition-colors"
-            >
-              <Edit3 className="h-4 w-4 text-[#cb6916]/75" />
-              Editar esta página
-            </a>
-          </div>
+
         </div>
       </aside>
     </div>
@@ -379,6 +355,192 @@ const nextPage =
         document.addEventListener("astro:page-load", setupThemeToggle);
       })();
     </script>
+
+    <!-- ScrollSpy Script for Table of Contents -->
+    <script is:inline>
+      (() => {
+        let scrollTimeout;
+        const setupScrollSpy = () => {
+          const links = document.querySelectorAll('.toc-link');
+          if (links.length === 0) return;
+
+          const headings = Array.from(document.querySelectorAll('article h1, article h2, article h3')).filter(h => h.id);
+          
+          const onScroll = () => {
+            if (headings.length === 0) return;
+            let current = headings[0].id;
+
+            for (const h of headings) {
+              const rect = h.getBoundingClientRect();
+              // Ajustamos a 150px: margen perfecto considerando el scroll-margin-top
+              if (rect.top <= 150) {
+                current = h.id;
+              }
+            }
+
+            // Force last heading if user scrolled to the absolute bottom
+            if ((window.innerHeight + Math.round(window.scrollY)) >= document.documentElement.scrollHeight - 20) {
+              current = headings[headings.length - 1].id;
+            }
+
+            links.forEach((link) => {
+              const targetId = link.getAttribute('href').replace('#', '');
+              // Usamos decodeURIComponent para evitar problemas con tildes en los slugs
+              if (decodeURIComponent(targetId) === decodeURIComponent(current)) {
+                // Active state
+                link.classList.add('text-[#cb6916]', 'border-[#cb6916]', 'font-semibold', 'bg-[#cb6916]/5');
+                link.classList.remove('text-foreground/60', 'border-transparent');
+              } else {
+                // Inactive state
+                link.classList.remove('text-[#cb6916]', 'border-[#cb6916]', 'font-semibold', 'bg-[#cb6916]/5');
+                link.classList.add('text-foreground/60', 'border-transparent');
+              }
+            });
+          };
+
+          window.addEventListener('scroll', () => {
+             if (scrollTimeout) {
+                window.cancelAnimationFrame(scrollTimeout);
+             }
+             scrollTimeout = window.requestAnimationFrame(onScroll);
+          }, { passive: true });
+          
+          // Initial call
+          setTimeout(onScroll, 100);
+        };
+
+        setupScrollSpy();
+        document.addEventListener('astro:page-load', setupScrollSpy);
+      })();
+    </script>
+
+    <!-- Search Data & Modal Logic -->
+    <script id="search-data" type="application/json" set:html={JSON.stringify(searchIndex)}></script>
+
+    <!-- Search Modal -->
+    <div id="search-modal" class="fixed inset-0 z-50 hidden items-start justify-center pt-16 sm:pt-24 opacity-0 transition-opacity duration-200">
+      <div id="search-backdrop" class="fixed inset-0 bg-[#f6efe8]/60 dark:bg-[#120904]/60 backdrop-blur-sm cursor-pointer"></div>
+      
+      <div class="relative w-full max-w-xl transform overflow-hidden rounded-2xl bg-white dark:bg-[#1a0f07] p-4 text-left shadow-2xl transition-all border border-[#cb6916]/20 mx-4 flex flex-col max-h-[80vh]">
+        <div class="flex items-center border-b border-foreground/10 pb-3">
+          <Search className="h-5 w-5 text-[#cb6916] mr-3 shrink-0" />
+          <input 
+            type="text" 
+            id="search-input"
+            class="flex-1 bg-transparent outline-none text-foreground text-sm md:text-base placeholder:text-foreground/40"
+            placeholder="Buscar en la documentación..."
+            autocomplete="off"
+          />
+          <kbd class="hidden sm:inline-flex h-6 select-none items-center gap-1 rounded border border-foreground/10 bg-foreground/5 px-2 font-mono text-[10px] font-medium text-foreground/50">ESC</kbd>
+        </div>
+        
+        <div id="search-results" class="mt-4 flex-1 overflow-y-auto space-y-1"></div>
+      </div>
+    </div>
+
+    <script is:inline>
+      (() => {
+        let index = [];
+        try {
+          const raw = document.getElementById('search-data')?.textContent;
+          if (raw) index = JSON.parse(raw);
+        } catch(e){}
+
+        const setupSearch = () => {
+          const modal = document.getElementById('search-modal');
+          const backdrop = document.getElementById('search-backdrop');
+          const input = document.getElementById('search-input');
+          const results = document.getElementById('search-results');
+          const btn = document.getElementById('search-btn');
+
+          if (!modal || !btn) return;
+
+          const openModal = () => {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            // Allow layout to apply before animating opacity
+            requestAnimationFrame(() => {
+              modal.classList.remove('opacity-0');
+              modal.classList.add('opacity-100');
+              input.focus();
+            });
+            renderResults(input.value);
+          };
+
+          const closeModal = () => {
+            modal.classList.remove('opacity-100');
+            modal.classList.add('opacity-0');
+            setTimeout(() => {
+              modal.classList.add('hidden');
+              modal.classList.remove('flex');
+            }, 200);
+          };
+
+          // Evitar registrar listeners duplicados con page-load de Astro
+          const newBtn = btn.cloneNode(true);
+          btn.parentNode.replaceChild(newBtn, btn);
+          newBtn.addEventListener('click', openModal);
+
+          backdrop.addEventListener('click', closeModal);
+
+          document.addEventListener('keydown', (e) => {
+            if (e.key === 'k' && (e.ctrlKey || e.metaKey)) {
+              e.preventDefault();
+              openModal();
+            }
+            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+              closeModal();
+            }
+          });
+
+          const renderResults = (query) => {
+            if (!query.trim()) {
+              results.innerHTML = `<div class="text-center text-xs text-foreground/40 py-8">Comienza a escribir para buscar (ej: "Pago", "Autobús")...</div>`;
+              return;
+            }
+
+            const q = query.toLowerCase();
+            let html = '';
+            let count = 0;
+
+            index.forEach(page => {
+              let pageMatched = page.title.toLowerCase().includes(q);
+              const matchedHeadings = page.headings.filter(h => h.text.toLowerCase().includes(q));
+
+              if (pageMatched || matchedHeadings.length > 0) {
+                html += `<div class="text-[10px] font-bold uppercase tracking-wider text-foreground/40 mt-3 mb-1 px-2">${page.title}</div>`;
+                
+                if (pageMatched && matchedHeadings.length === 0) {
+                   html += `<a href="${page.url}" class="block px-3 py-2 rounded-lg hover:bg-foreground/5 hover:text-[#cb6916] text-sm text-foreground/80 transition-colors">📄 Ver la guía completa</a>`;
+                   count++;
+                }
+
+                matchedHeadings.forEach(h => {
+                  html += `<a href="${page.url}#${h.slug}" class="block px-3 py-2 rounded-lg hover:bg-[#cb6916]/10 text-[#cb6916] text-sm font-medium transition-colors border-l-2 border-transparent hover:border-[#cb6916]"># ${h.text}</a>`;
+                  count++;
+                });
+              }
+            });
+
+            if (count === 0) {
+              results.innerHTML = `<div class="text-center text-sm text-foreground/60 py-8">No encontramos nada para "<span class="font-semibold text-[#cb6916]">${query}</span>"</div>`;
+            } else {
+              results.innerHTML = html;
+              const links = results.querySelectorAll('a');
+              links.forEach(l => l.addEventListener('click', closeModal));
+            }
+          };
+
+          // Evitar listeners duplicados en input
+          const newInput = input.cloneNode(true);
+          input.parentNode.replaceChild(newInput, input);
+          newInput.addEventListener('input', (e) => renderResults(e.target.value));
+        };
+
+        setupSearch();
+        document.addEventListener('astro:page-load', setupSearch);
+      })();
+    </script>
   </body>
 </html>
 
@@ -422,6 +584,10 @@ const nextPage =
   }
 
   /* Headings core layout */
+  .prose h1, .prose h2, .prose h3, .prose h4 {
+    scroll-margin-top: 100px !important;
+  }
+
   .prose h1 {
     font-size: 2.15rem !important;
     font-weight: 800 !important;
