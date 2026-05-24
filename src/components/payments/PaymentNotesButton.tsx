@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FileText, History, X, Copy, ExternalLink } from "lucide-react";
+import { FileText, History, X, Copy, ExternalLink, Image as ImageIcon, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 
 interface PaymentNotesButtonProps {
@@ -9,6 +9,8 @@ interface PaymentNotesButtonProps {
   eventName: string;
   attendeeName?: string;
   amountFormatted: string;
+  receiptUrl?: string | null;
+  receiptFileName?: string | null;
 }
 
 export function PaymentNotesButton({
@@ -16,6 +18,8 @@ export function PaymentNotesButton({
   eventName,
   attendeeName,
   amountFormatted,
+  receiptUrl,
+  receiptFileName,
 }: PaymentNotesButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const isHistory = notes.includes("Historial de Comprobante");
@@ -39,7 +43,7 @@ export function PaymentNotesButton({
                       rel="noreferrer"
                       className="text-primary hover:underline font-semibold break-all inline-flex items-center gap-1 bg-primary/5 px-2.5 py-0.5 rounded-lg border border-primary/15"
                     >
-                      [Ver Imagen]
+                      [Ver Imagen Anterior]
                       <ExternalLink className="h-3 w-3 inline" />
                     </a>
                     <button
@@ -84,7 +88,7 @@ export function PaymentNotesButton({
         ) : (
           <>
             <FileText className="h-3 w-3 shrink-0" />
-            Ver Historial
+            Ver Notas
           </>
         )}
       </button>
@@ -128,9 +132,49 @@ export function PaymentNotesButton({
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto py-4 text-sm text-foreground space-y-2 whitespace-pre-line font-sans scrollbar-thin max-h-[50vh] pr-2">
-              <div className="bg-muted/40 p-4 rounded-2xl border border-border/60 text-xs text-muted-foreground font-mono whitespace-pre-wrap leading-relaxed select-text">
-                {renderFormattedNotes(notes)}
+            <div className="flex-1 overflow-y-auto py-4 text-sm text-foreground space-y-5 scrollbar-thin max-h-[55vh] pr-2">
+              
+              {/* Comprobante de Pago Actual */}
+              {receiptUrl && (
+                <div className="space-y-2 border-b border-border/50 pb-4">
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <ImageIcon className="h-3.5 w-3.5 text-primary shrink-0" />
+                    Comprobante de Pago Actual
+                  </h4>
+                  <div className="relative rounded-2xl overflow-hidden border border-border bg-muted/10 flex items-center justify-center p-2.5 group max-w-full">
+                    <img
+                      src={receiptUrl}
+                      alt="Comprobante de pago actual"
+                      className="max-h-[200px] rounded-xl object-contain w-auto hover:scale-[1.01] transition-transform duration-300 shadow-sm"
+                    />
+                    <div className="absolute top-2.5 right-2.5 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <a
+                        href={receiptUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="bg-black/75 hover:bg-black text-white p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors border border-white/10"
+                        title="Abrir en pantalla completa"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </div>
+                  </div>
+                  {receiptFileName && (
+                    <p className="text-[10px] text-muted-foreground truncate text-center font-mono">
+                      Archivo: {receiptFileName}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <ClipboardList className="h-3.5 w-3.5 text-primary shrink-0" />
+                  Detalle e Historial
+                </h4>
+                <div className="bg-muted/40 p-4 rounded-2xl border border-border/60 text-xs text-muted-foreground font-mono whitespace-pre-wrap leading-relaxed select-text">
+                  {renderFormattedNotes(notes)}
+                </div>
               </div>
             </div>
 

@@ -21,6 +21,7 @@ import {
   User,
   X,
   QrCode,
+  Wallet,
 } from "lucide-react";
 import { signOut } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
@@ -41,7 +42,7 @@ const organiverNav: NavItem[] = [
   { labelKey: "dashboard.sidebar.organizer.notifications", href: "/organizer/notifications", icon: Bell },
   { labelKey: "dashboard.sidebar.organizer.payments", href: "/organizer/payments", icon: CreditCard },
   { labelKey: "dashboard.sidebar.organizer.transport", href: "/organizer/transport", icon: Bus },
-  { labelKey: "dashboard.sidebar.organizer.paymentMethods", href: "/organizer/payment-methods", icon: QrCode },
+  { labelKey: "dashboard.sidebar.organizer.paymentMethods", href: "/organizer/payment-methods", icon: Wallet },
   { labelKey: "dashboard.sidebar.organizer.scan", href: "/organizer/scan", icon: QrCode },
   { labelKey: "dashboard.sidebar.organizer.profile", href: "/organizer/profile", icon: User },
   { labelKey: "dashboard.sidebar.organizer.settings", href: "/organizer/settings", icon: Settings },
@@ -58,7 +59,7 @@ const adminNav: NavItem[] = [
   { labelKey: "dashboard.sidebar.admin.analytics", href: "/admin/analytics", icon: BarChart3 },
   { labelKey: "dashboard.sidebar.admin.payments", href: "/admin/payments", icon: CreditCard },
   { labelKey: "dashboard.sidebar.admin.transport", href: "/admin/transport", icon: Bus },
-  { labelKey: "dashboard.sidebar.admin.paymentMethods", href: "/admin/payment-methods", icon: QrCode },
+  { labelKey: "dashboard.sidebar.admin.paymentMethods", href: "/admin/payment-methods", icon: Wallet },
   { labelKey: "dashboard.sidebar.admin.scan", href: "/admin/scan", icon: QrCode },
   { labelKey: "dashboard.sidebar.admin.profile", href: "/admin/profile", icon: User },
   { labelKey: "dashboard.sidebar.admin.settings", href: "/admin/settings", icon: Settings },

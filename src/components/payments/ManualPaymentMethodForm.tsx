@@ -75,7 +75,7 @@ export function ManualPaymentMethodForm({
   const MobileInstructions = () => (
     <div className="mt-3 rounded-2xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 p-3.5 text-left text-xs text-amber-800 dark:text-amber-300">
       <div className="flex gap-2.5 items-start">
-        <span className="text-base shrink-0 mt-0.5">📱</span>
+        <Smartphone className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
         <div className="space-y-1">
           <p className="font-bold">¿Pagando desde tu celular?</p>
           <ul className="list-disc pl-4 space-y-1 text-muted-foreground">

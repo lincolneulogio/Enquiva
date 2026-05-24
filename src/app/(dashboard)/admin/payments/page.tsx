@@ -218,6 +218,8 @@ export default async function AdminPaymentsPage({ searchParams }: AdminPaymentsP
                               eventName={event.title}
                               attendeeName={attendee.name ?? undefined}
                               amountFormatted={formatCurrency(Number(payment.amount), payment.currency, locale)}
+                              receiptUrl={payment.receiptUrl}
+                              receiptFileName={payment.receiptFileName}
                             />
                           )}
                         </div>

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Loader2, Bus, MapPin, Clock, Users, CreditCard, X, Upload, Smartphone, QrCode, Wallet, Copy, Download } from "lucide-react";
+import { Loader2, Bus, MapPin, Clock, Users, CreditCard, X, Upload, Smartphone, QrCode, Wallet, Copy, Download, AlertTriangle } from "lucide-react";
 import { bookTransport, cancelTransportBooking } from "@/actions/transport";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
@@ -86,7 +86,7 @@ export function TransportBookingForm({
     const MobileInstructions = () => (
         <div className="mt-3 rounded-2xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 p-3.5 text-left text-xs text-amber-800 dark:text-amber-300">
             <div className="flex gap-2.5 items-start">
-                <span className="text-base shrink-0 mt-0.5">📱</span>
+                <Smartphone className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                 <div className="space-y-1">
                     <p className="font-bold">¿Pagando desde tu celular?</p>
                     <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
@@ -187,7 +187,10 @@ export function TransportBookingForm({
 
                 {paymentMethods.length === 0 ? (
                     <div className="sm:col-span-2 rounded-xl border border-dashed border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 p-4 text-center text-sm text-amber-800 dark:text-amber-300">
-                        <p className="font-semibold">⚠️ No hay medios de pago habilitados</p>
+                        <p className="font-semibold flex items-center justify-center gap-1.5 text-amber-900 dark:text-amber-200">
+                            <AlertTriangle className="h-4.5 w-4.5 text-amber-500 shrink-0" />
+                            No hay medios de pago habilitados
+                        </p>
                         <p className="mt-1 text-xs">El organizador de este evento aún no ha configurado medios de pago. Por favor, comunícate con el organizador.</p>
                     </div>
                 ) : (

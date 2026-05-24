@@ -176,6 +176,8 @@ export default async function OrganizerPaymentsPage({ searchParams }: PageProps)
                             eventName={event.title}
                             attendeeName={attendee.name ?? undefined}
                             amountFormatted={formatCurrency(Number(payment.amount), payment.currency, locale)}
+                            receiptUrl={payment.receiptUrl}
+                            receiptFileName={payment.receiptFileName}
                           />
                         )}
                       </div>
