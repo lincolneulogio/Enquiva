@@ -13,6 +13,7 @@ import {
   Moon,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
 } from "lucide-react";
 
 interface Frontmatter {
@@ -383,6 +384,18 @@ const nextPage =
               current = headings[headings.length - 1].id;
             }
 
+            // Scroll to Top Button Visibility Logic
+            const scrollTopBtn = document.getElementById('scroll-to-top');
+            if (scrollTopBtn) {
+              if (window.scrollY > 400) {
+                scrollTopBtn.classList.remove('translate-y-16', 'opacity-0', 'pointer-events-none');
+                scrollTopBtn.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
+              } else {
+                scrollTopBtn.classList.add('translate-y-16', 'opacity-0', 'pointer-events-none');
+                scrollTopBtn.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+              }
+            }
+
             links.forEach((link) => {
               const targetId = link.getAttribute('href').replace('#', '');
               // Usamos decodeURIComponent para evitar problemas con tildes en los slugs
@@ -407,12 +420,31 @@ const nextPage =
           
           // Initial call
           setTimeout(onScroll, 100);
+
+          // Scroll to Top Click Listener
+          const scrollTopBtn = document.getElementById('scroll-to-top');
+          if (scrollTopBtn) {
+            const newBtn = scrollTopBtn.cloneNode(true);
+            scrollTopBtn.parentNode.replaceChild(newBtn, scrollTopBtn);
+            newBtn.addEventListener('click', () => {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+          }
         };
 
         setupScrollSpy();
         document.addEventListener('astro:page-load', setupScrollSpy);
       })();
     </script>
+
+    <!-- Scroll to Top Button -->
+    <button
+      id="scroll-to-top"
+      class="fixed bottom-6 right-6 md:bottom-10 md:right-10 z-50 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-[#cb6916] text-white shadow-xl shadow-[#cb6916]/20 transition-all duration-300 translate-y-16 opacity-0 hover:bg-[#b05a12] hover:scale-110 active:scale-95 focus:outline-none pointer-events-none"
+      aria-label="Volver arriba"
+    >
+      <ChevronUp className="h-5 w-5 sm:h-6 sm:w-6" />
+    </button>
 
     <!-- Search Data & Modal Logic -->
     <script id="search-data" type="application/json" set:html={JSON.stringify(searchIndex)}></script>
