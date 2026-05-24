@@ -27,14 +27,24 @@ export async function PublicHeader() {
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 md:px-0 py-4">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
-            <span className="text-lg text-primary-foreground">✦</span>
-          </div>
-          <span className="font-display text-lg font-semibold text-foreground sm:text-xl">
-            EncuentroDeFe
-          </span>
-        </Link>
+        <div className="flex items-center gap-2.5">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
+              <span className="text-lg text-primary-foreground">✦</span>
+            </div>
+            <span className="font-display text-lg font-semibold text-foreground sm:text-xl">
+              EncuentroDeFe
+            </span>
+          </Link>
+          <a
+            href={process.env.NEXT_PUBLIC_DOCS_URL || "http://localhost:3001"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center text-xs font-semibold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/25 hover:scale-105 active:scale-95 transition-all px-2.5 py-0.5 rounded-full select-none"
+          >
+            Docs
+          </a>
+        </div>
 
         <div className="flex items-center gap-2 md:hidden">
           <ThemeToggle />
