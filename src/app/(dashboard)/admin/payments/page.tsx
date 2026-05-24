@@ -198,18 +198,25 @@ export default async function AdminPaymentsPage({ searchParams }: AdminPaymentsP
                         />
                       </td>
                       <td className="px-4 py-4">
-                        {payment.receiptUrl ? (
-                          <a
-                            href={payment.receiptUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-xs font-medium text-primary hover:underline"
-                          >
-                            {t("common.viewReceipt")}
-                          </a>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">{t("common.noReceipt")}</span>
-                        )}
+                        <div className="flex flex-col gap-1 items-start">
+                          {payment.receiptUrl ? (
+                            <a
+                              href={payment.receiptUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs font-semibold text-primary hover:underline"
+                            >
+                              {t("common.viewReceipt")}
+                            </a>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">{t("common.noReceipt")}</span>
+                          )}
+                          {payment.notes && (
+                            <div className="mt-1 text-[11px] text-muted-foreground bg-muted/65 p-2 rounded-xl border border-border/80 max-w-[220px] max-h-[80px] overflow-y-auto whitespace-pre-line font-mono leading-tight">
+                              {payment.notes}
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

@@ -44,14 +44,32 @@ export class PaymentService {
       .where(
         and(
           eq(payments.registrationId, registration.id),
-          eq(payments.userId, userId),
-          eq(payments.status, "pending")
+          eq(payments.userId, userId)
         )
       )
       .limit(1);
 
     if (!existingPayment) {
-      throw new Error("No se encontró ningún pago pendiente para esta inscripción");
+      throw new Error("No se encontró ningún registro de pago para esta inscripción");
+    }
+
+    if (existingPayment.status === "approved") {
+      throw new Error("Este pago ya ha sido aprobado y no puede ser modificado");
+    }
+
+    let notes = validated.notes ?? existingPayment.notes ?? null;
+
+    if (existingPayment.status === "rejected") {
+      const dateStr = new Date().toLocaleString("es-PE", { timeZone: "America/Lima" });
+      const previousHistoryEntry = `--- Historial de Comprobante Rechazado (${dateStr}) ---\n` +
+        `• Método anterior: ${existingPayment.method}\n` +
+        `• Referencia anterior: ${existingPayment.reference ?? "Ninguna"}\n` +
+        `• Comprobante anterior: ${existingPayment.receiptUrl ?? "Ninguno"}\n` +
+        `• Archivo anterior: ${existingPayment.receiptFileName ?? "Ninguno"}\n` +
+        `• Notas de Rechazo: ${existingPayment.notes ?? "Sin notas"}\n\n`;
+
+      const existingNotes = existingPayment.notes ?? "";
+      notes = previousHistoryEntry + (validated.notes ? `Nuevas notas del usuario: ${validated.notes}\n\n` : "") + existingNotes;
     }
 
     await db
@@ -61,10 +79,22 @@ export class PaymentService {
         reference: validated.reference ?? null,
         receiptUrl: validated.receiptUrl ?? null,
         receiptFileName: validated.receiptFileName ?? null,
-        notes: validated.notes ?? null,
+        notes,
+        status: "pending",
         updatedAt: new Date(),
       })
       .where(eq(payments.id, existingPayment.id));
+
+    // Si había una reserva de transporte asociada, restablecemos su estado a 'pending'
+    if (existingPayment.transportBookingId) {
+      await db
+        .update(transportBookings)
+        .set({
+          status: "pending",
+          updatedAt: new Date(),
+        })
+        .where(eq(transportBookings.id, existingPayment.transportBookingId));
+    }
 
     await db.insert(notifications).values({
       userId: registration.userId,

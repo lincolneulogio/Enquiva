@@ -108,8 +108,7 @@ export function ManualPaymentMethodForm({
 
       toast.success(t("payments.manual.success"));
       setIsSaving(false);
-      router.push(`/events/${eventSlug}`);
-      router.refresh();
+      router.push("/member/payments");
     } catch (error) {
       setIsSaving(false);
       toast.error(error instanceof Error ? error.message : t("payments.manual.failed"));

@@ -46,7 +46,13 @@ export async function createPayment(input: CreatePaymentInput) {
   const { user } = await requireAuthWithHeaders();
   const validated = createPaymentSchema.parse(input);
 
-  return PaymentService.createPayment(user.id, validated);
+  const result = await PaymentService.createPayment(user.id, validated);
+
+  // Revalidate relevant member dashboard paths on the server
+  revalidatePath("/member/payments");
+  revalidatePath(`/member/payments/new/${validated.registrationId}`);
+
+  return result;
 }
 
 /**

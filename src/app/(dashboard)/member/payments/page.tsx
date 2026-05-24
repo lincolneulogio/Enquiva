@@ -70,20 +70,32 @@ export default async function MemberPaymentsPage() {
                     </td>
                     <td className="px-4 py-4 text-sm text-muted-foreground">{payment.method}</td>
                     <td className="px-4 py-4">
-                      {payment.receiptUrl ? (
-                        <a href={payment.receiptUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-primary hover:underline">
-                          {t("common.viewReceipt")}
-                        </a>
-                      ) : payment.status === "pending" ? (
-                        <Link
-                          href={`/member/payments/new/${payment.registrationId}`}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400 hover:bg-amber-500/25 transition-all border border-amber-500/20"
-                        >
-                          {t("ticket.payOrUploadReceipt")}
-                        </Link>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">{t("common.awaitingReceipt")}</span>
-                      )}
+                      <div className="flex flex-col gap-1.5 items-start">
+                        {payment.receiptUrl && (
+                          <a href={payment.receiptUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-primary hover:underline">
+                            {t("common.viewReceipt")}
+                          </a>
+                        )}
+                        {payment.status === "rejected" && (
+                          <Link
+                            href={`/member/payments/new/${payment.registrationId}`}
+                            className="inline-flex items-center gap-1 rounded-lg bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400 hover:bg-amber-500/25 transition-all border border-amber-500/20"
+                          >
+                            Actualizar comprobante
+                          </Link>
+                        )}
+                        {!payment.receiptUrl && payment.status === "pending" && (
+                          <Link
+                            href={`/member/payments/new/${payment.registrationId}`}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400 hover:bg-amber-500/25 transition-all border border-amber-500/20"
+                          >
+                            {t("ticket.payOrUploadReceipt")}
+                          </Link>
+                        )}
+                        {!payment.receiptUrl && payment.status !== "pending" && payment.status !== "rejected" && (
+                          <span className="text-xs text-muted-foreground">{t("common.awaitingReceipt")}</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
