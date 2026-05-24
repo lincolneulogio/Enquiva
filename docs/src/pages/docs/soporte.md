@@ -11,7 +11,7 @@ Si no lograste encontrar la respuesta a tu problema en la sección de [Preguntas
 
 ---
 
-## 📞 Canales de Atención Directa
+## Canales de Atención Directa
 
 ### Soporte para Miembros (Pagos, Transporte y QR)
 Si tienes un problema relacionado a tu experiencia personal, como un pago trabado por más de 24 horas o un ticket que no se genera:
@@ -25,7 +25,7 @@ Si eres parte del equipo organizador y experimentas fallos en la plataforma (ej.
 
 ---
 
-## 🐛 Reporte de Errores (Desarrolladores)
+## Reporte de Errores (Desarrolladores)
 
 Si eres un desarrollador y has encontrado un "bug" (falla técnica de código) en la plataforma, te agradecemos que lo reportes utilizando los canales adecuados para que podamos parchearlo en la siguiente versión.
 

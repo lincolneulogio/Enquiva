@@ -62,7 +62,20 @@ const isActive = (path: string) => {
   );
 };
 
-const navigation = [
+interface NavItem {
+  label: string;
+  path: string;
+  icon: any;
+  requiredPermission?: string;
+}
+
+interface NavGroup {
+  group: string;
+  requiredPermission?: string;
+  items: NavItem[];
+}
+
+const navigation: NavGroup[] = [
   {
     group: "Primeros Pasos",
     items: [{ label: "Introducción", path: "/", icon: BookOpen }],
@@ -70,15 +83,16 @@ const navigation = [
   {
     group: "Guías de Usuario",
     items: [
-      { label: "Guía del Miembro", path: "/miembro", icon: User },
-      { label: "Guía del Organizador", path: "/organizador", icon: Calendar },
-      { label: "Guía del Administrador", path: "/admin", icon: Settings },
+      { label: "Guía del Miembro", path: "/miembro", icon: User, requiredPermission: "docs:view:member" },
+      { label: "Guía del Organizador", path: "/organizador", icon: Calendar, requiredPermission: "docs:view:organizer" },
+      { label: "Guía del Administrador", path: "/admin", icon: Settings, requiredPermission: "docs:view:admin" },
       { label: "Preguntas Frecuentes", path: "/faq", icon: HelpCircle },
       { label: "Videotutoriales", path: "/videotutoriales", icon: Video },
     ],
   },
   {
     group: "Desarrolladores",
+    requiredPermission: "docs:view:dev",
     items: [
       { label: "Arquitectura Técnica", path: "/arquitectura", icon: Cpu },
       { label: "Setup Local", path: "/setup-local", icon: TerminalSquare },
@@ -215,7 +229,7 @@ const nextPage =
         <div class="sticky top-24 space-y-6">
           {
             navigation.map((group) => (
-              <div class="space-y-2">
+              <div class="space-y-2 nav-group" data-permission={group.requiredPermission || ""}>
                 <h4 class="px-3 text-xs font-bold text-foreground/50 tracking-wider uppercase select-none">
                   {group.group}
                 </h4>
@@ -224,7 +238,7 @@ const nextPage =
                     const active = isActive(item.path);
                     const IconComponent = item.icon;
                     return (
-                      <li>
+                      <li class="nav-item transition-all duration-300" data-permission={item.requiredPermission || ""}>
                         <a
                           href={`/docs${item.path === "/" ? "" : item.path}`}
                           class={`group flex items-center gap-2.5 pl-4 py-1.5 text-sm font-medium border-l-2 -ml-[1.5px] transition-all ${
@@ -472,22 +486,57 @@ const nextPage =
 
     <!-- Search Modal -->
     <div id="search-modal" class="fixed inset-0 z-50 hidden items-start justify-center pt-16 sm:pt-24 opacity-0 transition-opacity duration-200">
-      <div id="search-backdrop" class="fixed inset-0 bg-[#f6efe8]/60 dark:bg-[#120904]/60 backdrop-blur-sm cursor-pointer"></div>
-      
-      <div class="relative w-full max-w-xl transform overflow-hidden rounded-2xl bg-white dark:bg-[#1a0f07] p-4 text-left shadow-2xl transition-all border border-[#cb6916]/20 mx-4 flex flex-col max-h-[80vh]">
-        <div class="flex items-center border-b border-foreground/10 pb-3">
-          <Search className="h-5 w-5 text-[#cb6916] mr-3 shrink-0" />
-          <input 
-            type="text" 
+      <!-- Modal Backdrop -->
+      <div
+        id="search-backdrop"
+        class="absolute inset-0 bg-background/80 backdrop-blur-sm"
+      >
+      </div>
+
+      <!-- Modal Content -->
+      <div
+        class="relative mx-auto mt-20 sm:mt-24 w-full max-w-xl bg-card border border-border shadow-2xl rounded-2xl overflow-hidden"
+      >
+        <!-- Search Input Header -->
+        <div class="flex items-center gap-3 px-4 py-3 border-b border-border bg-muted/30">
+          <Search className="h-5 w-5 text-muted-foreground shrink-0" />
+          <input
+            type="text"
             id="search-input"
-            class="flex-1 bg-transparent outline-none text-foreground text-sm md:text-base placeholder:text-foreground/40"
-            placeholder="Buscar en la documentación..."
+            class="flex-1 bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground text-sm"
+            placeholder="Buscar en la documentación... (ej. pagos, qr, roles)"
             autocomplete="off"
+            spellcheck="false"
           />
-          <kbd class="hidden sm:inline-flex h-6 select-none items-center gap-1 rounded border border-foreground/10 bg-foreground/5 px-2 font-mono text-[10px] font-medium text-foreground/50">ESC</kbd>
+          <button
+            id="close-search"
+            class="p-1 rounded-md text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-colors"
+            aria-label="Cerrar búsqueda"
+          >
+            <kbd class="font-mono text-[10px] px-1.5 py-0.5 border border-border rounded shadow-sm bg-background select-none">ESC</kbd>
+          </button>
         </div>
-        
-        <div id="search-results" class="mt-4 flex-1 overflow-y-auto space-y-1"></div>
+
+        <!-- Search Results Area -->
+        <div class="max-h-[60vh] overflow-y-auto overscroll-contain">
+          <ul id="search-results" class="p-2 space-y-1">
+            <!-- Results injected here via JS -->
+          </ul>
+          
+          <div id="search-empty" class="hidden flex-col items-center justify-center py-14 px-4 text-center">
+            <!-- Placeholder icon using raw svg to avoid scope issues -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-10 w-10 text-muted-foreground/30 mb-4"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <p class="text-sm font-medium text-foreground">No se encontraron resultados</p>
+            <p class="text-xs text-muted-foreground mt-1">Prueba con otras palabras clave.</p>
+          </div>
+          
+          <div id="search-default" class="flex flex-col items-center justify-center py-10 px-4 text-center">
+            <p class="text-xs text-muted-foreground flex items-center gap-1.5">
+              <span class="inline-flex items-center justify-center bg-[#cb6916] text-white rounded-full w-5 h-5 text-[10px]">✨</span>
+              Búsqueda instantánea en todos los artículos
+            </p>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -593,6 +642,51 @@ const nextPage =
         setupSearch();
         document.addEventListener('astro:page-load', setupSearch);
       })();
+    </script>
+    
+    <!-- Client-side RBAC Sync Script -->
+    <script is:inline>
+      document.addEventListener('DOMContentLoaded', async () => {
+        try {
+          const mainAppUrl = window.location.hostname === 'localhost' 
+              ? 'http://localhost:3000' 
+              : 'https://' + window.location.hostname.replace('docs.', '');
+              
+          const res = await fetch(`${mainAppUrl}/api/docs/auth`, { 
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' }
+          });
+          
+          if (res.ok) {
+            const data = await res.json();
+            const userPermissions = data.permissions || [];
+            
+            // 1. Hide nav-items
+            document.querySelectorAll('.nav-item').forEach(el => {
+              const perm = el.getAttribute('data-permission');
+              if (perm && !userPermissions.includes(perm)) {
+                el.style.display = 'none';
+              }
+            });
+
+            // 2. Hide nav-groups
+            document.querySelectorAll('.nav-group').forEach(el => {
+              const groupPerm = el.getAttribute('data-permission');
+              if (groupPerm && !userPermissions.includes(groupPerm)) {
+                el.style.display = 'none';
+              } else {
+                const items = el.querySelectorAll('.nav-item');
+                if (items.length > 0) {
+                  const visibleChildren = Array.from(items).some(child => child.style.display !== 'none');
+                  if (!visibleChildren) el.style.display = 'none';
+                }
+              }
+            });
+          }
+        } catch(e) {
+          console.warn("RBAC Docs Sync failed. Silently ignoring.", e);
+        }
+      });
     </script>
   </body>
 </html>

@@ -11,12 +11,12 @@ Documentamos todas las mejoras significativas en el ecosistema de EncuentroDeFe.
 ## v1.2.0 - Optimización Documental y Búsqueda Inteligente
 *Lanzamiento: Mayo 2026*
 
-**✨ Nuevas Características:**
+**Nuevas Características:**
 * **Buscador Universal en Docs:** Implementación de un motor de búsqueda instantáneo (`Ctrl+K`) en la documentación oficial, permitiendo saltar directamente a párrafos específicos.
 * **Scrollspy Mejorado:** El menú lateral ahora sigue de forma más inteligente la lectura del usuario, ajustando los márgenes para la barra superior fija.
 * **Scroll-to-Top:** Añadido botón interactivo en la esquina inferior para facilitar la navegación en guías largas.
 
-**🐛 Correcciones de Errores:**
+**Correcciones de Errores:**
 * Corregido el salto ancla (anchor jump) que ocultaba los títulos debajo del header al navegar por el índice.
 
 ---
@@ -24,12 +24,12 @@ Documentamos todas las mejoras significativas en el ecosistema de EncuentroDeFe.
 ## v1.1.0 - Auditoría y Exportación
 *Lanzamiento: Abril 2026*
 
-**✨ Nuevas Características:**
+**Nuevas Características:**
 * **Exportación a PDF y Excel:** Los administradores ahora pueden descargar el reporte completo de pagos y asistentes desde el panel central.
 * **Filtros Avanzados:** Se añadieron selectores para filtrar tickets por rango de fechas, estado de pago y tipo de transporte.
 * **Validación Criptográfica QR:** El escáner de puerta fue reescrito para validar firmas digitales offline temporalmente en caso de pérdida de señal.
 
-**🔒 Seguridad:**
+**Seguridad:**
 * Implementado un límite de intentos (Rate Limiting) en el login por OTP para prevenir ataques de fuerza bruta.
 
 ---
@@ -37,7 +37,7 @@ Documentamos todas las mejoras significativas en el ecosistema de EncuentroDeFe.
 ## v1.0.0 - Lanzamiento Inicial (MVP)
 *Lanzamiento: Febrero 2026*
 
-**✨ Nuevas Características:**
+**Nuevas Características:**
 * Despliegue de la plataforma base construida en **Next.js 16** App Router.
 * Integración de autenticación de usuarios mediante **better-auth** (Correo y OTP).
 * Panel de usuario para subir comprobantes de Yape y Plin mediante **Uploadthing**.

@@ -8,7 +8,7 @@ Para mantener los datos de nuestra comunidad seguros, EncuentroDeFe utiliza **Be
 
 ---
 
-## 🛡️ Matriz de Permisos (Roles)
+## Matriz de Permisos (Roles)
 
 El sistema soporta tres niveles de jerarquía rígidos. Cada usuario posee un rol definido en la base de datos que determina a qué páginas y APIs puede acceder.
 
@@ -29,7 +29,7 @@ El asistente o feligrés normal.
 
 ---
 
-## 🔒 Flujo de Inicio de Sesión (OTP)
+## Flujo de Inicio de Sesión (OTP)
 
 Dado que es una plataforma enfocada en la facilidad de uso y alta seguridad, **no usamos contraseñas tradicionales opcionales** (aunque están disponibles). Hemos implementado un flujo de verificación de correo seguro:
 

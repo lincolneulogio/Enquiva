@@ -8,7 +8,7 @@ Para ofrecer una experiencia inmersiva y evitar que los organizadores tengan que
 
 ---
 
-## ⚡ Canales (Channels) y Eventos
+## Canales (Channels) y Eventos
 
 Actualmente, el sistema emite eventos desde el servidor (Server Actions de Next.js) hacia los clientes suscritos.
 
@@ -32,7 +32,7 @@ Utilizado en la vista móvil de los organizadores que están en la puerta del ev
 
 ---
 
-## 🛠️ Cómo suscribirse en el Frontend
+## Cómo suscribirse en el Frontend
 
 Si estás desarrollando una nueva pantalla y necesitas escuchar eventos, puedes usar el cliente de Pusher preconfigurado en el frontend de React.
 

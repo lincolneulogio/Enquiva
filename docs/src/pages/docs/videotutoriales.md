@@ -11,7 +11,7 @@ A veces es más fácil aprender viendo. Hemos preparado esta serie de tutoriales
 
 ---
 
-## 👨‍💻 Para Miembros y Asistentes
+## Para Miembros y Asistentes
 
 ### Cómo registrarte y confirmar tu correo
 Aprende a crear tu cuenta de forma segura, configurar tu perfil y verificar tu dirección de correo electrónico mediante el código OTP.
@@ -37,7 +37,7 @@ Un recorrido visual de 1 minuto sobre cómo realizar la transferencia, tomar la 
 
 ---
 
-## 🛠️ Para Organizadores
+## Para Organizadores
 
 ### Auditoría de pagos en Tiempo Real
 Descubre cómo usar el panel de pagos para aprobar o rechazar comprobantes al instante. Aprende a usar el Modal de Auditoría para ver el historial de un participante conflictivo.

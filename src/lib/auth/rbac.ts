@@ -15,6 +15,10 @@ export const PERMISSIONS = [
     "payments:view:own",
     "payments:update:any",
     "permissions:view",
+    "docs:view:admin",
+    "docs:view:organizer",
+    "docs:view:member",
+    "docs:view:dev",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -34,6 +38,10 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
     "payments:view:own": "View own-event payments",
     "payments:update:any": "Update payment status",
     "permissions:view": "View permissions",
+    "docs:view:admin": "Ver Docs: Administrador",
+    "docs:view:organizer": "Ver Docs: Organizador",
+    "docs:view:member": "Ver Docs: Miembro",
+    "docs:view:dev": "Ver Docs: Desarrollador",
 };
 
 export const ROLE_LABELS: Record<AppRole, string> = {
@@ -63,6 +71,10 @@ export const PERMISSIONS_BY_ROLE: Record<AppRole, Permission[]> = {
         "payments:view:any",
         "payments:update:any",
         "permissions:view",
+        "docs:view:admin",
+        "docs:view:organizer",
+        "docs:view:member",
+        "docs:view:dev",
     ],
     organizer: [
         "events:create",
@@ -71,8 +83,12 @@ export const PERMISSIONS_BY_ROLE: Record<AppRole, Permission[]> = {
         "registrations:view:own",
         "attendees:checkin",
         "payments:view:own",
+        "docs:view:organizer",
+        "docs:view:member",
     ],
-    member: [],
+    member: [
+        "docs:view:member",
+    ],
 };
 
 export function normalizeRole(role: string | null | undefined): AppRole {

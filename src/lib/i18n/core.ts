@@ -179,6 +179,10 @@ const translations: Record<Locale, TranslationDictionary> = {
             "payments:view:own": "Ver pagos de mis eventos",
             "payments:update:any": "Actualizar estado de pagos",
             "permissions:view": "Ver permisos",
+            "docs:view:admin": "Ver Docs: Administrador",
+            "docs:view:organizer": "Ver Docs: Organizador",
+            "docs:view:member": "Ver Docs: Miembro",
+            "docs:view:dev": "Ver Docs: Desarrollador",
         },
         dashboard: {
             sidebar: {
@@ -1018,6 +1022,10 @@ const translations: Record<Locale, TranslationDictionary> = {
             "payments:view:own": "View own-event payments",
             "payments:update:any": "Update payment status",
             "permissions:view": "View permissions",
+            "docs:view:admin": "View Docs: Admin",
+            "docs:view:organizer": "View Docs: Organizer",
+            "docs:view:member": "View Docs: Member",
+            "docs:view:dev": "View Docs: Developer",
         },
         dashboard: {
             sidebar: {

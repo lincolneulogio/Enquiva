@@ -10,7 +10,7 @@ A continuación, se detalla la arquitectura de las entidades principales del eco
 
 ---
 
-## 🏗️ Entidades Principales
+## Entidades Principales
 
 El esquema se divide en tres dominios lógicos: **Autenticación**, **Transacciones** y **Logística**.
 
@@ -39,7 +39,7 @@ Gestión de cupos y movilidad hacia el evento.
 
 ---
 
-## 🗄️ Ejemplo de Relación Drizzle
+## Ejemplo de Relación Drizzle
 
 Drizzle nos permite definir relaciones exactas. Por ejemplo, así se ve la relación entre un Pago y un Usuario en nuestro esquema:
 

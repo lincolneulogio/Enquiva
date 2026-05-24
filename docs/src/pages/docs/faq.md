@@ -8,7 +8,7 @@ Bienvenido a la sección de resoluciones rápidas. Aquí encontrarás las respue
 
 ---
 
-## 📱 Pagos y Comprobantes (Miembros)
+## Pagos y Comprobantes (Miembros)
 
 ### ¿Por qué mi pago con Yape/Plin sigue "Pendiente"?
 Cuando subes tu comprobante de pago, este no se aprueba automáticamente. Un organizador humano debe verificar en su aplicación bancaria que el monto ha ingresado correctamente a la cuenta oficial del evento. Este proceso puede tardar desde unos minutos hasta unas pocas horas dependiendo de la demanda.
@@ -29,7 +29,7 @@ Sí, pero ten en cuenta que tu asiento en el autobús y tu cupo en el evento **n
 
 ---
 
-## 🎟️ Entradas y Escáner QR (Organizadores)
+## Entradas y Escáner QR (Organizadores)
 
 ### El escáner de la puerta dice "Firma Inválida", ¿qué significa?
 La plataforma utiliza códigos QR criptográficos. Si el escáner muestra "Firma Inválida", significa que el código fue alterado digitalmente o no fue generado por EncuentroDeFe. **No permitas el acceso a esa persona**.
@@ -39,7 +39,7 @@ Como organizador, puedes acceder al panel de **Control de Asistencia** y buscar 
 
 ---
 
-## 🚌 Transporte y Movilidad
+## Transporte y Movilidad
 
 ### Reservé el bus equivocado, ¿puedo cambiarlo?
 Sí, pero debes cancelar tu reserva actual primero. Dirígete a la pestaña de **Transporte**, haz clic en **Cancelar Reserva** e ingresa tu contraseña por seguridad. Una vez cancelada, el dinero volverá a tu "saldo" o deberás coordinar con el organizador si ya fue verificado, tras lo cual podrás elegir una nueva ruta.
@@ -49,7 +49,7 @@ La ubicación exacta, la hora de encuentro y el responsable de cada autobús est
 
 ---
 
-## 🔐 Cuenta y Acceso
+## Cuenta y Acceso
 
 ### Olvidé mi contraseña
 En la pantalla de inicio de sesión, haz clic en **"Olvidé mi contraseña"**. Ingresa el correo con el que te registraste y recibirás un enlace seguro para crear una nueva clave.
