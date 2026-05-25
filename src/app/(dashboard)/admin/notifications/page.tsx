@@ -53,16 +53,24 @@ export default async function AdminNotificationsPage({ searchParams }: AdminNoti
                 </div>
             ) : (
                 <div className="overflow-hidden rounded-xl border border-border bg-card">
-                    <p className="px-3 pt-2 text-[11px] text-muted-foreground sm:hidden">↔ Scroll</p>
+                    <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border bg-muted/10">
+                        <span className="text-xs font-semibold text-foreground flex items-center gap-2">
+                            <Bell className="h-4 w-4 text-primary" />
+                            {locale === "en" ? "Notifications Ledger" : "Directorio de Notificaciones"}
+                        </span>
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">
+                            ↔ {locale === "en" ? "Scroll horizontally to view all columns" : "Desliza horizontalmente para ver todas las columnas"}
+                        </span>
+                    </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[820px] text-sm">
+                        <table className="w-full min-w-[1100px] table-fixed text-sm">
                             <thead>
                                 <tr className="border-b border-border bg-muted/50">
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">N°</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.status")}</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("dashboard.admin.title")}</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Mensaje</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.date")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[60px]">N°</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[130px]">{t("common.status")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[240px]">{t("dashboard.admin.title")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[490px]">Mensaje</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[180px]">{t("common.date")}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
@@ -75,15 +83,19 @@ export default async function AdminNotificationsPage({ searchParams }: AdminNoti
                                     );
                                     return (
                                         <tr key={n.id} className="hover:bg-muted/30 transition-colors">
-                                            <td className="px-4 py-3 text-muted-foreground">{rowStart + index + 1}</td>
-                                            <td className="px-4 py-3">
-                                                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${n.read ? "bg-secondary text-foreground" : "bg-primary/10 text-primary"}`}>
-                                                    {n.read ? "Leída" : "No leída"}
+                                            <td className="px-4 py-4 text-muted-foreground">{rowStart + index + 1}</td>
+                                            <td className="px-4 py-4">
+                                                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${
+                                                    n.read 
+                                                        ? "bg-secondary/60 text-muted-foreground border-border/80" 
+                                                        : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                                                }`}>
+                                                    {locale === "en" ? (n.read ? "Read" : "Unread") : (n.read ? "Leída" : "No leída")}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3 font-medium text-foreground">{displayTitle}</td>
-                                            <td className="px-4 py-3 text-muted-foreground">{displayMessage}</td>
-                                            <td className="px-4 py-3 text-muted-foreground">
+                                            <td className="px-4 py-4 font-semibold text-foreground truncate" title={displayTitle}>{displayTitle}</td>
+                                            <td className="px-4 py-4 text-muted-foreground leading-relaxed whitespace-pre-line" title={displayMessage}>{displayMessage}</td>
+                                            <td className="px-4 py-4 text-muted-foreground">
                                                 {new Date(n.createdAt).toLocaleDateString(getIntlLocale(locale), {
                                                     month: "short",
                                                     day: "numeric",
