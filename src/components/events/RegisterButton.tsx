@@ -76,6 +76,29 @@ export function RegisterButton({
   const [selectedRouteId, setSelectedRouteId] = useState("");
   const [seatsCount, setSeatsCount] = useState(1);
   const [contactPhone, setContactPhone] = useState("");
+  const [visualHeight, setVisualHeight] = useState("90vh");
+
+  // Dynamic visual viewport height adjustment (e.g. when keyboard opens on mobile)
+  useEffect(() => {
+    if (!isModalOpen || typeof window === "undefined" || !window.visualViewport) return;
+
+    const handleResize = () => {
+      const vv = window.visualViewport;
+      if (vv) {
+        // Set max height to 92% of actual visible viewport to leave spacing
+        setVisualHeight(`${vv.height * 0.92}px`);
+      }
+    };
+
+    window.visualViewport.addEventListener("resize", handleResize);
+    window.visualViewport.addEventListener("scroll", handleResize);
+    handleResize();
+
+    return () => {
+      window.visualViewport?.removeEventListener("resize", handleResize);
+      window.visualViewport?.removeEventListener("scroll", handleResize);
+    };
+  }, [isModalOpen]);
 
   // Select first route by default if routes exist
   useEffect(() => {
@@ -150,17 +173,17 @@ export function RegisterButton({
         return;
       }
       const cleanPhone = contactPhone.replace(/\D/g, "");
-      if (cleanPhone.length < 9) {
-        toast.error("Por favor, ingresa un número de teléfono válido.");
+      if (cleanPhone.length !== 9 || !cleanPhone.startsWith("9")) {
+        toast.error("El número de teléfono debe tener exactamente 9 dígitos y empezar con 9 (ej. 912345678).");
         return;
       }
     }
-
+ 
     startTransition(async () => {
       try {
         const payload = {
           eventId,
-          contactPhone: wantsTransport && contactPhone ? contactPhone : undefined,
+          contactPhone: wantsTransport && contactPhone ? `+51${contactPhone.replace(/\D/g, "")}` : undefined,
           routeId: wantsTransport ? selectedRouteId : null,
           seats: wantsTransport ? seatsCount : null,
         };
@@ -402,7 +425,10 @@ export function RegisterButton({
       {/* Unified Registration & Transport Selection Modal */}
       {isModalOpen && mounted && typeof document !== "undefined" && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-300 animate-fadeIn">
-          <div className="relative w-full max-w-lg bg-card border border-border rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-scaleUp">
+          <div 
+            style={{ maxHeight: visualHeight }}
+            className="relative w-full max-w-lg bg-card border border-border rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-scaleUp transition-[max-height] duration-200"
+          >
             
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b border-border bg-muted/40">
@@ -519,16 +545,53 @@ export function RegisterButton({
                     <label className="text-xs font-semibold text-foreground uppercase tracking-wider block">
                       Teléfono de contacto para el bus <span className="text-rose-500 font-bold">* (Obligatorio)</span>:
                     </label>
-                    <input
-                      type="tel"
-                      placeholder="Ej. +51912345678"
-                      value={contactPhone}
-                      onChange={(e) => setContactPhone(e.target.value)}
-                      className="w-full px-3 py-2 text-sm bg-card border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-foreground placeholder:text-muted-foreground"
-                    />
-                    <p className="text-[10px] text-muted-foreground">
-                      * El número debe seguir el formato nacional o internacional (ej. +51912345678).
-                    </p>
+                    <div className="relative flex items-center">
+                      <span className="absolute left-3.5 text-sm text-muted-foreground font-medium select-none pointer-events-none border-r border-border/80 pr-2.5">
+                        +51
+                      </span>
+                      <input
+                        type="tel"
+                        maxLength={9}
+                        placeholder="912345678"
+                        value={contactPhone}
+                        onChange={(e) => {
+                          const onlyDigits = e.target.value.replace(/\D/g, "");
+                          if (onlyDigits.length <= 9) {
+                            setContactPhone(onlyDigits);
+                          }
+                        }}
+                        style={{ paddingLeft: "54px" }}
+                        className={`w-full pr-3 py-2.5 text-sm bg-card border rounded-xl focus:outline-none focus:ring-2 transition-all duration-300 font-medium tracking-wide ${
+                          contactPhone.length === 0
+                            ? "border-border focus:ring-primary/20 focus:border-primary"
+                            : contactPhone.length < 9
+                            ? "border-amber-500/40 focus:ring-amber-500/20 focus:border-amber-500"
+                            : !contactPhone.startsWith("9")
+                            ? "border-rose-500/40 focus:ring-rose-500/20 focus:border-rose-500"
+                            : "border-green-500/40 focus:ring-green-500/20 focus:border-green-500"
+                        }`}
+                      />
+                    </div>
+                    {contactPhone.length > 0 && (
+                      <p className={`text-[10px] font-semibold transition-all duration-300 ${
+                        contactPhone.length < 9
+                          ? "text-amber-500"
+                          : !contactPhone.startsWith("9")
+                          ? "text-rose-500"
+                          : "text-green-500"
+                      }`}>
+                        {contactPhone.length < 9
+                          ? `⚠️ Faltan ${9 - contactPhone.length} dígito${9 - contactPhone.length > 1 ? "s" : ""} para completar.`
+                          : !contactPhone.startsWith("9")
+                          ? "❌ El número de celular peruano debe iniciar con 9."
+                          : "✅ ¡Número de teléfono completo y válido!"}
+                      </p>
+                    )}
+                    {contactPhone.length === 0 && (
+                      <p className="text-[10px] text-muted-foreground">
+                        * El número debe tener exactamente 9 dígitos (ej. 912345678).
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
