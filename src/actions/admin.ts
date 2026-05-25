@@ -11,4 +11,4 @@ export {
   deleteCategory,
   reorderCategories,
 } from "./admin/categories";
-export { seedRoles, updateRole, backfillPendingPayments } from "./admin/system";
+export { seedRoles, updateRole, backfillPendingPayments, exportFullDatabase } from "./admin/system";

@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { User, Mail, Shield, Crown, ShieldCheck, Briefcase, UserRound } from "lucide-react";
-import { BackfillPendingPaymentsButton } from "@/components/dashboard";
+import { BackupDatabaseButton } from "@/components/dashboard";
 import { getI18n } from "@/lib/i18n/server";
 import { getRoleLabel } from "@/lib/i18n/core";
 import { ROLE_BADGE_STYLES, normalizeRole } from "@/lib/auth/rbac";
@@ -75,12 +75,12 @@ export default async function AdminSettingsPage() {
 
                 {user.role === "super_admin" && (
                     <div className="rounded-xl border border-border bg-card p-5">
-                        <p className="text-sm font-semibold text-foreground">{t("dashboard.admin.dataMaintenance")}</p>
+                        <p className="text-sm font-semibold text-foreground">Copia de Seguridad de la Base de Datos</p>
                         <p className="mt-1 text-xs text-muted-foreground">
-                            {t("dashboard.admin.dataMaintenanceHelp")}
+                            Descarga una copia completa de toda la información del sistema (usuarios, eventos, inscripciones, pagos y transporte) en un archivo de respaldo estructurado JSON.
                         </p>
                         <div className="mt-4">
-                            <BackfillPendingPaymentsButton />
+                            <BackupDatabaseButton />
                         </div>
                     </div>
                 )}

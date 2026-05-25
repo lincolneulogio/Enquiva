@@ -18,6 +18,7 @@ export * from "./profile/ProfileEditor";
 
 // ─── Admin Tools ─────────────────────────────────────────────────────────────
 export * from "./admin/BackfillPendingPaymentsButton";
+export * from "./admin/BackupDatabaseButton";
 export * from "./admin/ExportDataPanel";
 export * from "./admin/SeedRolesButton";
 export * from "./admin/AdminStatsCharts";
