@@ -106,3 +106,30 @@ export async function getRegistrationForEvent(eventId: string) {
 
   return RegistrationService.getRegistrationForEvent(user.id, eventId);
 }
+
+/**
+ * Controller Server Action: Registra manualmente a un asistente sin cuenta (offline) con pago en efectivo pre-aprobado.
+ */
+export async function registerOfflineAttendeeAction(input: {
+  eventId: string;
+  name: string;
+  phone?: string | null;
+  notes?: string | null;
+}) {
+  const user = await requireAuth();
+  if (user.role !== "organizer" && user.role !== "super_admin" && user.role !== "admin") {
+    throw new Error("Solo los organizadores o administradores pueden registrar asistentes manualmente.");
+  }
+
+  const result = await RegistrationService.registerOfflineAttendee(
+    user.id,
+    user.role,
+    input
+  );
+
+  // Revalidar rutas relevantes
+  revalidatePath("/organizer/attendees");
+  revalidatePath("/admin/registrations");
+
+  return result;
+}

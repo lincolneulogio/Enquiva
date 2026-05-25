@@ -77,6 +77,12 @@ export function RegisterButton({
   const [seatsCount, setSeatsCount] = useState(1);
   const [contactPhone, setContactPhone] = useState("");
   const [visualHeight, setVisualHeight] = useState("90vh");
+  const [guests, setGuests] = useState<Array<{ name: string; phone: string }>>([]);
+
+  // Sincronizar automáticamente la cantidad de asientos de bus con el titular + invitados
+  useEffect(() => {
+    setSeatsCount(1 + guests.length);
+  }, [guests.length]);
 
   // Dynamic visual viewport height adjustment (e.g. when keyboard opens on mobile)
   useEffect(() => {
@@ -163,7 +169,7 @@ export function RegisterButton({
   const activeRoute = transportRoutes.find((r) => r.id === selectedRouteId);
   const transportPricePerSeat = activeRoute ? Number(activeRoute.pricePerSeat) : 0;
   const transportTotalCost = wantsTransport ? transportPricePerSeat * seatsCount : 0;
-  const consolidatedTotalCost = eventPrice + transportTotalCost;
+  const consolidatedTotalCost = (eventPrice * (1 + guests.length)) + transportTotalCost;
 
   const handleRegisterSubmit = () => {
     // Basic phone validation if transport selected
@@ -177,6 +183,26 @@ export function RegisterButton({
         toast.error("El número de teléfono debe tener exactamente 9 dígitos y empezar con 9 (ej. 912345678).");
         return;
       }
+
+      // Validar también teléfonos de invitados si se ingresaron
+      for (let i = 0; i < guests.length; i++) {
+        const guest = guests[i];
+        if (guest.phone) {
+          const cleanGuestPhone = guest.phone.replace(/\D/g, "");
+          if (cleanGuestPhone.length !== 9 || !cleanGuestPhone.startsWith("9")) {
+            toast.error(`El teléfono del invitado ${i + 1} (${guest.name}) debe tener exactamente 9 dígitos y empezar con 9.`);
+            return;
+          }
+        }
+      }
+    }
+
+    // Validar nombres de invitados
+    for (let i = 0; i < guests.length; i++) {
+      if (guests[i].name.trim().length < 2) {
+        toast.error(`Por favor, ingresa un nombre válido para el invitado ${i + 1}.`);
+        return;
+      }
     }
  
     startTransition(async () => {
@@ -186,6 +212,10 @@ export function RegisterButton({
           contactPhone: wantsTransport && contactPhone ? `+51${contactPhone.replace(/\D/g, "")}` : undefined,
           routeId: wantsTransport ? selectedRouteId : null,
           seats: wantsTransport ? seatsCount : null,
+          guests: guests.map((g) => ({
+            name: g.name.trim(),
+            phone: g.phone ? `+51${g.phone.replace(/\D/g, "")}` : null,
+          })),
         };
 
         const result = await registerForEvent(payload);
@@ -596,11 +626,108 @@ export function RegisterButton({
                 </div>
               )}
 
+              {/* Guest Tickets Management Section (Opción B) */}
+              <div className="space-y-4 p-4 rounded-2xl bg-muted/30 border border-border/60">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5 text-left">
+                    <label className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                      <Users className="h-4 w-4 text-primary" />
+                      ¿Deseas registrar invitados? (Opcional)
+                    </label>
+                    <p className="text-[11px] text-muted-foreground">
+                      Registra amigos o familiares sin smartphone ni correo propio.
+                    </p>
+                  </div>
+                  {guests.length < 5 && (
+                    <button
+                      type="button"
+                      onClick={() => setGuests([...guests, { name: "", phone: "" }])}
+                      className="px-2.5 py-1 text-xs font-semibold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all rounded-lg select-none"
+                    >
+                      + Añadir
+                    </button>
+                  )}
+                </div>
+
+                {guests.length > 0 && (
+                  <div className="space-y-4 pt-2 border-t border-dashed border-border/80 animate-slideDown">
+                    {guests.map((guest, idx) => (
+                      <div key={idx} className="relative p-3.5 rounded-xl bg-card border border-border flex flex-col gap-2.5">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                            Invitado #{idx + 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newGuests = guests.filter((_, i) => i !== idx);
+                              setGuests(newGuests);
+                            }}
+                            className="text-xs font-bold text-rose-500 hover:text-rose-600 transition-colors flex items-center gap-0.5 select-none"
+                          >
+                            <X className="h-3.5 w-3.5" /> Quitar
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {/* Guest Name */}
+                          <div className="space-y-1 text-left">
+                            <label className="text-[10px] font-bold text-foreground uppercase block">
+                              Nombre Completo *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="Nombre completo"
+                              value={guest.name}
+                              onChange={(e) => {
+                                const newGuests = [...guests];
+                                newGuests[idx].name = e.target.value;
+                                setGuests(newGuests);
+                              }}
+                              className="w-full px-3 py-1.5 text-xs bg-muted/40 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-foreground placeholder:text-muted-foreground/60"
+                            />
+                          </div>
+
+                          {/* Guest Phone (Optional) */}
+                          <div className="space-y-1 text-left">
+                            <label className="text-[10px] font-bold text-foreground uppercase block">
+                              Teléfono (Opcional)
+                            </label>
+                            <div className="relative flex items-center">
+                              <span className="absolute left-2.5 text-xs text-muted-foreground font-medium select-none border-r border-border pr-2">
+                                +51
+                              </span>
+                              <input
+                                type="tel"
+                                maxLength={9}
+                                placeholder="912345678"
+                                value={guest.phone}
+                                onChange={(e) => {
+                                  const onlyDigits = e.target.value.replace(/\D/g, "");
+                                  if (onlyDigits.length <= 9) {
+                                    const newGuests = [...guests];
+                                    newGuests[idx].phone = onlyDigits;
+                                    setGuests(newGuests);
+                                  }
+                                }}
+                                style={{ paddingLeft: "46px" }}
+                                className="w-full pr-3 py-1.5 text-xs bg-muted/40 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-foreground placeholder:text-muted-foreground/60 tracking-wider"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Informative Alert for payment */}
               {consolidatedTotalCost > 0 && (
                 <div className="rounded-xl bg-blue-500/5 border border-blue-500/10 p-3.5 flex items-start gap-2.5">
                   <Info className="h-4.5 w-4.5 text-blue-500 shrink-0 mt-0.5" />
-                  <div className="space-y-0.5 text-xs text-blue-800 dark:text-blue-300">
+                  <div className="space-y-0.5 text-xs text-blue-800 dark:text-blue-300 text-left">
                     <p className="font-semibold text-blue-700 dark:text-blue-400">Pago unificado disponible</p>
                     <p className="leading-relaxed">
                       El monto de la entrada y el pasaje de transporte se sumarán en un único pago consolidado. Solo tendrás que transferir y adjuntar un único comprobante de pago.
@@ -610,16 +737,16 @@ export function RegisterButton({
               )}
 
               {/* Dynamic Consolidated Breakdown */}
-              <div className="border-t border-border pt-4 space-y-2.5">
+              <div className="border-t border-border pt-4 space-y-2.5 text-left">
                 <span className="text-xs font-semibold text-foreground uppercase tracking-wider block">
                   Desglose de Pago Consolidado:
                 </span>
                 
                 <div className="space-y-1.5 text-xs text-muted-foreground">
                   <div className="flex justify-between">
-                    <span>Costo de Entrada ({eventPrice > 0 ? "De Pago" : "Gratuito"}):</span>
+                    <span>Costo de Entrada ({eventPrice > 0 ? "De Pago" : "Gratuito"}{guests.length > 0 ? ` x ${1 + guests.length}` : ""}):</span>
                     <span className="font-medium text-foreground">
-                      {eventPrice > 0 ? `S/ ${eventPrice.toFixed(2)}` : "Gratis"}
+                      {eventPrice > 0 ? `S/ ${(eventPrice * (1 + guests.length)).toFixed(2)}` : "Gratis"}
                     </span>
                   </div>
 

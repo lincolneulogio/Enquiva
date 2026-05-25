@@ -573,6 +573,8 @@ export default async function EventDetailPage({ params }: EventPageProps) {
             event={event}
             registration={registration}
             paymentStatus={paymentForRegistration?.payment.status}
+            paymentReceiptUrl={paymentForRegistration?.payment.receiptUrl}
+            paymentMethod={paymentForRegistration?.payment.method}
           />
         </section>
       )}

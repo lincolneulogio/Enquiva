@@ -12,6 +12,7 @@ import {
 } from "@/lib/db/schema";
 import { eq, and, count, inArray, sql } from "drizzle-orm";
 import { verifyPassword } from "better-auth/crypto";
+import crypto from "crypto";
 import {
   pusherServer,
   PUSHER_CHANNELS,
@@ -31,6 +32,7 @@ export interface RegisterEventInput {
   routeId?: string | null;
   seats?: number | null;
   notes?: string | null;
+  guests?: Array<{ name: string; phone?: string | null }> | null;
 }
 
 export interface CheckInInput {
@@ -87,8 +89,9 @@ export class RegistrationService {
         throw new Error("You are already registered for this event");
       }
 
-      // 3. Validar capacidad del evento
+      // 3. Validar capacidad del evento (incluyendo los invitados)
       const status = "registered";
+      const totalNewRegistrations = 1 + (input.guests?.length ?? 0);
       if (event.capacity) {
         const [{ count: currentCount }] = await tx
           .select({ count: count() })
@@ -100,12 +103,50 @@ export class RegistrationService {
             )
           );
 
-        if (currentCount >= event.capacity) {
+        if (currentCount + totalNewRegistrations > event.capacity) {
           throw new Error("REGISTRATION_CLOSED_EVENT_FULL");
         }
       }
 
-      // 4. Crear/Actualizar el registro principal
+      // 4. Crear cuentas de usuarios invitados/fantasma si existen
+      const guestRegIds: string[] = [];
+      const guestUserIdMap = new Map<string, string>();
+      const guests = input.guests || [];
+
+      for (const guest of guests) {
+        const guestUserId = `guest_${crypto.randomUUID()}`;
+        const guestEmail = `${guestUserId}@sistemaevents.com`;
+
+        // Insertar cuenta de usuario fantasma
+        await tx.insert(users).values({
+          id: guestUserId,
+          name: guest.name.trim(),
+          email: guestEmail,
+          phone: guest.phone ?? null,
+          emailVerified: false,
+          isActive: true,
+        });
+
+        // Crear registro para el invitado
+        const [guestReg] = await tx
+          .insert(registrations)
+          .values({
+            eventId,
+            userId: guestUserId,
+            status,
+            contactPhone: guest.phone ?? null,
+          })
+          .returning();
+
+        guestRegIds.push(guestReg.id);
+        guestUserIdMap.set(guestReg.id, guestUserId);
+      }
+
+      // Guardar el listado de IDs de invitados en la nota del registro principal
+      const guestPrefix = guestRegIds.length > 0 ? `[GUESTS:${guestRegIds.join(",")}]` : "";
+      const finalNotes = guestPrefix + (input.notes ?? "");
+
+      // 4b. Crear/Actualizar el registro principal
       const [registration] = await tx
         .insert(registrations)
         .values({
@@ -113,12 +154,14 @@ export class RegistrationService {
           userId: attendee.id,
           status,
           contactPhone,
+          notes: finalNotes,
         })
         .onConflictDoUpdate({
           target: [registrations.eventId, registrations.userId],
           set: {
             status,
             contactPhone,
+            notes: finalNotes,
             registeredAt: new Date(),
           },
         })
@@ -160,7 +203,7 @@ export class RegistrationService {
         transportPrice = Number(route.pricePerSeat) * seats;
         const bookingStatus = (eventPrice + transportPrice > 0) ? "pending" : "confirmed";
 
-        // Insertar reserva de transporte
+        // Insertar reserva de transporte (consolidada bajo el usuario principal)
         const [insertedBooking] = await tx
           .insert(transportBookings)
           .values({
@@ -169,14 +212,15 @@ export class RegistrationService {
             userId: attendee.id,
             seats,
             status: bookingStatus,
-            notes: input.notes ?? null,
+            notes: finalNotes,
           })
           .returning();
         transportBooking = insertedBooking;
       }
 
-      // 6. Gestionar cobro/pago
-      const totalAmount = eventPrice + transportPrice;
+      // 6. Gestionar cobro/pago (Multiplicar el costo de entrada por la cantidad de asistentes)
+      const totalTicketPrice = eventPrice * (1 + guests.length);
+      const totalAmount = totalTicketPrice + transportPrice;
       const isPaid = totalAmount > 0;
       let requiresPayment = false;
 
@@ -190,12 +234,16 @@ export class RegistrationService {
           currency: "PEN",
           status: "pending",
           notes: transportBooking
-            ? `Inscripción consolidada con servicio de transporte (${input.seats} asiento${input.seats && input.seats > 1 ? "s" : ""})`
-            : `Inscripción al evento`,
+            ? `Inscripción consolidada con servicio de transporte (${input.seats} asiento${input.seats && input.seats > 1 ? "s" : ""}) para el titular y ${guests.length} invitado(s)`
+            : `Inscripción al evento para el titular y ${guests.length} invitado(s)`,
         });
       } else {
-        // Si es gratuito, generamos el ticket inmediatamente de forma consistente
+        // Si es gratuito, generamos el ticket inmediatamente de forma consistente para todos
         await generateTicketForRegistration(registration.id, eventId, attendee.id, tx);
+        for (const guestRegId of guestRegIds) {
+          const guestUserId = guestUserIdMap.get(guestRegId)!;
+          await generateTicketForRegistration(guestRegId, eventId, guestUserId, tx);
+        }
       }
 
       // Obtener el código de ticket emitido si existe
@@ -504,5 +552,82 @@ export class RegistrationService {
       .limit(1);
 
     return record ?? null;
+  }
+
+  /**
+   * Registra manualmente a un asistente sin cuenta (offline) con pago en efectivo pre-aprobado.
+   */
+  static async registerOfflineAttendee(
+    organizerUserId: string,
+    organizerRole: string,
+    input: { eventId: string; name: string; phone?: string | null; notes?: string | null }
+  ) {
+    return db.transaction(async (tx) => {
+      const eventId = input.eventId;
+      const contactPhone = input.phone ? input.phone.trim() : null;
+
+      // 1. Validar que el evento existe y está publicado
+      const [event] = await tx
+        .select()
+        .from(events)
+        .where(and(eq(events.id, eventId), eq(events.status, "published")))
+        .limit(1);
+
+      if (!event) throw new Error("Evento no encontrado o no está publicado.");
+
+      // Verificación de autorización de organizador
+      if (organizerRole === "organizer" && event.organizerId !== organizerUserId) {
+        throw new Error("No tienes permisos para registrar asistentes en este evento.");
+      }
+
+      // 2. Crear usuario "fantasma/invitado" para el asistente offline
+      const offlineUserId = `offline_${crypto.randomUUID()}`;
+      const offlineEmail = `${offlineUserId}@sistemaevents.com`;
+
+      await tx.insert(users).values({
+        id: offlineUserId,
+        name: input.name.trim(),
+        email: offlineEmail,
+        phone: contactPhone,
+        emailVerified: false,
+        isActive: true,
+      });
+
+      // 3. Crear registro principal
+      const [registration] = await tx
+        .insert(registrations)
+        .values({
+          eventId,
+          userId: offlineUserId,
+          status: "registered",
+          contactPhone,
+          notes: `[OFFLINE_MANUAL] ${input.notes ?? ""}`.trim(),
+        })
+        .returning();
+
+      // 4. Gestionar cobro/pago (Efectivo pre-aprobado por el organizador)
+      const eventPrice = event.price ? Number(event.price) : 0;
+      
+      await tx.insert(payments).values({
+        registrationId: registration.id,
+        userId: offlineUserId,
+        amount: eventPrice.toFixed(2),
+        currency: "PEN",
+        status: "approved", // Pre-aprobado porque se paga en efectivo en mano
+        method: "cash",
+        notes: `Pago manual en efectivo recibido por el organizador/admin`,
+        verifiedBy: organizerUserId,
+        verifiedAt: new Date(),
+      });
+
+      // 5. Generar ticket inmediatamente
+      const ticket = await generateTicketForRegistration(registration.id, eventId, offlineUserId, tx);
+
+      return {
+        success: true,
+        registrationId: registration.id,
+        ticketCode: ticket.code,
+      };
+    });
   }
 }

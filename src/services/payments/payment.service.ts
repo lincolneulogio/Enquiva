@@ -267,6 +267,25 @@ export class PaymentService {
       let ticket = null;
       if (updated.status === "approved") {
         ticket = await generateTicketForRegistration(registration.id, event.id, payment.userId, tx);
+
+        // Generar tickets para invitados si existen registrados bajo esta inscripción
+        if (registration.notes && registration.notes.startsWith("[GUESTS:")) {
+          const match = registration.notes.match(/^\[GUESTS:([^\]]+)\]/);
+          if (match && match[1]) {
+            const guestRegIds = match[1].split(",");
+            for (const guestRegId of guestRegIds) {
+              const [guestReg] = await tx
+                .select({ userId: registrations.userId })
+                .from(registrations)
+                .where(eq(registrations.id, guestRegId))
+                .limit(1);
+
+              if (guestReg) {
+                await generateTicketForRegistration(guestRegId, event.id, guestReg.userId, tx);
+              }
+            }
+          }
+        }
       }
 
       // 5. Ejecutar tareas lentas asíncronamente en segundo plano (no bloqueante)

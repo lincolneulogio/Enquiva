@@ -42,6 +42,8 @@ export default async function MemberTicketsPage() {
               event={event}
               registration={registration}
               paymentStatus={paymentByRegistrationId.get(registration.id)?.status}
+              paymentReceiptUrl={paymentByRegistrationId.get(registration.id)?.receiptUrl}
+              paymentMethod={paymentByRegistrationId.get(registration.id)?.method}
             />
           ))}
         </div>

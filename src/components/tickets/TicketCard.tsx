@@ -16,6 +16,8 @@ interface TicketCardProps {
   event: Event;
   registration: Registration;
   paymentStatus?: string;
+  paymentReceiptUrl?: string | null;
+  paymentMethod?: string | null;
 }
 
 export function TicketCard({
@@ -23,6 +25,8 @@ export function TicketCard({
   event,
   registration,
   paymentStatus,
+  paymentReceiptUrl,
+  paymentMethod,
 }: TicketCardProps) {
   const { locale } = useLocale();
   const t = useTranslations();
@@ -81,22 +85,71 @@ export function TicketCard({
       </div>
 
       {paymentStatus === "pending" && (
-        <div className="rounded-2xl border border-amber-200/50 bg-amber-500/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-pulse">
-          <div className="space-y-0.5 text-left">
-            <p className="font-semibold text-amber-800 dark:text-amber-400 text-sm">
-              {t("ticket.pendingPayment")}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {t("ticket.pendingPaymentHelp")}
-            </p>
-          </div>
-          <Link
-            href={`/member/payments/new/${registration.id}`}
-            className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-center shrink-0 transition"
-          >
-            {t("ticket.payOrUploadReceipt")}
-          </Link>
-        </div>
+        <>
+          {paymentReceiptUrl ? (
+            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+              <div className="space-y-0.5 text-left">
+                <p className="font-semibold text-amber-800 dark:text-amber-400 text-sm flex items-center gap-2">
+                  <span className="inline-block h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                  {t("ticket.verificationPending")}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t("ticket.verificationPendingHelp")}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                <a
+                  href={paymentReceiptUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-xl border border-border bg-background hover:bg-secondary text-foreground px-3.5 py-2 text-xs font-semibold text-center transition shadow-sm"
+                >
+                  {t("ticket.viewSubmittedReceipt")}
+                </a>
+                <Link
+                  href={`/member/payments/new/${registration.id}`}
+                  className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-2 text-xs font-semibold text-center transition shadow-sm"
+                >
+                  {t("ticket.changePaymentDetails")}
+                </Link>
+              </div>
+            </div>
+          ) : paymentMethod === "cash" ? (
+            <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+              <div className="space-y-0.5 text-left">
+                <p className="font-semibold text-indigo-800 dark:text-indigo-400 text-sm flex items-center gap-1.5">
+                  {t("ticket.cashPaymentTitle")}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t("ticket.cashPaymentHelp")}
+                </p>
+              </div>
+              <Link
+                href={`/member/payments/new/${registration.id}`}
+                className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 text-xs font-semibold text-center shrink-0 transition shadow-sm"
+              >
+                {t("ticket.changePaymentMethod")}
+              </Link>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-amber-200/50 bg-amber-500/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-pulse">
+              <div className="space-y-0.5 text-left">
+                <p className="font-semibold text-amber-800 dark:text-amber-400 text-sm">
+                  {t("ticket.pendingPayment")}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t("ticket.pendingPaymentHelp")}
+                </p>
+              </div>
+              <Link
+                href={`/member/payments/new/${registration.id}`}
+                className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-center shrink-0 transition"
+              >
+                {t("ticket.payOrUploadReceipt")}
+              </Link>
+            </div>
+          )}
+        </>
       )}
 
       <div className="flex flex-wrap items-center gap-3 text-sm">
