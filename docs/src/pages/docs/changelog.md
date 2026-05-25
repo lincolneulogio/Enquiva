@@ -8,6 +8,17 @@ Documentamos todas las mejoras significativas en el ecosistema de EncuentroDeFe.
 
 ---
 
+## v1.3.0 - Analíticas Avanzadas, Gestión de Usuarios y Copias de Seguridad
+*Lanzamiento: Mayo 2026*
+
+**Nuevas Características:**
+* **Analíticas Avanzadas y Financieras:** Rediseño completo del panel con tarjetas de ingresos totales, ticket promedio de pago, tasa de asistencia en vivo (*Show-up Rate*), ocupación de transporte y gráficos enriquecidos (donuts de métodos de pago y crecimiento de usuarios mensual).
+* **Gestión Premium de Usuarios:** Renovación de la tabla de control de usuarios con colores y símbolos oficiales para roles, scroll horizontal responsivo, ajuste de ancho de celdas para correos y 4 nuevas columnas administrativas (Teléfono, Estado verificado, Estado activo/baneo, y Última conexión activa).
+* **Copia de Seguridad de la Base de Datos:** Implementación de una utilidad de backup en un clic para Superadministradores, permitiendo descargar toda la información del sistema (11 tablas enlazadas) en un archivo estructurado JSON.
+* **Consistencia Visual en Roles:** Estandarización de los colores de roles (Turquesa para Superadministrador, Rosa para Administrador, Azul para Organizador y Verde para Miembro) y sus iconos en las vistas de Roles, Perfil, Configuración y Usuarios.
+
+---
+
 ## v1.2.0 - Optimización Documental y Búsqueda Inteligente
 *Lanzamiento: Mayo 2026*
 
