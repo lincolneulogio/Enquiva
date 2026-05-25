@@ -195,7 +195,7 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                                     <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[150px]">{t("common.category")}</th>
                                     <th className="px-4 py-3 text-right font-medium text-muted-foreground w-[130px]">{locale === "en" ? "Price" : "Precio"}</th>
                                     <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[180px]">{locale === "en" ? "Capacity / Registrants" : "Aforo / Inscritos"}</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[140px]">{t("common.date")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[140px]">{locale === "en" ? "Event Date" : "Fecha de Evento"}</th>
                                     <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[140px]">{t("common.status")}</th>
                                     <th className="px-4 py-3 text-right font-medium text-muted-foreground w-[160px]">{t("common.actions")}</th>
                                 </tr>

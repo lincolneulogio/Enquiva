@@ -147,45 +147,55 @@ export default async function AdminTransportOverviewPage({ searchParams }: Admin
                     <h2 className="font-display text-lg font-semibold text-foreground">{t("dashboard.admin.transportRegisteredEvents")}</h2>
                     
                     <div className="overflow-hidden rounded-2xl border border-border bg-card">
-                        <p className="px-3 pt-2 text-[11px] text-muted-foreground sm:hidden">↔ Scroll</p>
+                        <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border bg-muted/10">
+                            <span className="text-xs font-semibold text-foreground flex items-center gap-2">
+                                <Bus className="h-4 w-4 text-primary" />
+                                {locale === "en" ? "Transport Ledger" : "Directorio de Transporte"}
+                            </span>
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">
+                                ↔ {locale === "en" ? "Scroll horizontally to view all columns" : "Desliza horizontalmente para ver todas las columnas"}
+                            </span>
+                        </div>
                         <div className="overflow-x-auto">
-                            <table className="w-full min-w-[900px] text-sm">
+                            <table className="w-full min-w-[1250px] table-fixed text-sm">
                                 <thead>
                                     <tr className="border-b border-border bg-muted/50">
-                                        <th className="px-4 py-3.5 text-left font-medium text-muted-foreground">{t("common.event")}</th>
-                                        <th className="px-4 py-3.5 text-left font-medium text-muted-foreground">{t("common.organizer")}</th>
-                                        <th className="px-4 py-3.5 text-left font-medium text-muted-foreground">{t("common.date")}</th>
-                                        <th className="px-4 py-3.5 text-left font-medium text-muted-foreground">{t("common.status")}</th>
-                                        <th className="px-4 py-3.5 text-left font-medium text-muted-foreground">{t("common.transport")}</th>
-                                        <th className="px-4 py-3.5 text-center font-medium text-muted-foreground">{t("dashboard.admin.transportMetrics")}</th>
-                                        <th className="px-4 py-3.5 text-right font-medium text-muted-foreground">{t("common.actions")}</th>
+                                        <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[240px]">{t("common.event")}</th>
+                                        <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[180px]">{t("common.organizer")}</th>
+                                        <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[130px]">{locale === "en" ? "Event Date" : "Fecha de Evento"}</th>
+                                        <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[120px]">{t("common.status")}</th>
+                                        <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[150px]">{t("common.transport")}</th>
+                                        <th className="px-4 py-3.5 text-center font-medium text-muted-foreground w-[230px]">{t("dashboard.admin.transportMetrics")}</th>
+                                        <th className="px-4 py-3.5 text-right font-medium text-muted-foreground w-[200px]">{t("common.actions")}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
                                     {allEvents.map((event) => (
                                         <tr key={event.id} className="hover:bg-muted/30 transition-colors">
-                                            <td className="px-4 py-4 font-medium text-foreground max-w-[220px] truncate" title={event.title}>
+                                            <td className="px-4 py-4 font-semibold text-foreground truncate" title={event.title}>
                                                 {event.title}
                                             </td>
-                                            <td className="px-4 py-4 text-muted-foreground">{event.organizerName ?? "—"}</td>
+                                            <td className="px-4 py-4 text-muted-foreground truncate" title={event.organizerName ?? ""}>
+                                                {event.organizerName ?? "—"}
+                                            </td>
                                             <td className="px-4 py-4 text-muted-foreground">
                                                 {new Date(event.date).toLocaleDateString(getIntlLocale(locale), {
                                                     dateStyle: "medium"
                                                 })}
                                             </td>
                                             <td className="px-4 py-4">
-                                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColor(event.status)}`}>
+                                                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor(event.status)}`}>
                                                     {eventStatusLabel(event.status, locale)}
                                                 </span>
                                             </td>
                                             <td className="px-4 py-4">
                                                 {event.hasTransport ? (
-                                                    <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
-                                                        <CheckCircle2 className="h-3.5 w-3.5" />
+                                                    <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/20 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800/30">
+                                                        <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
                                                         {t("dashboard.admin.transportEnabled")}
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                                                    <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-secondary text-muted-foreground border border-border/80">
                                                         <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
                                                         {t("dashboard.admin.transportDisabled")}
                                                     </span>
@@ -193,12 +203,12 @@ export default async function AdminTransportOverviewPage({ searchParams }: Admin
                                             </td>
                                             <td className="px-4 py-4 text-center">
                                                 {event.hasTransport ? (
-                                                    <div className="inline-flex items-center gap-4 text-xs">
-                                                        <span className="text-muted-foreground">
-                                                            {t("dashboard.admin.transportRoutesLabel")}: <strong className="text-foreground">{event.routesCount}</strong>
+                                                    <div className="flex items-center justify-center gap-2.5 text-xs leading-none">
+                                                        <span className="inline-flex items-center gap-1 rounded-lg bg-secondary/80 px-2 py-1 text-muted-foreground font-semibold border border-border/50">
+                                                            {t("dashboard.admin.transportRoutesLabel")}: <span className="text-foreground font-bold">{event.routesCount}</span>
                                                         </span>
-                                                        <span className="text-muted-foreground">
-                                                            {t("dashboard.admin.transportPassengersLabel")}: <strong className="text-foreground">{event.totalBookedSeats}</strong>
+                                                        <span className="inline-flex items-center gap-1 rounded-lg bg-primary/10 border border-primary/20 px-2 py-1 text-primary font-semibold">
+                                                            {t("dashboard.admin.transportPassengersLabel")}: <span className="text-primary font-bold">{event.totalBookedSeats}</span>
                                                         </span>
                                                     </div>
                                                 ) : (
@@ -215,7 +225,7 @@ export default async function AdminTransportOverviewPage({ searchParams }: Admin
                                                     {event.hasTransport && (
                                                         <Link
                                                             href={`/admin/events/${event.id}/transport`}
-                                                            className="inline-flex items-center gap-1.5 rounded-xl bg-secondary px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary/80 transition-colors"
+                                                            className="inline-flex items-center gap-1.5 rounded-xl bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary/80 transition-colors border border-border/50 active:scale-95"
                                                         >
                                                             {t("dashboard.admin.transportRoutesBtn")}
                                                             <ArrowRight className="h-3.5 w-3.5" />
