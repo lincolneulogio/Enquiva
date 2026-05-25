@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { registrations, events, users } from "@/lib/db/schema";
-import { eq, desc, count, and, gte, lte, type SQL } from "drizzle-orm";
-import { ClipboardList } from "lucide-react";
+import { registrations, events, users, payments, transportBookings, transportRoutes } from "@/lib/db/schema";
+import { eq, desc, count, and, gte, lte, sql, inArray, type SQL } from "drizzle-orm";
+import { ClipboardList, Bus, CreditCard } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
-import { categoryLabel, registrationStatusLabel } from "@/lib/utils";
+import { categoryLabel, registrationStatusLabel, formatCurrency } from "@/lib/utils";
 import { TablePagination } from "@/components/dashboard";
 import { ExportDataPanel } from "@/components/dashboard";
 import { getExportEventOptions } from "@/actions/exports";
@@ -106,6 +106,96 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
     .limit(PAGE_SIZE)
     .offset(offset);
 
+  // Fetch parent registrants / inviters for guests on the current page
+  const guestRegs = allRegistrations.filter((r) => r.attendee.email?.startsWith("guest_"));
+  const guestIds = guestRegs.map((r) => r.id);
+  const invitersMap = new Map<string, { name: string | null; email: string }>();
+  const guestToParentRegIdMap = new Map<string, string>();
+
+  if (guestIds.length > 0) {
+    try {
+      const parentRegistrations = await db
+        .select({
+          id: registrations.id,
+          notes: registrations.notes,
+          inviterName: users.name,
+          inviterEmail: users.email,
+        })
+        .from(registrations)
+        .innerJoin(users, eq(registrations.userId, users.id))
+        .where(
+          and(
+            eq(registrations.eventId, allRegistrations[0].event.id),
+            sql`${registrations.notes} IS NOT NULL`
+          )
+        );
+
+      for (const parent of parentRegistrations) {
+        if (parent.notes && parent.notes.startsWith("[GUESTS:")) {
+          for (const gId of guestIds) {
+            if (parent.notes.includes(gId)) {
+              invitersMap.set(gId, {
+                name: parent.inviterName,
+                email: parent.inviterEmail,
+              });
+              guestToParentRegIdMap.set(gId, parent.id);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load inviters map:", err);
+    }
+  }
+
+  const currentRegIds = allRegistrations.map((r) => r.id);
+  const parentRegIds = Array.from(guestToParentRegIdMap.values());
+  const allLookupIds = Array.from(new Set([...currentRegIds, ...parentRegIds]));
+
+  const paymentsMap = new Map<string, { amount: string; status: string; method: string; currency: string }>();
+  const transportMap = new Map<string, { seats: number; routeName: string | null; totalSeats: number | null }>();
+
+  if (allLookupIds.length > 0) {
+    const paymentsList = await db
+      .select({
+        registrationId: payments.registrationId,
+        amount: payments.amount,
+        status: payments.status,
+        method: payments.method,
+        currency: payments.currency,
+      })
+      .from(payments)
+      .where(inArray(payments.registrationId, allLookupIds))
+      .orderBy(desc(payments.createdAt));
+
+    for (const p of paymentsList) {
+      if (p.registrationId && !paymentsMap.has(p.registrationId)) {
+        paymentsMap.set(p.registrationId, p);
+      }
+    }
+
+    const bookingsList = await db
+      .select({
+        registrationId: transportBookings.registrationId,
+        seats: transportBookings.seats,
+        routeName: transportRoutes.name,
+        totalSeats: transportRoutes.totalSeats,
+      })
+      .from(transportBookings)
+      .leftJoin(transportRoutes, eq(transportRoutes.id, transportBookings.routeId))
+      .where(inArray(transportBookings.registrationId, allLookupIds));
+
+    for (const b of bookingsList) {
+      if (b.registrationId) {
+        transportMap.set(b.registrationId, {
+          seats: b.seats,
+          routeName: b.routeName,
+          totalSeats: b.totalSeats,
+        });
+      }
+    }
+  }
+
   const isFiltered = !!(params.eventId || params.category || (params.status && params.status !== "all") || params.fromDate || params.toDate);
 
   return (
@@ -145,67 +235,179 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-border bg-card">
-          <p className="px-3 pt-2 text-[11px] text-muted-foreground sm:hidden">↔ Scroll</p>
+          <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border bg-muted/10">
+            <span className="text-xs font-semibold text-foreground flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-primary" />
+              {locale === "en" ? "Registrations Directory" : "Directorio de Inscripciones"}
+            </span>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">
+              ↔ {locale === "en" ? "Scroll horizontally to view all columns" : "Desliza horizontalmente para ver todas las columnas"}
+            </span>
+          </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] text-sm">
+            <table className="w-full min-w-[1480px] table-fixed text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/50">
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">N°</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.attendee")}</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.event")}</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.status")}</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.registered")}</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.checkedIn")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[60px]">N°</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[240px]">{t("common.attendee")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[240px]">{t("common.event")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[160px]">{locale === "en" ? "Type / Invited By" : "Tipo / Invitado Por"}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[160px]">{locale === "en" ? "Payment" : "Pago"}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[240px]">{locale === "en" ? "Transport" : "Transporte"}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[140px]">{t("common.status")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[135px]">{t("common.registered")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[135px]">{t("common.checkedIn")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {allRegistrations.map((reg, index) => (
-                  <tr key={reg.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-4 text-muted-foreground">{rowStart + index + 1}</td>
-                    <td className="px-4 py-4">
-                      <p className="font-medium text-foreground">{reg.attendee.name}</p>
-                      <p className="text-xs text-muted-foreground">{reg.attendee.email}</p>
-                    </td>
-                    <td className="px-4 py-4">
-                      <Link
-                        href={`/events/${reg.event.slug}`}
-                        className="font-medium text-foreground hover:text-primary transition-colors"
-                      >
-                        {reg.event.title}
-                      </Link>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(reg.event.date).toLocaleDateString(getIntlLocale(locale), {
+                {allRegistrations.map((reg, index) => {
+                  const parentRegId = guestToParentRegIdMap.get(reg.id);
+                  const payment = paymentsMap.get(reg.id) || (parentRegId ? paymentsMap.get(parentRegId) : undefined);
+                  const transport = transportMap.get(reg.id) || (parentRegId ? transportMap.get(parentRegId) : undefined);
+                  return (
+                    <tr key={reg.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-4 text-muted-foreground">{rowStart + index + 1}</td>
+                      <td className="px-4 py-4">
+                        <p className="font-medium text-foreground">{reg.attendee.name}</p>
+                        <p className="text-xs text-muted-foreground">{reg.attendee.email}</p>
+                      </td>
+                      <td className="px-4 py-4">
+                        <Link
+                          href={`/events/${reg.event.slug}`}
+                          className="font-medium text-foreground hover:text-primary transition-colors"
+                        >
+                          {reg.event.title}
+                        </Link>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(reg.event.date).toLocaleDateString(getIntlLocale(locale), {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </p>
+                      </td>
+                      <td className="px-4 py-4">
+                        {reg.attendee.email?.startsWith("guest_") ? (
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                              {locale === "en" ? "Guest" : "Invitado"}
+                            </span>
+                            {invitersMap.get(reg.id) && (
+                              <p className="text-[11px] text-muted-foreground leading-none">
+                                {locale === "en" ? "by " : "de "}<span className="font-medium text-foreground">{invitersMap.get(reg.id)!.name}</span>
+                              </p>
+                            )}
+                          </div>
+                        ) : reg.attendee.email?.startsWith("offline_") ? (
+                          <span className="inline-flex items-center rounded-full bg-indigo-500/10 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 dark:text-indigo-400 border border-indigo-500/20">
+                            {locale === "en" ? "Manual Reg" : "Reg. Manual"}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                            {locale === "en" ? "Primary" : "Titular"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4">
+                        {payment ? (
+                          <div className="space-y-1">
+                            <p className="font-semibold text-foreground">
+                              {formatCurrency(Number(payment.amount), payment.currency, locale)}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-1">
+                              <span className="text-[9px] text-muted-foreground uppercase bg-secondary px-1 py-0.5 rounded font-medium">
+                                {payment.method}
+                              </span>
+                              <span className={`text-[9px] px-1 py-0.5 rounded font-semibold border ${
+                                payment.status === "approved"
+                                  ? "bg-green-500/10 text-green-700 border-green-500/20"
+                                  : payment.status === "pending"
+                                    ? "bg-amber-500/10 text-amber-700 border-amber-500/20"
+                                    : "bg-red-500/10 text-red-700 border-red-500/20"
+                              }`}>
+                                {payment.status === "approved" 
+                                  ? (locale === "en" ? "Paid" : "Pagado")
+                                  : payment.status === "pending"
+                                    ? (locale === "en" ? "Pending" : "Pendiente")
+                                    : (locale === "en" ? "Rejected" : "Rechazado")
+                                }
+                              </span>
+                              {parentRegId && paymentsMap.get(reg.id) === undefined && (
+                                <span className="text-[9px] text-muted-foreground/80 block italic">
+                                  {locale === "en" ? "(via sponsor)" : "(vía titular)"}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/55 italic">
+                            {locale === "en" ? "No payment" : "Sin pago"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4">
+                        {transport ? (
+                          <div className="space-y-1">
+                            <p className="font-medium text-foreground text-xs truncate max-w-[220px]" title={transport.routeName ?? ""}>
+                              {transport.routeName ?? (locale === "en" ? "Booked" : "Reservado")}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground leading-none flex items-center gap-1">
+                              <Bus className="h-3 w-3 text-primary shrink-0" />
+                              {locale === "en" ? (
+                                <>
+                                  {transport.seats} {transport.seats === 1 ? "seat booked" : "seats booked"}{" "}
+                                  of {transport.totalSeats ?? 0} available
+                                  {parentRegId && transportMap.get(reg.id) === undefined && (
+                                    <span className="text-[9px] text-muted-foreground/80 block italic mt-0.5">
+                                      (via sponsor)
+                                    </span>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  {transport.seats} {transport.seats === 1 ? "asiento ocupado" : "asientos ocupados"}{" "}
+                                  de {transport.totalSeats ?? 0} disponibles
+                                  {parentRegId && transportMap.get(reg.id) === undefined && (
+                                    <span className="text-[9px] text-muted-foreground/80 block italic mt-0.5">
+                                      (vía titular)
+                                    </span>
+                                  )}
+                                </>
+                              )}
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/55 italic">
+                            {locale === "en" ? "No transport" : "Sin transporte"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor[reg.status] ?? "bg-secondary text-foreground"}`}
+                        >
+                          {registrationStatusLabel(reg.status, locale)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-muted-foreground">
+                        {new Date(reg.registeredAt).toLocaleDateString(getIntlLocale(locale), {
                           month: "short",
                           day: "numeric",
                           year: "numeric",
                         })}
-                      </p>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor[reg.status] ?? "bg-secondary text-foreground"}`}
-                      >
-                        {registrationStatusLabel(reg.status, locale)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 text-muted-foreground">
-                      {new Date(reg.registeredAt).toLocaleDateString(getIntlLocale(locale), {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </td>
-                    <td className="px-4 py-4 text-muted-foreground">
-                      {reg.checkedInAt
-                        ? new Date(reg.checkedInAt).toLocaleDateString(getIntlLocale(locale), {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })
-                        : <span className="text-muted-foreground/40">—</span>}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-4 py-4 text-muted-foreground">
+                        {reg.checkedInAt
+                          ? new Date(reg.checkedInAt).toLocaleDateString(getIntlLocale(locale), {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })
+                          : <span className="text-muted-foreground/40">—</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
