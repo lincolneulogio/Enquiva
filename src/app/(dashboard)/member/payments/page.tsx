@@ -5,19 +5,36 @@ import Link from "next/link";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
 
-function getPaymentCaption(notes: string | null, locale: string) {
-  if (!notes) return null;
+function getPaymentDynamicCaption(
+  notes: string | null,
+  registrationNotes: string | null,
+  seatsCount: number | null,
+  locale: string
+) {
   const isEn = locale === "en";
   
-  // Check for guest list match
-  const guestMatch = notes.match(/y (\d+) invitado/i) || notes.match(/and (\d+) guest/i);
-  const guestCount = guestMatch ? parseInt(guestMatch[1]) : 0;
-  
-  // Check for transport seats match
-  const seatMatch = notes.match(/(\d+) asiento/i) || notes.match(/(\d+) seat/i);
-  const seatCount = seatMatch ? parseInt(seatMatch[1]) : 0;
-  
-  if (guestCount > 0 || seatCount > 0) {
+  // Calculate guests count from registrationNotes
+  let guestCount = 0;
+  if (registrationNotes && registrationNotes.startsWith("[GUESTS:")) {
+    const content = registrationNotes.replace("[GUESTS:", "").replace("]", "").trim();
+    if (content) {
+      guestCount = content.split(",").map(s => s.trim()).filter(Boolean).length;
+    }
+  }
+
+  // Fallback to regex on payment notes if database records are blank
+  if (guestCount === 0 && notes) {
+    const guestMatch = notes.match(/y (\d+) invitado/i) || notes.match(/and (\d+) guest/i);
+    if (guestMatch) guestCount = parseInt(guestMatch[1]);
+  }
+
+  let finalSeatsCount = seatsCount ?? 0;
+  if (finalSeatsCount === 0 && notes) {
+    const seatMatch = notes.match(/(\d+) asiento/i) || notes.match(/(\d+) seat/i);
+    if (seatMatch) finalSeatsCount = parseInt(seatMatch[1]);
+  }
+
+  if (guestCount > 0 || finalSeatsCount > 0) {
     const parts = [];
     if (guestCount > 0) {
       parts.push(
@@ -29,21 +46,21 @@ function getPaymentCaption(notes: string | null, locale: string) {
       parts.push(isEn ? "1 ticket" : "1 entrada");
     }
     
-    if (seatCount > 0) {
+    if (finalSeatsCount > 0) {
       parts.push(
         isEn 
-          ? `${seatCount} seat${seatCount > 1 ? "s" : ""}` 
-          : `${seatCount} asiento${seatCount > 1 ? "s" : ""}`
+          ? `${finalSeatsCount} seat${finalSeatsCount > 1 ? "s" : ""}` 
+          : `${finalSeatsCount} asiento${finalSeatsCount > 1 ? "s" : ""}`
       );
     }
     
     return parts.join(" · ");
   }
-  
-  if (notes.toLowerCase().includes("offline") || notes.toLowerCase().includes("manual")) {
+
+  if (notes && (notes.toLowerCase().includes("offline") || notes.toLowerCase().includes("manual"))) {
     return isEn ? "Manual registration" : "Registro manual";
   }
-  
+
   return null;
 }
 
@@ -89,7 +106,7 @@ export default async function MemberPaymentsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {payments.map(({ payment, event, transportRoute }) => (
+                {payments.map(({ payment, registration, event, transportBooking, transportRoute }) => (
                   <tr key={payment.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-4">
                       <div className="font-medium text-foreground">{event.title}</div>
@@ -108,9 +125,9 @@ export default async function MemberPaymentsPage() {
                       <div className="font-semibold text-foreground">
                         {formatCurrency(Number(payment.amount), payment.currency, locale)}
                       </div>
-                      {getPaymentCaption(payment.notes, locale) && (
+                      {getPaymentDynamicCaption(payment.notes, registration.notes, transportBooking?.seats ?? null, locale) && (
                         <div className="text-[10px] text-muted-foreground/80 mt-0.5 whitespace-nowrap">
-                          {getPaymentCaption(payment.notes, locale)}
+                          {getPaymentDynamicCaption(payment.notes, registration.notes, transportBooking?.seats ?? null, locale)}
                         </div>
                       )}
                     </td>

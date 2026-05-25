@@ -23,45 +23,74 @@ import { categoryLabel } from "@/lib/utils";
 import { Suspense } from "react";
 import { PaymentNotesButton } from "@/components/payments/PaymentNotesButton";
 
-function getPaymentCaption(notes: string | null, locale: string) {
-  if (!notes) return null;
+function getPaymentDynamicCaption(
+  notes: string | null,
+  registrationNotes: string | null,
+  seatsCount: number | null,
+  locale: string,
+) {
   const isEn = locale === "en";
-  
-  // Check for guest list match
-  const guestMatch = notes.match(/y (\d+) invitado/i) || notes.match(/and (\d+) guest/i);
-  const guestCount = guestMatch ? parseInt(guestMatch[1]) : 0;
-  
-  // Check for transport seats match
-  const seatMatch = notes.match(/(\d+) asiento/i) || notes.match(/(\d+) seat/i);
-  const seatCount = seatMatch ? parseInt(seatMatch[1]) : 0;
-  
-  if (guestCount > 0 || seatCount > 0) {
+
+  // Calculate guests count from registrationNotes
+  let guestCount = 0;
+  if (registrationNotes && registrationNotes.startsWith("[GUESTS:")) {
+    const content = registrationNotes
+      .replace("[GUESTS:", "")
+      .replace("]", "")
+      .trim();
+    if (content) {
+      guestCount = content
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean).length;
+    }
+  }
+
+  // Fallback to regex on payment notes if database records are blank
+  if (guestCount === 0 && notes) {
+    const guestMatch =
+      notes.match(/y (\d+) invitado/i) || notes.match(/and (\d+) guest/i);
+    if (guestMatch) guestCount = parseInt(guestMatch[1]);
+  }
+
+  let finalSeatsCount = seatsCount ?? 0;
+  if (finalSeatsCount === 0 && notes) {
+    const seatMatch =
+      notes.match(/(\d+) asiento/i) || notes.match(/(\d+) seat/i);
+    if (seatMatch) finalSeatsCount = parseInt(seatMatch[1]);
+  }
+
+  if (guestCount > 0 || finalSeatsCount > 0) {
     const parts = [];
     if (guestCount > 0) {
       parts.push(
-        isEn 
-          ? `Owner + ${guestCount} guest${guestCount > 1 ? "s" : ""}` 
-          : `Titular + ${guestCount} invitado${guestCount > 1 ? "s" : ""}`
+        isEn
+          ? `Owner + ${guestCount} guest${guestCount > 1 ? "s" : ""}`
+          : `Titular + ${guestCount} invitado${guestCount > 1 ? "s" : ""}`,
       );
     } else {
       parts.push(isEn ? "1 ticket" : "1 entrada");
     }
-    
-    if (seatCount > 0) {
+
+    if (finalSeatsCount > 0) {
       parts.push(
-        isEn 
-          ? `${seatCount} seat${seatCount > 1 ? "s" : ""}` 
-          : `${seatCount} asiento${seatCount > 1 ? "s" : ""}`
+        isEn
+          ? `${finalSeatsCount} seat${finalSeatsCount > 1 ? "s" : ""}`
+          : `${finalSeatsCount} asiento${finalSeatsCount > 1 ? "s" : ""}`,
       );
     }
-    
+
     return parts.join(" · ");
   }
-  
-  if (notes.toLowerCase().includes("offline") || notes.toLowerCase().includes("manual")) {
+
+  if (
+    notes &&
+    (notes.toLowerCase().includes("offline") ||
+      notes.toLowerCase().includes("manual"))
+  ) {
     return isEn ? "Manual registration" : "Registro manual";
   }
-  
+
   return null;
 }
 
@@ -233,30 +262,67 @@ export default async function AdminPaymentsPage({
                 {locale === "en" ? "Payments Ledger" : "Libro de Pagos"}
               </span>
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">
-                ↔ {locale === "en" ? "Scroll horizontally to view all columns" : "Desliza horizontalmente para ver todas las columnas"}
+                ↔{" "}
+                {locale === "en"
+                  ? "Scroll horizontally to view all columns"
+                  : "Desliza horizontalmente para ver todas las columnas"}
               </span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1780px] table-fixed text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/50">
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[60px]">N°</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[110px]">{t("common.payments")}</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[100px]">{locale === "en" ? "Time" : "Hora"}</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[200px]">{t("common.event")}</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[180px]">{t("common.route")}</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[240px]">{t("common.attendee")}</th>
-                    <th className="px-4 py-3 text-right font-medium text-muted-foreground w-[170px]">{t("common.amount")}</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[100px]">{t("common.method")}</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[140px]">{locale === "en" ? "Reference" : "Referencia"}</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[140px]">{t("common.status")}</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[170px]">{t("common.update")}</th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[170px]">{t("common.receipt")}</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[60px]">
+                      N°
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[110px]">
+                      {t("common.payments")}
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[100px]">
+                      {locale === "en" ? "Time" : "Hora"}
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[200px]">
+                      {t("common.event")}
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[180px]">
+                      {t("common.route")}
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[240px]">
+                      {t("common.attendee")}
+                    </th>
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground w-[170px]">
+                      {t("common.amount")}
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[100px]">
+                      {t("common.method")}
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[140px]">
+                      {locale === "en" ? "Reference" : "Referencia"}
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[140px]">
+                      {t("common.status")}
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[170px]">
+                      {t("common.update")}
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[170px]">
+                      {t("common.receipt")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {allPayments.map(
-                    ({ payment, registration, event, attendee, transportRoute }, index) => (
+                    (
+                      {
+                        payment,
+                        registration,
+                        event,
+                        attendee,
+                        transportBooking,
+                        transportRoute,
+                      },
+                      index,
+                    ) => (
                       <tr
                         key={payment.id}
                         className="hover:bg-muted/30 transition-colors"
@@ -298,16 +364,29 @@ export default async function AdminPaymentsPage({
                             {event.title}
                           </Link>
                         </td>
-                        <td className="px-4 py-4 text-sm text-muted-foreground truncate" title={transportRoute?.name ?? ""}>
+                        <td
+                          className="px-4 py-4 text-sm text-muted-foreground truncate"
+                          title={transportRoute?.name ?? ""}
+                        >
                           {transportRoute?.name ?? t("common.noDataDash")}
                         </td>
                         <td className="px-4 py-4 text-sm text-muted-foreground">
-                          <div className="font-medium text-foreground truncate" title={attendee.name ?? ""}>
+                          <div
+                            className="font-medium text-foreground truncate"
+                            title={attendee.name ?? ""}
+                          >
                             {attendee.name ?? t("common.guest")}
                           </div>
-                          <div className="text-xs text-muted-foreground truncate" title={attendee.email ?? ""}>{attendee.email}</div>
+                          <div
+                            className="text-xs text-muted-foreground truncate"
+                            title={attendee.email ?? ""}
+                          >
+                            {attendee.email}
+                          </div>
                           {registration.contactPhone && (
-                            <div className="text-[10px] text-muted-foreground font-semibold mt-0.5">{registration.contactPhone}</div>
+                            <div className="text-[10px] text-muted-foreground font-semibold mt-0.5">
+                              {registration.contactPhone}
+                            </div>
                           )}
                         </td>
                         <td className="px-4 py-4 text-right text-sm">
@@ -318,17 +397,42 @@ export default async function AdminPaymentsPage({
                               locale,
                             )}
                           </div>
-                          {getPaymentCaption(payment.notes, locale) && (
-                            <div className="text-[10px] text-muted-foreground/80 mt-0.5 truncate" title={getPaymentCaption(payment.notes, locale)!}>
-                              {getPaymentCaption(payment.notes, locale)}
+                          {getPaymentDynamicCaption(
+                            payment.notes,
+                            registration.notes,
+                            transportBooking?.seats ?? null,
+                            locale,
+                          ) && (
+                            <div
+                              className="text-[10px] text-muted-foreground/80 mt-0.5 truncate"
+                              title={
+                                getPaymentDynamicCaption(
+                                  payment.notes,
+                                  registration.notes,
+                                  transportBooking?.seats ?? null,
+                                  locale,
+                                )!
+                              }
+                            >
+                              {getPaymentDynamicCaption(
+                                payment.notes,
+                                registration.notes,
+                                transportBooking?.seats ?? null,
+                                locale,
+                              )}
                             </div>
                           )}
                         </td>
                         <td className="px-4 py-4 text-sm text-muted-foreground uppercase font-mono">
                           {payment.method}
                         </td>
-                        <td className="px-4 py-4 text-sm text-muted-foreground font-mono truncate" title={payment.reference ?? ""}>
-                          {payment.reference || <span className="text-muted-foreground/40">—</span>}
+                        <td
+                          className="px-4 py-4 text-sm text-muted-foreground font-mono truncate"
+                          title={payment.reference ?? ""}
+                        >
+                          {payment.reference || (
+                            <span className="text-muted-foreground/40">—</span>
+                          )}
                         </td>
                         <td className="px-4 py-4">
                           <PaymentStatusBadge status={payment.status} />
