@@ -1,11 +1,11 @@
 import { db } from "@/lib/db";
-import { events, users } from "@/lib/db/schema";
-import { count, desc, eq, and, gte, lte, type SQL } from "drizzle-orm";
+import { events, users, registrations } from "@/lib/db/schema";
+import { count, desc, eq, and, gte, lte, inArray, type SQL } from "drizzle-orm";
 import Link from "next/link";
-import { Calendar, Plus } from "lucide-react";
+import { Calendar, Plus, ClipboardList } from "lucide-react";
 import { DeleteEventButton } from "./DeleteEventButton";
 import { getI18n } from "@/lib/i18n/server";
-import { categoryLabel, eventStatusLabel } from "@/lib/utils";
+import { categoryLabel, eventStatusLabel, formatCurrency } from "@/lib/utils";
 import { getIntlLocale } from "@/lib/i18n/core";
 import { TablePagination } from "@/components/dashboard";
 import { ExportDataPanel } from "@/components/dashboard";
@@ -85,6 +85,8 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
             status: events.status,
             category: events.category,
             date: events.date,
+            price: events.price,
+            capacity: events.capacity,
             organizerName: users.name,
         })
         .from(events)
@@ -93,6 +95,24 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
         .orderBy(desc(events.createdAt))
         .limit(PAGE_SIZE)
         .offset(offset);
+
+    const eventIds = allEvents.map((e) => e.id);
+    const regCountsMap = new Map<string, number>();
+
+    if (eventIds.length > 0) {
+        const counts = await db
+            .select({
+                eventId: registrations.eventId,
+                regCount: count(registrations.id),
+            })
+            .from(registrations)
+            .where(inArray(registrations.eventId, eventIds))
+            .groupBy(registrations.eventId);
+
+        for (const c of counts) {
+            regCountsMap.set(c.eventId, c.regCount);
+        }
+    }
 
     const statusColor: Record<string, string> = {
         published: "bg-green-100 text-green-900 border border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/30",
@@ -156,59 +176,91 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                 </div>
             ) : (
                 <div className="overflow-hidden rounded-xl border border-border bg-card">
-                    <p className="px-3 pt-2 text-[11px] text-muted-foreground sm:hidden">↔ Scroll</p>
+                    <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border bg-muted/10">
+                        <span className="text-xs font-semibold text-foreground flex items-center gap-2">
+                            <ClipboardList className="h-4 w-4 text-primary" />
+                            {locale === "en" ? "Events Ledger" : "Directorio de Eventos"}
+                        </span>
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">
+                            ↔ {locale === "en" ? "Scroll horizontally to view all columns" : "Desliza horizontalmente para ver todas las columnas"}
+                        </span>
+                    </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[820px] text-sm">
+                        <table className="w-full min-w-[1450px] table-fixed text-sm">
                             <thead>
                                 <tr className="border-b border-border bg-muted/50">
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">N°</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("dashboard.admin.title")}</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.organizer")}</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.category")}</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.date")}</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.status")}</th>
-                                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t("common.actions")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[60px]">N°</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[260px]">{t("dashboard.admin.title")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[200px]">{t("common.organizer")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[150px]">{t("common.category")}</th>
+                                    <th className="px-4 py-3 text-right font-medium text-muted-foreground w-[130px]">{locale === "en" ? "Price" : "Precio"}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[180px]">{locale === "en" ? "Capacity / Registrants" : "Aforo / Inscritos"}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[140px]">{t("common.date")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[140px]">{t("common.status")}</th>
+                                    <th className="px-4 py-3 text-right font-medium text-muted-foreground w-[160px]">{t("common.actions")}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
-                                {allEvents.map((event, index) => (
-                                    <tr key={event.id} className="hover:bg-muted/30 transition-colors">
-                                        <td className="px-4 py-3 text-muted-foreground">{rowStart + index + 1}</td>
-                                        <td className="px-4 py-3 font-medium text-foreground">{event.title}</td>
-                                        <td className="px-4 py-3 text-muted-foreground">{event.organizerName ?? "—"}</td>
-                                        <td className="px-4 py-3 text-muted-foreground">{categoryLabel(event.category, locale)}</td>
-                                        <td className="px-4 py-3 text-muted-foreground">
-                                            {new Date(event.date).toLocaleDateString(getIntlLocale(locale), {
-                                                month: "short",
-                                                day: "numeric",
-                                                year: "numeric",
-                                            })}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor[event.status] ?? ""}`}>
-                                                {eventStatusLabel(event.status, locale)}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 text-right">
-                                            <div className="flex items-center justify-end gap-3 text-xs">
-                                                <Link
-                                                    href={`/events/${event.slug}`}
-                                                    target="_blank"
-                                                    className="text-primary hover:underline"
-                                                >
-                                                    {t("common.view")}
-                                                </Link>
-                                                <Link
-                                                    href={`/admin/events/${event.id}`}
-                                                    className="text-blue-600 hover:underline dark:text-blue-400"
-                                                >
-                                                    {t("common.edit")}
-                                                </Link>
-                                                <DeleteEventButton eventId={event.id} />
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {allEvents.map((event, index) => {
+                                    const regCount = regCountsMap.get(event.id) ?? 0;
+                                    return (
+                                        <tr key={event.id} className="hover:bg-muted/30 transition-colors">
+                                            <td className="px-4 py-4 text-muted-foreground">{rowStart + index + 1}</td>
+                                            <td className="px-4 py-4 font-medium text-foreground truncate" title={event.title}>{event.title}</td>
+                                            <td className="px-4 py-4 text-muted-foreground truncate" title={event.organizerName ?? ""}>{event.organizerName ?? "—"}</td>
+                                            <td className="px-4 py-4 text-muted-foreground truncate">{categoryLabel(event.category, locale)}</td>
+                                            <td className="px-4 py-4 text-right font-semibold text-foreground">
+                                                {event.price && Number(event.price) > 0 
+                                                    ? formatCurrency(Number(event.price), "PEN", locale) 
+                                                    : (locale === "en" ? "Free" : "Gratuito")
+                                                }
+                                            </td>
+                                            <td className="px-4 py-4 text-muted-foreground text-xs leading-relaxed">
+                                                <div className="font-semibold text-foreground text-sm flex items-center gap-1.5">
+                                                    <span className="text-primary">{regCount}</span> 
+                                                    <span className="text-muted-foreground/60 font-normal">/</span>
+                                                    <span>{event.capacity ? `${event.capacity}` : "∞"}</span>
+                                                </div>
+                                                <span className="text-[10px] text-muted-foreground/80 block mt-0.5">
+                                                    {event.capacity 
+                                                        ? (locale === "en" ? `${event.capacity - regCount} remaining` : `${event.capacity - regCount} vacantes libres`) 
+                                                        : (locale === "en" ? "unlimited vacancies" : "vacantes ilimitadas")
+                                                    }
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-4 text-muted-foreground">
+                                                {new Date(event.date).toLocaleDateString(getIntlLocale(locale), {
+                                                    month: "short",
+                                                    day: "numeric",
+                                                    year: "numeric",
+                                                })}
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor[event.status] ?? ""}`}>
+                                                    {eventStatusLabel(event.status, locale)}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-4 text-right">
+                                                <div className="flex items-center justify-end gap-3 text-xs">
+                                                    <Link
+                                                        href={`/events/${event.slug}`}
+                                                        target="_blank"
+                                                        className="text-primary hover:underline font-semibold"
+                                                    >
+                                                        {t("common.view")}
+                                                    </Link>
+                                                    <Link
+                                                        href={`/admin/events/${event.id}`}
+                                                        className="text-blue-600 hover:underline dark:text-blue-400 font-semibold"
+                                                    >
+                                                        {t("common.edit")}
+                                                    </Link>
+                                                    <DeleteEventButton eventId={event.id} />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
