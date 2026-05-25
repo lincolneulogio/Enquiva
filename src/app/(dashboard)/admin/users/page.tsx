@@ -164,7 +164,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                             <td className="px-4 py-3.5">
                                                 <RoleSelector
                                                     userId={user.id}
-                                                    currentRole={(user.role ?? "member") as "member" | "organizer" | "super_admin"}
+                                                    currentRole={(user.role ?? "member") as "member" | "organizer" | "admin" | "super_admin"}
                                                     currentUserId={currentUserId}
                                                 />
                                             </td>

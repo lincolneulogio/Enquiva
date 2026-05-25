@@ -16,6 +16,7 @@ Documentamos todas las mejoras significativas en el ecosistema de EncuentroDeFe.
 * **Gestión Premium de Usuarios:** Renovación de la tabla de control de usuarios con colores y símbolos oficiales para roles, scroll horizontal responsivo, ajuste de ancho de celdas para correos y 4 nuevas columnas administrativas (Teléfono, Estado verificado, Estado activo/baneo, y Última conexión activa).
 * **Copia de Seguridad de la Base de Datos:** Implementación de una utilidad de backup en un clic para Superadministradores, permitiendo descargar toda la información del sistema (11 tablas enlazadas) en un archivo estructurado JSON.
 * **Consistencia Visual en Roles:** Estandarización de los colores de roles (Turquesa para Superadministrador, Rosa para Administrador, Azul para Organizador y Verde para Miembro) y sus iconos en las vistas de Roles, Perfil, Configuración y Usuarios.
+* **Seguridad en el Registro de Usuarios:** Modificación del flujo automático de asignación de roles. Ahora solo el primer usuario del sistema recibe el rol `super_admin` de forma automática, y todos los siguientes usuarios inician como `member` (Miembro) de forma predeterminada para evitar brechas de seguridad.
 
 ---
 

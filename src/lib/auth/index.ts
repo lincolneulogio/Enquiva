@@ -90,10 +90,7 @@ export const auth = betterAuth({
             .select({ count: count() })
             .from(schema.users);
 
-          let role: "super_admin" | "admin" | "organizer" | "member" = "member";
-          if (userCount === 0) role = "super_admin";
-          else if (userCount === 1) role = "admin";
-          else if (userCount === 2) role = "organizer";
+          const role = userCount === 0 ? "super_admin" : "member";
 
           return { data: { ...user, role } };
         },

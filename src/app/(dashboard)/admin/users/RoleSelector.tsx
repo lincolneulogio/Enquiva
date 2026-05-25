@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { getRoleLabel } from "@/lib/i18n/core";
 
-type Role = "member" | "organizer" | "super_admin";
+type Role = "member" | "organizer" | "admin" | "super_admin";
 
 interface RoleSelectorProps {
     userId: string;
@@ -44,6 +44,7 @@ export function RoleSelector({ userId, currentRole, currentUserId }: RoleSelecto
         >
             <option value="member">{getRoleLabel("member", locale)}</option>
             <option value="organizer">{getRoleLabel("organizer", locale)}</option>
+            <option value="admin">{getRoleLabel("admin", locale)}</option>
             <option value="super_admin">{getRoleLabel("super_admin", locale)}</option>
         </select>
     );
