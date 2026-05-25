@@ -4,6 +4,8 @@ import { useLocale, useTranslations } from "@/components/providers/LocaleProvide
 import { getRoleLabel } from "@/lib/i18n/core";
 import { ProfileForm } from "./ProfileForm";
 import { PasswordForm } from "./PasswordForm";
+import { Crown, ShieldCheck, Briefcase, UserRound } from "lucide-react";
+import { ROLE_BADGE_STYLES, normalizeRole } from "@/lib/auth/rbac";
 
 interface ProfileEditorProps {
   user: {
@@ -16,10 +18,20 @@ interface ProfileEditorProps {
   };
 }
 
+const roleIcons = {
+  super_admin: Crown,
+  admin: ShieldCheck,
+  organizer: Briefcase,
+  member: UserRound,
+};
+
 export function ProfileEditor({ user }: ProfileEditorProps) {
   const t = useTranslations();
   const { locale } = useLocale();
   const initials = (user.name || "U").charAt(0).toUpperCase();
+
+  const normalizedRole = normalizeRole(user.role);
+  const RoleIcon = roleIcons[normalizedRole];
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -42,8 +54,9 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
             {user.name}
           </p>
           <p className="text-sm text-muted-foreground">{user.email}</p>
-          <span className="mt-1 inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-foreground capitalize">
-            {getRoleLabel(user.role, locale)}
+          <span className={`mt-1 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${ROLE_BADGE_STYLES[normalizedRole]}`}>
+            <RoleIcon className="h-3.5 w-3.5" />
+            {getRoleLabel(normalizedRole, locale)}
           </span>
         </div>
       </div>

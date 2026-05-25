@@ -1,14 +1,25 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { User, Mail, Shield } from "lucide-react";
+import { User, Mail, Shield, Crown, ShieldCheck, Briefcase, UserRound } from "lucide-react";
 import { BackfillPendingPaymentsButton } from "@/components/dashboard";
 import { getI18n } from "@/lib/i18n/server";
 import { getRoleLabel } from "@/lib/i18n/core";
+import { ROLE_BADGE_STYLES, normalizeRole } from "@/lib/auth/rbac";
+
+const roleIcons = {
+    super_admin: Crown,
+    admin: ShieldCheck,
+    organizer: Briefcase,
+    member: UserRound,
+};
 
 export default async function AdminSettingsPage() {
     const { locale, t } = await getI18n();
     const session = await auth.api.getSession({ headers: await headers() });
     const user = session!.user;
+
+    const normalizedRole = normalizeRole(user.role);
+    const RoleIcon = roleIcons[normalizedRole];
 
     return (
         <div className="space-y-8">
@@ -25,8 +36,9 @@ export default async function AdminSettingsPage() {
                     <div>
                         <p className="text-xl font-semibold text-foreground">{user.name}</p>
                         <p className="text-sm text-muted-foreground">{user.email}</p>
-                        <span className="mt-1 inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900/20 dark:text-purple-400 capitalize">
-                            {getRoleLabel(user.role ?? "super_admin", locale)}
+                        <span className={`mt-1 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${ROLE_BADGE_STYLES[normalizedRole]}`}>
+                            <RoleIcon className="h-3.5 w-3.5" />
+                            {getRoleLabel(normalizedRole, locale)}
                         </span>
                     </div>
                 </div>
