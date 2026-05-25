@@ -12,7 +12,7 @@ import { eq, desc, and, gte, lte, count, type SQL } from "drizzle-orm";
 import { PaymentStatusBadge } from "@/components/payments/PaymentStatusBadge";
 import { PaymentStatusSelect } from "@/components/payments/PaymentStatusSelect";
 import { formatCurrency } from "@/lib/utils";
-import { Calendar } from "lucide-react";
+import { Calendar, CreditCard } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale, getPaymentStatusLabel } from "@/lib/i18n/core";
 import { TablePagination } from "@/components/dashboard";
@@ -227,59 +227,44 @@ export default async function AdminPaymentsPage({
           </div>
         ) : (
           <>
+            <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border bg-muted/10">
+              <span className="text-xs font-semibold text-foreground flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-primary" />
+                {locale === "en" ? "Payments Ledger" : "Libro de Pagos"}
+              </span>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">
+                ↔ {locale === "en" ? "Scroll horizontally to view all columns" : "Desliza horizontalmente para ver todas las columnas"}
+              </span>
+            </div>
             <div className="overflow-x-auto">
-              <p className="px-3 pt-2 text-[11px] text-muted-foreground sm:hidden">
-                ↔ Scroll
-              </p>
-              <table className="w-full min-w-[1360px] text-sm">
+              <table className="w-full min-w-[1780px] table-fixed text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/50">
-                    <th className="px-6 py-4 text-left font-medium text-muted-foreground">
-                      N°
-                    </th>
-                    <th className="px-6 py-4 text-left font-medium text-muted-foreground">
-                      {t("common.payments")}
-                    </th>
-                    <th className="px-6 py-4 text-left font-medium text-muted-foreground">
-                      {locale === "en" ? "Time" : "Hora"}
-                    </th>
-                    <th className="px-6 py-4 text-left font-medium text-muted-foreground">
-                      {t("common.event")}
-                    </th>
-                    <th className="px-6 py-4 text-left font-medium text-muted-foreground">
-                      {t("common.route")}
-                    </th>
-                    <th className="px-6 py-4 text-left font-medium text-muted-foreground">
-                      {t("common.attendee")}
-                    </th>
-                    <th className="px-6 py-4 text-right font-medium text-muted-foreground">
-                      {t("common.amount")}
-                    </th>
-                    <th className="px-6 py-4 text-left font-medium text-muted-foreground">
-                      {t("common.method")}
-                    </th>
-                    <th className="px-6 py-4 text-left font-medium text-muted-foreground">
-                      {t("common.status")}
-                    </th>
-                    <th className="px-6 py-4 text-left font-medium text-muted-foreground">
-                      {t("common.update")}
-                    </th>
-                    <th className="px-6 py-4 text-left font-medium text-muted-foreground">
-                      {t("common.receipt")}
-                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[60px]">N°</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[110px]">{t("common.payments")}</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[100px]">{locale === "en" ? "Time" : "Hora"}</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[200px]">{t("common.event")}</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[180px]">{t("common.route")}</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[240px]">{t("common.attendee")}</th>
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground w-[170px]">{t("common.amount")}</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[100px]">{t("common.method")}</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[140px]">{locale === "en" ? "Reference" : "Referencia"}</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[140px]">{t("common.status")}</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[170px]">{t("common.update")}</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[170px]">{t("common.receipt")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {allPayments.map(
-                    ({ payment, event, attendee, transportRoute }, index) => (
+                    ({ payment, registration, event, attendee, transportRoute }, index) => (
                       <tr
                         key={payment.id}
                         className="hover:bg-muted/30 transition-colors"
                       >
-                        <td className="px-6 py-5 text-muted-foreground">
+                        <td className="px-4 py-4 text-muted-foreground">
                           {rowStart + index + 1}
                         </td>
-                        <td className="px-6 py-5">
+                        <td className="px-4 py-4">
                           <div className="text-foreground text-sm font-medium">
                             {new Date(payment.createdAt).toLocaleDateString(
                               getIntlLocale(locale),
@@ -291,7 +276,7 @@ export default async function AdminPaymentsPage({
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-5">
+                        <td className="px-4 py-4">
                           <div className="text-foreground text-sm font-medium whitespace-nowrap">
                             {new Date(payment.createdAt).toLocaleTimeString(
                               getIntlLocale(locale),
@@ -304,24 +289,28 @@ export default async function AdminPaymentsPage({
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-5">
+                        <td className="px-4 py-4">
                           <Link
                             href={`/events/${event.slug}`}
-                            className="font-medium text-foreground hover:text-primary"
+                            className="font-medium text-foreground hover:text-primary transition-colors block truncate"
+                            title={event.title}
                           >
                             {event.title}
                           </Link>
                         </td>
-                        <td className="px-6 py-5 text-sm text-muted-foreground">
+                        <td className="px-4 py-4 text-sm text-muted-foreground truncate" title={transportRoute?.name ?? ""}>
                           {transportRoute?.name ?? t("common.noDataDash")}
                         </td>
-                        <td className="px-6 py-5 text-sm text-muted-foreground">
-                          <div className="font-medium text-foreground">
+                        <td className="px-4 py-4 text-sm text-muted-foreground">
+                          <div className="font-medium text-foreground truncate" title={attendee.name ?? ""}>
                             {attendee.name ?? t("common.guest")}
                           </div>
-                          <div>{attendee.email}</div>
+                          <div className="text-xs text-muted-foreground truncate" title={attendee.email ?? ""}>{attendee.email}</div>
+                          {registration.contactPhone && (
+                            <div className="text-[10px] text-muted-foreground font-semibold mt-0.5">{registration.contactPhone}</div>
+                          )}
                         </td>
-                        <td className="px-6 py-5 text-right text-sm">
+                        <td className="px-4 py-4 text-right text-sm">
                           <div className="font-semibold text-foreground">
                             {formatCurrency(
                               Number(payment.amount),
@@ -330,24 +319,27 @@ export default async function AdminPaymentsPage({
                             )}
                           </div>
                           {getPaymentCaption(payment.notes, locale) && (
-                            <div className="text-[10px] text-muted-foreground/80 mt-0.5 whitespace-nowrap">
+                            <div className="text-[10px] text-muted-foreground/80 mt-0.5 truncate" title={getPaymentCaption(payment.notes, locale)!}>
                               {getPaymentCaption(payment.notes, locale)}
                             </div>
                           )}
                         </td>
-                        <td className="px-6 py-5 text-sm text-muted-foreground">
+                        <td className="px-4 py-4 text-sm text-muted-foreground uppercase font-mono">
                           {payment.method}
                         </td>
-                        <td className="px-6 py-5">
+                        <td className="px-4 py-4 text-sm text-muted-foreground font-mono truncate" title={payment.reference ?? ""}>
+                          {payment.reference || <span className="text-muted-foreground/40">—</span>}
+                        </td>
+                        <td className="px-4 py-4">
                           <PaymentStatusBadge status={payment.status} />
                         </td>
-                        <td className="px-6 py-5 max-w-[180px]">
+                        <td className="px-4 py-4 max-w-[170px]">
                           <PaymentStatusSelect
                             paymentId={payment.id}
                             currentStatus={payment.status}
                           />
                         </td>
-                        <td className="px-6 py-5">
+                        <td className="px-4 py-4">
                           <div className="flex flex-col gap-1 items-start">
                             {payment.receiptUrl ? (
                               <a
