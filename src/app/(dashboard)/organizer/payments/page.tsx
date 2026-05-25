@@ -15,6 +15,48 @@ import { categoryLabel } from "@/lib/utils";
 import { getPaymentStatusLabel } from "@/lib/i18n/core";
 import { PaymentNotesButton } from "@/components/payments/PaymentNotesButton";
 
+function getPaymentCaption(notes: string | null, locale: string) {
+  if (!notes) return null;
+  const isEn = locale === "en";
+  
+  // Check for guest list match
+  const guestMatch = notes.match(/y (\d+) invitado/i) || notes.match(/and (\d+) guest/i);
+  const guestCount = guestMatch ? parseInt(guestMatch[1]) : 0;
+  
+  // Check for transport seats match
+  const seatMatch = notes.match(/(\d+) asiento/i) || notes.match(/(\d+) seat/i);
+  const seatCount = seatMatch ? parseInt(seatMatch[1]) : 0;
+  
+  if (guestCount > 0 || seatCount > 0) {
+    const parts = [];
+    if (guestCount > 0) {
+      parts.push(
+        isEn 
+          ? `Owner + ${guestCount} guest${guestCount > 1 ? "s" : ""}` 
+          : `Titular + ${guestCount} invitado${guestCount > 1 ? "s" : ""}`
+      );
+    } else {
+      parts.push(isEn ? "1 ticket" : "1 entrada");
+    }
+    
+    if (seatCount > 0) {
+      parts.push(
+        isEn 
+          ? `${seatCount} seat${seatCount > 1 ? "s" : ""}` 
+          : `${seatCount} asiento${seatCount > 1 ? "s" : ""}`
+      );
+    }
+    
+    return parts.join(" · ");
+  }
+  
+  if (notes.toLowerCase().includes("offline") || notes.toLowerCase().includes("manual")) {
+    return isEn ? "Manual registration" : "Registro manual";
+  }
+  
+  return null;
+}
+
 const PAGE_SIZE = 10;
 
 interface PageProps {
@@ -155,8 +197,15 @@ export default async function OrganizerPaymentsPage({ searchParams }: PageProps)
                       <div className="font-medium text-foreground">{attendee.name ?? t("common.guest")}</div>
                       <div>{attendee.email}</div>
                     </td>
-                    <td className="px-4 py-4 text-right font-semibold text-foreground">
-                      {formatCurrency(Number(payment.amount), payment.currency, locale)}
+                    <td className="px-4 py-4 text-right text-sm">
+                      <div className="font-semibold text-foreground">
+                        {formatCurrency(Number(payment.amount), payment.currency, locale)}
+                      </div>
+                      {getPaymentCaption(payment.notes, locale) && (
+                        <div className="text-[10px] text-muted-foreground/80 mt-0.5 whitespace-nowrap">
+                          {getPaymentCaption(payment.notes, locale)}
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-4">
                       <PaymentStatusBadge status={payment.status} />
