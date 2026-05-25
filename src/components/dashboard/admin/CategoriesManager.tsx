@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { confirmDeleteAction } from "@/lib/ui/confirm";
 import { GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useTranslations } from "@/components/providers/LocaleProvider";
+import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 
 type CategoryItem = {
     id: string;
@@ -44,7 +44,20 @@ function reorderList<T extends { id: string }>(list: T[], draggedId: string, tar
     return next.map((item, idx) => ({ ...item, sortOrder: idx + 1 }));
 }
 
+const slugify = (text: string) => {
+    return text
+        .toString()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .replace(/\s+/g, "-")
+        .replace(/[^\w\-]+/g, "")
+        .replace(/\-\-+/g, "-");
+};
+
 export function CategoriesManager({ initialCategories }: CategoriesManagerProps) {
+    const { locale } = useLocale();
     const t = useTranslations();
     const [items, setItems] = useState(initialCategories);
     const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -55,6 +68,15 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
         description: "",
         colorClass: "bg-gray-100 text-gray-800",
     });
+
+    const handleLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setNewItem((prev) => ({
+            ...prev,
+            label: val,
+            slug: slugify(val),
+        }));
+    };
 
     const sorted = useMemo(() => [...items].sort((a, b) => a.sortOrder - b.sortOrder), [items]);
 
@@ -159,104 +181,153 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
     };
 
     return (
-        <div className="space-y-4">
-            <div className="rounded-xl border border-border p-4">
-                <h3 className="text-sm font-semibold text-foreground">{t("dashboard.admin.createCategory")}</h3>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                    <input
-                        value={newItem.slug}
-                        onChange={(e) => setNewItem((p) => ({ ...p, slug: e.target.value }))}
-                        placeholder={t("dashboard.admin.slugPlaceholder")}
-                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                    />
-                    <input
-                        value={newItem.label}
-                        onChange={(e) => setNewItem((p) => ({ ...p, label: e.target.value }))}
-                        placeholder={t("dashboard.admin.labelPlaceholder")}
-                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                    />
-                    <input
-                        value={newItem.description}
-                        onChange={(e) => setNewItem((p) => ({ ...p, description: e.target.value }))}
-                        placeholder={t("dashboard.admin.descriptionOptionalPlaceholder")}
-                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                    />
+        <div className="space-y-6">
+            {/* Create Category Form Panel */}
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2 border-b border-border/30 pb-2.5">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-md bg-primary/10 text-primary">
+                        +
+                    </span>
+                    {t("dashboard.admin.createCategory")}
+                </h3>
+                <div className="mt-4 grid gap-4 sm:grid-cols-3 items-end">
+                    {/* 1. Etiqueta (Label) */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-muted-foreground block">{t("common.label") || "Etiqueta"}</label>
+                        <input
+                            value={newItem.label}
+                            onChange={handleLabelChange}
+                            placeholder={t("dashboard.admin.labelPlaceholder") || "Ej. Juventud"}
+                            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm transition focus:border-primary focus:ring-1 focus:ring-primary focus:bg-background/80"
+                        />
+                    </div>
+                    
+                    {/* 2. Descripción (Description) */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-muted-foreground block">{locale === "en" ? "Description (Optional)" : "Descripción (Opcional)"}</label>
+                        <input
+                            value={newItem.description}
+                            onChange={(e) => setNewItem((p) => ({ ...p, description: e.target.value }))}
+                            placeholder={t("dashboard.admin.descriptionOptionalPlaceholder") || "Ej. Eventos para jóvenes"}
+                            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm transition focus:border-primary focus:ring-1 focus:ring-primary focus:bg-background/80"
+                        />
+                    </div>
+
+                    {/* 3. Slug */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-muted-foreground block flex items-center justify-between">
+                            <span>{t("common.slug") || "Slug"}</span>
+                            <span className="text-[10px] text-primary/80 lowercase italic font-normal">({locale === "en" ? "auto-generated" : "auto-generado"})</span>
+                        </label>
+                        <input
+                            value={newItem.slug}
+                            onChange={(e) => setNewItem((p) => ({ ...p, slug: e.target.value }))}
+                            placeholder={t("dashboard.admin.slugPlaceholder") || "ej-slug-categoria"}
+                            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm transition focus:border-primary focus:ring-1 focus:ring-primary font-mono text-xs focus:bg-background/80"
+                        />
+                    </div>
+                </div>
+
+                {/* Color Selection & Submit button */}
+                <div className="mt-4 pt-4 border-t border-border/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="space-y-1.5 flex-1">
+                        <span className="text-xs font-semibold text-muted-foreground block">{t("common.color")}</span>
+                        <div className="flex flex-wrap gap-2">
+                            {COLOR_OPTIONS.map((option) => (
+                                <button
+                                    key={option.value}
+                                    type="button"
+                                    onClick={() => setNewItem((p) => ({ ...p, colorClass: option.value }))}
+                                    className={cn(
+                                        "rounded-full border px-3 py-1.5 text-xs font-semibold transition active:scale-95 cursor-pointer",
+                                        option.value,
+                                        newItem.colorClass === option.value 
+                                            ? "ring-2 ring-primary ring-offset-2 ring-offset-card border-transparent" 
+                                            : "border-border hover:bg-muted/50"
+                                    )}
+                                >
+                                    {t(option.labelKey)}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    
                     <button
                         type="button"
                         onClick={onCreate}
                         disabled={isPending}
-                        className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
+                        className="self-end sm:self-auto rounded-xl bg-primary hover:bg-primary/95 text-primary-foreground px-5 py-2.5 text-sm font-bold shadow-sm transition active:scale-95 disabled:opacity-60 shrink-0 w-full sm:w-auto mt-2 sm:mt-0 cursor-pointer"
                     >
                         {t("dashboard.admin.addCategory")}
                     </button>
                 </div>
-
-                <div className="mt-3">
-                    <p className="mb-2 text-xs text-muted-foreground">{t("common.color")}</p>
-                    <div className="flex flex-wrap gap-2">
-                        {COLOR_OPTIONS.map((option) => (
-                            <button
-                                key={option.value}
-                                type="button"
-                                onClick={() => setNewItem((p) => ({ ...p, colorClass: option.value }))}
-                                className={cn(
-                                    "rounded-full border px-2.5 py-1 text-xs transition-colors",
-                                    option.value,
-                                    newItem.colorClass === option.value ? "ring-2 ring-primary" : "border-border"
-                                )}
-                            >
-                                {t(option.labelKey)}
-                            </button>
-                        ))}
-                    </div>
-                </div>
             </div>
 
-            <div className="rounded-xl border border-border">
-                <div className="border-b border-border px-3 py-2 text-xs text-muted-foreground">
-                    {t("dashboard.admin.dragToReorder")} <GripVertical className="mx-1 inline h-3.5 w-3.5" /> {t("dashboard.admin.toReorderCategories")}
+            {/* Categories Table Directory */}
+            <div className="overflow-hidden rounded-2xl border border-border bg-card">
+                <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border bg-muted/10">
+                    <span className="text-xs font-semibold text-foreground flex items-center gap-2">
+                        <GripVertical className="h-4 w-4 text-primary" />
+                        {locale === "en" ? "Categories Directory" : "Directorio de Categorías"}
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium flex items-center gap-1">
+                        {t("dashboard.admin.dragToReorder")} ↔ {locale === "en" ? "Scroll horizontally to view all columns" : "Desliza horizontalmente para ver todas las columnas"}
+                    </span>
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="w-full min-w-[760px] text-sm">
-                        <thead className="bg-secondary/40">
-                            <tr>
-                                <th className="w-12 whitespace-nowrap px-3 py-2 text-left">#</th>
-                                <th className="whitespace-nowrap px-3 py-2 text-left">{t("common.slug")}</th>
-                                <th className="whitespace-nowrap px-3 py-2 text-left">{t("common.label")}</th>
-                                <th className="whitespace-nowrap px-3 py-2 text-left">{t("common.color")}</th>
-                                <th className="whitespace-nowrap px-3 py-2 text-left">{t("common.active")}</th>
-                                <th className="whitespace-nowrap px-3 py-2 text-left">{t("common.actions")}</th>
+                    <table className="w-full min-w-[1000px] table-fixed text-sm">
+                        <thead>
+                            <tr className="border-b border-border bg-muted/50">
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[70px]">#</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[260px]">{t("common.label")}</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[200px]">{t("common.slug")}</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[240px]">{t("common.color")}</th>
+                                <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[110px]">{t("common.active")}</th>
+                                <th className="px-4 py-3.5 text-right font-medium text-muted-foreground w-[120px]">{locale === "en" ? "Actions" : "Acciones"}</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-border">
                             {sorted.map((item, idx) => (
                                 <tr
                                     key={item.id}
-                                    className={cn("border-t border-border", draggedId === item.id && "bg-secondary/30")}
+                                    className={cn(
+                                        "hover:bg-muted/30 transition-colors",
+                                        draggedId === item.id && "bg-secondary/30 border-l-2 border-primary"
+                                    )}
                                     draggable
                                     onDragStart={() => setDraggedId(item.id)}
                                     onDragEnd={() => setDraggedId(null)}
                                     onDragOver={(e) => e.preventDefault()}
                                     onDrop={() => onDropOver(item.id)}
                                 >
-                                    <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
-                                        <span className="inline-flex items-center gap-1">
-                                            <GripVertical className="h-4 w-4" /> {idx + 1}
+                                    {/* Number / Reorder Grip */}
+                                    <td className="px-4 py-4 text-muted-foreground font-medium whitespace-nowrap cursor-grab active:cursor-grabbing">
+                                        <span className="inline-flex items-center gap-1.5">
+                                            <GripVertical className="h-4 w-4 text-muted-foreground/60 hover:text-primary transition-colors" /> 
+                                            {idx + 1}
                                         </span>
                                     </td>
-                                    <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-muted-foreground">{item.slug}</td>
-                                    <td className="px-3 py-2">
+
+                                    {/* Label (Editable Input) */}
+                                    <td className="px-4 py-4">
                                         <input
                                             value={item.label}
                                             onChange={(e) => onPatchLocal(item.id, { label: e.target.value })}
                                             onBlur={() => onBlurSave(item)}
-                                            className="min-w-[140px] rounded-md border border-border bg-background px-2 py-1"
+                                            className="w-full rounded-lg border border-border bg-background/50 focus:bg-background px-3 py-1.5 text-sm transition-all focus:border-primary focus:ring-1 focus:ring-primary text-foreground font-semibold"
                                         />
                                     </td>
-                                    <td className="whitespace-nowrap px-3 py-2">
+
+                                    {/* Slug (Static Mono Key) */}
+                                    <td className="px-4 py-4 font-mono text-xs text-muted-foreground truncate" title={item.slug}>
+                                        {item.slug}
+                                    </td>
+
+                                    {/* Color Badge & Dropdown Selector */}
+                                    <td className="px-4 py-4 whitespace-nowrap">
                                         <div className="flex items-center gap-2">
-                                            <span className={cn("rounded-full border px-2 py-0.5 text-[11px]", item.colorClass)}>
+                                            <span className={cn("rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider", item.colorClass)}>
                                                 {t(COLOR_OPTIONS.find((opt) => opt.value === item.colorClass)?.labelKey ?? "dashboard.admin.colorGray")}
                                             </span>
                                             <select
@@ -267,28 +338,33 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                                                     onPatchLocal(item.id, { colorClass: nextValue });
                                                     onBlurSave(next);
                                                 }}
-                                                className="rounded-md border border-border bg-background px-2 py-1 text-xs"
+                                                className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-semibold text-foreground focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer hover:bg-muted/30 transition-all"
                                             >
                                                 {COLOR_OPTIONS.map((option) => (
                                                     <option key={option.value} value={option.value}>
                                                         {t(option.labelKey)}
-                                                     </option>
+                                                    </option>
                                                 ))}
                                             </select>
                                         </div>
                                     </td>
-                                    <td className="whitespace-nowrap px-3 py-2">
+
+                                    {/* Active State (Styled Checkbox) */}
+                                    <td className="px-4 py-4 whitespace-nowrap">
                                         <input
                                             type="checkbox"
                                             checked={item.isActive}
                                             onChange={(e) => onToggleActive(item.id, e.target.checked)}
+                                            className="h-4.5 w-4.5 rounded border-border text-primary bg-background focus:ring-primary focus:ring-offset-background cursor-pointer"
                                         />
                                     </td>
-                                    <td className="whitespace-nowrap px-3 py-2">
+
+                                    {/* Actions (Delete Button) */}
+                                    <td className="px-4 py-4 text-right whitespace-nowrap">
                                         <button
                                             type="button"
                                             onClick={() => onDelete(item.id)}
-                                            className="rounded-md px-2 py-1 text-red-600 hover:bg-red-50"
+                                            className="inline-flex items-center justify-center rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white px-3 py-1.5 text-xs font-bold transition active:scale-95 cursor-pointer"
                                         >
                                             {t("common.delete")}
                                         </button>
