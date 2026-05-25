@@ -1,4 +1,5 @@
-function wrapInTemplate(title: string, greeting: string, bodyHtml: string, footerNote?: string) {
+function wrapInTemplate(title: string, greeting: string, bodyHtml: string, footerNote?: string, orgName?: string) {
+  const finalOrgName = orgName ?? "EncuentroDeFe";
   return `
     <!DOCTYPE html>
     <html lang="es">
@@ -39,7 +40,7 @@ function wrapInTemplate(title: string, greeting: string, bodyHtml: string, foote
                         <span style="font-size: 26px; color: #ffffff; line-height: 48px; display: inline-block; font-weight: bold;">✦</span>
                       </td>
                       <td style="padding-left: 14px; text-align: left; vertical-align: middle;">
-                        <span style="font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; display: block; font-family: 'Outfit', sans-serif; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">EncuentroDeFe</span>
+                        <span style="font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; display: block; font-family: 'Outfit', sans-serif; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">${finalOrgName}</span>
                       </td>
                     </tr>
                   </table>
@@ -66,7 +67,7 @@ function wrapInTemplate(title: string, greeting: string, bodyHtml: string, foote
                       ${footerNote ?? "Este es un correo automático. Por favor no respondas a este mensaje."}
                     </p>
                     <p style="margin: 16px 0 0 0; font-size: 11px; color: #94a3b8; text-align: center; font-family: 'Outfit', sans-serif; letter-spacing: 0.5px; text-transform: uppercase;">
-                      &copy; ${new Date().getFullYear()} EncuentroDeFe. Todos los derechos reservados.
+                      &copy; ${new Date().getFullYear()} ${finalOrgName}. Todos los derechos reservados.
                     </p>
                   </div>
                 </td>
@@ -81,7 +82,7 @@ function wrapInTemplate(title: string, greeting: string, bodyHtml: string, foote
   `;
 }
 
-export function getVerificationCodeTemplate(code: string, greeting: string) {
+export function getVerificationCodeTemplate(code: string, greeting: string, orgName?: string) {
   const title = "Verifica tu cuenta";
   const bodyHtml = `
     <p style="margin: 0 0 20px 0; font-size: 15px; color: #475569; line-height: 1.6; font-family: 'Outfit', sans-serif;">
@@ -106,14 +107,15 @@ export function getVerificationCodeTemplate(code: string, greeting: string) {
   const footerNote = "Si no has solicitado este registro, puedes ignorar este correo de forma segura.";
 
   return {
-    subject: "Confirma tu cuenta con tu código de verificación",
+    subject: `Confirma tu cuenta con tu código de verificación`,
     text: `${greeting}\n\nTu código de confirmación es: ${code}\n\nEste código expira en 15 minutos. Si no lo solicitaste, ignora este mensaje.`,
-    html: wrapInTemplate(title, greeting, bodyHtml, footerNote),
+    html: wrapInTemplate(title, greeting, bodyHtml, footerNote, orgName),
   };
 }
 
-export function getPasswordChangedTemplate(greeting: string) {
+export function getPasswordChangedTemplate(greeting: string, orgName?: string) {
   const title = "Contraseña actualizada";
+  const finalOrgName = orgName ?? "EncuentroDeFe";
   const bodyHtml = `
     <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #bbf7d0; border-radius: 20px; padding: 24px; text-align: center; margin: 8px 0 24px 0; box-shadow: 0 4px 10px rgba(22, 101, 52, 0.05);">
       <div style="background-color: #22c55e; width: 44px; height: 44px; border-radius: 50%; display: inline-block; text-align: center; line-height: 44px; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(34, 197, 94, 0.3);">
@@ -124,7 +126,7 @@ export function getPasswordChangedTemplate(greeting: string) {
       </p>
     </div>
     <p style="margin: 0 0 24px 0; font-size: 15px; color: #475569; line-height: 1.6; font-family: 'Outfit', sans-serif;">
-      Te confirmamos que la contraseña asociada a tu cuenta en <strong>EncuentroDeFe</strong> fue modificada correctamente y ya está activa para tu próximo inicio de sesión.
+      Te confirmamos que la contraseña asociada a tu cuenta en <strong>${finalOrgName}</strong> fue modificada correctamente y ya está activa para tu próximo inicio de sesión.
     </p>
     <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 16px; padding: 18px; margin-top: 16px;">
       <table border="0" cellpadding="0" cellspacing="0" width="100%">
@@ -142,15 +144,16 @@ export function getPasswordChangedTemplate(greeting: string) {
   return {
     subject: "Tu contraseña ha sido actualizada",
     text: `${greeting}\n\nTe confirmamos que tu contraseña fue actualizada correctamente.\n\nSi no realizaste este cambio, contacta al soporte de inmediato.`,
-    html: wrapInTemplate(title, greeting, bodyHtml, footerNote),
+    html: wrapInTemplate(title, greeting, bodyHtml, footerNote, orgName),
   };
 }
 
-export function getPasswordResetTemplate(url: string, greeting: string) {
+export function getPasswordResetTemplate(url: string, greeting: string, orgName?: string) {
   const title = "Restablecer tu contraseña";
+  const finalOrgName = orgName ?? "EncuentroDeFe";
   const bodyHtml = `
     <p style="margin: 0 0 20px 0; font-size: 15px; color: #475569; line-height: 1.6; font-family: 'Outfit', sans-serif;">
-      Recibimos una solicitud para restablecer la contraseña de tu cuenta en <strong>EncuentroDeFe</strong>. Haz clic en el botón de abajo para definir una nueva contraseña segura:
+      Recibimos una solicitud para restablecer la contraseña de tu cuenta en <strong>${finalOrgName}</strong>. Haz clic en el botón de abajo para definir una nueva contraseña segura:
     </p>
     <div style="text-align: center; margin: 36px 0;">
       <a href="${url}" style="background: linear-gradient(135deg, #4b1ab5 0%, #7c3aed 100%); color: #ffffff; padding: 16px 36px; font-size: 16px; font-weight: 700; text-decoration: none; border-radius: 16px; display: inline-block; box-shadow: 0 10px 20px -5px rgba(75, 26, 181, 0.3); font-family: 'Outfit', sans-serif;">
@@ -167,9 +170,9 @@ export function getPasswordResetTemplate(url: string, greeting: string) {
   const footerNote = "Si tú no has solicitado restablecer tu contraseña, puedes ignorar este correo de forma segura; tu contraseña seguirá siendo la misma.";
 
   return {
-    subject: "Restablece tu contraseña de EncuentroDeFe",
+    subject: `Restablece tu contraseña de ${finalOrgName}`,
     text: `${greeting}\n\nRecibimos una solicitud para restablecer tu contraseña. Abre este enlace: ${url}\n\nSi no lo solicitaste, ignora este mensaje.`,
-    html: wrapInTemplate(title, greeting, bodyHtml, footerNote),
+    html: wrapInTemplate(title, greeting, bodyHtml, footerNote, orgName),
   };
 }
 
@@ -179,6 +182,7 @@ export function getTicketTemplate(opts: {
   qrDataUrl?: string;
   ticketUrl: string;
   greeting: string;
+  orgName?: string;
 }) {
   const title = "¡Tu Entrada está Lista!";
   
@@ -249,6 +253,6 @@ export function getTicketTemplate(opts: {
   return {
     subject: `Tu ticket para ${opts.eventTitle}`,
     text: `${opts.greeting}\n\nAdjuntamos tu ticket para: ${opts.eventTitle}\n\nAccede: ${opts.ticketUrl}`,
-    html: wrapInTemplate(title, opts.greeting, bodyHtml, footerNote),
+    html: wrapInTemplate(title, opts.greeting, bodyHtml, footerNote, opts.orgName),
   };
 }

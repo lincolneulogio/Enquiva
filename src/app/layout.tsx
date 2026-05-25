@@ -6,6 +6,7 @@ import { AppThemeProvider } from "@/components/providers/AppThemeProvider";
 import { AOSProvider } from "@/components/providers/AOSProvider";
 import { LenisProvider } from "@/components/providers/LenisProvider";
 import { getLocale } from "@/lib/i18n/server";
+import { AccentColorInitializer } from "@/components/dashboard/admin/AccentColorInitializer";
 import "./globals.css";
 import "aos/dist/aos.css";
 import "lenis/dist/lenis.css";
@@ -37,6 +38,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} suppressHydrationWarning className={outfit.variable}>
       <body suppressHydrationWarning className="font-sans">
+        <AccentColorInitializer />
         <LocaleProvider initialLocale={locale}>
           <AppThemeProvider>
             <LenisProvider>

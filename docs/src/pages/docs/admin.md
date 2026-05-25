@@ -56,3 +56,32 @@ Para garantizar la continuidad operativa y la prevención de pérdida de datos:
 1. Dirígete a **Configuración** en tu panel administrativo.
 2. En la sección **Copia de Seguridad de la Base de Datos**, los superadministradores pueden hacer clic en **Descargar copia de seguridad**.
 3. El sistema generará una consulta agregada a todas las 11 tablas de base de datos (`users`, `events`, `registrations`, `payments`, `transportRoutes`, `transportBookings`, `categories`, `notifications`, `paymentMethods`, `rolePermissions`, `roles`) y descargará un archivo JSON estructurado e indentado con la fecha y hora exacta (ej: `sistema_events_backup_2026-05-25_14-43-12.json`).
+
+---
+
+## Configuración Avanzada e Identidad de la Marca
+
+La sección **Configuración** de nivel `super_admin` cuenta con una potente consola dividida en pestañas para controlar la experiencia y la infraestructura en tiempo real:
+
+### 1. Perfil e Identidad de la Organización
+Permite cambiar la identidad y el pie de firma que viaja en todas las comunicaciones del ecosistema:
+* **Nombre de la Organización / Iglesia:** Modifica el título principal (ej: `Encuentro de Fe`) que se muestra en los correos y en el encabezado del pase de entrada digital.
+* **Correo de Soporte:** Configura la dirección directa que reciben los feligreses si tienen dudas sobre sus pagos.
+* Todos los cambios se persisten de manera sumamente veloz mediante operaciones seguras JSON en el servidor Next.js.
+
+### 2. Preferencias de la Aplicación (Ajustes Rápidos)
+El panel cuenta con herramientas de personalización en caliente (hot reload) sin demoras de renderizado:
+* **Idioma:** Alterna instantáneamente el idioma de todo el panel entre **Español** e **Inglés**.
+* **Modo Oscuro:** Ajusta el tema general de color (Claro, Oscuro, Sistema) de forma sumamente suave gracias a la sincronización con `next-themes`.
+* **Esquema de Color (Accent Color):** Selección por burbujas (Ámbar original, Verde esmeralda, Rosa premium, Azul eléctrico) que reescribe dinámicamente las variables globales CSS de Tailwind. ¡El panel entero se repinta en vivo y persiste en el navegador del administrador!
+
+### 3. Diagnóstico de SMTP y Servidor de Correo
+Herramienta indispensable para el equipo de soporte técnico:
+* **Estado de la Conexión:** Verifica el canal con tu host SMTP de Nodemailer al instante (mediante `transporter.verify()`), arrojando un barómetro de latencia técnica en milisegundos.
+* **Correo de Diagnóstico:** Formulario integrado para disparar un correo HTML estructurado en un clic. Ideal para comprobar que los filtros de spam del receptor acepten los correos de confirmación QR del sistema sin fallas.
+
+### 4. Alertas del Sistema (Suscripciones)
+Switches premium con micro-animaciones para que el administrador decida de qué eventos ser notificado:
+* **Registro de Nuevos Pagos:** Alertas por comprobantes subidos por Yape/Plin que esperan aprobación del staff.
+* **Aforo Crítico de Transporte:** Avisar si un bus o línea de traslado completa el 90% de sus plazas reservadas.
+* **Resumen Diario Financiero:** Un balance completo enviado a medianoche con los números y estadísticas consolidadas del día.

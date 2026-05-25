@@ -1,0 +1,7 @@
+{
+  "organizationName": "Encuentro de Fe",
+  "supportEmail": "soporte@encuentrodefe.org",
+  "alertNewPayments": true,
+  "alertTransportCapacity": true,
+  "alertDailyFinanceSummary": true
+}

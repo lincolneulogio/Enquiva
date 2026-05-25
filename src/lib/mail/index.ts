@@ -6,14 +6,16 @@ import {
   getPasswordResetTemplate,
   getTicketTemplate,
 } from "./templates";
+import { getSystemSettings } from "@/lib/settings";
 
 export async function sendVerificationCodeEmail(input: {
   email: string;
   name?: string | null;
   code: string;
 }) {
+  const { organizationName } = await getSystemSettings();
   const greeting = input.name ? `Hola ${input.name},` : "Hola,";
-  const { subject, text, html } = getVerificationCodeTemplate(input.code, greeting);
+  const { subject, text, html } = getVerificationCodeTemplate(input.code, greeting, organizationName);
 
   await transporter.sendMail({
     from: sender(),
@@ -28,8 +30,9 @@ export async function sendPasswordChangedEmail(input: {
   email: string;
   name?: string | null;
 }) {
+  const { organizationName } = await getSystemSettings();
   const greeting = input.name ? `Hola ${input.name},` : "Hola,";
-  const { subject, text, html } = getPasswordChangedTemplate(greeting);
+  const { subject, text, html } = getPasswordChangedTemplate(greeting, organizationName);
 
   await transporter.sendMail({
     from: sender(),
@@ -45,8 +48,9 @@ export async function sendPasswordResetEmail(input: {
   name?: string | null;
   url: string;
 }) {
+  const { organizationName } = await getSystemSettings();
   const greeting = input.name ? `Hola ${input.name},` : "Hola,";
-  const { subject, text, html } = getPasswordResetTemplate(input.url, greeting);
+  const { subject, text, html } = getPasswordResetTemplate(input.url, greeting, organizationName);
 
   await transporter.sendMail({
     from: sender(),
@@ -65,6 +69,7 @@ export async function sendTicketEmail(input: {
   qrDataUrl?: string;
   code?: string;
 }) {
+  const { organizationName } = await getSystemSettings();
   const greeting = input.name ? `Hola ${input.name},` : "Hola,";
   const { subject, text, html } = getTicketTemplate({
     eventTitle: input.eventTitle,
@@ -72,6 +77,7 @@ export async function sendTicketEmail(input: {
     qrDataUrl: input.qrDataUrl,
     ticketUrl: input.ticketUrl,
     greeting,
+    orgName: organizationName,
   });
 
   await transporter.sendMail({
@@ -91,6 +97,7 @@ export async function sendTicketEmailWithPdf(input: {
   qrDataUrl?: string;
   code?: string;
 }) {
+  const { organizationName } = await getSystemSettings();
   const greeting = input.name ? `Hola ${input.name},` : "Hola,";
   const pdfBuffer = await generatePdfBuffer({
     eventTitle: input.eventTitle,
@@ -104,6 +111,7 @@ export async function sendTicketEmailWithPdf(input: {
     qrDataUrl: input.qrDataUrl,
     ticketUrl: input.ticketUrl,
     greeting,
+    orgName: organizationName,
   });
 
   await transporter.sendMail({
