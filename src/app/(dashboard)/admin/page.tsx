@@ -67,6 +67,15 @@ export default async function AdminDashboardPage() {
       <AdminStatsCharts
         monthlyData={stats.monthlyActivity}
         categoryData={stats.categoryData}
+        paymentMethodsStats={stats.paymentMethodsStats}
+        totalRevenue={stats.totalRevenue}
+        pendingPaymentsCount={stats.pendingPaymentsCount}
+        avgPayment={stats.avgPayment}
+        totalCapacity={stats.totalCapacity}
+        occupiedSeats={stats.occupiedSeats}
+        checkedInCount={stats.checkedInCount}
+        registeredCount={stats.registeredCount}
+        waitlistedCount={stats.waitlistedCount}
       />
     </div>
   );

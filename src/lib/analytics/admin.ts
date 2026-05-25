@@ -1,201 +1,345 @@
 import { db } from "@/lib/db";
-import { events, users, registrations } from "@/lib/db/schema";
+import {
+  events,
+  users,
+  registrations,
+  payments,
+  transportRoutes,
+  transportBookings,
+} from "@/lib/db/schema";
 import { count, eq, sql, desc, and, gte } from "drizzle-orm";
 
 export type AdminStatsRange = "30d" | "90d" | "12m" | "all";
 
 const RANGE_TO_DAYS: Record<Exclude<AdminStatsRange, "all">, number> = {
-    "30d": 30,
-    "90d": 90,
-    "12m": 365,
+  "30d": 30,
+  "90d": 90,
+  "12m": 365,
 };
 
 export type MonthlyActivityPoint = {
-    month: string;
-    events: number;
-    registrations: number;
+  month: string;
+  events: number;
+  registrations: number;
+  users: number;
 };
 
 export type CategoryPoint = {
-    name: string;
-    value: number;
+  name: string;
+  value: number;
 };
 
 const formatCategoryLabel = (raw: string) =>
-    raw
-        .split("_")
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(" ");
+  raw
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 
 function buildLastMonthsKeys(months: number) {
-    const now = new Date();
-    const keys: { key: string; label: string }[] = [];
+  const now = new Date();
+  const keys: { key: string; label: string }[] = [];
 
-    for (let i = months - 1; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-        const label = d.toLocaleString("en-US", { month: "short" });
-        keys.push({ key, label });
-    }
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const label = d.toLocaleString("en-US", { month: "short" });
+    keys.push({ key, label });
+  }
 
-    return keys;
+  return keys;
 }
 
 function getRangeStartDate(range: AdminStatsRange) {
-    if (range === "all") return null;
-    const d = new Date();
-    d.setDate(d.getDate() - RANGE_TO_DAYS[range]);
-    d.setHours(0, 0, 0, 0);
-    return d;
+  if (range === "all") return null;
+  const d = new Date();
+  d.setDate(d.getDate() - RANGE_TO_DAYS[range]);
+  d.setHours(0, 0, 0, 0);
+  return d;
 }
 
 function getMonthsForRange(range: AdminStatsRange) {
-    if (range === "all") return 6;
-    if (range === "30d") return 2;
-    if (range === "90d") return 4;
-    return 12;
+  if (range === "all") return 6;
+  if (range === "30d") return 2;
+  if (range === "90d") return 4;
+  return 12;
 }
 
-export async function getAdminDashboardStats(options?: { range?: AdminStatsRange }) {
-    const range = options?.range ?? "all";
-    const rangeStart = getRangeStartDate(range);
-    const lastMonths = buildLastMonthsKeys(getMonthsForRange(range));
-    const eventMonthExpr = sql<string>`to_char(date_trunc('month', ${events.createdAt}), 'YYYY-MM')`;
-    const regMonthExpr = sql<string>`to_char(date_trunc('month', ${registrations.registeredAt}), 'YYYY-MM')`;
+export async function getAdminDashboardStats(options?: {
+  range?: AdminStatsRange;
+}) {
+  const range = options?.range ?? "all";
+  const rangeStart = getRangeStartDate(range);
+  const lastMonths = buildLastMonthsKeys(getMonthsForRange(range));
 
-    const eventConditions = rangeStart ? [gte(events.createdAt, rangeStart)] : [];
-    const registrationConditions = rangeStart ? [gte(registrations.registeredAt, rangeStart)] : [];
-    const userConditions = rangeStart ? [gte(users.createdAt, rangeStart)] : [];
+  const eventMonthExpr = sql<string>`to_char(date_trunc('month', ${events.createdAt}), 'YYYY-MM')`;
+  const regMonthExpr = sql<string>`to_char(date_trunc('month', ${registrations.registeredAt}), 'YYYY-MM')`;
+  const userMonthExpr = sql<string>`to_char(date_trunc('month', ${users.createdAt}), 'YYYY-MM')`;
 
-    const eventsWhere = eventConditions.length ? and(...eventConditions) : undefined;
-    const registrationsWhere = registrationConditions.length ? and(...registrationConditions) : undefined;
-    const usersWhere = userConditions.length ? and(...userConditions) : undefined;
+  const eventConditions = rangeStart ? [gte(events.createdAt, rangeStart)] : [];
+  const registrationConditions = rangeStart
+    ? [gte(registrations.registeredAt, rangeStart)]
+    : [];
+  const userConditions = rangeStart ? [gte(users.createdAt, rangeStart)] : [];
 
-    const publishedWhere = eventConditions.length
-        ? and(...eventConditions, eq(events.status, "published"))
-        : eq(events.status, "published");
-    const draftWhere = eventConditions.length
-        ? and(...eventConditions, eq(events.status, "draft"))
-        : eq(events.status, "draft");
-    const cancelledWhere = eventConditions.length
-        ? and(...eventConditions, eq(events.status, "cancelled"))
-        : eq(events.status, "cancelled");
+  const eventsWhere = eventConditions.length
+    ? and(...eventConditions)
+    : undefined;
+  const registrationsWhere = registrationConditions.length
+    ? and(...registrationConditions)
+    : undefined;
+  const usersWhere = userConditions.length ? and(...userConditions) : undefined;
 
-    const membersWhere = userConditions.length
-        ? and(...userConditions, eq(users.role, "member"))
-        : eq(users.role, "member");
-    const organizersWhere = userConditions.length
-        ? and(...userConditions, eq(users.role, "organizer"))
-        : eq(users.role, "organizer");
+  const publishedWhere = eventConditions.length
+    ? and(...eventConditions, eq(events.status, "published"))
+    : eq(events.status, "published");
+  const draftWhere = eventConditions.length
+    ? and(...eventConditions, eq(events.status, "draft"))
+    : eq(events.status, "draft");
+  const cancelledWhere = eventConditions.length
+    ? and(...eventConditions, eq(events.status, "cancelled"))
+    : eq(events.status, "cancelled");
 
-    const [
-        totalUsers,
-        totalEvents,
-        totalRegistrations,
-        publishedEvents,
-        draftEvents,
-        cancelledEvents,
-        memberCount,
-        organizerCount,
-    ] = await Promise.all([
-        usersWhere
-            ? db.select({ count: count() }).from(users).where(usersWhere)
-            : db.select({ count: count() }).from(users),
-        eventsWhere
-            ? db.select({ count: count() }).from(events).where(eventsWhere)
-            : db.select({ count: count() }).from(events),
-        registrationsWhere
-            ? db.select({ count: count() }).from(registrations).where(registrationsWhere)
-            : db.select({ count: count() }).from(registrations),
-        db.select({ count: count() }).from(events).where(publishedWhere),
-        db.select({ count: count() }).from(events).where(draftWhere),
-        db.select({ count: count() }).from(events).where(cancelledWhere),
-        db.select({ count: count() }).from(users).where(membersWhere),
-        db.select({ count: count() }).from(users).where(organizersWhere),
-    ]);
+  const membersWhere = userConditions.length
+    ? and(...userConditions, eq(users.role, "member"))
+    : eq(users.role, "member");
+  const organizersWhere = userConditions.length
+    ? and(...userConditions, eq(users.role, "organizer"))
+    : eq(users.role, "organizer");
 
-    const [eventsByMonth, registrationsByMonth, categoriesBreakdown] = await Promise.all([
-        (eventsWhere
-            ? db
-                .select({
-                    month: eventMonthExpr,
-                    value: count(),
-                })
-                .from(events)
-                .where(eventsWhere)
-            : db
-                .select({
-                    month: eventMonthExpr,
-                    value: count(),
-                })
-                .from(events))
-            .groupBy(sql`date_trunc('month', ${events.createdAt})`)
-            .orderBy(sql`date_trunc('month', ${events.createdAt})`),
-        (registrationsWhere
-            ? db
-                .select({
-                    month: regMonthExpr,
-                    value: count(),
-                })
-                .from(registrations)
-                .where(registrationsWhere)
-            : db
-                .select({
-                    month: regMonthExpr,
-                    value: count(),
-                })
-                .from(registrations))
-            .groupBy(sql`date_trunc('month', ${registrations.registeredAt})`)
-            .orderBy(sql`date_trunc('month', ${registrations.registeredAt})`),
-        (eventsWhere
-            ? db
-                .select({
-                    name: events.category,
-                    value: count(),
-                })
-                .from(events)
-                .where(eventsWhere)
-            : db
-                .select({
-                    name: events.category,
-                    value: count(),
-                })
-                .from(events))
-            .groupBy(events.category)
-            .orderBy(desc(count()))
-            .limit(6),
-    ]);
+  const [
+    totalUsers,
+    totalEvents,
+    totalRegistrations,
+    publishedEvents,
+    draftEvents,
+    cancelledEvents,
+    memberCount,
+    organizerCount,
+  ] = await Promise.all([
+    usersWhere
+      ? db.select({ count: count() }).from(users).where(usersWhere)
+      : db.select({ count: count() }).from(users),
+    eventsWhere
+      ? db.select({ count: count() }).from(events).where(eventsWhere)
+      : db.select({ count: count() }).from(events),
+    registrationsWhere
+      ? db
+          .select({ count: count() })
+          .from(registrations)
+          .where(registrationsWhere)
+      : db.select({ count: count() }).from(registrations),
+    db.select({ count: count() }).from(events).where(publishedWhere),
+    db.select({ count: count() }).from(events).where(draftWhere),
+    db.select({ count: count() }).from(events).where(cancelledWhere),
+    db.select({ count: count() }).from(users).where(membersWhere),
+    db.select({ count: count() }).from(users).where(organizersWhere),
+  ]);
 
-    const eventsByMonthMap = new Map(
-        eventsByMonth.map((item) => [item.month, Number(item.value)])
+  const [
+    eventsByMonth,
+    registrationsByMonth,
+    usersByMonth,
+    categoriesBreakdown,
+  ] = await Promise.all([
+    (eventsWhere
+      ? db
+          .select({
+            month: eventMonthExpr,
+            value: count(),
+          })
+          .from(events)
+          .where(eventsWhere)
+      : db
+          .select({
+            month: eventMonthExpr,
+            value: count(),
+          })
+          .from(events)
+    )
+      .groupBy(sql`date_trunc('month', ${events.createdAt})`)
+      .orderBy(sql`date_trunc('month', ${events.createdAt})`),
+    (registrationsWhere
+      ? db
+          .select({
+            month: regMonthExpr,
+            value: count(),
+          })
+          .from(registrations)
+          .where(registrationsWhere)
+      : db
+          .select({
+            month: regMonthExpr,
+            value: count(),
+          })
+          .from(registrations)
+    )
+      .groupBy(sql`date_trunc('month', ${registrations.registeredAt})`)
+      .orderBy(sql`date_trunc('month', ${registrations.registeredAt})`),
+    (usersWhere
+      ? db
+          .select({
+            month: userMonthExpr,
+            value: count(),
+          })
+          .from(users)
+          .where(usersWhere)
+      : db
+          .select({
+            month: userMonthExpr,
+            value: count(),
+          })
+          .from(users)
+    )
+      .groupBy(sql`date_trunc('month', ${users.createdAt})`)
+      .orderBy(sql`date_trunc('month', ${users.createdAt})`),
+    (eventsWhere
+      ? db
+          .select({
+            name: events.category,
+            value: count(),
+          })
+          .from(events)
+          .where(eventsWhere)
+      : db
+          .select({
+            name: events.category,
+            value: count(),
+          })
+          .from(events)
+    )
+      .groupBy(events.category)
+      .orderBy(desc(count()))
+      .limit(6),
+  ]);
+
+  const eventsByMonthMap = new Map(
+    eventsByMonth.map((item) => [item.month, Number(item.value)]),
+  );
+  const registrationsByMonthMap = new Map(
+    registrationsByMonth.map((item) => [item.month, Number(item.value)]),
+  );
+  const usersByMonthMap = new Map(
+    usersByMonth.map((item) => [item.month, Number(item.value)]),
+  );
+
+  const monthlyActivity: MonthlyActivityPoint[] = lastMonths.map(
+    ({ key, label }) => ({
+      month: label,
+      events: eventsByMonthMap.get(key) ?? 0,
+      registrations: registrationsByMonthMap.get(key) ?? 0,
+      users: usersByMonthMap.get(key) ?? 0,
+    }),
+  );
+
+  const categoryData: CategoryPoint[] = categoriesBreakdown.map((item) => ({
+    name: formatCategoryLabel(item.name || "other"),
+    value: Number(item.value),
+  }));
+
+  // Financial aggregates (payments with range filtering if set)
+  const [revenueResult] = await db
+    .select({
+      totalRevenue: sql<string>`coalesce(sum(${payments.amount}), '0')`,
+      pendingPaymentsCount: sql<number>`count(case when ${payments.status} = 'pending' then 1 end)`,
+      avgPayment: sql<string>`coalesce(avg(${payments.amount}), '0')`,
+    })
+    .from(payments)
+    .where(
+      and(
+        eq(payments.status, "approved"),
+        rangeStart ? gte(payments.createdAt, rangeStart) : undefined,
+      ),
     );
-    const registrationsByMonthMap = new Map(
-        registrationsByMonth.map((item) => [item.month, Number(item.value)])
-    );
 
-    const monthlyActivity: MonthlyActivityPoint[] = lastMonths.map(({ key, label }) => ({
-        month: label,
-        events: eventsByMonthMap.get(key) ?? 0,
-        registrations: registrationsByMonthMap.get(key) ?? 0,
-    }));
+  // True pending count across all times (so they know how many to validate)
+  const [truePendingResult] = await db
+    .select({
+      count: count(),
+    })
+    .from(payments)
+    .where(eq(payments.status, "pending"));
 
-    const categoryData: CategoryPoint[] = categoriesBreakdown.map((item) => ({
-        name: formatCategoryLabel(item.name || "other"),
-        value: Number(item.value),
-    }));
+  // Approved payment methods stats
+  const rawPaymentMethodsStats = await db
+    .select({
+      method: payments.method,
+      value: count(),
+    })
+    .from(payments)
+    .where(
+      and(
+        eq(payments.status, "approved"),
+        rangeStart ? gte(payments.createdAt, rangeStart) : undefined,
+      ),
+    )
+    .groupBy(payments.method);
+
+  const paymentMethodsStats = rawPaymentMethodsStats.map((item) => {
+    let label = item.method;
+    if (item.method === "manual") label = "Manual/Transferencia";
+    else if (item.method === "yape") label = "Yape";
+    else if (item.method === "plin") label = "Plin";
+    else if (item.method === "cash") label = "Efectivo";
+    else label = item.method.toUpperCase();
 
     return {
-        range,
-        rangeStart,
-        totalUsers: totalUsers[0]?.count ?? 0,
-        totalEvents: totalEvents[0]?.count ?? 0,
-        totalRegistrations: totalRegistrations[0]?.count ?? 0,
-        publishedEvents: publishedEvents[0]?.count ?? 0,
-        draftEvents: draftEvents[0]?.count ?? 0,
-        cancelledEvents: cancelledEvents[0]?.count ?? 0,
-        memberCount: memberCount[0]?.count ?? 0,
-        organizerCount: organizerCount[0]?.count ?? 0,
-        monthlyActivity,
-        categoryData,
+      name: label,
+      value: Number(item.value),
     };
+  });
+
+  // Transport metrics
+  const [transportStats] = await db
+    .select({
+      totalCapacity: sql<number>`coalesce(sum(${transportRoutes.totalSeats}), 0)`,
+    })
+    .from(transportRoutes)
+    .where(rangeStart ? gte(transportRoutes.createdAt, rangeStart) : undefined);
+
+  const [bookingStats] = await db
+    .select({
+      occupiedSeats: sql<number>`coalesce(sum(${transportBookings.seats}), 0)`,
+    })
+    .from(transportBookings)
+    .where(
+      and(
+        eq(transportBookings.status, "confirmed"),
+        rangeStart ? gte(transportBookings.bookedAt, rangeStart) : undefined,
+      ),
+    );
+
+  // Attendance and registrations breakdown
+  const [attendanceStats] = await db
+    .select({
+      checkedInCount: sql<number>`count(case when ${registrations.status} = 'checked_in' then 1 end)`,
+      registeredCount: sql<number>`count(case when ${registrations.status} in ('registered', 'checked_in') then 1 end)`,
+      waitlistedCount: sql<number>`count(case when ${registrations.status} = 'waitlisted' then 1 end)`,
+    })
+    .from(registrations)
+    .where(registrationsWhere);
+
+  return {
+    range,
+    rangeStart,
+    totalUsers: totalUsers[0]?.count ?? 0,
+    totalEvents: totalEvents[0]?.count ?? 0,
+    totalRegistrations: totalRegistrations[0]?.count ?? 0,
+    publishedEvents: publishedEvents[0]?.count ?? 0,
+    draftEvents: draftEvents[0]?.count ?? 0,
+    cancelledEvents: cancelledEvents[0]?.count ?? 0,
+    memberCount: memberCount[0]?.count ?? 0,
+    organizerCount: organizerCount[0]?.count ?? 0,
+    monthlyActivity,
+    categoryData,
+    // New premium metrics
+    totalRevenue: Number(revenueResult?.totalRevenue ?? 0),
+    pendingPaymentsCount: truePendingResult?.count ?? 0,
+    avgPayment: Number(revenueResult?.avgPayment ?? 0),
+    paymentMethodsStats,
+    totalCapacity: Number(transportStats?.totalCapacity ?? 0),
+    occupiedSeats: Number(bookingStats?.occupiedSeats ?? 0),
+    checkedInCount: Number(attendanceStats?.checkedInCount ?? 0),
+    registeredCount: Number(attendanceStats?.registeredCount ?? 0),
+    waitlistedCount: Number(attendanceStats?.waitlistedCount ?? 0),
+  };
 }
