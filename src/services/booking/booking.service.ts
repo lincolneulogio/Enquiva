@@ -21,6 +21,7 @@ const bookTransportSchema = z.object({
     receiptFileName: z.string().optional(),
     method: z.string().min(1),
     reference: z.string().optional(),
+    stopId: z.string().uuid().optional().nullable(),
 });
 
 export class BookingService {
@@ -92,6 +93,7 @@ export class BookingService {
                 seats: data.seats,
                 status: "pending",
                 notes: data.notes ?? null,
+                stopId: data.stopId ?? null,
             })
             .returning();
 

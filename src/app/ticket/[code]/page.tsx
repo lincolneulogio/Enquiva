@@ -6,6 +6,7 @@ import { formatEventDate } from "@/lib/utils";
 import { getI18n } from "@/lib/i18n/server";
 import Link from "next/link";
 import { DownloadTicketButton } from "@/components/tickets/DownloadTicketButton";
+import { CalendarSyncButtons } from "@/components/tickets/CalendarSyncButtons";
 
 interface TicketPublicPageProps {
   params: Promise<{ code: string }>;
@@ -73,7 +74,7 @@ export default async function TicketPublicPage({ params, searchParams }: TicketP
         )}
 
         {record.ticket.qrCode && (
-          <div className="mt-6 flex justify-center border-t border-border/40 pt-6">
+          <div className="mt-6 flex flex-col items-center gap-6 border-t border-border/40 pt-6">
             <DownloadTicketButton
               ticketCode={record.ticket.code}
               eventTitle={record.event.title}
@@ -85,6 +86,22 @@ export default async function TicketPublicPage({ params, searchParams }: TicketP
               registrationStatus={record.registration.status}
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.98] cursor-pointer"
             />
+            
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">
+                {locale === "en" ? "Add to Calendar" : "Sincronizar con tu Calendario"}
+              </span>
+              <CalendarSyncButtons
+                event={{
+                  id: record.event.id,
+                  title: record.event.title,
+                  description: record.event.description,
+                  date: record.event.date,
+                  location: record.event.location,
+                  isVirtual: record.event.isVirtual,
+                }}
+              />
+            </div>
           </div>
         )}
 

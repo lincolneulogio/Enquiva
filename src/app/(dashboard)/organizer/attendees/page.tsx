@@ -6,6 +6,7 @@ import { eq, desc, and, gte, lte, count } from "drizzle-orm";
 import { Users } from "lucide-react";
 import { ManualCheckInButton } from "@/components/events/ManualCheckInButton";
 import { ManualRegistrationDialog } from "@/components/events/ManualRegistrationDialog";
+import { ExpressCheckInConsole } from "@/components/events/ExpressCheckInConsole";
 import { getI18n } from "@/lib/i18n/server";
 import {
   getIntlLocale,
@@ -157,6 +158,13 @@ export default async function OrganizerAttendeesPage({
           />
         </div>
       </div>
+
+      <ExpressCheckInConsole
+        events={exportEventOptions.map((e) => ({
+          value: e.id,
+          label: e.title,
+        }))}
+      />
 
       <Suspense>
         <ExportDataPanel

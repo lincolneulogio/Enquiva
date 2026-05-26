@@ -59,6 +59,7 @@ export const transportBookings = pgTable(
     seats: integer("seats").notNull().default(1),
     status: transportBookingStatusEnum("status").notNull().default("pending"),
     notes: text("notes"),
+    stopId: uuid("stop_id"),
     bookedAt: timestamp("booked_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -106,6 +107,21 @@ export const paymentMethods = pgTable("payment_methods", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const transportStops = pgTable(
+  "transport_stops",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    routeId: uuid("route_id")
+      .notNull()
+      .references(() => transportRoutes.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    latitude: text("latitude"),
+    longitude: text("longitude"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("transport_stops_route_idx").on(t.routeId)]
+);
+
 export const eventPaymentMethods = pgTable(
   "event_payment_methods",
   {
@@ -124,13 +140,19 @@ export const eventPaymentMethods = pgTable(
 export const transportRoutesRelations = relations(transportRoutes, ({ one, many }) => ({
   event: one(events, { fields: [transportRoutes.eventId], references: [events.id] }),
   bookings: many(transportBookings),
+  stops: many(transportStops),
 }));
 
 export const transportBookingsRelations = relations(transportBookings, ({ one, many }) => ({
   route: one(transportRoutes, { fields: [transportBookings.routeId], references: [transportRoutes.id] }),
   registration: one(registrations, { fields: [transportBookings.registrationId], references: [registrations.id] }),
   user: one(users, { fields: [transportBookings.userId], references: [users.id] }),
+  stop: one(transportStops, { fields: [transportBookings.stopId], references: [transportStops.id] }),
   payments: many(payments),
+}));
+
+export const transportStopsRelations = relations(transportStops, ({ one }) => ({
+  route: one(transportRoutes, { fields: [transportStops.routeId], references: [transportRoutes.id] }),
 }));
 
 export const paymentsRelations = relations(payments, ({ one }) => ({
@@ -160,3 +182,5 @@ export type Payment = typeof payments.$inferSelect;
 export type NewPayment = typeof payments.$inferInsert;
 export type PaymentMethod = typeof paymentMethods.$inferSelect;
 export type NewPaymentMethod = typeof paymentMethods.$inferInsert;
+export type TransportStop = typeof transportStops.$inferSelect;
+export type NewTransportStop = typeof transportStops.$inferInsert;

@@ -133,3 +133,47 @@ export async function registerOfflineAttendeeAction(input: {
 
   return result;
 }
+
+// ─── Search Attendees Action for Express Check-In ───────────────────────────
+
+import { db } from "@/lib/db";
+import { registrations, users, tickets } from "@/lib/db/schema";
+import { eq, and, sql, inArray } from "drizzle-orm";
+
+export async function searchPreRegisteredAttendeesAction(eventId: string, queryText: string) {
+  const user = await requireAuth();
+  if (user.role !== "organizer" && user.role !== "super_admin" && user.role !== "admin") {
+    throw new Error("Unauthorized");
+  }
+
+  if (!eventId) {
+    return { success: true, attendees: [] };
+  }
+
+  const normalizedQuery = `%${queryText.toLowerCase().trim()}%`;
+
+  const results = await db
+    .select({
+      registrationId: registrations.id,
+      eventId: registrations.eventId,
+      status: registrations.status,
+      userName: users.name,
+      userEmail: users.email,
+      contactPhone: registrations.contactPhone,
+      ticketCode: tickets.code,
+      checkedInAt: registrations.checkedInAt,
+    })
+    .from(registrations)
+    .innerJoin(users, eq(registrations.userId, users.id))
+    .leftJoin(tickets, eq(tickets.registrationId, registrations.id))
+    .where(
+      and(
+        eq(registrations.eventId, eventId),
+        inArray(registrations.status, ["registered", "checked_in"]),
+        sql`(LOWER(${users.name}) LIKE ${normalizedQuery} OR LOWER(${users.email}) LIKE ${normalizedQuery} OR LOWER(${tickets.code}) LIKE ${normalizedQuery} OR ${registrations.contactPhone} LIKE ${normalizedQuery})`
+      )
+    )
+    .limit(10);
+
+  return { success: true, attendees: results };
+}

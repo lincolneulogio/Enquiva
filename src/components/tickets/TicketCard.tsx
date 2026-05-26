@@ -12,6 +12,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { DownloadTicketButton } from "./DownloadTicketButton";
+import { CalendarSyncButtons } from "./CalendarSyncButtons";
 import {
   Ticket as TicketIcon,
   Coins,
@@ -333,6 +334,16 @@ export function TicketCard({
             className="rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground hover:bg-secondary transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
           />
         )}
+        <CalendarSyncButtons
+          event={{
+            id: event.id,
+            title: event.title,
+            description: event.description,
+            date: event.date,
+            location: event.location,
+            isVirtual: event.isVirtual,
+          }}
+        />
         <ResendButton registrationId={registration.id} />
       </div>
     </div>

@@ -132,6 +132,7 @@ export default async function MemberTransportPage() {
                                             pricePerSeat: String(route.pricePerSeat),
                                             totalSeats: route.totalSeats,
                                             availableSeats: route.availableSeats,
+                                            stops: route.stops,
                                         }}
                                         registrationId={eventItem.registrationId}
                                         paymentMethods={eventItem.paymentMethods}

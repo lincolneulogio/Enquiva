@@ -2,12 +2,15 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Pencil, Bus, Users, Check, X } from "lucide-react";
+import { Loader2, Plus, Trash2, Pencil, Bus, Users, Check, X, MapPin } from "lucide-react";
 import {
     createRoute,
     updateRoute,
     deleteRoute,
     toggleRouteActive,
+    getStopsByRoute,
+    createTransportStop,
+    deleteTransportStop,
 } from "@/actions/transport";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { getIntlLocale } from "@/lib/i18n/core";
@@ -58,6 +61,82 @@ export function TransportRoutesManager({
     const [editId, setEditId] = useState<string | null>(null);
     const [form, setForm] = useState(EMPTY_FORM);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    // Stops management states
+    const [expandedRouteId, setExpandedRouteId] = useState<string | null>(null);
+    const [stopsByRoute, setStopsByRoute] = useState<Record<string, { id: string; name: string; latitude: string | null; longitude: string | null }[]>>({});
+    const [newStopName, setNewStopName] = useState("");
+    const [newStopLat, setNewStopLat] = useState("");
+    const [newStopLng, setNewStopLng] = useState("");
+    const [stopPending, setStopPending] = useState(false);
+
+    const toggleStops = async (routeId: string) => {
+        if (expandedRouteId === routeId) {
+            setExpandedRouteId(null);
+            return;
+        }
+
+        setExpandedRouteId(routeId);
+
+        if (!stopsByRoute[routeId]) {
+            try {
+                const stopsData = await getStopsByRoute(routeId);
+                setStopsByRoute((prev) => ({
+                    ...prev,
+                    [routeId]: stopsData,
+                }));
+            } catch (error) {
+                toast.error("Error al cargar los paraderos.");
+            }
+        }
+    };
+
+    const handleAddStop = async (routeId: string) => {
+        if (!newStopName.trim()) {
+            toast.error("Por favor, ingresa un nombre para el paradero.");
+            return;
+        }
+
+        setStopPending(true);
+        try {
+            const res = await createTransportStop({
+                routeId,
+                name: newStopName,
+                latitude: newStopLat.trim() || null,
+                longitude: newStopLng.trim() || null,
+            });
+
+            if (res.success && res.stop) {
+                setStopsByRoute((prev) => ({
+                    ...prev,
+                    [routeId]: [...(prev[routeId] || []), res.stop!],
+                }));
+                setNewStopName("");
+                setNewStopLat("");
+                setNewStopLng("");
+                toast.success("Paradero agregado con éxito.");
+            }
+        } catch (error) {
+            toast.error("Ocurrió un error al guardar el paradero.");
+        } finally {
+            setStopPending(false);
+        }
+    };
+
+    const handleDeleteStop = async (routeId: string, stopId: string) => {
+        try {
+            const res = await deleteTransportStop(stopId);
+            if (res.success) {
+                setStopsByRoute((prev) => ({
+                    ...prev,
+                    [routeId]: (prev[routeId] || []).filter((s) => s.id !== stopId),
+                }));
+                toast.success("Paradero eliminado con éxito.");
+            }
+        } catch (error) {
+            toast.error("Error al eliminar el paradero.");
+        }
+    };
 
     const openCreate = () => {
         setEditId(null);
@@ -400,6 +479,114 @@ export function TransportRoutesManager({
                                                 {route.bookedSeats}/{route.totalSeats} ({available} {t("transport.manager.freeSeats")})
                                             </span>
                                         </div>
+
+                                        {/* Paraderos Button */}
+                                        <div className="mt-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleStops(route.id)}
+                                                className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline transition-all"
+                                            >
+                                                <MapPin className="h-3.5 w-3.5" />
+                                                {expandedRouteId === route.id ? "Ocultar Paraderos" : "Gestionar Paraderos"}
+                                            </button>
+                                        </div>
+
+                                        {/* Collapsible Stops Panel */}
+                                        {expandedRouteId === route.id && (
+                                            <div className="mt-4 rounded-xl border border-border/80 bg-muted/20 p-4 space-y-4 animate-in fade-in-50 duration-200">
+                                                <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                                                    <MapPin className="h-3.5 w-3.5 text-primary" />
+                                                    Paraderos Intermedios
+                                                </h4>
+                                                
+                                                {(!stopsByRoute[route.id] || stopsByRoute[route.id].length === 0) ? (
+                                                    <p className="text-xs text-muted-foreground">
+                                                        No hay paraderos adicionales configurados para esta ruta. Los pasajeros subirán en el punto de salida general.
+                                                    </p>
+                                                ) : (
+                                                    <div className="space-y-2">
+                                                        {stopsByRoute[route.id].map((stop) => (
+                                                            <div
+                                                                key={stop.id}
+                                                                className="flex items-center justify-between rounded-lg bg-background p-2.5 text-xs border border-border/60 hover:shadow-xs transition-all"
+                                                            >
+                                                                <div className="min-w-0 flex-1 pr-2">
+                                                                    <p className="font-semibold text-foreground">{stop.name}</p>
+                                                                    {stop.latitude && stop.longitude && (
+                                                                        <a
+                                                                            href={`https://www.google.com/maps/search/?api=1&query=${stop.latitude},${stop.longitude}`}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="inline-block mt-0.5 text-[10px] text-primary hover:underline"
+                                                                        >
+                                                                            Ver en Google Maps ({stop.latitude}, {stop.longitude})
+                                                                        </a>
+                                                                    )}
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleDeleteStop(route.id, stop.id)}
+                                                                    className="rounded p-1.5 text-destructive hover:bg-destructive/10 transition-colors"
+                                                                    title="Eliminar paradero"
+                                                                >
+                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {/* Add Stop Form */}
+                                                <div className="border-t border-border/60 pt-3.5 space-y-3">
+                                                    <span className="block text-xs font-bold text-foreground">
+                                                        Agregar Paradero Intermedio
+                                                    </span>
+                                                    <div className="grid gap-2 sm:grid-cols-3">
+                                                        <div className="sm:col-span-1">
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Nombre (ej: Óvalo Grau)"
+                                                                value={newStopName}
+                                                                onChange={(e) => setNewStopName(e.target.value)}
+                                                                className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Latitud (opcional)"
+                                                                value={newStopLat}
+                                                                onChange={(e) => setNewStopLat(e.target.value)}
+                                                                className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Longitud (opcional)"
+                                                                value={newStopLng}
+                                                                onChange={(e) => setNewStopLng(e.target.value)}
+                                                                className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleAddStop(route.id)}
+                                                        disabled={stopPending || !newStopName.trim()}
+                                                        className="inline-flex items-center gap-1 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/95 disabled:opacity-50 transition-colors"
+                                                    >
+                                                        {stopPending ? (
+                                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                                        ) : (
+                                                            <Plus className="h-3 w-3" />
+                                                        )}
+                                                        Agregar Paradero
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="flex items-center gap-1.5 shrink-0">

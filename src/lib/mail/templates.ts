@@ -1,4 +1,4 @@
-function wrapInTemplate(title: string, greeting: string, bodyHtml: string, footerNote?: string, orgName?: string) {
+export function wrapInTemplate(title: string, greeting: string, bodyHtml: string, footerNote?: string, orgName?: string) {
   const finalOrgName = orgName ?? "EncuentroDeFe";
   return `
     <!DOCTYPE html>

@@ -50,6 +50,7 @@ const bookTransportSchema = z.object({
     receiptFileName: z.string().optional(),
     method: z.string().min(1),
     reference: z.string().optional(),
+    stopId: z.string().uuid().optional().nullable(),
 });
 
 // ─── Organizer: Gestión de rutas ──────────────────────────────────────────────
@@ -153,5 +154,97 @@ export async function rejectTransportPayment(paymentId: string, reason?: string)
 
     revalidatePath("/admin/payments");
     revalidatePath("/organizer/transport");
+    return { success: true };
+}
+
+// ─── Passenger Manifest Query ───────────────────────────────────────────────
+
+import { db } from "@/lib/db";
+import { transportBookings, transportRoutes, transportStops, registrations, users, payments, events } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+
+export async function getEventPassengerManifest(eventId: string) {
+    const user = await requireOrganizerOrHigher();
+
+    const [event] = await db
+        .select({ id: events.id, organizerId: events.organizerId })
+        .from(events)
+        .where(eq(events.id, eventId))
+        .limit(1);
+
+    if (!event) throw new Error("Event not found");
+
+    if (user.role === "organizer" && event.organizerId !== user.id) {
+        throw new Error("Unauthorized access to this event manifest");
+    }
+
+    const bookings = await db
+        .select({
+            id: transportBookings.id,
+            seats: transportBookings.seats,
+            status: transportBookings.status,
+            notes: transportBookings.notes,
+            passengerName: users.name,
+            passengerEmail: users.email,
+            passengerPhone: registrations.contactPhone,
+            routeName: transportRoutes.name,
+            departurePoint: transportRoutes.departurePoint,
+            stopName: transportStops.name,
+            paymentStatus: payments.status,
+        })
+        .from(transportBookings)
+        .innerJoin(transportRoutes, eq(transportBookings.routeId, transportRoutes.id))
+        .innerJoin(users, eq(transportBookings.userId, users.id))
+        .innerJoin(registrations, eq(transportBookings.registrationId, registrations.id))
+        .leftJoin(transportStops, eq(transportBookings.stopId, transportStops.id))
+        .leftJoin(payments, eq(payments.transportBookingId, transportBookings.id))
+        .where(eq(transportRoutes.eventId, eventId))
+        .orderBy(transportRoutes.name, users.name);
+
+    return { success: true, bookings };
+}
+
+// ─── Transport Stops Actions ────────────────────────────────────────────────
+
+export async function getStopsByRoute(routeId: string) {
+    await requireAuth();
+    return db
+        .select()
+        .from(transportStops)
+        .where(eq(transportStops.routeId, routeId));
+}
+
+export async function createTransportStop(input: {
+    routeId: string;
+    name: string;
+    latitude?: string | null;
+    longitude?: string | null;
+}) {
+    await requireOrganizerOrHigher();
+
+    if (!input.routeId || !input.name.trim()) {
+        throw new Error("Route ID and Stop Name are required");
+    }
+
+    const [stop] = await db
+        .insert(transportStops)
+        .values({
+            routeId: input.routeId,
+            name: input.name,
+            latitude: input.latitude || null,
+            longitude: input.longitude || null,
+        })
+        .returning();
+
+    return { success: true, stop };
+}
+
+export async function deleteTransportStop(stopId: string) {
+    await requireOrganizerOrHigher();
+
+    await db
+        .delete(transportStops)
+        .where(eq(transportStops.id, stopId));
+
     return { success: true };
 }

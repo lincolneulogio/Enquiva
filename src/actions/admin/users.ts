@@ -13,6 +13,7 @@ import {
     type AppRole,
     type Permission,
 } from "@/lib/auth/rbac";
+import { LogService } from "@/lib/analytics/audit";
 
 export async function requireSuperAdmin() {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -32,21 +33,40 @@ export async function updateUserRole(
     userId: string,
     role: "member" | "organizer" | "admin" | "super_admin"
 ) {
-    await requireSuperAdmin();
+    const currentUser = await requireSuperAdmin();
+    const hdrs = await headers();
+    const ipAddress = hdrs.get("x-forwarded-for") ?? hdrs.get("x-real-ip") ?? "unknown";
+    const userAgent = hdrs.get("user-agent") ?? "unknown";
+
     await db.update(users).set({ role }).where(eq(users.id, userId));
+
+    await LogService.log({
+        actorId: currentUser.id,
+        actorName: currentUser.name ?? currentUser.email,
+        action: "user.role_change",
+        entityType: "user",
+        entityId: userId,
+        details: `Rol cambiado a: ${role}`,
+        ipAddress,
+        userAgent,
+    });
+
     revalidatePath("/admin/users");
     return { success: true };
 }
 
 export async function deleteUser(userId: string) {
     const currentUser = await requireSuperAdmin();
+    const hdrs = await headers();
+    const ipAddress = hdrs.get("x-forwarded-for") ?? hdrs.get("x-real-ip") ?? "unknown";
+    const userAgent = hdrs.get("user-agent") ?? "unknown";
 
     if (currentUser.id === userId) {
         throw new Error("You cannot delete your own account");
     }
 
     const [target] = await db
-        .select({ role: users.role })
+        .select({ role: users.role, name: users.name, email: users.email })
         .from(users)
         .where(eq(users.id, userId))
         .limit(1);
@@ -67,6 +87,18 @@ export async function deleteUser(userId: string) {
     }
 
     await db.delete(users).where(eq(users.id, userId));
+
+    await LogService.log({
+        actorId: currentUser.id,
+        actorName: currentUser.name ?? currentUser.email,
+        action: "user.delete",
+        entityType: "user",
+        entityId: userId,
+        details: `Usuario eliminado: ${target.name ?? ""} (${target.email})`,
+        ipAddress,
+        userAgent,
+    });
+
     revalidatePath("/admin/users");
     return { success: true };
 }

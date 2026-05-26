@@ -5,6 +5,7 @@ import {
     payments,
     registrations,
     events,
+    transportStops,
 } from "@/lib/db/schema";
 import { eq, and, sql, desc, inArray } from "drizzle-orm";
 
@@ -103,18 +104,25 @@ export class BookingQueriesService {
         existingBookings.map((b) => `${b.registrationId}:${b.routeId}`)
     );
 
+    // Fetch stops
+    const allStops = await db
+        .select()
+        .from(transportStops);
+
     return myRegistrations.map((reg) => {
         const routeList = routes
             .filter((r) => r.eventId === reg.eventId && r.isActive)
             .map((r) => {
                 const availableSeats = Math.max(0, r.totalSeats - Number(r.bookedSeats));
                 const key = `${reg.registrationId}:${r.id}`;
+                const routeStops = allStops.filter((s) => s.routeId === r.id);
 
                 return {
                     ...r,
                     availableSeats,
                     alreadyBooked: bookedSet.has(key),
                     registrationId: reg.registrationId,
+                    stops: routeStops,
                 };
             });
 

@@ -22,6 +22,7 @@ import {
   X,
   QrCode,
   Wallet,
+  Megaphone,
 } from "lucide-react";
 import { signOut } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,7 @@ const organiverNav: NavItem[] = [
   { labelKey: "dashboard.sidebar.organizer.overview", href: "/organizer", icon: LayoutDashboard },
   { labelKey: "dashboard.sidebar.organizer.myEvents", href: "/organizer/events", icon: Calendar },
   { labelKey: "dashboard.sidebar.organizer.attendees", href: "/organizer/attendees", icon: Users },
+  { labelKey: "dashboard.sidebar.organizer.broadcasts", href: "/organizer/broadcasts", icon: Megaphone },
   { labelKey: "dashboard.sidebar.organizer.notifications", href: "/organizer/notifications", icon: Bell },
   { labelKey: "dashboard.sidebar.organizer.payments", href: "/organizer/payments", icon: CreditCard },
   { labelKey: "dashboard.sidebar.organizer.transport", href: "/organizer/transport", icon: Bus },
@@ -57,6 +59,7 @@ const adminNav: NavItem[] = [
   { labelKey: "dashboard.sidebar.admin.notifications", href: "/admin/notifications", icon: Bell },
   { labelKey: "dashboard.sidebar.admin.permissions", href: "/admin/permissions", icon: KeyRound },
   { labelKey: "dashboard.sidebar.admin.analytics", href: "/admin/analytics", icon: BarChart3 },
+  { labelKey: "dashboard.sidebar.admin.audit", href: "/admin/audit", icon: Shield },
   { labelKey: "dashboard.sidebar.admin.payments", href: "/admin/payments", icon: CreditCard },
   { labelKey: "dashboard.sidebar.admin.transport", href: "/admin/transport", icon: Bus },
   { labelKey: "dashboard.sidebar.admin.paymentMethods", href: "/admin/payment-methods", icon: Wallet },

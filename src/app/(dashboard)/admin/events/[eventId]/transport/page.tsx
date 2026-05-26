@@ -1,13 +1,13 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Bus } from "lucide-react";
+import { ArrowLeft, Bus, Users } from "lucide-react";
 import { db } from "@/lib/db";
 import { events } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { getRoutesByEvent } from "@/actions/transport";
-import { TransportRoutesManager } from "@/components/dashboard";
+import { TransportRoutesManager, PassengerManifest } from "@/components/dashboard";
 import { getI18n } from "@/lib/i18n/server";
 
 interface Props {
@@ -34,7 +34,7 @@ export default async function AdminEventTransportPage({ params }: Props) {
     const routes = await getRoutesByEvent(eventId);
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
             <div>
                 <Link
                     href="/admin/transport"
@@ -72,6 +72,16 @@ export default async function AdminEventTransportPage({ params }: Props) {
                     bookedSeats: Number(r.bookedSeats),
                 }))}
             />
+
+            {event.hasTransport && (
+                <div className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-4">
+                    <div className="border-b border-border pb-3 flex items-center gap-2">
+                        <Users className="h-5 w-5 text-accent" />
+                        <h2 className="text-lg font-semibold text-foreground">Manifiesto de Pasajeros e Impresión</h2>
+                    </div>
+                    <PassengerManifest eventId={eventId} />
+                </div>
+            )}
         </div>
     );
 }

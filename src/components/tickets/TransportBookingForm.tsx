@@ -12,6 +12,13 @@ import Image from "next/image";
 import Swal from "sweetalert2";
 import { confirmDeleteAction } from "@/lib/ui/confirm";
 
+interface Stop {
+    id: string;
+    name: string;
+    latitude: string | null;
+    longitude: string | null;
+}
+
 interface Route {
     id: string;
     name: string;
@@ -21,6 +28,7 @@ interface Route {
     pricePerSeat: string;
     totalSeats: number;
     availableSeats: number;
+    stops?: Stop[];
 }
 
 interface PaymentMethod {
@@ -54,6 +62,7 @@ export function TransportBookingForm({
     const { locale } = useLocale();
     const [isPending, startTransition] = useTransition();
     const [seats, setSeats] = useState(1);
+    const [stopId, setStopId] = useState("");
     const firstMethodId = paymentMethods[0]?.id ?? "";
     const [methodId, setMethodId] = useState<string>(firstMethodId);
     const [reference, setReference] = useState("");
@@ -121,6 +130,7 @@ export function TransportBookingForm({
                     reference: reference || undefined,
                     receiptUrl: receiptUrl || undefined,
                     receiptFileName: receiptFileName ?? undefined,
+                    stopId: stopId || undefined,
                 });
                 toast.success(t("transport.booking.reservationSent"));
                 router.refresh();
@@ -184,6 +194,58 @@ export function TransportBookingForm({
                         S/. {totalPrice.toFixed(2)}
                     </div>
                 </div>
+
+                {/* Intermediate Stops Dropdown Selector */}
+                {route.stops && route.stops.length > 0 && (
+                    <div className="sm:col-span-2 space-y-2">
+                        <label htmlFor="stopId" className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                            <MapPin className="h-4 w-4 text-primary" />
+                            Punto de Subida (Paradero Intermedio)
+                        </label>
+                        <select
+                            id="stopId"
+                            value={stopId}
+                            onChange={(e) => setStopId(e.target.value)}
+                            disabled={isPending || isUploading}
+                            className={inputClass}
+                        >
+                            <option value="">Punto de salida general por defecto ({route.departurePoint})</option>
+                            {route.stops.map((stop) => (
+                                <option key={stop.id} value={stop.id}>
+                                    {stop.name}
+                                </option>
+                            ))}
+                        </select>
+                        
+                        {/* Dynamic directions GPS button */}
+                        {stopId && (() => {
+                            const selectedStop = route.stops?.find((s) => s.id === stopId);
+                            if (selectedStop && selectedStop.latitude && selectedStop.longitude) {
+                                return (
+                                    <div className="rounded-xl bg-primary/5 border border-primary/10 p-3.5 text-xs text-primary flex items-center justify-between gap-3 animate-in fade-in duration-200">
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-bold flex items-center gap-1">
+                                                <span>📍</span> Paradero: {selectedStop.name}
+                                            </p>
+                                            <p className="text-muted-foreground mt-0.5 leading-relaxed">
+                                                El autobús realizará una parada rápida aquí. Abre el enlace GPS para ver la ubicación exacta.
+                                            </p>
+                                        </div>
+                                        <a
+                                            href={`https://www.google.com/maps/search/?api=1&query=${selectedStop.latitude},${selectedStop.longitude}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center justify-center rounded-lg bg-primary hover:bg-primary/95 text-primary-foreground font-bold px-3 py-2 text-[10px] shrink-0 transition-all shadow-xs"
+                                        >
+                                            Ver Mapa GPS
+                                        </a>
+                                    </div>
+                                );
+                            }
+                            return null;
+                        })()}
+                    </div>
+                )}
 
                 {paymentMethods.length === 0 ? (
                     <div className="sm:col-span-2 rounded-xl border border-dashed border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 p-4 text-center text-sm text-amber-800 dark:text-amber-300">

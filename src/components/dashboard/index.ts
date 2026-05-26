@@ -28,6 +28,7 @@ export * from "./admin/PermissionToggleCell";
 // ─── Organizer / Management Components ────────────────────────────────────────
 export * from "./organizer/TransportRoutesManager";
 export * from "./organizer/ToggleEventTransportButton";
+export * from "./organizer/PassengerManifest";
 
 // ─── Shared Components ───────────────────────────────────────────────────────
 export * from "./shared/TablePagination";

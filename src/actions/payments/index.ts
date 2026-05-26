@@ -10,6 +10,7 @@ import {
   type UpdatePaymentStatusInput,
 } from "@/lib/validations";
 import { PaymentService } from "@/services/payments/payment.service";
+import { LogService } from "@/lib/analytics/audit";
 
 type AuthenticatedContext = {
   user: NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>["user"];
@@ -76,6 +77,21 @@ export async function updatePaymentStatus(input: UpdatePaymentStatusInput) {
     user.role ?? "member",
     validated
   );
+
+  const hdrs = await headers();
+  const ipAddress = hdrs.get("x-forwarded-for") ?? hdrs.get("x-real-ip") ?? "unknown";
+  const userAgent = hdrs.get("user-agent") ?? "unknown";
+
+  await LogService.log({
+    actorId: user.id,
+    actorName: user.name ?? user.email,
+    action: "payment.status_update",
+    entityType: "payment",
+    entityId: validated.paymentId,
+    details: `Pago de S/. ${result.payment.amount} marcado como: ${validated.status}. Notas: ${validated.notes || "ninguna"}`,
+    ipAddress,
+    userAgent,
+  });
 
   // Revalidación de caché en la capa web/controlador
   // Obtenemos los detalles de la inscripción vinculada para saber el slug

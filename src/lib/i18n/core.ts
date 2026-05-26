@@ -190,6 +190,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                     overview: "Resumen",
                     myEvents: "Mis eventos",
                     attendees: "Asistentes",
+                    broadcasts: "Comunicados",
                     notifications: "Notificaciones",
                     payments: "Pagos",
                     transport: "Transporte",
@@ -214,6 +215,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                     profile: "Perfil",
                     settings: "Configuración",
                     roles: "Roles",
+                    audit: "Auditoría de seguridad",
                 },
                 member: {
                     discover: "Descubrir",
@@ -1040,6 +1042,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                     overview: "Overview",
                     myEvents: "My events",
                     attendees: "Attendees",
+                    broadcasts: "Broadcasts",
                     notifications: "Notifications",
                     payments: "Payments",
                     transport: "Transport",
@@ -1064,6 +1067,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                     profile: "Profile",
                     settings: "Settings",
                     roles: "Roles",
+                    audit: "Security Audit",
                 },
                 member: {
                     discover: "Discover",
