@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Orange/Amber Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e37602" />
+      <stop offset="100%" stop-color="#bf5600" />
+    </linearGradient>
+    
+    <!-- Glow Effect for the Star -->
+    <filter id="starGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10" result="blur" />
+      <feComponentTransfer in="blur" result="glow1">
+        <feFuncA type="linear" slope="0.4" />
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode in="glow1" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Main Background Rounded Card -->
+  <rect width="512" height="512" rx="140" fill="url(#bgGrad)" />
+
+  <!-- Inner Subtle Ambient Border -->
+  <rect x="16" y="16" width="480" height="480" rx="124" fill="none" stroke="#ffffff" stroke-width="4" stroke-opacity="0.08" />
+
+  <!-- Centered Four-Pointed Star Sparkle with Premium Glow -->
+  <path d="M 256,186 Q 256,256 186,256 Q 256,256 256,326 Q 256,256 326,256 Q 256,256 256,186 Z" fill="#ffffff" filter="url(#starGlow)" />
+</svg>

@@ -26,6 +26,7 @@ export const metadata: Metadata = {
   description:
     "Gestiona y descubre eventos cristianos con facilidad. Regístrate, conecta y crezcan juntos.",
   keywords: ["fe", "comunidad", "eventos", "iglesia", "adoración", "retiro"],
+  manifest: "/manifest.json",
 };
 
 export default async function RootLayout({

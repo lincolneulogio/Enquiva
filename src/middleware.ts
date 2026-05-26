@@ -9,6 +9,8 @@ const publicRoutes = new Set([
   "/forgot-password",
   "/reset-password",
   "/events",
+  "/manifest.json",
+  "/sw.js",
 ]);
 
 const publicPatterns = [
@@ -17,6 +19,7 @@ const publicPatterns = [
   "/_next/",
   "/api/",
   "/favicon.ico",
+  "/images/",
 ];
 
 function isPublicRoute(pathname: string): boolean {
