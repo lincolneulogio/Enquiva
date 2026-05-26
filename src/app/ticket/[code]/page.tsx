@@ -1,10 +1,11 @@
 import { db } from "@/lib/db";
-import { tickets, registrations, events } from "@/lib/db/schema";
+import { tickets, registrations, events, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { formatEventDate } from "@/lib/utils";
 import { getI18n } from "@/lib/i18n/server";
 import Link from "next/link";
+import { DownloadTicketButton } from "@/components/tickets/DownloadTicketButton";
 
 interface TicketPublicPageProps {
   params: Promise<{ code: string }>;
@@ -12,16 +13,17 @@ interface TicketPublicPageProps {
 }
 
 export default async function TicketPublicPage({ params, searchParams }: TicketPublicPageProps) {
-  const { t } = await getI18n();
+  const { locale, t } = await getI18n();
   const { code } = await params;
   const query = await searchParams;
   const showAccountPrompt = query.from === "phone-signup";
 
   const [record] = await db
-    .select({ ticket: tickets, registration: registrations, event: events })
+    .select({ ticket: tickets, registration: registrations, event: events, user: users })
     .from(tickets)
     .innerJoin(registrations, eq(tickets.registrationId, registrations.id))
     .innerJoin(events, eq(registrations.eventId, events.id))
+    .innerJoin(users, eq(registrations.userId, users.id))
     .where(eq(tickets.code, code))
     .limit(1);
 
@@ -41,6 +43,9 @@ export default async function TicketPublicPage({ params, searchParams }: TicketP
         <h1 className="mt-3 text-3xl font-semibold text-foreground">{record.event.title}</h1>
 
         <div className="mt-6 space-y-2 text-sm text-muted-foreground">
+          <p>
+            <span className="font-medium text-foreground">{locale === "en" ? "Attendee" : "Asistente"}:</span> {record.user.name}
+          </p>
           <p>
             <span className="font-medium text-foreground">{t("public.ticket.dateLabel")}:</span> {formatEventDate(record.event.date)}
           </p>
@@ -64,6 +69,22 @@ export default async function TicketPublicPage({ params, searchParams }: TicketP
             <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-primary/70">
               {t("public.ticket.scanHelper") || "Escanea este código en la entrada"}
             </p>
+          </div>
+        )}
+
+        {record.ticket.qrCode && (
+          <div className="mt-6 flex justify-center border-t border-border/40 pt-6">
+            <DownloadTicketButton
+              ticketCode={record.ticket.code}
+              eventTitle={record.event.title}
+              eventDate={record.event.date}
+              eventLocation={record.event.location}
+              isVirtual={record.event.isVirtual}
+              attendeeName={record.user.name}
+              qrCode={record.ticket.qrCode}
+              registrationStatus={record.registration.status}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.98] cursor-pointer"
+            />
           </div>
         )}
 

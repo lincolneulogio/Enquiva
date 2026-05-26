@@ -10,6 +10,8 @@ import {
   useTranslations,
 } from "@/components/providers/LocaleProvider";
 import { useState } from "react";
+import { toast } from "sonner";
+import { DownloadTicketButton } from "./DownloadTicketButton";
 import {
   Ticket as TicketIcon,
   Coins,
@@ -20,6 +22,7 @@ import {
   AlertCircle,
   FileText
 } from "lucide-react";
+
 
 interface TicketCardProps {
   ticket?: Ticket | null;
@@ -317,20 +320,19 @@ export function TicketCard({
             ? t("ticket.manageTransport")
             : t("ticket.paymentSummary")}
         </Link>
-        <button
-          onClick={() => {
-            if (!qr) return;
-            const a = document.createElement("a");
-            a.href = qr;
-            a.download = `${event.slug ?? event.title}-ticket.png`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-          }}
-          className="rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground hover:bg-secondary transition"
-        >
-          {t("ticket.download")}
-        </button>
+        {ticket && (
+          <DownloadTicketButton
+            ticketCode={ticket.code}
+            eventTitle={event.title}
+            eventDate={event.date}
+            eventLocation={event.location}
+            isVirtual={event.isVirtual}
+            attendeeName={null}
+            qrCode={qr}
+            registrationStatus={registration.status}
+            className="rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground hover:bg-secondary transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+          />
+        )}
         <ResendButton registrationId={registration.id} />
       </div>
     </div>
@@ -350,9 +352,10 @@ function ResendButton({ registrationId }: { registrationId: string }) {
         body: JSON.stringify({ registrationId }),
       });
       if (!res.ok) throw new Error("Failed");
-      // show toast in app (omitted)
+      toast.success(t("ticket.resendSuccess"));
     } catch (err) {
       console.error(err);
+      toast.error(t("ticket.resendError"));
     } finally {
       setLoading(false);
     }
@@ -362,7 +365,7 @@ function ResendButton({ registrationId }: { registrationId: string }) {
     <button
       onClick={resend}
       disabled={loading}
-      className="rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground hover:bg-secondary transition"
+      className="rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground hover:bg-secondary transition disabled:opacity-50 cursor-pointer"
     >
       {loading ? t("ticket.sending") : t("ticket.resend")}
     </button>
