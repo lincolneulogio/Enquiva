@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { activityLogs } from "@/lib/db/schema";
-import { desc, or, ilike, count, sql } from "drizzle-orm";
+import { desc, or, and, eq, ilike, count, sql, inArray } from "drizzle-orm";
 import { ShieldCheck, Search, Shield, User, Globe, Laptop, KeyRound } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { formatEventDate } from "@/lib/utils";
@@ -11,6 +11,8 @@ interface AdminAuditPageProps {
   searchParams: Promise<{
     page?: string;
     search?: string;
+    action?: string;
+    entityType?: string;
   }>;
 }
 
@@ -62,21 +64,60 @@ export default async function AdminAuditPage({ searchParams }: AdminAuditPagePro
   const requestedPage = Number(params.page ?? "1");
   const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
   const searchQuery = String(params.search ?? "").trim();
+  const selectedAction = params.action ? String(params.action).trim() : "";
+  const selectedEntity = params.entityType ? String(params.entityType).trim() : "";
 
   // Build filter conditions
   const conditions = [];
   if (searchQuery) {
-    conditions.push(
-      or(
-        ilike(activityLogs.actorName, `%${searchQuery}%`),
-        ilike(activityLogs.action, `%${searchQuery}%`),
-        ilike(activityLogs.entityType, `%${searchQuery}%`),
-        ilike(activityLogs.details, `%${searchQuery}%`)
-      )
-    );
+    const matchedActions: string[] = [];
+    const lowerSearch = searchQuery.toLowerCase();
+    
+    // Match search query against bilingual action labels
+    for (const [actionKey, translations] of Object.entries(actionLabels)) {
+      if (
+        translations.es.toLowerCase().includes(lowerSearch) ||
+        translations.en.toLowerCase().includes(lowerSearch) ||
+        actionKey.toLowerCase().includes(lowerSearch)
+      ) {
+        matchedActions.push(actionKey);
+      }
+    }
+
+    const searchConditions = [
+      ilike(activityLogs.actorName, `%${searchQuery}%`),
+      ilike(activityLogs.details, `%${searchQuery}%`),
+      ilike(activityLogs.action, `%${searchQuery}%`),
+      ilike(activityLogs.entityType, `%${searchQuery}%`),
+    ];
+
+    // Smart-map Spanish search status inputs to DB english status fields
+    if (lowerSearch.includes("rechaz")) {
+      searchConditions.push(ilike(activityLogs.details, "%rejected%"));
+    }
+    if (lowerSearch.includes("aprob") || lowerSearch.includes("valid")) {
+      searchConditions.push(ilike(activityLogs.details, "%approved%"));
+    }
+    if (lowerSearch.includes("pend")) {
+      searchConditions.push(ilike(activityLogs.details, "%pending%"));
+    }
+
+    if (matchedActions.length > 0) {
+      searchConditions.push(inArray(activityLogs.action, matchedActions));
+    }
+
+    conditions.push(or(...searchConditions));
   }
 
-  const whereClause = conditions.length > 0 ? conditions[0] : undefined;
+  if (selectedAction) {
+    conditions.push(eq(activityLogs.action, selectedAction));
+  }
+
+  if (selectedEntity) {
+    conditions.push(eq(activityLogs.entityType, selectedEntity));
+  }
+
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
   const [{ total }] = await db
     .select({ total: count() })
@@ -111,33 +152,82 @@ export default async function AdminAuditPage({ searchParams }: AdminAuditPagePro
         </div>
       </div>
 
-      {/* Search Bar Panel */}
-      <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-sm">
-        <form method="GET" action="/admin/audit" className="flex gap-3 max-w-lg">
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
-            <input
-              type="text"
-              name="search"
-              defaultValue={params.search ?? ""}
-              placeholder={locale === "en" ? "Search by actor, action or detail..." : "Buscar por actor, acción o detalles..."}
-              className="w-full rounded-xl border border-border bg-background pl-10 pr-4 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary h-10 transition-all text-foreground"
-            />
+      {/* Search and Filters Panel */}
+      <div className="bg-card border border-border/60 rounded-3xl p-6 shadow-sm">
+        <form method="GET" action="/admin/audit" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+          
+          {/* Text Search */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground block">
+              {locale === "en" ? "Search" : "Buscar"}
+            </label>
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+              <input
+                type="text"
+                name="search"
+                defaultValue={params.search ?? ""}
+                placeholder={locale === "en" ? "Actor, details..." : "Autor, detalles..."}
+                className="w-full rounded-xl border border-border bg-background pl-10 pr-4 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary h-10 transition-all text-foreground"
+              />
+            </div>
           </div>
-          <button
-            type="submit"
-            className="rounded-xl bg-primary hover:bg-primary/95 text-primary-foreground font-semibold px-4 h-10 text-xs transition duration-200"
-          >
-            {locale === "en" ? "Filter" : "Filtrar"}
-          </button>
-          {params.search && (
-            <Link
-              href="/admin/audit"
-              className="rounded-xl border border-border bg-background hover:bg-secondary px-3 h-10 text-xs font-semibold flex items-center justify-center text-foreground transition-all"
+
+          {/* Action Filter */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground block">
+              {locale === "en" ? "Action" : "Acción"}
+            </label>
+            <select
+              name="action"
+              defaultValue={selectedAction}
+              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary h-10 transition-all text-foreground cursor-pointer"
             >
-              {locale === "en" ? "Clear" : "Limpiar"}
-            </Link>
-          )}
+              <option value="">{locale === "en" ? "All Actions" : "Todas las acciones"}</option>
+              {Object.entries(actionLabels).map(([key, trans]) => (
+                <option key={key} value={key}>
+                  {trans[locale]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Module/Entity Filter */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground block">
+              {locale === "en" ? "Module" : "Módulo"}
+            </label>
+            <select
+              name="entityType"
+              defaultValue={selectedEntity}
+              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary h-10 transition-all text-foreground cursor-pointer"
+            >
+              <option value="">{locale === "en" ? "All Modules" : "Todos los módulos"}</option>
+              <option value="user">{locale === "en" ? "Users" : "Usuarios"}</option>
+              <option value="event">{locale === "en" ? "Events" : "Eventos"}</option>
+              <option value="payment">{locale === "en" ? "Payments" : "Pagos"}</option>
+              <option value="settings">{locale === "en" ? "Settings" : "Configuración"}</option>
+            </select>
+          </div>
+
+          {/* Filter Buttons */}
+          <div className="flex gap-2 h-10">
+            <button
+              type="submit"
+              className="flex-1 rounded-xl bg-primary hover:bg-primary/95 text-primary-foreground font-semibold px-4 text-xs transition duration-200 cursor-pointer h-full"
+            >
+              {locale === "en" ? "Filter" : "Filtrar"}
+            </button>
+            {(params.search || params.action || params.entityType) && (
+              <Link
+                href="/admin/audit"
+                className="rounded-xl border border-border bg-background hover:bg-secondary px-3 text-xs font-semibold flex items-center justify-center text-foreground transition-all h-full"
+              >
+                {locale === "en" ? "Clear" : "Limpiar"}
+              </Link>
+            )}
+          </div>
+
         </form>
       </div>
 
@@ -215,6 +305,8 @@ export default async function AdminAuditPage({ searchParams }: AdminAuditPagePro
             pageSize={PAGE_SIZE}
             query={{
               search: params.search,
+              action: params.action,
+              entityType: params.entityType,
             }}
           />
         </div>
