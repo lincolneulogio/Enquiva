@@ -56,9 +56,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing signature" }, { status: 400 });
     }
 
-    const payloadToSign = `${ticket.code}|${ticket.registrationId}|${new Date(ticket.issuedAt).toISOString()}`;
-    const expected = crypto.createHmac("sha256", env.TICKET_SIGNING_KEY).update(payloadToSign).digest("hex");
-    if (expected !== providedSignature) {
+    const provided = providedSignature;
+    const dbSignature = ticket.signature;
+
+    // Verificar firma comparando con la guardada en BD, con fallback criptográfico para compatibilidad legacy
+    let isSignatureValid = false;
+    if (dbSignature && dbSignature === provided) {
+      isSignatureValid = true;
+    } else {
+      const payloadToSign = `${ticket.code}|${ticket.registrationId}|${new Date(ticket.issuedAt).toISOString()}`;
+      const expected = crypto.createHmac("sha256", env.TICKET_SIGNING_KEY).update(payloadToSign).digest("hex");
+      isSignatureValid = (expected === provided);
+    }
+
+    if (!isSignatureValid) {
       await db.insert(scanLogs).values({ ticketId: ticket.id, result: "signature_mismatch" }).returning();
       return NextResponse.json({ success: false, error: "Invalid signature" }, { status: 400 });
     }
