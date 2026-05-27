@@ -80,12 +80,23 @@ export async function sendTicketEmail(input: {
     orgName: organizationName,
   });
 
+  const attachments: any[] = [];
+  if (input.qrDataUrl && input.qrDataUrl.startsWith("data:image/")) {
+    const base64Data = input.qrDataUrl.replace(/^data:image\/\w+;base64,/, "");
+    attachments.push({
+      filename: "qrcode.png",
+      content: Buffer.from(base64Data, "base64"),
+      cid: "qrcode",
+    });
+  }
+
   await transporter.sendMail({
     from: sender(),
     to: input.email,
     subject,
     text,
     html,
+    attachments,
   });
 }
 
@@ -114,14 +125,25 @@ export async function sendTicketEmailWithPdf(input: {
     orgName: organizationName,
   });
 
+  const attachments: any[] = [
+    { filename: `${input.eventTitle}-ticket.pdf`, content: pdfBuffer },
+  ];
+
+  if (input.qrDataUrl && input.qrDataUrl.startsWith("data:image/")) {
+    const base64Data = input.qrDataUrl.replace(/^data:image\/\w+;base64,/, "");
+    attachments.push({
+      filename: "qrcode.png",
+      content: Buffer.from(base64Data, "base64"),
+      cid: "qrcode",
+    });
+  }
+
   await transporter.sendMail({
     from: sender(),
     to: input.email,
     subject,
     text,
     html,
-    attachments: [
-      { filename: `${input.eventTitle}-ticket.pdf`, content: pdfBuffer },
-    ],
+    attachments,
   });
 }

@@ -190,7 +190,7 @@ export function getTicketTemplate(opts: {
     ? `
       <div style="text-align: center; margin: 24px 0;">
         <div style="display: inline-block; padding: 16px; background-color: #ffffff; border: 1px solid rgba(75, 26, 181, 0.1); border-radius: 24px; box-shadow: 0 10px 25px -5px rgba(75, 26, 181, 0.05); text-align: center;">
-          <img src="${opts.qrDataUrl}" alt="Código QR de la Entrada" style="width: 190px; height: 190px; display: block; border-radius: 12px; margin: 0 auto;" />
+          <img src="${opts.qrDataUrl.startsWith("data:image/") ? "cid:qrcode" : opts.qrDataUrl}" alt="Código QR de la Entrada" style="width: 190px; height: 190px; display: block; border-radius: 12px; margin: 0 auto;" />
           <span style="font-size: 11px; color: #94a3b8; font-family: 'Outfit', sans-serif; display: block; margin-top: 10px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">Escanea en la entrada</span>
         </div>
       </div>
