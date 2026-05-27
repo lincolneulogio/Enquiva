@@ -1,66 +1,118 @@
-function escapePdfText(value: string) {
-  return value
-    .replace(/\\/g, "\\\\")
-    .replace(/\(/g, "\\(")
-    .replace(/\)/g, "\\)");
-}
+import { jsPDF } from "jspdf";
 
-function buildSimplePdf(lines: string[]) {
-  const contentLines = [
-    "BT",
-    "/F1 18 Tf",
-    "72 760 Td",
-    ...lines.flatMap((line, index) => {
-      const safeLine = escapePdfText(line);
-      if (index === 0) {
-        return [`(${safeLine}) Tj`];
-      }
-      return ["0 -24 Td", `(${safeLine}) Tj`];
-    }),
-    "ET",
-  ];
+export async function generatePdfBuffer(opts: {
+  eventTitle: string;
+  code?: string;
+  qrDataUrl?: string;
+  attendeeName?: string | null;
+}) {
+  // Create a compact ticket-sized document (width: 320pt, height: 520pt)
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "pt",
+    format: [320, 520],
+  });
 
-  const content = contentLines.join("\n");
-  const contentLength = Buffer.byteLength(content, "utf8");
+  // --- 1. CABECERA PREMIUM (BANNER SUPERIOR) ---
+  doc.setFillColor(109, 76, 217); // Violet
+  doc.rect(0, 0, 320, 95, "F");
 
-  const objects = [
-    "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj",
-    "2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj",
-    "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj",
-    "4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj",
-    `5 0 obj << /Length ${contentLength} >> stream\n${content}\nendstream endobj`,
-  ];
+  // Decorative circles in banner
+  doc.setFillColor(124, 93, 230);
+  doc.circle(280, 20, 40, "F");
+  doc.setFillColor(93, 58, 208);
+  doc.circle(30, 80, 25, "F");
 
-  const header = "%PDF-1.4\n";
-  let pdf = header;
-  const offsets: number[] = [0];
+  // App Title
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("ENCUENTRO DE FE", 160, 40, { align: "center" });
 
-  for (const object of objects) {
-    offsets.push(Buffer.byteLength(pdf, "utf8"));
-    pdf += `${object}\n`;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(215, 205, 255);
+  doc.text("Entrada Oficial del Evento", 160, 58, { align: "center" });
+
+  // --- 2. DETALLES DEL EVENTO ---
+  doc.setTextColor(30, 30, 30);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(15);
+
+  const splitTitle = doc.splitTextToSize(opts.eventTitle, 280);
+  doc.text(splitTitle, 20, 130);
+
+  const titleHeight = splitTitle.length * 18;
+  let currentY = 130 + titleHeight + 5;
+
+  // Thin dividing line
+  doc.setDrawColor(230, 230, 230);
+  doc.setLineWidth(1);
+  doc.line(20, currentY, 300, currentY);
+  currentY += 20;
+
+  // Attendee details
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(120, 120, 120);
+  doc.text("ASISTENTE", 20, currentY);
+  doc.text("ESTADO", 165, currentY);
+
+  currentY += 14;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(40, 40, 40);
+  doc.text(opts.attendeeName || "—", 20, currentY);
+  doc.text("Activo / Registrado", 165, currentY);
+
+  currentY += 20;
+
+  // --- 3. TICKET STUB (TEAR-OFF / SECCIÓN QR) ---
+  doc.setDrawColor(180, 180, 180);
+  doc.setLineDashPattern([4, 4], 0);
+  doc.line(15, currentY, 305, currentY);
+  doc.setLineDashPattern([], 0); // reset
+
+  // Border notches
+  doc.setFillColor(250, 252, 255);
+  doc.circle(0, currentY, 8, "F");
+  doc.circle(320, currentY, 8, "F");
+
+  currentY += 25;
+
+  // Draw the QR Code image
+  if (opts.qrDataUrl) {
+    try {
+      const qrSize = 100;
+      const qrX = (320 - qrSize) / 2;
+      doc.addImage(opts.qrDataUrl, "PNG", qrX, currentY, qrSize, qrSize);
+      currentY += qrSize + 15;
+    } catch (err) {
+      console.error("Failed to add QR image in PDF generator:", err);
+      currentY += 15;
+    }
   }
 
-  const xrefOffset = Buffer.byteLength(pdf, "utf8");
-  pdf += `xref\n0 ${objects.length + 1}\n`;
-  pdf += "0000000000 65535 f \n";
-
-  for (let i = 1; i < offsets.length; i += 1) {
-    pdf += `${offsets[i].toString().padStart(10, "0")} 00000 n \n`;
+  // Ticket Code
+  if (opts.code) {
+    doc.setTextColor(80, 80, 80);
+    doc.setFont("courier", "bold");
+    doc.setFontSize(12);
+    doc.text(opts.code, 160, currentY, { align: "center" });
+    
+    currentY += 15;
   }
 
-  pdf += `trailer << /Size ${objects.length + 1} /Root 1 0 R >>\n`;
-  pdf += `startxref\n${xrefOffset}\n%%EOF`;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(140, 140, 140);
+  doc.text(
+    "Por favor, presente este código en el ingreso al evento.",
+    160,
+    currentY,
+    { align: "center" }
+  );
 
-  return Buffer.from(pdf, "utf8");
-}
-
-export function generatePdfBuffer(opts: { eventTitle: string; code?: string; qrDataUrl?: string }) {
-  const lines = [
-    opts.eventTitle,
-    `Código: ${opts.code ?? "-"}`,
-    "Ticket emitido por SistemaEventsFIN",
-    opts.qrDataUrl ? "QR disponible en el correo HTML" : "",
-  ].filter(Boolean);
-
-  return buildSimplePdf(lines);
+  const pdfArrayBuffer = doc.output("arraybuffer");
+  return Buffer.from(pdfArrayBuffer);
 }

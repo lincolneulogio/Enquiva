@@ -114,6 +114,7 @@ export async function sendTicketEmailWithPdf(input: {
     eventTitle: input.eventTitle,
     code: input.code,
     qrDataUrl: input.qrDataUrl,
+    attendeeName: input.name,
   });
 
   const { subject, text, html } = getTicketTemplate({
