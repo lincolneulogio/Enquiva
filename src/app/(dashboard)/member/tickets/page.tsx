@@ -2,6 +2,9 @@ import { getUserRegistrations } from "@/actions/registrations";
 import { getUserPayments } from "@/actions/payments";
 import { TicketCard } from "@/components/tickets/TicketCard";
 import { getI18n } from "@/lib/i18n/server";
+import { db } from "@/lib/db";
+import { transportBookings, transportRoutes, transportStops } from "@/lib/db/schema";
+import { eq, inArray } from "drizzle-orm";
 
 export default async function MemberTicketsPage() {
   const { t } = await getI18n();
@@ -14,6 +17,37 @@ export default async function MemberTicketsPage() {
   for (const { payment, registration } of payments) {
     if (!paymentByRegistrationId.has(registration.id)) {
       paymentByRegistrationId.set(registration.id, payment);
+    }
+  }
+
+  const registrationIds = registrations.map((r) => r.registration.id);
+  const transportByRegistrationId = new Map<
+    string,
+    {
+      booking: typeof transportBookings.$inferSelect;
+      route: typeof transportRoutes.$inferSelect;
+      stop: typeof transportStops.$inferSelect | null;
+    }
+  >();
+
+  if (registrationIds.length > 0) {
+    const bookingsList = await db
+      .select({
+        booking: transportBookings,
+        route: transportRoutes,
+        stop: transportStops,
+      })
+      .from(transportBookings)
+      .innerJoin(transportRoutes, eq(transportBookings.routeId, transportRoutes.id))
+      .leftJoin(transportStops, eq(transportBookings.stopId, transportStops.id))
+      .where(inArray(transportBookings.registrationId, registrationIds));
+
+    for (const item of bookingsList) {
+      transportByRegistrationId.set(item.booking.registrationId, {
+        booking: item.booking,
+        route: item.route,
+        stop: item.stop,
+      });
     }
   }
 
@@ -44,6 +78,7 @@ export default async function MemberTicketsPage() {
               paymentStatus={paymentByRegistrationId.get(registration.id)?.status}
               paymentReceiptUrl={paymentByRegistrationId.get(registration.id)?.receiptUrl}
               paymentMethod={paymentByRegistrationId.get(registration.id)?.method}
+              transportBooking={transportByRegistrationId.get(registration.id)}
             />
           ))}
         </div>
