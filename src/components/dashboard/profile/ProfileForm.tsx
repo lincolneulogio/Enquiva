@@ -72,7 +72,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="space-y-5 rounded-xl border border-border bg-card p-6"
+      className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-6"
     >
       <div>
         <label className="mb-1.5 block text-sm font-medium text-foreground">
@@ -153,23 +153,31 @@ export function ProfileForm({ user }: ProfileFormProps) {
       </div>
 
       <div className="rounded-xl border border-border bg-background p-4">
-        <div className="space-y-3">
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <Mail className="h-4 w-4" />
-            <span>{t("common.email")}:</span>
-            <span className="font-medium text-foreground">{user.email}</span>
+        <div className="space-y-3.5">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 shrink-0">
+              <Mail className="h-4 w-4 text-muted-foreground/80" />
+              <span className="font-medium">{t("common.email")}:</span>
+            </div>
+            <span className="font-semibold text-foreground break-all sm:break-normal select-all">
+              {user.email}
+            </span>
           </div>
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <Shield className="h-4 w-4" />
-            <span>{t("common.role")}:</span>
-            <span className="font-medium capitalize text-foreground">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 shrink-0">
+              <Shield className="h-4 w-4 text-muted-foreground/80" />
+              <span className="font-medium">{t("common.role")}:</span>
+            </div>
+            <span className="font-semibold capitalize text-foreground">
               {getRoleLabel(user.role, locale)}
             </span>
           </div>
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <User className="h-4 w-4" />
-            <span>{t("common.account")}:</span>
-            <span className="font-medium text-foreground">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2 shrink-0">
+              <User className="h-4 w-4 text-muted-foreground/80" />
+              <span className="font-medium">{t("common.account")}:</span>
+            </div>
+            <span className="font-semibold text-foreground">
               {t("dashboard.profile.accountInfoEditable")}
             </span>
           </div>

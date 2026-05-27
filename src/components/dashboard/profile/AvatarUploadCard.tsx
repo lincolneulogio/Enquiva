@@ -31,7 +31,7 @@ export function AvatarUploadCard({
   };
 
   return (
-    <div className="rounded-2xl border border-border/80 bg-background/60 backdrop-blur-sm p-6 shadow-sm hover:shadow-md transition-all duration-300">
+    <div className="rounded-2xl border border-border/80 bg-background/60 backdrop-blur-sm p-4 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300">
       <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start sm:justify-start">
         {/* Glow and Image Ring */}
         <div className="shrink-0 group relative">

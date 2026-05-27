@@ -35,7 +35,7 @@ export default async function AdminSettingsPage() {
             {/* Database Backup Card - Only for Super Admins */}
             {normalizedRole === "super_admin" && (
                 <div className="max-w-5xl pt-4">
-                    <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                    <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
                         <h2 className="text-lg font-semibold text-foreground">Copia de Seguridad de la Base de Datos</h2>
                         <p className="mt-1 text-xs text-muted-foreground">
                             Descarga una copia completa de toda la información del sistema (usuarios, eventos, inscripciones, pagos y transporte) en un archivo de respaldo estructurado JSON.
