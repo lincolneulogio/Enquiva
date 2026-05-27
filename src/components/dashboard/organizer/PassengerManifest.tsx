@@ -29,6 +29,8 @@ export function PassengerManifest({ eventId }: PassengerManifestProps) {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [driverName, setDriverName] = useState("");
+  const [vehiclePlate, setVehiclePlate] = useState("");
 
   useEffect(() => {
     async function loadData() {
@@ -93,12 +95,12 @@ export function PassengerManifest({ eventId }: PassengerManifestProps) {
     doc.setFont("helvetica", "bold");
     doc.text("Conductor:", 14, 55);
     doc.setFont("helvetica", "normal");
-    doc.text("___________________________", 45, 55);
+    doc.text(driverName.trim() || "___________________________", 45, 55);
 
     doc.setFont("helvetica", "bold");
     doc.text("Placa Vehículo:", 120, 55);
     doc.setFont("helvetica", "normal");
-    doc.text("___________", 152, 55);
+    doc.text(vehiclePlate.trim().toUpperCase() || "___________", 152, 55);
 
     // Group bookings by route
     const routesMap = new Map<string, BookingItem[]>();
@@ -209,6 +211,34 @@ export function PassengerManifest({ eventId }: PassengerManifestProps) {
 
   return (
     <div className="space-y-6">
+      {/* Datos del Conductor y Vehículo (Opcional) */}
+      <div className="grid gap-4 sm:grid-cols-2 rounded-2xl border border-border/80 bg-muted/20 p-5 shadow-3xs">
+        <div>
+          <label className="mb-1.5 block text-xs font-bold text-foreground uppercase tracking-wider">
+            Nombre del Conductor (Opcional)
+          </label>
+          <input
+            type="text"
+            placeholder="Ej: Juan Pérez"
+            value={driverName}
+            onChange={(e) => setDriverName(e.target.value)}
+            className="w-full rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground transition-all duration-200"
+          />
+        </div>
+        <div>
+          <label className="mb-1.5 block text-xs font-bold text-foreground uppercase tracking-wider">
+            Placa del Vehículo (Opcional)
+          </label>
+          <input
+            type="text"
+            placeholder="Ej: ABC-123"
+            value={vehiclePlate}
+            onChange={(e) => setVehiclePlate(e.target.value)}
+            className="w-full rounded-xl border border-border bg-background px-4 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground transition-all duration-200"
+          />
+        </div>
+      </div>
+
       {/* Manifest Info Controls */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative flex-1 max-w-md">

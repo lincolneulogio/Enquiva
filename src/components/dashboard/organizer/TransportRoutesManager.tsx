@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Pencil, Bus, Users, Check, X, MapPin } from "lucide-react";
+import { Loader2, Plus, Trash2, Pencil, Bus, Users, Check, X, MapPin, Smartphone, QrCode, Wallet, Clock, RefreshCw, CreditCard, AlertTriangle } from "lucide-react";
 import {
     createRoute,
     updateRoute,
@@ -12,6 +12,7 @@ import {
     createTransportStop,
     deleteTransportStop,
 } from "@/actions/transport";
+import { getEventPaymentMethods } from "@/actions/payment-methods";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { getIntlLocale } from "@/lib/i18n/core";
 
@@ -61,6 +62,25 @@ export function TransportRoutesManager({
     const [editId, setEditId] = useState<string | null>(null);
     const [form, setForm] = useState(EMPTY_FORM);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    // Event payment methods states
+    const [eventPaymentMethods, setEventPaymentMethods] = useState<Array<{ id: string; type: string; label: string; phone?: string | null; holderName: string }>>([]);
+    const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
+
+    useEffect(() => {
+        if (!eventId) return;
+        (async () => {
+            setLoadingPaymentMethods(true);
+            try {
+                const methods = await getEventPaymentMethods(eventId);
+                setEventPaymentMethods(methods);
+            } catch (err) {
+                console.error("Failed to load event payment methods:", err);
+            } finally {
+                setLoadingPaymentMethods(false);
+            }
+        })();
+    }, [eventId]);
 
     // Stops management states
     const [expandedRouteId, setExpandedRouteId] = useState<string | null>(null);
@@ -367,6 +387,65 @@ export function TransportRoutesManager({
                             />
                         </div>
 
+                        {/* payment methods warning or info */}
+                        <div className="sm:col-span-2 rounded-2xl border border-border/60 bg-muted/20 p-4 space-y-3">
+                            <span className="block text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                                <Wallet className="h-4 w-4 text-primary" />
+                                {locale === "en" ? "Event Payment Methods" : "Medios de Pago Habilitados para el Transporte"}
+                            </span>
+                            {loadingPaymentMethods ? (
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                                    <span>{t("common.loading") || "Cargando..."}</span>
+                                </div>
+                            ) : eventPaymentMethods.length === 0 ? (
+                                <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-3 text-xs text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/20 dark:text-amber-300 flex gap-2.5 items-start">
+                                    <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="font-medium">
+                                            {locale === "en" 
+                                                ? "No payment methods configured for this event. Attendees won't be able to pay for their transport tickets." 
+                                                : "No hay medios de pago configurados para este evento. Los participantes no podrán pagar sus asientos de transporte."}
+                                        </p>
+                                        <p className="mt-1">
+                                            <a href={`/organizer/events/${eventId}`} className="font-semibold underline hover:text-primary transition-colors">
+                                                {locale === "en" ? "Configure payment methods in the event details" : "Configura los medios de pago en la edición del evento"}
+                                            </a>
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    <p className="text-xs text-muted-foreground">
+                                        {(!form.pricePerSeat || parseFloat(form.pricePerSeat) === 0 || isNaN(parseFloat(form.pricePerSeat))) 
+                                            ? (locale === "en" 
+                                                ? "If you set a seat price greater than 0, attendees will pay using these payment methods configured for the event:" 
+                                                : "Si estableces un precio por asiento mayor a 0, los participantes pagarán usando estos medios de pago configurados para el evento:")
+                                            : (locale === "en" 
+                                                ? "Attendees will pay for their seat using the payment methods configured for this event:" 
+                                                : "Los participantes pagarán por su asiento usando los medios de pago configurados para este evento:")
+                                        }
+                                    </p>
+                                    <div className="flex flex-wrap gap-2 pt-1">
+                                        {eventPaymentMethods.map((pm) => {
+                                            const IconMap: Record<string, React.ComponentType<{ className?: string }>> = { yape: Smartphone, plin: QrCode, cash: Wallet };
+                                            const PmIcon = IconMap[pm.type] ?? Wallet;
+                                            return (
+                                                <div
+                                                    key={pm.id}
+                                                    className="inline-flex items-center gap-2 rounded-xl border border-border/80 bg-background px-3 py-1.5 text-xs font-semibold text-foreground select-none hover:shadow-sm hover:translate-y-[-1px] transition-all duration-200"
+                                                >
+                                                    <PmIcon className="h-3.5 w-3.5 text-primary shrink-0" />
+                                                    <span>{pm.label}</span>
+                                                    <span className="text-[10px] text-muted-foreground font-normal">({pm.holderName})</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         <div className="sm:col-span-2">
                             <label className="mb-1.5 block text-sm font-medium text-foreground">
                                 {t("transport.manager.description")}{" "}
@@ -427,38 +506,51 @@ export function TransportRoutesManager({
                                     }`}
                             >
                                 <div className="flex items-start justify-between gap-3">
-                                    <div className="min-w-0 flex-1">
+                                    <div className="min-w-0 flex-1 space-y-3">
                                         <div className="flex items-center gap-2 flex-wrap">
-                                            <h3 className="font-medium text-foreground">{route.name}</h3>
+                                            <h3 className="font-semibold text-foreground text-lg leading-snug">{route.name}</h3>
                                             {!route.isActive && (
-                                                <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
+                                                <span className="rounded-full bg-muted border border-border/80 px-2.5 py-0.5 text-xs text-muted-foreground font-semibold">
                                                     {t("transport.manager.inactive")}
                                                 </span>
                                             )}
                                         </div>
-                                        <p className="mt-0.5 text-sm text-muted-foreground">
-                                            📍 {route.departurePoint}
+                                        <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                                            <MapPin className="h-4 w-4 text-primary shrink-0" />
+                                            <span>{route.departurePoint}</span>
                                         </p>
-                                        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                                            <span>
-                                                🕐 {t("transport.manager.departure")}:{" "}
-                                                {new Date(route.departureTime).toLocaleString(getIntlLocale(locale), {
-                                                    dateStyle: "short",
-                                                    timeStyle: "short",
-                                                })}
-                                            </span>
-                                            {route.returnTime && (
+                                        <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground items-center leading-relaxed">
+                                            <span className="flex items-center gap-1">
+                                                <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                                                 <span>
-                                                    🔁 {t("transport.manager.return")}:{" "}
-                                                    {new Date(route.returnTime).toLocaleString(getIntlLocale(locale), {
+                                                    {t("transport.manager.departure")}:{" "}
+                                                    {new Date(route.departureTime).toLocaleString(getIntlLocale(locale), {
                                                         dateStyle: "short",
                                                         timeStyle: "short",
                                                     })}
+                                                </span>
+                                            </span>
+                                            {route.returnTime && (
+                                                <span className="flex items-center gap-1">
+                                                    <RefreshCw className="h-3 w-3 text-muted-foreground shrink-0" />
+                                                    <span>
+                                                        {t("transport.manager.return")}:{" "}
+                                                        {new Date(route.returnTime).toLocaleString(getIntlLocale(locale), {
+                                                            dateStyle: "short",
+                                                            timeStyle: "short",
+                                                        })}
+                                                    </span>
                                                 </span>
                                             )}
                                             <span className="font-medium text-foreground">
                                                 S/. {Number(route.pricePerSeat).toFixed(2)} / {t("transport.manager.perSeatRoundTrip") || "Asiento (Ida y Vuelta)"}
                                             </span>
+                                            {Number(route.pricePerSeat) > 0 && eventPaymentMethods.length > 0 && (
+                                                <span className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-[10px] text-primary font-bold shadow-3xs" title={locale === "en" ? "Available payments" : "Métodos de pago disponibles"}>
+                                                    <CreditCard className="h-3.5 w-3.5" />
+                                                    <span>{eventPaymentMethods.map(m => m.label.toUpperCase()).join(" / ")}</span>
+                                                </span>
+                                            )}
                                         </div>
 
                                         {/* Occupancy bar */}
@@ -589,41 +681,54 @@ export function TransportRoutesManager({
                                         )}
                                     </div>
 
-                                    <div className="flex items-center gap-1.5 shrink-0">
+                                    <div className="flex flex-wrap items-center gap-2 shrink-0 md:justify-end">
+                                        {/* Toggle Active Button */}
                                         <button
                                             type="button"
-                                            title={route.isActive ? t("transport.manager.deactivate") : t("transport.manager.activate")}
                                             onClick={() => handleToggle(route.id, route.isActive)}
                                             disabled={isPending}
-                                            className={`rounded-lg p-2 transition-colors disabled:opacity-50 ${route.isActive
-                                                ? "hover:bg-green-500/10 text-green-600"
-                                                : "hover:bg-secondary text-muted-foreground"
-                                                }`}
+                                            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold shadow-2xs hover:shadow-xs hover:translate-y-[-0.5px] active:translate-y-[0.5px] transition-all disabled:opacity-50 select-none ${
+                                                route.isActive
+                                                    ? "bg-destructive/5 text-destructive border-destructive/20 hover:bg-destructive/10 dark:bg-destructive/10 dark:border-destructive/30"
+                                                    : "bg-primary/5 text-primary border-primary/20 hover:bg-primary/10 dark:bg-primary/10 dark:border-primary/30"
+                                            }`}
                                         >
                                             {route.isActive ? (
-                                                <Check className="h-4 w-4" />
+                                                <>
+                                                    <X className="h-3.5 w-3.5 text-destructive" />
+                                                    <span>{locale === "en" ? "Deactivate" : "Desactivar"}</span>
+                                                </>
                                             ) : (
-                                                <X className="h-4 w-4" />
+                                                <>
+                                                    <Check className="h-3.5 w-3.5 text-primary" />
+                                                    <span>{locale === "en" ? "Activate" : "Activar"}</span>
+                                                </>
                                             )}
                                         </button>
+
+                                        {/* Edit Button */}
                                         <button
                                             type="button"
                                             onClick={() => openEdit(route)}
-                                            className="rounded-lg p-2 hover:bg-secondary text-muted-foreground transition-colors"
+                                            className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-2xs hover:shadow-xs hover:bg-secondary hover:translate-y-[-0.5px] active:translate-y-[0.5px] transition-all select-none"
                                         >
-                                            <Pencil className="h-4 w-4" />
+                                            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                                            <span>{locale === "en" ? "Edit" : "Editar"}</span>
                                         </button>
+
+                                        {/* Delete Button */}
                                         <button
                                             type="button"
                                             onClick={() => handleDelete(route.id)}
                                             disabled={isPending && deletingId === route.id}
-                                            className="rounded-lg p-2 hover:bg-destructive/10 text-destructive transition-colors disabled:opacity-50"
+                                            className="inline-flex items-center gap-1.5 rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-1.5 text-xs font-semibold text-destructive shadow-2xs hover:shadow-xs hover:bg-destructive/10 hover:translate-y-[-0.5px] active:translate-y-[0.5px] transition-all disabled:opacity-50 select-none"
                                         >
                                             {isPending && deletingId === route.id ? (
-                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                             ) : (
-                                                <Trash2 className="h-4 w-4" />
+                                                <Trash2 className="h-3.5 w-3.5" />
                                             )}
+                                            <span>{locale === "en" ? "Delete" : "Eliminar"}</span>
                                         </button>
                                     </div>
                                 </div>
