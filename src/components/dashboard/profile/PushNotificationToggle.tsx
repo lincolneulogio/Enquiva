@@ -36,9 +36,13 @@ export function PushNotificationToggle() {
       ) {
         setIsSupported(true);
         try {
-          const registration = await navigator.serviceWorker.ready;
-          const subscription = await registration.pushManager.getSubscription();
-          setIsActive(!!subscription);
+          const registration = await navigator.serviceWorker.getRegistration();
+          if (registration) {
+            const subscription = await registration.pushManager.getSubscription();
+            setIsActive(!!subscription);
+          } else {
+            setIsActive(false);
+          }
         } catch (e) {
           console.error("Failed to check push subscription status:", e);
         }
@@ -115,8 +119,8 @@ export function PushNotificationToggle() {
           );
         } else {
           // Unsubscribe logic
-          const registration = await navigator.serviceWorker.ready;
-          const subscription = await registration.pushManager.getSubscription();
+          const registration = await navigator.serviceWorker.getRegistration();
+          const subscription = registration ? await registration.pushManager.getSubscription() : null;
           
           if (subscription) {
             // Delete from Database
