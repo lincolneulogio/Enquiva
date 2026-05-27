@@ -224,8 +224,8 @@ export function TransportBookingForm({
                                 return (
                                     <div className="rounded-xl bg-primary/5 border border-primary/10 p-3.5 text-xs text-primary flex items-center justify-between gap-3 animate-in fade-in duration-200">
                                         <div className="min-w-0 flex-1">
-                                            <p className="font-bold flex items-center gap-1">
-                                                <span>📍</span> Paradero: {selectedStop.name}
+                                            <p className="font-bold flex items-center gap-1.5">
+                                                <MapPin className="h-3.5 w-3.5 shrink-0" /> Paradero: {selectedStop.name}
                                             </p>
                                             <p className="text-muted-foreground mt-0.5 leading-relaxed">
                                                 El autobús realizará una parada rápida aquí. Abre el enlace GPS para ver la ubicación exacta.

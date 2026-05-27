@@ -38,15 +38,15 @@ export function PushNotificationToggle() {
       ) {
         setIsSupported(true);
         try {
-          const registration = await navigator.serviceWorker.getRegistration();
-          if (registration) {
-            const subscription = await registration.pushManager.getSubscription();
-            setIsActive(!!subscription);
-          } else {
-            setIsActive(false);
-          }
+          // Use `ready` to wait for the SW to be fully active before checking
+          // subscriptions. Using `getRegistration()` causes a race condition on
+          // reload where the SW hasn't mounted yet and returns undefined.
+          const registration = await navigator.serviceWorker.ready;
+          const subscription = await registration.pushManager.getSubscription();
+          setIsActive(!!subscription);
         } catch (e) {
           console.error("Failed to check push subscription status:", e);
+          setIsActive(false);
         }
       } else {
         setIsSupported(false);

@@ -174,7 +174,7 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
 
         <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain scroll-smooth snap-y snap-proximity px-3 py-4 [-webkit-overflow-scrolling:touch] [scroll-padding-bottom:0.75rem] [scroll-padding-top:0.75rem]">
           {navItems.map(({ labelKey, href, icon: Icon }) => {
-            const isActive = pathname === href || pathname.startsWith(href + "/");
+            const isActive = pathname === href;
             return (
               <Link
                 key={`mobile-${href}`}
@@ -238,7 +238,7 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
         {/* Nav */}
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
           {navItems.map(({ labelKey, href, icon: Icon }) => {
-            const isActive = pathname === href || pathname.startsWith(href + "/");
+            const isActive = pathname === href;
             return (
               <Link
                 key={href}

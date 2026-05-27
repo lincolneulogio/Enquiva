@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { toast } from "sonner";
-import { Search, CheckCircle, Clock, QrCode, User, Check, Loader2, AlertCircle } from "lucide-react";
+import { Search, CheckCircle, Clock, QrCode, User, Check, Loader2, AlertCircle, Lightbulb, Phone } from "lucide-react";
 import { searchPreRegisteredAttendeesAction, checkInAttendee } from "@/actions/registrations";
 
 interface EventOption {
@@ -154,8 +154,9 @@ export function ExpressCheckInConsole({ events }: ExpressCheckInConsoleProps) {
               Buscando coincidencias...
             </div>
           ) : query.trim().length === 0 ? (
-            <div className="text-center py-6 text-xs text-muted-foreground/80 bg-secondary/10 rounded-xl border border-border/40">
-              💡 Escribe los primeros caracteres del asistente para listarlo inmediatamente.
+            <div className="flex items-center justify-center gap-1.5 py-6 text-xs text-muted-foreground/80 bg-secondary/10 rounded-xl border border-border/40">
+              <Lightbulb className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+              Escribe los primeros caracteres del asistente para listarlo inmediatamente.
             </div>
           ) : attendees.length === 0 ? (
             <div className="flex items-center justify-center py-8 text-muted-foreground text-xs gap-2 border border-dashed rounded-xl">
@@ -187,7 +188,10 @@ export function ExpressCheckInConsole({ events }: ExpressCheckInConsoleProps) {
                       <div className="mt-0.5 flex items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground flex-wrap">
                         <span className="truncate">{attendee.userEmail}</span>
                         {attendee.contactPhone && (
-                          <span>📞 {attendee.contactPhone}</span>
+                          <span className="inline-flex items-center gap-1">
+                            <Phone className="h-3 w-3 shrink-0" />
+                            {attendee.contactPhone}
+                          </span>
                         )}
                       </div>
                     </div>

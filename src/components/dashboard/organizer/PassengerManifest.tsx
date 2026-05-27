@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { getEventPassengerManifest } from "@/actions/transport";
-import { Bus, Users, Search, Download, AlertCircle, FileText, CheckCircle2 } from "lucide-react";
+import { Bus, Users, Search, Download, AlertCircle, FileText, CheckCircle2, MapPin } from "lucide-react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -297,7 +297,9 @@ export function PassengerManifest({ eventId }: PassengerManifestProps) {
                   <td className="px-5 py-4">
                     <div>
                       <p className="font-medium text-foreground">{b.routeName}</p>
-                      <p className="text-xs text-muted-foreground">📍 {b.departurePoint}</p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <MapPin className="h-3 w-3 shrink-0" /> {b.departurePoint}
+                      </p>
                     </div>
                   </td>
                   <td className="px-5 py-4 text-muted-foreground">

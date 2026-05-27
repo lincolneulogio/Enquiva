@@ -1,6 +1,6 @@
 import { getUserRegistrations } from "@/actions/registrations";
 import { getUserPayments } from "@/actions/payments";
-import { TicketCard } from "@/components/tickets/TicketCard";
+import { MemberTicketsClient } from "@/components/dashboard/member/MemberTicketsClient";
 import { getI18n } from "@/lib/i18n/server";
 import { db } from "@/lib/db";
 import { transportBookings, transportRoutes, transportStops } from "@/lib/db/schema";
@@ -51,6 +51,21 @@ export default async function MemberTicketsPage() {
     }
   }
 
+  const unifiedTickets = registrations.map(({ event, registration, ticket }) => {
+    const payment = paymentByRegistrationId.get(registration.id);
+    const transport = transportByRegistrationId.get(registration.id);
+
+    return {
+      ticket,
+      event,
+      registration,
+      paymentStatus: payment?.status,
+      paymentReceiptUrl: payment?.receiptUrl,
+      paymentMethod: payment?.method,
+      transportBooking: transport,
+    };
+  });
+
   return (
     <div className="space-y-6">
       <div>
@@ -60,29 +75,7 @@ export default async function MemberTicketsPage() {
         </p>
       </div>
 
-      {registrations.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-border bg-card p-12 text-center">
-          <p className="text-lg font-semibold text-foreground">{t("dashboard.member.noTicketsYet")}</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("dashboard.member.registerToGenerateTicket")}
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {registrations.map(({ event, registration, ticket }) => (
-            <TicketCard
-              key={registration.id}
-              ticket={ticket}
-              event={event}
-              registration={registration}
-              paymentStatus={paymentByRegistrationId.get(registration.id)?.status}
-              paymentReceiptUrl={paymentByRegistrationId.get(registration.id)?.receiptUrl}
-              paymentMethod={paymentByRegistrationId.get(registration.id)?.method}
-              transportBooking={transportByRegistrationId.get(registration.id)}
-            />
-          ))}
-        </div>
-      )}
+      <MemberTicketsClient tickets={unifiedTickets} />
     </div>
   );
 }
