@@ -25,7 +25,7 @@ export function PushNotificationToggle() {
   const [isActive, setIsActive] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
+  const vapidPublicKey = (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "").replace(/"/g, "");
 
   useEffect(() => {
     const checkSupportAndSubscription = async () => {
