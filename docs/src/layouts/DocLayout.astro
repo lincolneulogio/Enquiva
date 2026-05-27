@@ -41,8 +41,9 @@ const description =
   "Portal de documentación oficial de EncuentroDeFe";
 const currentPath = Astro.url.pathname;
 
-const mainAppUrl =
-  import.meta.env.PUBLIC_MAIN_APP_URL || "http://localhost:3000/";
+const rawMainAppUrl =
+  import.meta.env.PUBLIC_MAIN_APP_URL || "http://localhost:3000";
+const mainAppUrl = rawMainAppUrl.endsWith("/") ? rawMainAppUrl.slice(0, -1) : rawMainAppUrl;
 
 // Search Index Generation
 const allDocs = await Astro.glob('../pages/docs/*.md');
@@ -156,7 +157,7 @@ const nextPage =
     <script define:vars={{ mainAppUrl }}>
       async function checkAuth() {
         try {
-          const res = await fetch(`${mainAppUrl}api/auth/get-session`, {
+          const res = await fetch(`${mainAppUrl}/api/auth/get-session`, {
             credentials: "include"
           });
           if (!res.ok) throw new Error("No autenticado");
@@ -178,7 +179,7 @@ const nextPage =
             }
           }
         } catch (e) {
-          window.location.href = `${mainAppUrl}login?redirect=${encodeURIComponent(window.location.href)}`;
+          window.location.href = `${mainAppUrl}/login?redirect=${encodeURIComponent(window.location.href)}`;
         }
       }
       checkAuth();
@@ -726,9 +727,10 @@ const nextPage =
     <script is:inline>
       const initDocsAuth = async () => {
         try {
-          const mainAppUrl = window.location.hostname === 'localhost' 
+          const rawMainAppUrl = window.location.hostname === 'localhost' 
               ? 'http://localhost:3000' 
               : 'https://' + window.location.hostname.replace('docs.', '');
+          const mainAppUrl = rawMainAppUrl.endsWith('/') ? rawMainAppUrl.slice(0, -1) : rawMainAppUrl;
               
           const res = await fetch(`${mainAppUrl}/api/docs/auth`, { 
             credentials: 'include',

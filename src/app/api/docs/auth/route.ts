@@ -9,8 +9,13 @@ export async function GET(req: Request) {
         const origin = req.headers.get("origin");
         const headersList = new Headers();
         
-        // Permitir CORS para localhost (Astro)
-        if (origin && (origin.includes("localhost") || origin.includes("127.0.0.1"))) {
+        // Permitir CORS para localhost (Astro) y dominios autorizados de EncuentroDeFe
+        if (origin && (
+            origin.includes("localhost") || 
+            origin.includes("127.0.0.1") || 
+            origin.includes("encuentrodefe.site") ||
+            origin.includes("encuentrodefe.org")
+        )) {
             headersList.set("Access-Control-Allow-Origin", origin);
             headersList.set("Access-Control-Allow-Credentials", "true");
         }
@@ -69,7 +74,12 @@ export async function GET(req: Request) {
 export async function OPTIONS(req: Request) {
     const origin = req.headers.get("origin");
     const headersList = new Headers();
-    if (origin && (origin.includes("localhost") || origin.includes("127.0.0.1"))) {
+    if (origin && (
+        origin.includes("localhost") || 
+        origin.includes("127.0.0.1") || 
+        origin.includes("encuentrodefe.site") ||
+        origin.includes("encuentrodefe.org")
+    )) {
         headersList.set("Access-Control-Allow-Origin", origin);
         headersList.set("Access-Control-Allow-Credentials", "true");
         headersList.set("Access-Control-Allow-Methods", "GET, OPTIONS");
