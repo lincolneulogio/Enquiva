@@ -32,3 +32,6 @@ export * from "./organizer/PassengerManifest";
 
 // ─── Shared Components ───────────────────────────────────────────────────────
 export * from "./shared/TablePagination";
+
+// ─── Member Components ─────────────────────────────────────────────────────────
+export * from "./member/MemberTransportClient";
