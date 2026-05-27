@@ -101,6 +101,8 @@ export class EventService {
       throw new Error("Not authorized to edit this event");
     }
 
+    const oldCoverImage = existing.coverImage;
+
     const priceValue = validated.price !== undefined
       ? (validated.price != null ? String(validated.price) : null)
       : undefined;
@@ -126,6 +128,15 @@ export class EventService {
 
     await invalidateCache(CACHE_KEYS.eventBySlug(updated.slug));
     await invalidateCachePattern("events:public*");
+
+    // Purga asíncrona en segundo plano de la portada reemplazada o borrada
+    if (oldCoverImage && oldCoverImage !== updated.coverImage) {
+        const { deleteUploadThingFile } = await import("@/lib/uploadthing/delete");
+        deleteUploadThingFile(oldCoverImage).catch((err) =>
+            console.error("Failed to delete old cover image from UploadThing:", err)
+        );
+    }
+
     return updated;
   }
 
@@ -144,8 +155,18 @@ export class EventService {
       throw new Error("Not authorized to delete this event");
     }
 
+    const oldCoverImage = existing.coverImage;
+
     await db.delete(events).where(eq(events.id, eventId));
     await invalidateCachePattern("events:*");
+
+    // Purga asíncrona de la portada al eliminar el evento
+    if (oldCoverImage) {
+        const { deleteUploadThingFile } = await import("@/lib/uploadthing/delete");
+        deleteUploadThingFile(oldCoverImage).catch((err) =>
+            console.error("Failed to delete cover image of deleted event from UploadThing:", err)
+        );
+    }
   }
 
   /**

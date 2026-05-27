@@ -8,6 +8,15 @@ import {
 } from "./templates";
 import { getSystemSettings } from "@/lib/settings";
 
+async function safeSendMail(options: Parameters<typeof transporter.sendMail>[0]) {
+  try {
+    return await transporter.sendMail(options);
+  } catch (error) {
+    console.error(`[SMTP Error] Failed to send email to ${options.to}:`, error);
+    return null;
+  }
+}
+
 export async function sendVerificationCodeEmail(input: {
   email: string;
   name?: string | null;
@@ -17,7 +26,7 @@ export async function sendVerificationCodeEmail(input: {
   const greeting = input.name ? `Hola ${input.name},` : "Hola,";
   const { subject, text, html } = getVerificationCodeTemplate(input.code, greeting, organizationName);
 
-  await transporter.sendMail({
+  await safeSendMail({
     from: sender(),
     to: input.email,
     subject,
@@ -34,7 +43,7 @@ export async function sendPasswordChangedEmail(input: {
   const greeting = input.name ? `Hola ${input.name},` : "Hola,";
   const { subject, text, html } = getPasswordChangedTemplate(greeting, organizationName);
 
-  await transporter.sendMail({
+  await safeSendMail({
     from: sender(),
     to: input.email,
     subject,
@@ -52,7 +61,7 @@ export async function sendPasswordResetEmail(input: {
   const greeting = input.name ? `Hola ${input.name},` : "Hola,";
   const { subject, text, html } = getPasswordResetTemplate(input.url, greeting, organizationName);
 
-  await transporter.sendMail({
+  await safeSendMail({
     from: sender(),
     to: input.email,
     subject,
@@ -90,7 +99,7 @@ export async function sendTicketEmail(input: {
     });
   }
 
-  await transporter.sendMail({
+  await safeSendMail({
     from: sender(),
     to: input.email,
     subject,
@@ -139,7 +148,7 @@ export async function sendTicketEmailWithPdf(input: {
     });
   }
 
-  await transporter.sendMail({
+  await safeSendMail({
     from: sender(),
     to: input.email,
     subject,

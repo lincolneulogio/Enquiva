@@ -21,6 +21,7 @@ export function PushNotificationToggle() {
   const { locale } = useLocale();
   const [isPending, startTransition] = useTransition();
   
+  const [mounted, setMounted] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -28,6 +29,7 @@ export function PushNotificationToggle() {
   const vapidPublicKey = (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "").replace(/"/g, "");
 
   useEffect(() => {
+    setMounted(true);
     const checkSupportAndSubscription = async () => {
       if (
         typeof window !== "undefined" &&
@@ -54,6 +56,24 @@ export function PushNotificationToggle() {
 
     checkSupportAndSubscription();
   }, []);
+
+  // Evitar Hydration Mismatch en Next.js (SSR)
+  if (!mounted || loading) {
+    return (
+      <div className="fe-glass border border-border/80 bg-card rounded-2xl p-5 shadow-sm space-y-3.5 animate-pulse">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex gap-3 w-full">
+            <div className="h-10 w-10 rounded-xl bg-muted shrink-0" />
+            <div className="space-y-2 w-full">
+              <div className="h-4 bg-muted rounded w-1/3" />
+              <div className="h-3 bg-muted rounded w-2/3" />
+            </div>
+          </div>
+          <div className="h-6 w-11 rounded-full bg-muted mt-1.5" />
+        </div>
+      </div>
+    );
+  }
 
   const handleToggleClick = async () => {
     if (!isSupported || !vapidPublicKey) {

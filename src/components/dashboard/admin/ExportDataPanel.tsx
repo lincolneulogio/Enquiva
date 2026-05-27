@@ -107,36 +107,13 @@ export function ExportDataPanel({
     const urlEventId = searchParams.get("eventId") || "";
     const urlStatus = searchParams.get("status") || initialStatus;
     const urlCategory = searchParams.get("category") || initialCategory;
-    const urlFromDate = searchParams.get("fromDate") || "";
-    const urlToDate = searchParams.get("toDate") || "";
-
-    const [eventId, setEventId] = useState(urlEventId);
-    const [status, setStatus] = useState(urlStatus);
-    const [category, setCategory] = useState(urlCategory);
-    const [fromDate, setFromDate] = useState(urlFromDate);
-    const [toDate, setToDate] = useState(urlToDate);
+    // Sync state directly from URL query parameters (single source of truth)
+    const eventId = searchParams.get("eventId") || "";
+    const status = searchParams.get("status") || initialStatus;
+    const category = searchParams.get("category") || initialCategory;
+    const fromDate = searchParams.get("fromDate") || "";
+    const toDate = searchParams.get("toDate") || "";
     const [loadingFormat, setLoadingFormat] = useState<"pdf" | "excel" | null>(null);
-
-    // Keep state synced when search params change externally (e.g. navigation or clean filters)
-    useEffect(() => {
-        setEventId(urlEventId);
-    }, [urlEventId]);
-
-    useEffect(() => {
-        setStatus(urlStatus);
-    }, [urlStatus]);
-
-    useEffect(() => {
-        setCategory(urlCategory);
-    }, [urlCategory]);
-
-    useEffect(() => {
-        setFromDate(urlFromDate);
-    }, [urlFromDate]);
-
-    useEffect(() => {
-        setToDate(urlToDate);
-    }, [urlToDate]);
 
     const updateFilter = (key: string, value: string) => {
         const params = new URLSearchParams(searchParams.toString());
@@ -233,7 +210,6 @@ export function ExportDataPanel({
                             id="export-event-select"
                             value={eventId}
                             onChange={(e) => {
-                                setEventId(e.target.value);
                                 updateFilter("eventId", e.target.value);
                             }}
                             className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary h-10 transition-all hover:bg-background/80"
@@ -258,7 +234,6 @@ export function ExportDataPanel({
                             id="export-category-select"
                             value={category}
                             onChange={(e) => {
-                                setCategory(e.target.value);
                                 updateFilter("category", e.target.value);
                             }}
                             className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary h-10 transition-all hover:bg-background/80"
@@ -283,7 +258,6 @@ export function ExportDataPanel({
                             id="export-status-select"
                             value={status}
                             onChange={(e) => {
-                                setStatus(e.target.value);
                                 updateFilter("status", e.target.value);
                             }}
                             className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary h-10 transition-all hover:bg-background/80"
@@ -312,7 +286,6 @@ export function ExportDataPanel({
                                 type="date"
                                 value={fromDate}
                                 onChange={(e) => {
-                                    setFromDate(e.target.value);
                                     updateFilter("fromDate", e.target.value);
                                 }}
                                 className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary h-10 transition-all hover:bg-background/80 block"
@@ -327,7 +300,6 @@ export function ExportDataPanel({
                                 type="date"
                                 value={toDate}
                                 onChange={(e) => {
-                                    setToDate(e.target.value);
                                     updateFilter("toDate", e.target.value);
                                 }}
                                 className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary h-10 transition-all hover:bg-background/80 block"

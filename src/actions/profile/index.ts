@@ -20,6 +20,13 @@ export async function updateCurrentUserProfile(input: unknown) {
 
     const data = updateProfileSchema.parse(input);
 
+    // Obtener la imagen anterior del usuario para purgarla de UploadThing si se actualiza o borra
+    const [existingUser] = await db
+        .select({ image: users.image })
+        .from(users)
+        .where(eq(users.id, session.user.id))
+        .limit(1);
+
     await db
         .update(users)
         .set({
@@ -30,6 +37,14 @@ export async function updateCurrentUserProfile(input: unknown) {
             updatedAt: new Date(),
         })
         .where(eq(users.id, session.user.id));
+
+    // Purga asíncrona en segundo plano del avatar reemplazado o eliminado de UploadThing
+    if (existingUser && existingUser.image && existingUser.image !== data.image) {
+        const { deleteUploadThingFile } = await import("@/lib/uploadthing/delete");
+        deleteUploadThingFile(existingUser.image).catch((err) =>
+            console.error("Failed to delete old user avatar from UploadThing:", err)
+        );
+    }
 
     const basePath = getDashboardBasePath(session.user.role);
     revalidatePath(basePath);

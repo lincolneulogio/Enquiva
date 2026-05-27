@@ -167,12 +167,6 @@ export function EventForm({
     useEffect(() => {
         if (event) return;
 
-        try {
-            localStorage.removeItem(EVENT_DRAFT_STORAGE_KEY);
-        } catch {
-            // Ignore storage issues
-        }
-
         reset({
             status: "draft",
             isVirtual: false,
@@ -181,27 +175,6 @@ export function EventForm({
         });
         setCoverImage(null);
     }, [event, reset]);
-
-    useEffect(() => {
-        if (event) return;
-
-        const subscription = watch((values) => {
-            try {
-                localStorage.setItem(
-                    EVENT_DRAFT_STORAGE_KEY,
-                    JSON.stringify({
-                        values,
-                        coverImage,
-                        savedAt: Date.now(),
-                    })
-                );
-            } catch {
-                // Ignore storage issues
-            }
-        });
-
-        return () => subscription.unsubscribe();
-    }, [event, watch, coverImage]);
 
     useEffect(() => {
         return () => {
@@ -246,13 +219,7 @@ export function EventForm({
                         await setEventPaymentMethods(savedEventId, selectedPaymentMethodIds);
                     }
 
-                    if (!event) {
-                        try {
-                            localStorage.removeItem(EVENT_DRAFT_STORAGE_KEY);
-                        } catch {
-                            // Ignore storage issues
-                        }
-                    }
+
                     toast.success(event ? t("events.form.eventUpdated") : t("events.form.eventCreated"));
                     router.push(redirectPath);
                 }

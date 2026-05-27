@@ -1,12 +1,12 @@
 import QRCode from "qrcode";
 import crypto from "crypto";
-import { db } from "@/lib/db";
+import { db, type DBClient } from "@/lib/db";
 import { tickets, registrations } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { generateTicketCode } from "@/lib/utils";
 import { env } from "@/env";
 
-export async function generateTicketForRegistration(registrationId: string, eventId: string, userId: string, tx: any = db) {
+export async function generateTicketForRegistration(registrationId: string, eventId: string, userId: string, tx: DBClient = db) {
   const ticketCode = generateTicketCode();
   const appUrl = env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
   const issuedAt = new Date();
