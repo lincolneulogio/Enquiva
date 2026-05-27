@@ -61,7 +61,7 @@ export class BookingService {
             .where(
                 and(
                     eq(transportBookings.routeId, data.routeId),
-                    eq(transportBookings.status, "pending")
+                    sql`${transportBookings.status} != 'cancelled'`
                 )
             );
 
