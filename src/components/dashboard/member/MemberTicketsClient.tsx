@@ -36,6 +36,15 @@ interface UnifiedTicketItem {
       longitude: string | null;
     } | null;
   } | null;
+  guests?: Array<{
+    registration: Registration;
+    ticket: Ticket | null;
+    user: {
+      name: string;
+      email: string;
+      phone: string | null;
+    };
+  }>;
 }
 
 interface MemberTicketsClientProps {
@@ -132,6 +141,7 @@ export function MemberTicketsClient({ tickets }: MemberTicketsClientProps) {
             paymentReceiptUrl={tickets[0].paymentReceiptUrl}
             paymentMethod={tickets[0].paymentMethod}
             transportBooking={tickets[0].transportBooking}
+            guests={tickets[0].guests}
             defaultExpanded={true}
           />
         </div>
@@ -323,6 +333,7 @@ export function MemberTicketsClient({ tickets }: MemberTicketsClientProps) {
                   paymentReceiptUrl={activeTicketItem.paymentReceiptUrl}
                   paymentMethod={activeTicketItem.paymentMethod}
                   transportBooking={activeTicketItem.transportBooking}
+                  guests={activeTicketItem.guests}
                   defaultExpanded={true}
                   isExpanded={true} // Force details column to remain fully expanded
                 />
@@ -400,6 +411,7 @@ export function MemberTicketsClient({ tickets }: MemberTicketsClientProps) {
                       paymentReceiptUrl={item.paymentReceiptUrl}
                       paymentMethod={item.paymentMethod}
                       transportBooking={item.transportBooking}
+                      guests={item.guests}
                       isExpanded={isItemExpanded}
                       onToggle={() =>
                         setSelectedRegistrationId(

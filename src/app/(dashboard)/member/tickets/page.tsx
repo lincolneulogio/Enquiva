@@ -3,7 +3,14 @@ import { getUserPayments } from "@/actions/payments";
 import { MemberTicketsClient } from "@/components/dashboard/member/MemberTicketsClient";
 import { getI18n } from "@/lib/i18n/server";
 import { db } from "@/lib/db";
-import { transportBookings, transportRoutes, transportStops } from "@/lib/db/schema";
+import {
+  transportBookings,
+  transportRoutes,
+  transportStops,
+  registrations as registrationsTable,
+  tickets as ticketsTable,
+  users as usersTable,
+} from "@/lib/db/schema";
 import { eq, inArray } from "drizzle-orm";
 
 export default async function MemberTicketsPage() {
@@ -51,9 +58,84 @@ export default async function MemberTicketsPage() {
     }
   }
 
+  // ─── LOAD GUEST TICKETS AND DETAILS ────────────────────────────────────────
+  const guestRegIds: string[] = [];
+  for (const r of registrations) {
+    if (r.registration.notes && r.registration.notes.startsWith("[GUESTS:")) {
+      const match = r.registration.notes.match(/^\[GUESTS:([^\]]+)\]/);
+      if (match && match[1]) {
+        const ids = match[1].split(",").map((id) => id.trim()).filter(Boolean);
+        guestRegIds.push(...ids);
+      }
+    }
+  }
+
+  const guestDetailsMap = new Map<
+    string,
+    {
+      registration: typeof registrationsTable.$inferSelect;
+      ticket: typeof ticketsTable.$inferSelect | null;
+      user: {
+        name: string;
+        email: string;
+        phone: string | null;
+      };
+    }
+  >();
+
+  if (guestRegIds.length > 0) {
+    const guestList = await db
+      .select({
+        registration: registrationsTable,
+        ticket: ticketsTable,
+        user: usersTable,
+      })
+      .from(registrationsTable)
+      .innerJoin(usersTable, eq(registrationsTable.userId, usersTable.id))
+      .leftJoin(ticketsTable, eq(ticketsTable.registrationId, registrationsTable.id))
+      .where(inArray(registrationsTable.id, guestRegIds));
+
+    for (const item of guestList) {
+      guestDetailsMap.set(item.registration.id, {
+        registration: item.registration,
+        ticket: item.ticket,
+        user: {
+          name: item.user.name,
+          email: item.user.email,
+          phone: item.user.phone,
+        },
+      });
+    }
+  }
+  // ───────────────────────────────────────────────────────────────────────────
+
   const unifiedTickets = registrations.map(({ event, registration, ticket }) => {
     const payment = paymentByRegistrationId.get(registration.id);
     const transport = transportByRegistrationId.get(registration.id);
+
+    // Build the list of guests associated with this registration
+    const guestsList: Array<{
+      registration: typeof registrationsTable.$inferSelect;
+      ticket: typeof ticketsTable.$inferSelect | null;
+      user: {
+        name: string;
+        email: string;
+        phone: string | null;
+      };
+    }> = [];
+
+    if (registration.notes && registration.notes.startsWith("[GUESTS:")) {
+      const match = registration.notes.match(/^\[GUESTS:([^\]]+)\]/);
+      if (match && match[1]) {
+        const ids = match[1].split(",").map((id) => id.trim()).filter(Boolean);
+        for (const gId of ids) {
+          const guestDetail = guestDetailsMap.get(gId);
+          if (guestDetail) {
+            guestsList.push(guestDetail);
+          }
+        }
+      }
+    }
 
     return {
       ticket,
@@ -63,6 +145,7 @@ export default async function MemberTicketsPage() {
       paymentReceiptUrl: payment?.receiptUrl,
       paymentMethod: payment?.method,
       transportBooking: transport,
+      guests: guestsList,
     };
   });
 

@@ -188,11 +188,10 @@ export default async function OrganizerPaymentsPage({ searchParams }: PageProps)
         <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
           <div className="overflow-x-auto">
             <p className="px-3 pt-2 text-[11px] text-muted-foreground sm:hidden">↔ Scroll</p>
-            <table className="w-full min-w-[880px] text-sm">
+            <table className="w-full min-w-[760px] text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/50">
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.event")}</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.route")}</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.attendee")}</th>
                   <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t("common.amount")}</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.status")}</th>
@@ -206,9 +205,6 @@ export default async function OrganizerPaymentsPage({ searchParams }: PageProps)
                       <Link href={`/events/${event.slug}`} className="font-medium text-foreground hover:text-primary">
                         {event.title}
                       </Link>
-                    </td>
-                    <td className="px-4 py-4 text-sm text-muted-foreground">
-                      {transportRoute?.name ?? t("common.noDataDash")}
                     </td>
                     <td className="px-4 py-4 text-sm text-muted-foreground">
                       <div className="font-medium text-foreground">{attendee.name ?? t("common.guest")}</div>

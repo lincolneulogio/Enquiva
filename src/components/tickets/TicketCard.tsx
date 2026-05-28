@@ -59,6 +59,15 @@ interface TicketCardProps {
       longitude: string | null;
     } | null;
   } | null;
+  guests?: Array<{
+    registration: Registration;
+    ticket: Ticket | null;
+    user: {
+      name: string;
+      email: string;
+      phone: string | null;
+    };
+  }>;
   defaultExpanded?: boolean;
   isExpanded?: boolean;
   onToggle?: () => void;
@@ -72,6 +81,7 @@ export function TicketCard({
   paymentReceiptUrl,
   paymentMethod,
   transportBooking,
+  guests,
   defaultExpanded = false,
   isExpanded: controlledExpanded,
   onToggle,
@@ -84,6 +94,12 @@ export function TicketCard({
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
   const isExpanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded;
   const handleToggle = onToggle || (() => setInternalExpanded(!internalExpanded));
+
+  const [activeGuestQr, setActiveGuestQr] = useState<{
+    name: string;
+    qrCode: string;
+    code: string;
+  } | null>(null);
 
   return (
     <div className="rounded-3xl border border-border bg-card shadow-3xs overflow-hidden hover:shadow-2xs transition-all duration-300">
@@ -447,6 +463,120 @@ export function TicketCard({
             </div>
           )}
 
+          {/* SECCIÓN DE ENTRADAS DE INVITADOS */}
+          {guests && guests.length > 0 && (
+            <div className="rounded-2xl border border-border bg-muted/20 p-4 md:p-5 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="flex items-center justify-between border-b border-border/40 pb-3">
+                <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+                  <TicketIcon className="h-4.5 w-4.5 text-primary" />
+                  {locale === "en" ? "Guest Tickets" : "Entradas de mis Invitados"}
+                </h4>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground bg-secondary px-2.5 py-0.5 rounded-full">
+                  {guests.length} {guests.length === 1 ? (locale === "en" ? "guest" : "invitado") : (locale === "en" ? "guests" : "invitados")}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3.5">
+                {guests.map((guest) => {
+                  const guestQr = guest.ticket?.qrCode;
+                  const isCheckedIn = guest.registration.status === "checked_in";
+                  
+                  return (
+                    <div 
+                      key={guest.registration.id}
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5 p-4 rounded-xl border border-border bg-card shadow-3xs"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-extrabold text-sm text-foreground truncate">
+                          {guest.user.name}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-muted-foreground">
+                          {guest.ticket?.code && (
+                            <span className="font-mono text-[11px] bg-secondary px-1.5 py-0.5 rounded">
+                              {guest.ticket.code}
+                            </span>
+                          )}
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                            isCheckedIn
+                              ? "bg-blue-50 text-blue-700 dark:bg-blue-950/20 dark:text-blue-400 border border-blue-200/50"
+                              : guest.registration.status === "registered"
+                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 border border-emerald-200/50"
+                              : "bg-red-50 text-red-700 dark:bg-red-950/20 dark:text-red-400 border border-red-200/50"
+                          }`}>
+                            {registrationStatusLabel(guest.registration.status, locale)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Acciones de Invitado */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {paymentStatus === "approved" && guestQr ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setActiveGuestQr({
+                                name: guest.user.name,
+                                qrCode: guestQr,
+                                code: guest.ticket?.code || "",
+                              })}
+                              className="rounded-xl border border-border hover:bg-secondary text-foreground px-3.5 py-2 text-xs font-bold flex items-center justify-center gap-1.5 shadow-3xs transition duration-200 cursor-pointer select-none"
+                            >
+                              <Eye className="h-3.5 w-3.5 text-primary" />
+                              <span>{locale === "en" ? "View QR" : "Ver QR"}</span>
+                            </button>
+
+                            <DownloadTicketButton
+                              ticketCode={guest.ticket?.code || ""}
+                              eventTitle={event.title}
+                              eventDate={event.date}
+                              eventLocation={event.location}
+                              isVirtual={event.isVirtual}
+                              attendeeName={guest.user.name}
+                              qrCode={guestQr}
+                              registrationStatus={guest.registration.status}
+                              className="rounded-xl border border-border bg-background hover:bg-secondary text-foreground px-3.5 py-2 text-xs font-bold flex items-center justify-center gap-1.5 shadow-3xs transition duration-200 cursor-pointer select-none"
+                            />
+                          </>
+                        ) : !paymentStatus && guestQr ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setActiveGuestQr({
+                                name: guest.user.name,
+                                qrCode: guestQr,
+                                code: guest.ticket?.code || "",
+                              })}
+                              className="rounded-xl border border-border hover:bg-secondary text-foreground px-3.5 py-2 text-xs font-bold flex items-center justify-center gap-1.5 shadow-3xs transition duration-200 cursor-pointer select-none"
+                            >
+                              <Eye className="h-3.5 w-3.5 text-primary" />
+                              <span>{locale === "en" ? "View QR" : "Ver QR"}</span>
+                            </button>
+
+                            <DownloadTicketButton
+                              ticketCode={guest.ticket?.code || ""}
+                              eventTitle={event.title}
+                              eventDate={event.date}
+                              eventLocation={event.location}
+                              isVirtual={event.isVirtual}
+                              attendeeName={guest.user.name}
+                              qrCode={guestQr}
+                              registrationStatus={guest.registration.status}
+                              className="rounded-xl border border-border bg-background hover:bg-secondary text-foreground px-3.5 py-2 text-xs font-bold flex items-center justify-center gap-1.5 shadow-3xs transition duration-200 cursor-pointer select-none"
+                            />
+                          </>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/60 italic">
+                            {locale === "en" ? "QR pending payment" : "QR pendiente de pago"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* 3. ACCIONES INFERIORES */}
           <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-border/85 text-sm">
             <Link
@@ -495,6 +625,72 @@ export function TicketCard({
             )}
           </div>
 
+        </div>
+      )}
+
+      {/* PREMIUM INLINE MODAL FOR GUEST QR CODE */}
+      {activeGuestQr && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in">
+          <div className="relative w-full max-w-sm bg-card border border-border rounded-3xl shadow-2xl overflow-hidden animate-in scale-in-95 duration-200 text-center">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-border bg-muted/40 text-left">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                  <TicketIcon className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-foreground text-sm leading-snug">
+                    {locale === "en" ? "Guest Ticket QR" : "Código QR del Invitado"}
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 truncate max-w-[200px]" title={activeGuestQr.name}>
+                    {activeGuestQr.name}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setActiveGuestQr(null)}
+                className="h-8 w-8 rounded-full border border-border hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <ChevronDown className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* QR Code and Instructions */}
+            <div className="p-6 flex flex-col items-center justify-center">
+              <div className="rounded-2xl border border-primary/10 bg-white p-4.5 shadow-xs transition-all">
+                <img
+                  src={activeGuestQr.qrCode}
+                  alt={`QR de ${activeGuestQr.name}`}
+                  className="h-44 w-44 rounded-xl object-contain bg-white p-1"
+                />
+              </div>
+              <p className="mt-3.5 text-[10px] font-extrabold uppercase tracking-wider text-primary/75">
+                {locale === "en" ? "Scan at the entrance" : "Escanea en el ingreso"}
+              </p>
+              
+              <div className="mt-4.5 space-y-1">
+                <span className="text-[11px] text-muted-foreground uppercase font-bold tracking-wider">
+                  {locale === "en" ? "Ticket Code:" : "Código de Entrada:"}
+                </span>
+                <p className="text-sm font-mono font-extrabold text-foreground tracking-wide select-all bg-secondary px-3 py-1 rounded-xl">
+                  {activeGuestQr.code}
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-border bg-muted/20">
+              <button
+                type="button"
+                onClick={() => setActiveGuestQr(null)}
+                className="w-full py-2 px-4 rounded-xl bg-primary text-primary-foreground hover:bg-primary/95 text-xs font-extrabold uppercase tracking-wider shadow-sm transition duration-250 cursor-pointer select-none"
+              >
+                {locale === "en" ? "Close" : "Cerrar"}
+              </button>
+            </div>
+
+          </div>
         </div>
       )}
     </div>

@@ -269,7 +269,7 @@ export default async function AdminPaymentsPage({
               </span>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1780px] table-fixed text-sm">
+              <table className="w-full min-w-[1600px] table-fixed text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/50">
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[60px]">
@@ -283,9 +283,6 @@ export default async function AdminPaymentsPage({
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[200px]">
                       {t("common.event")}
-                    </th>
-                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[180px]">
-                      {t("common.route")}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[240px]">
                       {t("common.attendee")}
@@ -363,12 +360,6 @@ export default async function AdminPaymentsPage({
                           >
                             {event.title}
                           </Link>
-                        </td>
-                        <td
-                          className="px-4 py-4 text-sm text-muted-foreground truncate"
-                          title={transportRoute?.name ?? ""}
-                        >
-                          {transportRoute?.name ?? t("common.noDataDash")}
                         </td>
                         <td className="px-4 py-4 text-sm text-muted-foreground">
                           <div

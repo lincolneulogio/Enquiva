@@ -10,7 +10,7 @@ import {
   transportBookings,
   accounts,
 } from "@/lib/db/schema";
-import { eq, and, count, inArray, sql } from "drizzle-orm";
+import { eq, and, count, inArray, sql, desc } from "drizzle-orm";
 import { verifyPassword } from "better-auth/crypto";
 import crypto from "crypto";
 import {
@@ -519,7 +519,7 @@ export class RegistrationService {
       .innerJoin(events, eq(registrations.eventId, events.id))
       .leftJoin(tickets, eq(tickets.registrationId, registrations.id))
       .where(eq(registrations.userId, userId))
-      .orderBy(events.date);
+      .orderBy(desc(registrations.registeredAt));
   }
 
   /**
