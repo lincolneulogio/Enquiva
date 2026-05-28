@@ -157,3 +157,31 @@ export async function sendTicketEmailWithPdf(input: {
     attachments,
   });
 }
+
+export async function sendCustomNotificationEmail(input: {
+  email: string;
+  name?: string | null;
+  subject: string;
+  body: string;
+}) {
+  const { organizationName } = await getSystemSettings();
+  const greeting = input.name ? `Hola ${input.name},` : "Hola,";
+  
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+      <h2 style="color: #0284c7; margin-bottom: 20px;">${input.subject}</h2>
+      <p style="font-size: 16px;">${greeting}</p>
+      <p style="font-size: 14px; white-space: pre-line;">${input.body}</p>
+      <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+      <p style="font-size: 12px; color: #777;">Este es un mensaje automático de la comunidad <strong>${organizationName}</strong>.</p>
+    </div>
+  `;
+
+  await safeSendMail({
+    from: sender(),
+    to: input.email,
+    subject: input.subject,
+    text: `${greeting}\n\n${input.body}\n\nEste es un mensaje de la comunidad ${organizationName}.`,
+    html,
+  });
+}

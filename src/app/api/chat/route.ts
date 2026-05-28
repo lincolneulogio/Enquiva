@@ -4,7 +4,9 @@ import { NextResponse } from "next/server";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { streamText, stepCountIs, convertToModelMessages } from "ai";
 import { db } from "@/lib/db";
-import { users, events, registrations, activityLogs } from "@/lib/db/schema";
+import { users, events, registrations, activityLogs, notifications, transportRoutes, transportBookings } from "@/lib/db/schema";
+import { sendPushNotification } from "@/lib/notifications/push";
+import { sendCustomNotificationEmail } from "@/lib/mail";
 import { and, eq, ilike, or, desc, count, ne } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "@/env";
@@ -64,6 +66,20 @@ Como Miembro de la comunidad, eres asistente a los eventos:
 - Puedes buscar eventos de forma semántica con la herramienta 'searchEvents'.
 - Puedes revisar tus entradas y tickets activos mediante la herramienta 'getMyTickets'.
 Ayuda al miembro a encontrar su próximo encuentro espiritual o comunitario y a coordinar su traslado y entradas.
+`;
+    }
+
+    if (userRole === "super_admin" || userRole === "admin" || userRole === "organizer") {
+      systemPrompt += `
+Herramientas de Comunicación Masiva:
+- Tienes acceso a 'getEventRoutes' para consultar las rutas de transporte asociadas a un evento y a 'sendMassNotification' para enviar alertas a todos los inscritos del evento o a todos los pasajeros de una ruta de bus.
+- IMPORTANTE (Doble Confirmación Conversacional): Cuando el usuario te pida enviar un mensaje masivo o una alerta de emergencia:
+  1. Primero debes redactar o refinar el mensaje redactando un Borrador que contenga de forma muy visible:
+     - Destinatarios (ej: "Todos los asistentes al Retiro de Jóvenes" o "Pasajeros de la Ruta Bus Norte").
+     - Título/Asunto del mensaje.
+     - Contenido/Mensaje completo.
+  2. Pídele al usuario su confirmación explícita mediante una pregunta como: "¿Deseas que proceda a enviar esta notificación masiva ahora mismo?".
+  3. BAJO NINGUNA CIRCUNSTANCIA debes invocar la herramienta 'sendMassNotification' antes de que el usuario te responda afirmativamente (ej: "sí", "envíalo", "aceptar", "confirmar", "procede"). Si te lo pide inicialmente, primero genera el borrador y pide la confirmación de manera conversacional en tu respuesta.
 `;
     }
 
@@ -198,6 +214,190 @@ Ayuda al miembro a encontrar su próximo encuentro espiritual o comunitario y a 
           } catch (err) {
             console.error("Error in getEventStats tool:", err);
             return { error: "No se pudieron calcular las estadísticas de la plataforma." };
+          }
+        },
+      };
+
+      tools.getEventRoutes = {
+        description: "Obtiene las rutas de transporte y buses asociadas a un evento específico.",
+        parameters: z.object({
+          eventId: z.string().uuid().describe("El ID único del evento para buscar sus rutas de transporte."),
+        }),
+        execute: async ({ eventId }: { eventId: string }) => {
+          try {
+            const routes = await db
+              .select()
+              .from(transportRoutes)
+              .where(
+                and(
+                  eq(transportRoutes.eventId, eventId),
+                  eq(transportRoutes.isActive, true)
+                )
+              )
+              .orderBy(desc(transportRoutes.departureTime));
+
+            if (routes.length === 0) {
+              return { message: "No se encontraron rutas de transporte activas para este evento." };
+            }
+
+            return routes.map((r) => ({
+              id: r.id,
+              name: r.name,
+              departurePoint: r.departurePoint,
+              departureTime: new Date(r.departureTime).toLocaleString("es-PE"),
+              pricePerSeat: `S/ ${Number(r.pricePerSeat).toFixed(2)}`,
+              totalSeats: r.totalSeats,
+              description: r.description ?? "Sin descripción",
+            }));
+          } catch (err) {
+            console.error("Error in getEventRoutes tool:", err);
+            return { error: "No se pudieron obtener las rutas de transporte del evento." };
+          }
+        },
+      };
+
+      tools.sendMassNotification = {
+        description: "Envía una notificación masiva (in-app, push, email) a todos los asistentes a un evento o a todos los pasajeros de una ruta de bus específica. ¡IMPORTANTE! Antes de llamar a esta herramienta, debes haber mostrado un borrador del mensaje y obtenido la aprobación explícita del usuario.",
+        parameters: z.object({
+          eventId: z.string().uuid().describe("El ID único del evento."),
+          target: z.enum(["all_attendees", "route_passengers"]).describe("El grupo objetivo: todos los inscritos del evento o solo los pasajeros de una ruta de bus."),
+          routeId: z.string().uuid().optional().describe("El ID de la ruta de bus (obligatorio si target es 'route_passengers')."),
+          title: z.string().describe("El título o asunto de la notificación (breve y urgente, ej: 'Demora en Salida de Bus')."),
+          body: z.string().describe("El contenido detallado de la notificación con la información de emergencia o coordinación."),
+        }),
+        execute: async ({ eventId, target, routeId, title, body }: { eventId: string; target: "all_attendees" | "route_passengers"; routeId?: string; title: string; body: string }) => {
+          try {
+            // Verificar primero si el evento existe
+            const [event] = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
+            if (!event) {
+              return { error: "El evento especificado no existe." };
+            }
+
+            let recipients: { id: string; name: string; email: string }[] = [];
+
+            if (target === "all_attendees") {
+              // Obtener todos los usuarios registrados (que no estén cancelados)
+              recipients = await db
+                .select({
+                  id: users.id,
+                  name: users.name,
+                  email: users.email,
+                })
+                .from(registrations)
+                .innerJoin(users, eq(registrations.userId, users.id))
+                .where(
+                  and(
+                    eq(registrations.eventId, eventId),
+                    ne(registrations.status, "cancelled")
+                  )
+                );
+            } else if (target === "route_passengers") {
+              if (!routeId) {
+                return { error: "El parámetro routeId es obligatorio para enviar notificaciones a pasajeros de una ruta." };
+              }
+              // Verificar si la ruta existe
+              const [route] = await db.select().from(transportRoutes).where(eq(transportRoutes.id, routeId)).limit(1);
+              if (!route) {
+                return { error: "La ruta de transporte especificada no existe." };
+              }
+
+              // Obtener todos los usuarios con reservas confirmadas o pendientes (que no estén cancelados) en esta ruta
+              recipients = await db
+                .select({
+                  id: users.id,
+                  name: users.name,
+                  email: users.email,
+                })
+                .from(transportBookings)
+                .innerJoin(users, eq(transportBookings.userId, users.id))
+                .where(
+                  and(
+                    eq(transportBookings.routeId, routeId),
+                    ne(transportBookings.status, "cancelled")
+                  )
+                );
+            }
+
+            if (recipients.length === 0) {
+              return { message: "No se encontraron destinatarios activos para este grupo de envío." };
+            }
+
+            // Desduplicar destinatarios por ID
+            const uniqueRecipients = Array.from(new Map(recipients.map(item => [item.id, item])).values());
+
+            // Enviar notificaciones en paralelo/lotes
+            let successCount = 0;
+            let failCount = 0;
+
+            const sendPromises = uniqueRecipients.map(async (user) => {
+              try {
+                // 1. Notificación In-App (Insertar en base de datos)
+                await db.insert(notifications).values({
+                  userId: user.id,
+                  type: "event_reminder",
+                  title: title,
+                  message: body,
+                  read: false,
+                  metadata: {
+                    eventId,
+                    routeId: routeId || null,
+                    sentBy: userId,
+                    targetGroup: target,
+                  },
+                });
+
+                // 2. Notificación Web Push
+                try {
+                  await sendPushNotification(user.id, title, body);
+                } catch (pushErr) {
+                  console.error(`Failed to send push notification to user ${user.id}:`, pushErr);
+                }
+
+                // 3. Notificación Email
+                try {
+                  await sendCustomNotificationEmail({
+                    email: user.email,
+                    name: user.name,
+                    subject: title,
+                    body: body,
+                  });
+                } catch (emailErr) {
+                  console.error(`Failed to send email to user ${user.email}:`, emailErr);
+                }
+
+                successCount++;
+              } catch (err) {
+                console.error(`Failed to process notification for user ${user.id}:`, err);
+                failCount++;
+              }
+            });
+
+            // Esperar que se completen todos los envíos
+            await Promise.all(sendPromises);
+
+            // Loguear la acción en logs de auditoría
+            try {
+              await db.insert(activityLogs).values({
+                actorId: userId,
+                actorName: userName,
+                action: "send_mass_notification",
+                entityType: "notification",
+                entityId: eventId,
+                details: `Notificación masiva enviada a ${successCount} destinatarios de ${target === "all_attendees" ? "asistentes al evento" : "pasajeros de bus"}. Asunto: "${title}".`,
+              });
+            } catch (auditErr) {
+              console.error("Failed to log activity log:", auditErr);
+            }
+
+            return {
+              success: true,
+              totalSent: successCount,
+              totalFailed: failCount,
+              message: `Se enviaron exitosamente ${successCount} notificaciones masivas a través de In-App, Web Push y Correo Electrónico (fallaron ${failCount}).`,
+            };
+          } catch (err) {
+            console.error("Error in sendMassNotification tool:", err);
+            return { error: "Ocurrió un error inesperado al procesar el envío masivo." };
           }
         },
       };
