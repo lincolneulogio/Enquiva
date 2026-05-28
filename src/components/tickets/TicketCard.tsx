@@ -9,7 +9,9 @@ import {
   useLocale,
   useTranslations,
 } from "@/components/providers/LocaleProvider";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getPusherClient, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/client";
+import Swal from "sweetalert2";
 import { toast } from "sonner";
 import { DownloadTicketButton } from "./DownloadTicketButton";
 import { CalendarSyncButtons } from "./CalendarSyncButtons";
@@ -27,7 +29,10 @@ import {
   ChevronUp,
   Calendar,
   MapPin,
-  AlertTriangle
+  AlertTriangle,
+  Download,
+  MessageSquare,
+  Share2
 } from "lucide-react";
 
 
@@ -103,6 +108,293 @@ export function TicketCard({
     code: string;
   } | null>(null);
 
+  // --- PREMIUM REALTIME CHECK-IN TRACKER (PUSHER) ---
+  const [primaryStatus, setPrimaryStatus] = useState(registration.status);
+  const [guestsState, setGuestsState] = useState(guests || []);
+
+  useEffect(() => {
+    setPrimaryStatus(registration.status);
+  }, [registration.status]);
+
+  useEffect(() => {
+    setGuestsState(guests || []);
+  }, [guests]);
+
+  useEffect(() => {
+    const pusher = getPusherClient();
+    const channel = pusher.subscribe(PUSHER_CHANNELS.event(event.id));
+
+    channel.bind(
+      PUSHER_EVENTS.checkIn,
+      (data: { registrationId: string; userId: string; checkedInAt: string }) => {
+        if (data.registrationId === registration.id) {
+          setPrimaryStatus("checked_in");
+          toast.success(
+            locale === "en"
+              ? "Your entrance check-in was successfully verified!"
+              : "¡Tu check-in de ingreso ha sido verificado con éxito!"
+          );
+        } else {
+          setGuestsState((prev) => {
+            const hasGuest = prev.some((g) => g.registration.id === data.registrationId);
+            if (hasGuest) {
+              const guestName = prev.find((g) => g.registration.id === data.registrationId)?.user.name || "";
+              toast.success(
+                locale === "en"
+                  ? `Guest ${guestName} checked in successfully!`
+                  : `¡El invitado ${guestName} ingresó correctamente!`
+              );
+            }
+            return prev.map((g) =>
+              g.registration.id === data.registrationId
+                ? {
+                    ...g,
+                    registration: {
+                      ...g.registration,
+                      status: "checked_in",
+                      checkedInAt: new Date(data.checkedInAt),
+                    },
+                  }
+                : g
+            );
+          });
+        }
+      }
+    );
+
+    return () => {
+      channel.unbind_all();
+      pusher.unsubscribe(PUSHER_CHANNELS.event(event.id));
+    };
+  }, [event.id, registration.id, locale]);
+
+  // --- MULTIPAGE CONSOLIDATED PDF DOWNLOAD ---
+  const [downloadingAll, setDownloadingAll] = useState(false);
+
+  const handleDownloadAll = async () => {
+    setDownloadingAll(true);
+    try {
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "pt",
+        format: [320, 520],
+      });
+
+      const ticketsToGenerate = [
+        {
+          code: ticket?.code || "",
+          attendeeName: attendeeName || "",
+          qrCode: qr || "",
+          status: primaryStatus,
+        },
+        ...guestsState.map((g) => ({
+          code: g.ticket?.code || "",
+          attendeeName: g.user.name,
+          qrCode: g.ticket?.qrCode || "",
+          status: g.registration.status,
+        })),
+      ].filter((t) => t.code && t.qrCode);
+
+      if (ticketsToGenerate.length === 0) {
+        toast.error(
+          locale === "en"
+            ? "No tickets are ready for download yet."
+            : "No hay entradas listas para descargar todavía."
+        );
+        return;
+      }
+
+      for (let i = 0; i < ticketsToGenerate.length; i++) {
+        if (i > 0) {
+          doc.addPage([320, 520], "portrait");
+        }
+
+        const tInfo = ticketsToGenerate[i];
+
+        // 1. HEADER
+        doc.setFillColor(109, 76, 217); // #6d4cd9
+        doc.rect(0, 0, 320, 95, "F");
+
+        doc.setFillColor(124, 93, 230);
+        doc.circle(280, 20, 40, "F");
+        doc.setFillColor(93, 58, 208);
+        doc.circle(30, 80, 25, "F");
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.text("ENCUENTRO DE FE", 160, 40, { align: "center" });
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(215, 205, 255);
+        doc.text(
+          locale === "en" ? "Official Event Ticket" : "Entrada Oficial del Evento",
+          160,
+          58,
+          { align: "center" }
+        );
+
+        // 2. EVENT DETAILS
+        doc.setTextColor(30, 30, 30);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(15);
+        
+        const splitTitle = doc.splitTextToSize(event.title, 280);
+        doc.text(splitTitle, 20, 130);
+
+        const titleHeight = splitTitle.length * 18;
+        let currentY = 130 + titleHeight + 5;
+
+        doc.setDrawColor(230, 230, 230);
+        doc.setLineWidth(1);
+        doc.line(20, currentY, 300, currentY);
+        currentY += 20;
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(120, 120, 120);
+        doc.text(locale === "en" ? "DATE & TIME" : "FECHA Y HORA", 20, currentY);
+        doc.text(locale === "en" ? "LOCATION" : "LUGAR / UBICACIÓN", 165, currentY);
+
+        currentY += 14;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.setTextColor(40, 40, 40);
+        
+        const formattedDate = formatEventDate(event.date, locale);
+        const splitDate = doc.splitTextToSize(formattedDate, 135);
+        doc.text(splitDate, 20, currentY);
+
+        const locationText = event.isVirtual
+          ? (locale === "en" ? "Virtual Event" : "Evento Virtual")
+          : (event.location || (locale === "en" ? "To be confirmed" : "Por confirmar"));
+        const splitLoc = doc.splitTextToSize(locationText, 135);
+        doc.text(splitLoc, 165, currentY);
+
+        currentY += Math.max(splitDate.length * 12, splitLoc.length * 12) + 15;
+
+        doc.line(20, currentY, 300, currentY);
+        currentY += 20;
+
+        // 3. ATTENDEE & STATUS
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(120, 120, 120);
+        doc.text(locale === "en" ? "ATTENDEE" : "ASISTENTE", 20, currentY);
+        doc.text(locale === "en" ? "STATUS" : "ESTADO", 165, currentY);
+
+        currentY += 14;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.setTextColor(40, 40, 40);
+        doc.text(tInfo.attendeeName || "—", 20, currentY);
+        
+        const statusStr = tInfo.status === "checked_in"
+          ? (locale === "en" ? "Checked In" : "Ingresó")
+          : (locale === "en" ? "Active / Registered" : "Activo / Registrado");
+        doc.text(statusStr, 165, currentY);
+
+        currentY += 20;
+
+        // 4. TEAR-OFF LINE
+        doc.setDrawColor(180, 180, 180);
+        doc.setLineDashPattern([4, 4], 0);
+        doc.line(15, currentY, 305, currentY);
+        doc.setLineDashPattern([], 0);
+
+        doc.setFillColor(240, 240, 240);
+        doc.circle(0, currentY, 8, "F");
+        doc.circle(320, currentY, 8, "F");
+
+        currentY += 25;
+
+        // 5. QR CODE
+        const qrSize = 100;
+        const qrX = (320 - qrSize) / 2;
+        doc.addImage(tInfo.qrCode, "PNG", qrX, currentY, qrSize, qrSize);
+        currentY += qrSize + 15;
+
+        // 6. TICKET CODE
+        doc.setTextColor(80, 80, 80);
+        doc.setFont("courier", "bold");
+        doc.setFontSize(12);
+        doc.text(tInfo.code, 160, currentY, { align: "center" });
+
+        currentY += 15;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7.5);
+        doc.setTextColor(140, 140, 140);
+        doc.text(
+          locale === "en"
+            ? "Please present this code at the event entrance."
+            : "Por favor, presente este código en el ingreso al evento.",
+          160,
+          currentY,
+          { align: "center" }
+        );
+      }
+
+      const fileName = `${event.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-todas-las-entradas.pdf`;
+      doc.save(fileName);
+      toast.success(
+        locale === "en"
+          ? "All group tickets compiled and downloaded as a single PDF!"
+          : "¡Todas las entradas de tu grupo compiladas en un solo PDF!"
+      );
+    } catch (err) {
+      console.error(err);
+      toast.error(
+        locale === "en"
+          ? "Failed to download group tickets. Try again."
+          : "Fallo al compilar y descargar las entradas de tu grupo."
+      );
+    } finally {
+      setDownloadingAll(false);
+    }
+  };
+
+  // --- PREMIUM GOOGLE & APPLE WALLET DIALOGS ---
+  const handleWalletInfo = (walletType: "apple" | "google") => {
+    const isApple = walletType === "apple";
+    Swal.fire({
+      title: isApple ? "Apple Wallet" : "Google Wallet",
+      html: `
+        <div class="text-left space-y-3 mt-2 text-sm leading-relaxed font-sans text-foreground">
+          <p>
+            ¡Tus tickets oficiales del <strong>${event.title}</strong> son 100% compatibles con lectores digitales! Para agregarlos de forma rápida a tu billetera:
+          </p>
+          <ol class="list-decimal pl-5 space-y-2 text-xs text-muted-foreground">
+            <li>Haz una captura de pantalla del código QR individual de tu entrada o de tus invitados.</li>
+            <li>Abre la aplicación <strong>${isApple ? "Apple Wallet" : "Google Wallet"}</strong> en tu celular.</li>
+            <li>Selecciona la opción <strong>"Agregar un pase"</strong> o <strong>"Escanear foto de pase"</strong> y escoge la captura en tu galería de fotos.</li>
+          </ol>
+          <div class="rounded-xl bg-primary/10 border border-primary/20 p-3 mt-3 text-xs text-center font-semibold text-primary flex items-center justify-center gap-1.5">
+            <svg class="h-3.5 w-3.5 shrink-0 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+            <span>El código QR de ingreso contiene cifrado dinámico y es único por asistente.</span>
+          </div>
+        </div>
+      `,
+      icon: "info",
+      confirmButtonText: locale === "en" ? "Got it" : "Entendido",
+      buttonsStyling: false,
+      customClass: {
+        popup: "fe-swal-popup rounded-3xl border border-border bg-card text-foreground",
+        title: "fe-swal-title text-primary font-bold text-lg",
+        htmlContainer: "fe-swal-text",
+        actions: "fe-swal-actions mt-4",
+        confirmButton: "fe-swal-confirm w-full py-2.5 px-4 rounded-xl bg-primary hover:bg-primary/95 text-white font-semibold text-sm transition-colors cursor-pointer text-center",
+      }
+    });
+  };
+
+  // Real-time calculated counters
+  const primaryCheckedIn = primaryStatus === "checked_in" ? 1 : 0;
+  const guestsCheckedIn = guestsState.filter((g) => g.registration.status === "checked_in").length;
+  const totalCheckedIn = primaryCheckedIn + guestsCheckedIn;
+  const totalAttendees = 1 + guestsState.length;
+
   return (
     <div className="rounded-3xl border border-border bg-card shadow-3xs overflow-hidden hover:shadow-2xs transition-all duration-300">
       {/* 1. CABECERA SIEMPRE VISIBLE */}
@@ -141,13 +433,13 @@ export function TicketCard({
           <div className="flex items-center gap-2">
             {paymentStatus && <PaymentStatusBadge status={paymentStatus} />}
             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-              registration.status === "registered" || registration.status === "checked_in"
+              primaryStatus === "registered" || primaryStatus === "checked_in"
                 ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 border border-emerald-200/50"
-                : registration.status === "waitlisted"
+                : primaryStatus === "waitlisted"
                 ? "bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400 border border-amber-200/50"
                 : "bg-red-50 text-red-700 dark:bg-red-950/20 dark:text-red-400 border border-red-200/50"
             }`}>
-              {registrationStatusLabel(registration.status, locale)}
+              {registrationStatusLabel(primaryStatus, locale)}
             </span>
           </div>
           
@@ -195,7 +487,7 @@ export function TicketCard({
                   <p>
                     <strong className="text-foreground">{t("ticket.registrationStatus")}:</strong>{" "}
                     <span className="font-semibold text-foreground">
-                      {registrationStatusLabel(registration.status, locale)}
+                      {registrationStatusLabel(primaryStatus, locale)}
                     </span>
                   </p>
                   <p>
@@ -465,6 +757,29 @@ export function TicketCard({
             </div>
           )}
 
+          {/* REALTIME GROUP ATTENDANCE TRACKER */}
+          {guestsState.length > 0 && (
+            <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4.5 space-y-3 animate-in fade-in duration-300">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs font-bold uppercase tracking-wider text-primary">
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                  {locale === "en" ? "Group Check-In Tracker (Live)" : "Ingreso del Grupo en Tiempo Real"}
+                </span>
+                <span className="bg-primary/10 border border-primary/25 px-2.5 py-0.5 rounded-full text-[10px]">
+                  {totalCheckedIn} / {totalAttendees} {locale === "en" ? "Checked In" : "Ingresados"}
+                </span>
+              </div>
+              
+              {/* Progress bar */}
+              <div className="h-1.5 w-full bg-secondary dark:bg-muted rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary transition-all duration-500 rounded-full" 
+                  style={{ width: `${(totalCheckedIn / totalAttendees) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           {/* 3. ACCIONES INFERIORES */}
           <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-border/85 text-sm">
             <Link
@@ -498,6 +813,21 @@ export function TicketCard({
                     className="rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground hover:bg-secondary transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 select-none"
                   />
                 )}
+                {ticket && guestsState.length > 0 && (
+                  <button
+                    type="button"
+                    disabled={downloadingAll}
+                    onClick={handleDownloadAll}
+                    className="rounded-full border border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary px-4 py-2 text-xs font-semibold uppercase tracking-wide transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 select-none whitespace-nowrap"
+                  >
+                    <Download className="h-4 w-4 shrink-0 text-primary" />
+                    <span>
+                      {downloadingAll 
+                        ? (locale === "en" ? "Compiling..." : "Compilando...") 
+                        : (locale === "en" ? "Download Group PDFs" : "Descargar Todo (PDF)")}
+                    </span>
+                  </button>
+                )}
                 <CalendarSyncButtons
                   event={{
                     id: event.id,
@@ -508,13 +838,29 @@ export function TicketCard({
                     isVirtual: event.isVirtual,
                   }}
                 />
+                <button
+                  type="button"
+                  onClick={() => handleWalletInfo("apple")}
+                  className="rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground hover:bg-secondary transition flex items-center gap-1.5 cursor-pointer select-none whitespace-nowrap"
+                >
+                  <Wallet className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span>Apple Wallet</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleWalletInfo("google")}
+                  className="rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground hover:bg-secondary transition flex items-center gap-1.5 cursor-pointer select-none whitespace-nowrap"
+                >
+                  <Wallet className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span>Google Wallet</span>
+                </button>
                 <ResendButton registrationId={registration.id} />
               </>
             )}
           </div>
 
           {/* SECCIÓN DE ENTRADAS DE INVITADOS */}
-          {guests && guests.length > 0 && (
+          {guestsState.length > 0 && (
             <div className="rounded-2xl border border-border bg-muted/20 p-4 md:p-5 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="flex items-center justify-between border-b border-border/40 pb-3">
                 <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
@@ -522,19 +868,23 @@ export function TicketCard({
                   {locale === "en" ? "Guest Tickets" : "Entradas de mis Invitados"}
                 </h4>
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground bg-secondary px-2.5 py-0.5 rounded-full">
-                  {guests.length} {guests.length === 1 ? (locale === "en" ? "guest" : "invitado") : (locale === "en" ? "guests" : "invitados")}
+                  {guestsState.length} {guestsState.length === 1 ? (locale === "en" ? "guest" : "invitado") : (locale === "en" ? "guests" : "invitados")}
                 </span>
               </div>
 
               <div className="grid grid-cols-1 gap-3.5">
-                {guests.map((guest) => {
+                {guestsState.map((guest) => {
                   const guestQr = guest.ticket?.qrCode;
                   const isCheckedIn = guest.registration.status === "checked_in";
                   
                   return (
                     <div 
                       key={guest.registration.id}
-                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5 p-4 rounded-xl border border-border bg-card shadow-3xs"
+                      className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5 p-4 rounded-xl border transition-all duration-300 ${
+                        isCheckedIn
+                          ? "border-emerald-500/35 bg-emerald-500/5 shadow-2xs"
+                          : "border-border bg-card shadow-3xs hover:border-border/80"
+                      }`}
                     >
                       <div className="min-w-0">
                         <p className="font-extrabold text-sm text-foreground truncate">
@@ -559,7 +909,7 @@ export function TicketCard({
                       </div>
 
                       {/* Acciones de Invitado */}
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex flex-wrap items-center gap-2 shrink-0">
                         {paymentStatus === "approved" && guestQr ? (
                           <>
                             <button
@@ -574,6 +924,20 @@ export function TicketCard({
                               <Eye className="h-3.5 w-3.5 text-primary" />
                               <span>{locale === "en" ? "View QR" : "Ver QR"}</span>
                             </button>
+
+                            <a
+                              href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+                                locale === "en"
+                                  ? `Hi ${guest.user.name}! Here is your entry ticket for the event *${event.title}*: ${window.location.origin}/ticket/${guest.ticket?.code} . See you there!`
+                                  : `¡Hola ${guest.user.name}! Aquí tienes tu entrada para el evento *${event.title}*: ${window.location.origin}/ticket/${guest.ticket?.code} . ¡Nos vemos allá!`
+                              )}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-3.5 py-2 text-xs font-bold flex items-center justify-center gap-1.5 shadow-3xs transition duration-200 cursor-pointer select-none"
+                            >
+                              <Share2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                              <span>{locale === "en" ? "Share" : "Compartir"}</span>
+                            </a>
 
                             <DownloadTicketButton
                               ticketCode={guest.ticket?.code || ""}
@@ -601,6 +965,20 @@ export function TicketCard({
                               <Eye className="h-3.5 w-3.5 text-primary" />
                               <span>{locale === "en" ? "View QR" : "Ver QR"}</span>
                             </button>
+
+                            <a
+                              href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+                                locale === "en"
+                                  ? `Hi ${guest.user.name}! Here is your entry ticket for the event *${event.title}*: ${window.location.origin}/ticket/${guest.ticket?.code} . See you there!`
+                                  : `¡Hola ${guest.user.name}! Aquí tienes tu entrada para el evento *${event.title}*: ${window.location.origin}/ticket/${guest.ticket?.code} . ¡Nos vemos allá!`
+                              )}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-3.5 py-2 text-xs font-bold flex items-center justify-center gap-1.5 shadow-3xs transition duration-200 cursor-pointer select-none"
+                            >
+                              <Share2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                              <span>{locale === "en" ? "Share" : "Compartir"}</span>
+                            </a>
 
                             <DownloadTicketButton
                               ticketCode={guest.ticket?.code || ""}
