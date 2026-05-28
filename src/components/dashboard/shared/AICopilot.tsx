@@ -137,7 +137,17 @@ ${
         ];
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <>
+      {/* Fondo oscurecido (Backdrop Overlay) con desenfoque de cristal premium */}
+      {isOpen && (
+        <div
+          onClick={handleToggle}
+          className="fixed inset-0 w-screen h-screen z-40 bg-black/40 backdrop-blur-[1.5px] transition-all duration-300 cursor-pointer animate-fade-in"
+        />
+      )}
+
+      {/* Contenedor del Chat */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       
       {/* Ventana de Chat */}
       {isOpen && (
@@ -201,13 +211,25 @@ ${
                 >
                   <div
                     className={cn(
-                      "h-7 w-7 rounded-lg flex items-center justify-center shrink-0 border",
+                      "h-7 w-7 rounded-lg flex items-center justify-center shrink-0 border overflow-hidden",
                       isAssistant
                         ? "bg-primary/5 text-primary border-primary/20"
                         : "bg-secondary text-foreground border-border"
                     )}
                   >
-                    {isAssistant ? <Bot className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5" />}
+                    {isAssistant ? (
+                      <Bot className="h-3.5 w-3.5" />
+                    ) : session.user.image ? (
+                      <img
+                        src={session.user.image}
+                        alt={session.user.name ?? "Usuario"}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-[10px] font-bold uppercase text-foreground/80 select-none">
+                        {session.user.name?.[0]}
+                      </span>
+                    )}
                   </div>
                   
                   <div
@@ -285,27 +307,21 @@ ${
       )}
 
       {/* Botón Flotante */}
-      <button
-        type="button"
-        onClick={handleToggle}
-        className={cn(
-          "relative h-14 w-14 rounded-full bg-gradient-to-tr from-primary to-accent text-primary-foreground flex items-center justify-center shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 active:scale-95 focus:outline-none cursor-pointer border border-white/10 select-none",
-          isOpen ? "rotate-90 bg-muted border-border" : "animate-bounce"
-        )}
-        style={{ animationDuration: "3s" }}
-      >
-        {isOpen ? (
-          <X className="h-6 w-6 text-primary-foreground" />
-        ) : (
-          <>
-            <Sparkles className="h-6 w-6" />
-            {hasUnread && (
-              <span className="absolute top-0 right-0 h-3.5 w-3.5 rounded-full bg-rose-500 border-2 border-card animate-pulse" />
-            )}
-          </>
-        )}
-      </button>
+      {!isOpen && (
+        <button
+          type="button"
+          onClick={handleToggle}
+          className="relative h-14 w-14 rounded-full bg-gradient-to-tr from-primary to-accent text-primary-foreground flex items-center justify-center shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 active:scale-95 focus:outline-none cursor-pointer border border-white/10 select-none animate-bounce"
+          style={{ animationDuration: "3s" }}
+        >
+          <Sparkles className="h-6 w-6" />
+          {hasUnread && (
+            <span className="absolute top-0 right-0 h-3.5 w-3.5 rounded-full bg-rose-500 border-2 border-card animate-pulse" />
+          )}
+        </button>
+      )}
 
-    </div>
+      </div>
+    </>
   );
 }
