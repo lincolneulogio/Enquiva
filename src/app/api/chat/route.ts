@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { streamText, stepCountIs } from "ai";
+import { streamText, stepCountIs, convertToModelMessages } from "ai";
 import { db } from "@/lib/db";
 import { users, events, registrations, activityLogs } from "@/lib/db/schema";
 import { and, eq, ilike, or, desc, count, ne } from "drizzle-orm";
@@ -78,20 +78,26 @@ Ayuda al miembro a encontrar su próximo encuentro espiritual o comunitario y a 
       }),
       execute: async ({ query }: { query: string }) => {
         try {
-          const results = await db
-            .select()
-            .from(events)
-            .where(
-              and(
+          const lowerQuery = query.toLowerCase().trim();
+          const isLatestQuery = ["ultimo", "último", "reciente", "recientes", "últimos", "ultimos", "creado"].some(k => lowerQuery.includes(k));
+          const isGeneralQuery = !query || isLatestQuery || ["all", "todos", "any"].includes(lowerQuery);
+
+          const queryFilter = isGeneralQuery
+            ? eq(events.status, "published")
+            : and(
                 eq(events.status, "published"),
                 or(
                   ilike(events.title, `%${query}%`),
                   ilike(events.description, `%${query}%`),
                   ilike(events.category, `%${query}%`)
                 )
-              )
-            )
-            .orderBy(desc(events.date))
+              );
+
+          const results = await db
+            .select()
+            .from(events)
+            .where(queryFilter)
+            .orderBy(isLatestQuery ? desc(events.createdAt) : desc(events.date))
             .limit(5);
 
           if (results.length === 0) {
@@ -232,10 +238,11 @@ Ayuda al miembro a encontrar su próximo encuentro espiritual o comunitario y a 
 
     // 4. Invocar a Gemini con soporte de Streaming y Function Calling del SDK de Vercel
     const result = streamText({
-      model: googleProvider("gemini-2.5-flash"),
-      messages,
+      model: googleProvider(env.GEMINI_MODEL),
+      messages: await convertToModelMessages(messages),
       system: systemPrompt,
       tools,
+      maxRetries: 0, // Evitar reintentos automáticos inmediatos que agoten la cuota de peticiones ante errores 429
       stopWhen: stepCountIs(5), // Permitir al modelo encadenar llamadas a herramientas (Multi-turn Tool Calling)
     });
 
