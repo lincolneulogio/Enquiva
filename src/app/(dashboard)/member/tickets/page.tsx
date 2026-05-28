@@ -12,9 +12,14 @@ import {
   users as usersTable,
 } from "@/lib/db/schema";
 import { eq, inArray } from "drizzle-orm";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export default async function MemberTicketsPage() {
   const { t } = await getI18n();
+  const session = await auth.api.getSession({ headers: await headers() });
+  const userName = session?.user?.name ?? null;
+
   const [registrations, payments] = await Promise.all([
     getUserRegistrations(),
     getUserPayments(),
@@ -146,6 +151,7 @@ export default async function MemberTicketsPage() {
       paymentMethod: payment?.method,
       transportBooking: transport,
       guests: guestsList,
+      attendeeName: userName,
     };
   });
 

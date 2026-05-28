@@ -68,6 +68,7 @@ interface TicketCardProps {
       phone: string | null;
     };
   }>;
+  attendeeName?: string | null;
   defaultExpanded?: boolean;
   isExpanded?: boolean;
   onToggle?: () => void;
@@ -82,6 +83,7 @@ export function TicketCard({
   paymentMethod,
   transportBooking,
   guests,
+  attendeeName,
   defaultExpanded = false,
   isExpanded: controlledExpanded,
   onToggle,
@@ -463,6 +465,54 @@ export function TicketCard({
             </div>
           )}
 
+          {/* 3. ACCIONES INFERIORES */}
+          <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-border/85 text-sm">
+            <Link
+              href="/member/tickets"
+              className="rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground hover:bg-secondary transition select-none"
+            >
+              {t("ticket.viewAllTickets")}
+            </Link>
+
+            {/* Only show premium actions when payment is approved (or no payment required) */}
+            {(paymentStatus === "approved" || !paymentStatus) && (
+              <>
+                <Link
+                  href={hasTransport ? "/member/transport" : "/member/payments"}
+                  className="rounded-full bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-wide text-primary-foreground hover:bg-primary/90 transition select-none"
+                >
+                  {hasTransport
+                    ? t("ticket.manageTransport")
+                    : t("ticket.paymentSummary")}
+                </Link>
+                {ticket && (
+                  <DownloadTicketButton
+                    ticketCode={ticket.code}
+                    eventTitle={event.title}
+                    eventDate={event.date}
+                    eventLocation={event.location}
+                    isVirtual={event.isVirtual}
+                    attendeeName={attendeeName || null}
+                    qrCode={qr}
+                    registrationStatus={registration.status}
+                    className="rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground hover:bg-secondary transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 select-none"
+                  />
+                )}
+                <CalendarSyncButtons
+                  event={{
+                    id: event.id,
+                    title: event.title,
+                    description: event.description,
+                    date: event.date,
+                    location: event.location,
+                    isVirtual: event.isVirtual,
+                  }}
+                />
+                <ResendButton registrationId={registration.id} />
+              </>
+            )}
+          </div>
+
           {/* SECCIÓN DE ENTRADAS DE INVITADOS */}
           {guests && guests.length > 0 && (
             <div className="rounded-2xl border border-border bg-muted/20 p-4 md:p-5 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -576,54 +626,6 @@ export function TicketCard({
               </div>
             </div>
           )}
-
-          {/* 3. ACCIONES INFERIORES */}
-          <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-border/85 text-sm">
-            <Link
-              href="/member/tickets"
-              className="rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground hover:bg-secondary transition select-none"
-            >
-              {t("ticket.viewAllTickets")}
-            </Link>
-
-            {/* Only show premium actions when payment is approved (or no payment required) */}
-            {(paymentStatus === "approved" || !paymentStatus) && (
-              <>
-                <Link
-                  href={hasTransport ? "/member/transport" : "/member/payments"}
-                  className="rounded-full bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-wide text-primary-foreground hover:bg-primary/90 transition select-none"
-                >
-                  {hasTransport
-                    ? t("ticket.manageTransport")
-                    : t("ticket.paymentSummary")}
-                </Link>
-                {ticket && (
-                  <DownloadTicketButton
-                    ticketCode={ticket.code}
-                    eventTitle={event.title}
-                    eventDate={event.date}
-                    eventLocation={event.location}
-                    isVirtual={event.isVirtual}
-                    attendeeName={null}
-                    qrCode={qr}
-                    registrationStatus={registration.status}
-                    className="rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground hover:bg-secondary transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 select-none"
-                  />
-                )}
-                <CalendarSyncButtons
-                  event={{
-                    id: event.id,
-                    title: event.title,
-                    description: event.description,
-                    date: event.date,
-                    location: event.location,
-                    isVirtual: event.isVirtual,
-                  }}
-                />
-                <ResendButton registrationId={registration.id} />
-              </>
-            )}
-          </div>
 
         </div>
       )}

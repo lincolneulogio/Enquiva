@@ -45,6 +45,7 @@ interface UnifiedTicketItem {
       phone: string | null;
     };
   }>;
+  attendeeName?: string | null;
 }
 
 interface MemberTicketsClientProps {
@@ -142,6 +143,7 @@ export function MemberTicketsClient({ tickets }: MemberTicketsClientProps) {
             paymentMethod={tickets[0].paymentMethod}
             transportBooking={tickets[0].transportBooking}
             guests={tickets[0].guests}
+            attendeeName={tickets[0].attendeeName}
             defaultExpanded={true}
           />
         </div>
@@ -334,6 +336,7 @@ export function MemberTicketsClient({ tickets }: MemberTicketsClientProps) {
                   paymentMethod={activeTicketItem.paymentMethod}
                   transportBooking={activeTicketItem.transportBooking}
                   guests={activeTicketItem.guests}
+                  attendeeName={activeTicketItem.attendeeName}
                   defaultExpanded={true}
                   isExpanded={true} // Force details column to remain fully expanded
                 />
@@ -412,6 +415,7 @@ export function MemberTicketsClient({ tickets }: MemberTicketsClientProps) {
                       paymentMethod={item.paymentMethod}
                       transportBooking={item.transportBooking}
                       guests={item.guests}
+                      attendeeName={item.attendeeName}
                       isExpanded={isItemExpanded}
                       onToggle={() =>
                         setSelectedRegistrationId(
