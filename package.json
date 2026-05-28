@@ -25,9 +25,12 @@
     "db:add-role-permissions": "node --env-file=.env ./scripts/add-role-permissions-table.mjs",
     "db:setup:transport": "node --env-file=.env ./scripts/add-transport-tables.mjs",
     "db:setup:phones": "node --env-file=.env ./scripts/add-phone-columns.mjs",
-    "doctor": "npx react-doctor@latest"
+    "doctor": "npx react-doctor@latest",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.80",
+    "@ai-sdk/react": "^1.1.18",
     "@hookform/resolvers": "^5.4.0",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -45,6 +48,8 @@
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",
     "@zxing/library": "^0.23.0",
+    "@ai-sdk/react": "^1.1.20",
+    "ai": "^6.0.192",
     "aos": "^2.3.4",
     "better-auth": "^1.6.11",
     "class-variance-authority": "^0.7.1",
