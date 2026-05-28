@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { count, desc } from "drizzle-orm";
-import { UserCog, Crown, ShieldCheck, Briefcase, UserRound } from "lucide-react";
+import { and, count, desc, eq, ilike, or } from "drizzle-orm";
+import { UserCog, Crown, ShieldCheck, Briefcase, UserRound, Search, X } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { RoleSelector } from "./RoleSelector";
@@ -10,10 +10,13 @@ import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale, getRoleLabel } from "@/lib/i18n/core";
 import { TablePagination } from "@/components/dashboard";
 import { ROLE_BADGE_STYLES, normalizeRole } from "@/lib/auth/rbac";
+import Link from "next/link";
 
 interface AdminUsersPageProps {
     searchParams: Promise<{
         page?: string;
+        search?: string;
+        role?: string;
     }>;
 }
 
@@ -33,8 +36,26 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
     const params = await searchParams;
     const requestedPage = Number(params.page ?? "1");
     const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
+    const searchQuery = String(params.search ?? "").trim();
+    const selectedRole = params.role ? String(params.role).trim() : "";
 
-    const [{ total }] = await db.select({ total: count() }).from(users);
+    // Build filter conditions
+    const conditions = [];
+    if (searchQuery) {
+        conditions.push(
+            or(
+                ilike(users.name, `%${searchQuery}%`),
+                ilike(users.email, `%${searchQuery}%`),
+                ilike(users.phone, `%${searchQuery}%`)
+            )
+        );
+    }
+    if (selectedRole) {
+        conditions.push(eq(users.role, selectedRole as "super_admin" | "admin" | "organizer" | "member"));
+    }
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [{ total }] = await db.select({ total: count() }).from(users).where(whereClause);
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
     const safePage = Math.min(currentPage, totalPages);
     const offset = (safePage - 1) * PAGE_SIZE;
@@ -53,6 +74,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
             createdAt: users.createdAt,
         })
         .from(users)
+        .where(whereClause)
         .orderBy(desc(users.createdAt))
         .limit(PAGE_SIZE)
         .offset(offset);
@@ -69,17 +91,175 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                 </p>
             </div>
 
+            {/* Search and Filters Panel */}
+            <div className="bg-card border border-border/60 rounded-3xl p-6 shadow-sm">
+                <form method="GET" action="/admin/users" className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                    
+                    {/* Text Search */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-muted-foreground block">
+                            {locale === "en" ? "Search" : "Buscar"}
+                        </label>
+                        <div className="relative">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+                            <input
+                                type="text"
+                                name="search"
+                                defaultValue={searchQuery}
+                                placeholder={locale === "en" ? "Name, email, phone..." : "Nombre, correo, teléfono..."}
+                                className="w-full rounded-xl border border-border bg-background pl-10 pr-4 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary h-10 transition-all text-foreground"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Role Filter */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-muted-foreground block">
+                            {t("common.role")}
+                        </label>
+                        <select
+                            name="role"
+                            defaultValue={selectedRole}
+                            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary h-10 transition-all text-foreground cursor-pointer"
+                        >
+                            <option value="">{locale === "en" ? "All Roles" : "Todos los roles"}</option>
+                            <option value="member">{getRoleLabel("member", locale)}</option>
+                            <option value="organizer">{getRoleLabel("organizer", locale)}</option>
+                            <option value="admin">{getRoleLabel("admin", locale)}</option>
+                            <option value="super_admin">{getRoleLabel("super_admin", locale)}</option>
+                        </select>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 h-10">
+                        <button
+                            type="submit"
+                            className="flex-1 rounded-xl bg-primary hover:bg-primary/95 text-primary-foreground font-semibold px-4 text-sm transition duration-200 cursor-pointer h-full"
+                        >
+                            {locale === "en" ? "Filter" : "Filtrar"}
+                        </button>
+                        {(searchQuery || selectedRole) && (
+                            <Link
+                                href="/admin/users"
+                                className="rounded-xl border border-border bg-background hover:bg-secondary px-3.5 text-sm font-semibold flex items-center justify-center text-foreground transition-all h-full"
+                            >
+                                <X className="h-4 w-4" />
+                            </Link>
+                        )}
+                    </div>
+
+                </form>
+            </div>
+
             {allUsers.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
                     <UserCog className="mx-auto h-10 w-10 text-muted-foreground/50" />
-                    <p className="mt-4 font-medium text-foreground">{t("dashboard.admin.noUsersYet")}</p>
+                    <p className="mt-4 font-medium text-foreground">
+                        {searchQuery || selectedRole
+                            ? (locale === "en" ? "No users found matching your filters." : "No se encontraron usuarios con los filtros aplicados.")
+                            : t("dashboard.admin.noUsersYet")}
+                    </p>
+                    {(searchQuery || selectedRole) && (
+                        <Link
+                            href="/admin/users"
+                            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-border bg-background hover:bg-secondary px-4 py-2 text-sm font-semibold text-foreground transition-all"
+                        >
+                            {locale === "en" ? "Clear Filters" : "Limpiar Filtros"}
+                        </Link>
+                    )}
                 </div>
             ) : (
                 <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-                    <p className="px-4 pt-2.5 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase md:hidden flex items-center gap-1">
-                        <span>↔</span> Desliza horizontalmente para ver la tabla completa
-                    </p>
-                    <div className="overflow-x-auto">
+                    
+                    {/* Mobile Cards View */}
+                    <div className="grid grid-cols-1 gap-4 p-4 md:hidden bg-muted/20">
+                        {allUsers.map((user, index) => {
+                            const normalizedRole = normalizeRole(user.role);
+                            const RoleIcon = roleIcons[normalizedRole];
+
+                            return (
+                                <div key={user.id} className="rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                                                {user.name?.[0]?.toUpperCase() ?? "U"}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <h3 className="font-bold text-foreground truncate max-w-[160px]">{user.name ?? "—"}</h3>
+                                                <p className="text-xs text-muted-foreground truncate max-w-[160px]">{user.email}</p>
+                                            </div>
+                                        </div>
+                                        <span className="text-[10px] text-muted-foreground font-mono font-semibold">
+                                            #{rowStart + index + 1}
+                                        </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3 text-xs border-t border-b border-border/50 py-3">
+                                        <div>
+                                            <span className="block text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{locale === "en" ? "Phone" : "Teléfono"}</span>
+                                            <span className="font-medium text-foreground">{user.phone ?? "—"}</span>
+                                        </div>
+                                        <div>
+                                            <span className="block text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t("common.role")}</span>
+                                            <span className={`inline-flex items-center gap-1 mt-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${ROLE_BADGE_STYLES[normalizedRole]}`}>
+                                                <RoleIcon className="h-3 w-3" />
+                                                {getRoleLabel(normalizedRole, locale)}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span className="block text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{locale === "en" ? "Verified" : "Verificado"}</span>
+                                            <span className="inline-block mt-0.5">
+                                                {user.emailVerified ? (
+                                                    <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-bold text-green-600 border border-green-500/20">Verificado</span>
+                                                ) : (
+                                                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 border border-slate-200/50">Pendiente</span>
+                                                )}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span className="block text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{locale === "en" ? "Status" : "Estado"}</span>
+                                            <span className="inline-block mt-0.5">
+                                                {user.isActive ? (
+                                                    <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 border border-emerald-500/20">Activo</span>
+                                                ) : (
+                                                    <span className="rounded-full bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold text-rose-600 border border-rose-500/20">Suspendido</span>
+                                                )}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span className="block text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t("common.joined")}</span>
+                                            <span className="text-muted-foreground font-medium">
+                                                {user.createdAt ? new Date(user.createdAt).toLocaleDateString(locale === "en" ? "en-US" : "es-PE") : "—"}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span className="block text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{locale === "en" ? "Last Active" : "Última Conexión"}</span>
+                                            <span className="text-muted-foreground font-medium truncate block max-w-[120px]">
+                                                {user.lastSeenAt ? new Date(user.lastSeenAt).toLocaleDateString(locale === "en" ? "en-US" : "es-PE") : "—"}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between gap-3 pt-1">
+                                        <div className="flex-1">
+                                            <span className="block text-[9px] uppercase font-bold text-muted-foreground tracking-wider mb-1">{t("common.changeRole")}</span>
+                                            <RoleSelector
+                                                userId={user.id}
+                                                currentRole={(user.role ?? "member") as "member" | "organizer" | "admin" | "super_admin"}
+                                                currentUserId={currentUserId}
+                                            />
+                                        </div>
+                                        <div className="self-end pb-0.5">
+                                            <DeleteUserButton userId={user.id} isSelf={user.id === currentUserId} />
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Desktop Table View */}
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full min-w-[1250px] text-sm">
                             <thead>
                                 <tr className="border-b border-border bg-muted/40">
@@ -177,12 +357,17 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                             </tbody>
                         </table>
                     </div>
+
                     <TablePagination
                         basePath="/admin/users"
                         currentPage={safePage}
                         totalPages={totalPages}
                         totalItems={total}
                         pageSize={PAGE_SIZE}
+                        query={{
+                            search: searchQuery || undefined,
+                            role: selectedRole || undefined,
+                        }}
                     />
                 </div>
             )}

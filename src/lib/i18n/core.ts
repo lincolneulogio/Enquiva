@@ -186,6 +186,13 @@ const translations: Record<Locale, TranslationDictionary> = {
         },
         dashboard: {
             sidebar: {
+                groups: {
+                    core: "Principal",
+                    management: "Gestión",
+                    finances: "Finanzas y Servicios",
+                    tools: "Herramientas",
+                    account: "Mi Cuenta",
+                },
                 organizer: {
                     overview: "Resumen",
                     myEvents: "Mis eventos",
@@ -279,6 +286,8 @@ const translations: Record<Locale, TranslationDictionary> = {
                 cannotChangeOwnRole: "No puedes cambiar tu propio rol",
                 roleUpdatedTo: "Rol actualizado a {role}",
                 failedToUpdateRole: "No se pudo actualizar el rol",
+                changeRoleConfirmTitle: "¿Cambiar rol del usuario?",
+                changeRoleConfirmText: "¿Estás seguro de que deseas cambiar el rol de este usuario a {role}? Esto modificará sus privilegios de acceso al sistema de inmediato.",
                 cannotDeleteOwnAccount: "No puedes eliminar tu propia cuenta",
                 confirmDeleteUser: "¿Eliminar esta cuenta de usuario? Esta acción no se puede deshacer.",
                 userDeleted: "Usuario eliminado",
@@ -1038,6 +1047,13 @@ const translations: Record<Locale, TranslationDictionary> = {
         },
         dashboard: {
             sidebar: {
+                groups: {
+                    core: "Core",
+                    management: "Management",
+                    finances: "Finances & Services",
+                    tools: "Tools",
+                    account: "My Account",
+                },
                 organizer: {
                     overview: "Overview",
                     myEvents: "My events",
@@ -1131,6 +1147,8 @@ const translations: Record<Locale, TranslationDictionary> = {
                 cannotChangeOwnRole: "Cannot change your own role",
                 roleUpdatedTo: "Role updated to {role}",
                 failedToUpdateRole: "Failed to update role",
+                changeRoleConfirmTitle: "Change user role?",
+                changeRoleConfirmText: "Are you sure you want to change this user's role to {role}? This will modify their access privileges immediately.",
                 cannotDeleteOwnAccount: "Cannot delete your own account",
                 confirmDeleteUser: "Delete this user account? This action cannot be undone.",
                 userDeleted: "User deleted",

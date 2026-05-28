@@ -36,58 +36,118 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-const organiverNav: NavItem[] = [
-  { labelKey: "dashboard.sidebar.organizer.overview", href: "/organizer", icon: LayoutDashboard },
-  { labelKey: "dashboard.sidebar.organizer.myEvents", href: "/organizer/events", icon: Calendar },
-  { labelKey: "dashboard.sidebar.organizer.attendees", href: "/organizer/attendees", icon: Users },
-  { labelKey: "dashboard.sidebar.organizer.broadcasts", href: "/organizer/broadcasts", icon: Megaphone },
-  { labelKey: "dashboard.sidebar.organizer.notifications", href: "/organizer/notifications", icon: Bell },
-  { labelKey: "dashboard.sidebar.organizer.payments", href: "/organizer/payments", icon: CreditCard },
-  { labelKey: "dashboard.sidebar.organizer.transport", href: "/organizer/transport", icon: Bus },
-  { labelKey: "dashboard.sidebar.organizer.paymentMethods", href: "/organizer/payment-methods", icon: Wallet },
-  { labelKey: "dashboard.sidebar.organizer.scan", href: "/organizer/scan", icon: QrCode },
-  { labelKey: "dashboard.sidebar.organizer.profile", href: "/organizer/profile", icon: User },
-  { labelKey: "dashboard.sidebar.organizer.settings", href: "/organizer/settings", icon: Settings },
+interface NavSection {
+  titleKey?: string;
+  items: NavItem[];
+}
+
+const organizerSections: NavSection[] = [
+  {
+    titleKey: "dashboard.sidebar.groups.core",
+    items: [
+      { labelKey: "dashboard.sidebar.organizer.overview", href: "/organizer", icon: LayoutDashboard },
+      { labelKey: "dashboard.sidebar.organizer.notifications", href: "/organizer/notifications", icon: Bell },
+    ]
+  },
+  {
+    titleKey: "dashboard.sidebar.groups.management",
+    items: [
+      { labelKey: "dashboard.sidebar.organizer.myEvents", href: "/organizer/events", icon: Calendar },
+      { labelKey: "dashboard.sidebar.organizer.attendees", href: "/organizer/attendees", icon: Users },
+      { labelKey: "dashboard.sidebar.organizer.broadcasts", href: "/organizer/broadcasts", icon: Megaphone },
+    ]
+  },
+  {
+    titleKey: "dashboard.sidebar.groups.finances",
+    items: [
+      { labelKey: "dashboard.sidebar.organizer.payments", href: "/organizer/payments", icon: CreditCard },
+      { labelKey: "dashboard.sidebar.organizer.paymentMethods", href: "/organizer/payment-methods", icon: Wallet },
+      { labelKey: "dashboard.sidebar.organizer.transport", href: "/organizer/transport", icon: Bus },
+    ]
+  },
+  {
+    titleKey: "dashboard.sidebar.groups.tools",
+    items: [
+      { labelKey: "dashboard.sidebar.organizer.scan", href: "/organizer/scan", icon: QrCode },
+    ]
+  },
+  {
+    titleKey: "dashboard.sidebar.groups.account",
+    items: [
+      { labelKey: "dashboard.sidebar.organizer.profile", href: "/organizer/profile", icon: User },
+      { labelKey: "dashboard.sidebar.organizer.settings", href: "/organizer/settings", icon: Settings },
+    ]
+  }
 ];
 
-const adminNav: NavItem[] = [
-  { labelKey: "dashboard.sidebar.admin.overview", href: "/admin", icon: LayoutDashboard },
-  { labelKey: "dashboard.sidebar.admin.allEvents", href: "/admin/events", icon: Calendar },
-  { labelKey: "dashboard.sidebar.admin.categories", href: "/admin/categories", icon: ClipboardList },
-  { labelKey: "dashboard.sidebar.admin.users", href: "/admin/users", icon: UserCog },
-  { labelKey: "dashboard.sidebar.admin.registrations", href: "/admin/registrations", icon: ClipboardList },
-  { labelKey: "dashboard.sidebar.admin.notifications", href: "/admin/notifications", icon: Bell },
-  { labelKey: "dashboard.sidebar.admin.permissions", href: "/admin/permissions", icon: KeyRound },
-  { labelKey: "dashboard.sidebar.admin.analytics", href: "/admin/analytics", icon: BarChart3 },
-  { labelKey: "dashboard.sidebar.admin.audit", href: "/admin/audit", icon: Shield },
-  { labelKey: "dashboard.sidebar.admin.payments", href: "/admin/payments", icon: CreditCard },
-  { labelKey: "dashboard.sidebar.admin.transport", href: "/admin/transport", icon: Bus },
-  { labelKey: "dashboard.sidebar.admin.paymentMethods", href: "/admin/payment-methods", icon: Wallet },
-  { labelKey: "dashboard.sidebar.admin.scan", href: "/admin/scan", icon: QrCode },
-  { labelKey: "dashboard.sidebar.admin.profile", href: "/admin/profile", icon: User },
-  { labelKey: "dashboard.sidebar.admin.settings", href: "/admin/settings", icon: Settings },
+const adminSections = (isSuperAdmin: boolean): NavSection[] => [
+  {
+    titleKey: "dashboard.sidebar.groups.core",
+    items: [
+      { labelKey: "dashboard.sidebar.admin.overview", href: "/admin", icon: LayoutDashboard },
+      { labelKey: "dashboard.sidebar.admin.analytics", href: "/admin/analytics", icon: BarChart3 },
+      { labelKey: "dashboard.sidebar.admin.notifications", href: "/admin/notifications", icon: Bell },
+    ]
+  },
+  {
+    titleKey: "dashboard.sidebar.groups.management",
+    items: [
+      { labelKey: "dashboard.sidebar.admin.allEvents", href: "/admin/events", icon: Calendar },
+      { labelKey: "dashboard.sidebar.admin.categories", href: "/admin/categories", icon: ClipboardList },
+      { labelKey: "dashboard.sidebar.admin.users", href: "/admin/users", icon: UserCog },
+      ...(isSuperAdmin ? [{ labelKey: "dashboard.sidebar.admin.roles", href: "/admin/roles", icon: Shield }] : []),
+      { labelKey: "dashboard.sidebar.admin.registrations", href: "/admin/registrations", icon: ClipboardList },
+    ]
+  },
+  {
+    titleKey: "dashboard.sidebar.groups.finances",
+    items: [
+      { labelKey: "dashboard.sidebar.admin.payments", href: "/admin/payments", icon: CreditCard },
+      { labelKey: "dashboard.sidebar.admin.paymentMethods", href: "/admin/payment-methods", icon: Wallet },
+      { labelKey: "dashboard.sidebar.admin.transport", href: "/admin/transport", icon: Bus },
+    ]
+  },
+  {
+    titleKey: "dashboard.sidebar.groups.tools",
+    items: [
+      { labelKey: "dashboard.sidebar.admin.scan", href: "/admin/scan", icon: QrCode },
+      { labelKey: "dashboard.sidebar.admin.audit", href: "/admin/audit", icon: Shield },
+      { labelKey: "dashboard.sidebar.admin.permissions", href: "/admin/permissions", icon: KeyRound },
+    ]
+  },
+  {
+    titleKey: "dashboard.sidebar.groups.account",
+    items: [
+      { labelKey: "dashboard.sidebar.admin.profile", href: "/admin/profile", icon: User },
+      { labelKey: "dashboard.sidebar.admin.settings", href: "/admin/settings", icon: Settings },
+    ]
+  }
 ];
 
-const superAdminExtraNav: NavItem[] = [
-  { labelKey: "dashboard.sidebar.admin.roles", href: "/admin/roles", icon: Shield },
+const memberSections: NavSection[] = [
+  {
+    titleKey: "dashboard.sidebar.groups.core",
+    items: [
+      { labelKey: "dashboard.sidebar.member.discover", href: "/member", icon: LayoutDashboard },
+      { labelKey: "dashboard.sidebar.member.myEvents", href: "/member/events", icon: Calendar },
+      { labelKey: "dashboard.sidebar.member.notifications", href: "/member/notifications", icon: Bell },
+    ]
+  },
+  {
+    titleKey: "dashboard.sidebar.groups.finances",
+    items: [
+      { labelKey: "dashboard.sidebar.member.transport", href: "/member/transport", icon: Bus },
+      { labelKey: "dashboard.sidebar.member.payments", href: "/member/payments", icon: CreditCard },
+      { labelKey: "dashboard.sidebar.member.tickets", href: "/member/tickets", icon: Ticket },
+    ]
+  },
+  {
+    titleKey: "dashboard.sidebar.groups.account",
+    items: [
+      { labelKey: "dashboard.sidebar.member.profile", href: "/member/profile", icon: User },
+    ]
+  }
 ];
-
-const memberNav: NavItem[] = [
-  { labelKey: "dashboard.sidebar.member.discover", href: "/member", icon: LayoutDashboard },
-  { labelKey: "dashboard.sidebar.member.myEvents", href: "/member/events", icon: Calendar },
-  { labelKey: "dashboard.sidebar.member.transport", href: "/member/transport", icon: Bus },
-  { labelKey: "dashboard.sidebar.member.notifications", href: "/member/notifications", icon: Bell },
-  { labelKey: "dashboard.sidebar.member.payments", href: "/member/payments", icon: CreditCard },
-  { labelKey: "dashboard.sidebar.member.tickets", href: "/member/tickets", icon: Ticket },
-  { labelKey: "dashboard.sidebar.member.profile", href: "/member/profile", icon: User },
-];
-
-const navByRole: Record<string, NavItem[]> = {
-  organizer: organiverNav,
-  super_admin: adminNav,
-  admin: adminNav,
-  member: memberNav,
-};
 
 interface DashboardSidebarProps {
   role: string;
@@ -106,10 +166,13 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
   const t = useTranslations();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const normalizedRole = normalizeRole(role);
-  const baseNav = navByRole[normalizedRole] ?? memberNav;
-  const navItems = normalizedRole === "super_admin"
-    ? [...baseNav.slice(0, 4), ...superAdminExtraNav, ...baseNav.slice(4)]
-    : baseNav;
+  const sections = normalizedRole === "super_admin"
+    ? adminSections(true)
+    : normalizedRole === "admin"
+    ? adminSections(false)
+    : normalizedRole === "organizer"
+    ? organizerSections
+    : memberSections;
 
   useEffect(() => {
     const openSidebar = () => setIsMobileOpen(true);
@@ -172,26 +235,35 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
           </div>
         </div>
 
-        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain scroll-smooth snap-y snap-proximity px-3 py-4 [-webkit-overflow-scrolling:touch] [scroll-padding-bottom:0.75rem] [scroll-padding-top:0.75rem]">
-          {navItems.map(({ labelKey, href, icon: Icon }) => {
-            const isActive = pathname === href;
-            return (
-              <Link
-                key={`mobile-${href}`}
-                href={href}
-                onClick={() => setIsMobileOpen(false)}
-                className={cn(
-                  "flex snap-start items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-sidebar-accent text-sidebar-primary"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {t(labelKey)}
-              </Link>
-            );
-          })}
+        <nav className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain scroll-smooth snap-y snap-proximity px-3 py-4 [-webkit-overflow-scrolling:touch]">
+          {sections.map((section, secIdx) => (
+            <div key={`mobile-sec-${section.titleKey || secIdx}`} className="space-y-1">
+              {section.titleKey && (
+                <h3 className="px-3 text-[10px] font-bold tracking-wider text-sidebar-foreground/45 uppercase select-none mb-1.5 mt-2 first:mt-0">
+                  {t(section.titleKey)}
+                </h3>
+              )}
+              {section.items.map(({ labelKey, href, icon: Icon }) => {
+                const isActive = pathname === href;
+                return (
+                  <Link
+                    key={`mobile-${href}`}
+                    href={href}
+                    onClick={() => setIsMobileOpen(false)}
+                    className={cn(
+                      "flex snap-start items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-primary"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {t(labelKey)}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         <div className="shrink-0 border-t border-sidebar-border p-4">
@@ -236,25 +308,34 @@ export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          {navItems.map(({ labelKey, href, icon: Icon }) => {
-            const isActive = pathname === href;
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-sidebar-accent text-sidebar-primary"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {t(labelKey)}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
+          {sections.map((section, secIdx) => (
+            <div key={`desktop-sec-${section.titleKey || secIdx}`} className="space-y-1">
+              {section.titleKey && (
+                <h3 className="px-3 text-[10px] font-bold tracking-wider text-sidebar-foreground/45 uppercase select-none mb-1.5 mt-2 first:mt-0">
+                  {t(section.titleKey)}
+                </h3>
+              )}
+              {section.items.map(({ labelKey, href, icon: Icon }) => {
+                const isActive = pathname === href;
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-primary"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {t(labelKey)}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* User */}

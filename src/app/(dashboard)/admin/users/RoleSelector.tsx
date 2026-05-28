@@ -5,6 +5,7 @@ import { useTransition } from "react";
 import { toast } from "sonner";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { getRoleLabel } from "@/lib/i18n/core";
+import { confirmDeleteAction } from "@/lib/ui/confirm";
 
 type Role = "member" | "organizer" | "admin" | "super_admin";
 
@@ -20,9 +21,25 @@ export function RoleSelector({ userId, currentRole, currentUserId }: RoleSelecto
     const [isPending, startTransition] = useTransition();
     const isSelf = userId === currentUserId;
 
-    const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newRole = e.target.value as Role;
         if (newRole === currentRole) return;
+
+        const selectEl = e.target;
+        // Revert visually to currentRole until confirmation is confirmed
+        selectEl.value = currentRole;
+
+        const confirmed = await confirmDeleteAction({
+            title: t("dashboard.admin.changeRoleConfirmTitle"),
+            text: t("dashboard.admin.changeRoleConfirmText", { role: getRoleLabel(newRole, locale) }),
+            confirmText: t("common.update"),
+            cancelText: t("common.cancel"),
+            tone: "warning",
+        });
+
+        if (!confirmed) return;
+
+        selectEl.value = newRole;
 
         startTransition(async () => {
             try {
@@ -30,6 +47,8 @@ export function RoleSelector({ userId, currentRole, currentUserId }: RoleSelecto
                 toast.success(t("dashboard.admin.roleUpdatedTo", { role: getRoleLabel(newRole, locale) }));
             } catch {
                 toast.error(t("dashboard.admin.failedToUpdateRole"));
+                // Revert visual selection on error
+                selectEl.value = currentRole;
             }
         });
     };
