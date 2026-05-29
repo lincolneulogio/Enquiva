@@ -16,7 +16,9 @@ export async function streamWithFallback(
   tools: Record<string, any>,
 ) {
   if (!googleProvider) {
-    throw new Error("La API Key de Gemini (GEMINI_API_KEY) no está configurada en el .env.");
+    throw new Error(
+      "La API Key de Gemini (GEMINI_API_KEY) no está configurada en el .env.",
+    );
   }
 
   const geminiModel = env.GEMINI_MODEL || "gemini-2.5-flash";

@@ -63,6 +63,7 @@ function AICopilotInner() {
               userImage={session.user.image}
               userName={session.user.name}
             />
+
             <ChatInput
               input={input}
               isLoading={isLoading}

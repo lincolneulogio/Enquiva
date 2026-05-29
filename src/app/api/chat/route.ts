@@ -29,8 +29,12 @@ export async function POST(req: Request) {
 
     // 4. Stream con cadena de fallback
     const convertedMessages = await convertToModelMessages(messages);
-    
-    const response = await streamWithFallback(convertedMessages, systemPrompt, tools);
+
+    const response = await streamWithFallback(
+      convertedMessages,
+      systemPrompt,
+      tools,
+    );
     return response;
   } catch (error: any) {
     console.error("Error in Chat API Route:", error);

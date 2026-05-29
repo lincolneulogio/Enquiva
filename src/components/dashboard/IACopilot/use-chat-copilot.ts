@@ -48,6 +48,7 @@ export function useChatCopilot() {
     handleSubmit,
     isLoading,
     setMessages,
+    append,
   } = useChat({
     api: "/api/chat",
     streamProtocol: "text",
@@ -59,6 +60,7 @@ export function useChatCopilot() {
       },
     ],
   });
+
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
