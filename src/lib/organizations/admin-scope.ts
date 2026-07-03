@@ -8,7 +8,7 @@ import { OrganizationService } from "@/lib/organizations/organization.service";
 
 export type AdminScope =
   | { mode: "platform" }
-  | { mode: "org"; organizationId: string; organizationName: string }
+  | { mode: "org"; organizationId: string; organizationName: string; inviteCode: string }
   | { mode: "unassigned" };
 
 /** Condición SQL que no devuelve filas — para admin sin entidad. */
@@ -32,7 +32,12 @@ export async function resolveAdminScope(): Promise<AdminScope> {
   if (role === "admin") {
     const org = await OrganizationService.getOrganizationForUser(session.user.id);
     if (org) {
-      return { mode: "org", organizationId: org.id, organizationName: org.name };
+      return {
+        mode: "org",
+        organizationId: org.id,
+        organizationName: org.name,
+        inviteCode: org.inviteCode,
+      };
     }
     return { mode: "unassigned" };
   }
@@ -48,7 +53,14 @@ export async function resolveAdminScopeForUser(
   if (normalized === "super_admin") return { mode: "platform" };
   if (normalized === "admin") {
     const org = await OrganizationService.getOrganizationForUser(userId);
-    if (org) return { mode: "org", organizationId: org.id, organizationName: org.name };
+    if (org) {
+      return {
+        mode: "org",
+        organizationId: org.id,
+        organizationName: org.name,
+        inviteCode: org.inviteCode,
+      };
+    }
     return { mode: "unassigned" };
   }
   return { mode: "platform" };

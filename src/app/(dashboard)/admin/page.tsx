@@ -1,4 +1,4 @@
-import { AdminStatsCharts } from "@/components/dashboard";
+import { AdminStatsCharts, EntityInviteBanner } from "@/components/dashboard";
 import { Users, CalendarDays, BadgeCheck, Ticket } from "lucide-react";
 import { getAdminDashboardStats } from "@/lib/analytics/admin";
 import { getI18n } from "@/lib/i18n/server";
@@ -12,16 +12,24 @@ export default async function AdminDashboardPage() {
     organizationId: getOrganizationIdFromScope(adminScope),
   });
 
+  const isEntityScope = adminScope.mode === "org";
+
   return (
     <div className="space-y-6 sm:space-y-8">
       <div>
         <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
-          {t("dashboard.admin.platformOverview")}
+          {isEntityScope
+            ? t("dashboard.admin.entityOverview", { name: adminScope.organizationName })
+            : t("dashboard.admin.platformOverview")}
         </h1>
         <p className="mt-1 text-muted-foreground">
-          {t("dashboard.admin.monitorActivity")}
+          {isEntityScope
+            ? t("dashboard.admin.entityMonitorActivity")
+            : t("dashboard.admin.monitorActivity")}
         </p>
       </div>
+
+      {isEntityScope ? <EntityInviteBanner inviteCode={adminScope.inviteCode} /> : null}
 
       {/* Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

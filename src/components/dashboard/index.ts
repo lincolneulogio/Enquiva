@@ -25,6 +25,7 @@ export * from "./admin/AdminStatsCharts";
 export * from "./admin/CategoriesManager";
 export * from "./admin/PlansManager";
 export * from "./admin/AdminRevenuePanel";
+export * from "./admin/EntityInviteBanner";
 export * from "./admin/PermissionToggleCell";
 
 // ─── Organizer / Management Components ────────────────────────────────────────
