@@ -80,6 +80,9 @@ interface Props {
   scope: PaymentMethodScope;
   methods: PaymentMethod[];
   canUseCulqi: boolean;
+  planIncludesCulqi?: boolean;
+  billedPlanIncludesCulqi?: boolean;
+  subscriptionPastDue?: boolean;
   culqiConfigured: boolean;
   hasCulqiMethod: boolean;
   role: string;
@@ -90,6 +93,9 @@ export function PaymentMethodsManager({
   scope,
   methods,
   canUseCulqi,
+  planIncludesCulqi = true,
+  billedPlanIncludesCulqi = false,
+  subscriptionPastDue = false,
   culqiConfigured,
   hasCulqiMethod,
   role,
@@ -106,18 +112,17 @@ export function PaymentMethodsManager({
   const [holderName, setHolderName] = useState("");
   const [phone, setPhone] = useState("");
   const [qrPreview, setQrPreview] = useState<string | null>(null);
+  const [culqiPublicKey, setCulqiPublicKey] = useState("");
+  const [culqiSecretKey, setCulqiSecretKey] = useState("");
 
   const isPlatform = scope === "platform";
   const isCulqiType = type === "culqi";
+  const canAddCulqiType = isPlatform
+    ? canUseCulqi && !hasCulqiMethod
+    : planIncludesCulqi && !hasCulqiMethod;
   const availableTypes = isPlatform
-    ? [
-        ...PLATFORM_ONLINE_TYPES,
-        ...(canUseCulqi && !hasCulqiMethod ? (["culqi"] as const) : []),
-      ]
-    : [
-        ...ORGANIZER_MANUAL_TYPES,
-        ...(canUseCulqi && !hasCulqiMethod ? (["culqi"] as const) : []),
-      ];
+    ? [...PLATFORM_ONLINE_TYPES, ...(canAddCulqiType ? (["culqi"] as const) : [])]
+    : [...ORGANIZER_MANUAL_TYPES, ...(canAddCulqiType ? (["culqi"] as const) : [])];
 
   const resetForm = () => {
     setType("yape");
@@ -125,6 +130,8 @@ export function PaymentMethodsManager({
     setHolderName("");
     setPhone("");
     setQrPreview(null);
+    setCulqiPublicKey("");
+    setCulqiSecretKey("");
     setEditingId(null);
     setShowForm(false);
   };
@@ -135,6 +142,8 @@ export function PaymentMethodsManager({
     setHolderName(m.holderName);
     setPhone(m.phone ?? "");
     setQrPreview(m.qrCodeUrl);
+    setCulqiPublicKey(m.culqiPublicKey ?? "");
+    setCulqiSecretKey("");
     setEditingId(m.id);
     setShowForm(true);
   };
@@ -155,6 +164,8 @@ export function PaymentMethodsManager({
           holderName: holderName.trim(),
           phone: isCulqiType || type === "cash" ? null : phone.trim() || null,
           qrCodeUrl: isCulqiType || type === "cash" ? null : qrPreview,
+          culqiPublicKey: isCulqiType && !isPlatform ? culqiPublicKey.trim() || null : null,
+          culqiSecretKey: isCulqiType && !isPlatform ? culqiSecretKey.trim() || null : null,
         };
 
         if (editingId) {
@@ -197,25 +208,63 @@ export function PaymentMethodsManager({
     }
   };
 
+  const showOrganizerCulqiHints = !isPlatform && role === "organizer";
+  const needsPlanUpgrade = showOrganizerCulqiHints && !planIncludesCulqi && !subscriptionPastDue;
+  const needsRenewal = showOrganizerCulqiHints && subscriptionPastDue && billedPlanIncludesCulqi;
+  const culqiReadyToAdd =
+    showOrganizerCulqiHints && planIncludesCulqi && !culqiConfigured;
+  const culqiActive =
+    showOrganizerCulqiHints && planIncludesCulqi && culqiConfigured;
+  const hasCulqiHints =
+    needsPlanUpgrade ||
+    needsRenewal ||
+    culqiReadyToAdd ||
+    culqiActive;
+
   return (
     <div className="space-y-6">
+      {(isPlatform || hasCulqiHints) && (
       <div className="rounded-2xl border border-border bg-muted/20 p-4 dark:bg-muted/10">
         <div className="flex gap-3">
           <Info className="h-5 w-5 shrink-0 text-primary" />
           <div className="text-sm text-muted-foreground">
-            <p className="font-medium text-foreground">
-              {isPlatform ? t("payments.config.platformTitle") : t("payments.config.title")}
-            </p>
-            <p className="mt-1">
-              {isPlatform ? t("payments.config.platformDescription") : t("payments.config.description")}
-            </p>
-            {!isPlatform && role === "organizer" && !canUseCulqi && (
-              <p className="mt-2 flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
-                <Crown className="h-3.5 w-3.5" />
+            {isPlatform ? (
+              <>
+                <p className="font-medium text-foreground">{t("payments.config.platformTitle")}</p>
+                <p className="mt-1">{t("payments.config.platformDescription")}</p>
+              </>
+            ) : null}
+            {needsPlanUpgrade && (
+              <p className="mt-2 flex flex-wrap items-center gap-1.5 text-amber-700 dark:text-amber-400">
+                <Crown className="h-3.5 w-3.5 shrink-0" />
                 {t("payments.config.culqiUpgrade")}
                 <Link href="/organizer/billing" className="font-semibold underline">
                   {t("payments.config.viewPlans")}
                 </Link>
+              </p>
+            )}
+            {needsRenewal && (
+              <p className="mt-2 flex flex-wrap items-center gap-1.5 text-amber-700 dark:text-amber-400">
+                <Crown className="h-3.5 w-3.5 shrink-0" />
+                {t("payments.config.culqiRenewPlan")}
+                <Link href="/organizer/billing" className="font-semibold underline">
+                  {t("payments.config.renewPlan")}
+                </Link>
+              </p>
+            )}
+            {culqiReadyToAdd && (
+              <p className="mt-2 text-emerald-700 dark:text-emerald-400">
+                {t("payments.config.culqiReadyToAdd")}
+              </p>
+            )}
+            {culqiReadyToAdd && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("payments.config.culqiKeysHelp")}
+              </p>
+            )}
+            {culqiActive && (
+              <p className="mt-2 text-emerald-700 dark:text-emerald-400">
+                {t("payments.config.culqiActive")}
               </p>
             )}
             {canUseCulqi && !culqiConfigured && isPlatform && (
@@ -231,6 +280,7 @@ export function PaymentMethodsManager({
           </div>
         </div>
       </div>
+      )}
 
       {!showForm ? (
         <button
@@ -276,6 +326,39 @@ export function PaymentMethodsManager({
           {isCulqiType && (
             <div className="rounded-xl border border-violet-200/60 bg-violet-50/50 p-4 text-sm text-violet-900 dark:border-violet-900/30 dark:bg-violet-950/20 dark:text-violet-200">
               {isPlatform ? t("payments.config.platformCulqiHelp") : t("payments.config.culqiHelp")}
+            </div>
+          )}
+
+          {isCulqiType && !isPlatform && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <p className="mb-2 text-xs text-muted-foreground">{t("payments.config.culqiKeysHelp")}</p>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-foreground">
+                  {t("payments.config.culqiPublicKey")} *
+                </label>
+                <input
+                  type="text"
+                  value={culqiPublicKey}
+                  onChange={(e) => setCulqiPublicKey(e.target.value)}
+                  placeholder="pk_test_..."
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-mono placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-foreground">
+                  {t("payments.config.culqiSecretKey")} {editingId ? "" : "*"}
+                </label>
+                <input
+                  type="password"
+                  value={culqiSecretKey}
+                  onChange={(e) => setCulqiSecretKey(e.target.value)}
+                  placeholder={editingId ? t("payments.config.culqiSecretKeyKeep") : "sk_test_..."}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-mono placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  autoComplete="new-password"
+                />
+              </div>
             </div>
           )}
 

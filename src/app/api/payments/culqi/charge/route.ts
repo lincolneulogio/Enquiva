@@ -4,7 +4,8 @@ import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { payments, registrations, events } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { createCulqiCharge, isCulqiConfigured } from "@/lib/culqi/client";
+import { createCulqiCharge } from "@/lib/culqi/client";
+import { getCulqiCredentialsForEvent } from "@/lib/culqi/capabilities";
 import { requirePlanFeature, getOrganizerPlanForEvent, getPlatformFee } from "@/lib/billing/enforce";
 import { PaymentService } from "@/services/payments/payment.service";
 import { SubscriptionService } from "@/lib/billing/subscription.service";
@@ -14,10 +15,6 @@ export async function POST(req: Request) {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
-
-    if (!isCulqiConfigured()) {
-      return NextResponse.json({ error: "Culqi no está configurado en el servidor" }, { status: 503 });
     }
 
     const body = await req.json();
@@ -43,6 +40,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Inscripción no encontrada" }, { status: 404 });
     }
 
+    const organizerCulqi = await getCulqiCredentialsForEvent(registration.eventId);
+    if (!organizerCulqi) {
+      return NextResponse.json(
+        { error: "El organizador no tiene Culqi configurado para este evento" },
+        { status: 503 },
+      );
+    }
+
     const [event] = await db.select().from(events).where(eq(events.id, registration.eventId)).limit(1);
     if (!event) {
       return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
@@ -56,17 +61,21 @@ export async function POST(req: Request) {
     const amount = Number(payment.amount);
     const platformFee = organizerPlan ? getPlatformFee(amount, organizerPlan) : 0;
 
-    const charge = await createCulqiCharge({
-      amount,
-      email: session.user.email,
-      sourceId,
-      description: `Entrada: ${event.title}`,
-      metadata: {
-        paymentId: payment.id,
-        registrationId: registration.id,
-        eventId: event.id,
+    const charge = await createCulqiCharge(
+      {
+        amount,
+        email: session.user.email,
+        sourceId,
+        description: `Entrada: ${event.title}`,
+        metadata: {
+          paymentId: payment.id,
+          registrationId: registration.id,
+          eventId: event.id,
+          paymentMethodId: organizerCulqi.paymentMethodId,
+        },
       },
-    });
+      { secretKey: organizerCulqi.secretKey, publicKey: organizerCulqi.publicKey },
+    );
 
     if (charge.outcome?.type !== "venta_exitosa") {
       return NextResponse.json({ error: "Pago rechazado por Culqi" }, { status: 402 });

@@ -5,8 +5,7 @@ import { getEventPaymentMethods, getActivePaymentMethodsForOrganizer } from "@/a
 import { getI18n } from "@/lib/i18n/server";
 import { PaymentCheckoutForm } from "@/components/payments/PaymentCheckoutForm";
 import { notFound, redirect } from "next/navigation";
-import { env } from "@/env";
-import { isCulqiEnabledForEvent } from "@/lib/culqi/capabilities";
+import { isCulqiEnabledForEvent, getCulqiPublicKeyForEvent } from "@/lib/culqi/capabilities";
 import { db } from "@/lib/db";
 import { transportBookings, transportRoutes, users, registrations } from "@/lib/db/schema";
 import { eq, inArray } from "drizzle-orm";
@@ -107,7 +106,7 @@ export default async function MemberPaymentCheckoutPage({ params }: Props) {
   const eventPrice = Number(event.price);
   const transportPrice = transportDetails ? Number(transportDetails.pricePerSeat) * transportDetails.seats : 0;
   const culqiAvailable = await isCulqiEnabledForEvent(event.id);
-  const culqiPublicKey = env.NEXT_PUBLIC_CULQI_PUBLIC_KEY ?? null;
+  const culqiPublicKey = await getCulqiPublicKeyForEvent(event.id);
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">

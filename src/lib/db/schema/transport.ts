@@ -109,6 +109,10 @@ export const paymentMethods = pgTable("payment_methods", {
   qrCodeUrl: text("qr_code_url"),
   phone: text("phone"),
   holderName: text("holder_name").notNull(),
+  /** Llave pública Culqi del organizador (cobros de eventos). null = usa env de plataforma (solo scope platform). */
+  culqiPublicKey: text("culqi_public_key"),
+  /** Llave secreta Culqi — solo servidor, nunca al cliente. */
+  culqiSecretKey: text("culqi_secret_key"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

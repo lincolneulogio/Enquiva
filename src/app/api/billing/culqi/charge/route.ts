@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { plans } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { createCulqiCharge, isCulqiConfigured } from "@/lib/culqi/client";
+import { createCulqiCharge, getPlatformCulqiCredentials, isPlatformCulqiConfigured } from "@/lib/culqi/client";
 import { SubscriptionPaymentService } from "@/lib/billing/subscription-payment.service";
 
 export async function POST(req: Request) {
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    if (!isCulqiConfigured()) {
+    if (!isPlatformCulqiConfigured()) {
       return NextResponse.json({ error: "Culqi no está configurado" }, { status: 503 });
     }
 
@@ -48,17 +48,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Este plan es gratuito" }, { status: 400 });
     }
 
-    const charge = await createCulqiCharge({
-      amount,
-      email: session.user.email,
-      sourceId,
-      description: `Suscripción ${plan.name} - EncuentroDeFe`,
-      metadata: {
-        userId: session.user.id,
-        planId: plan.id,
-        type: "subscription",
+    const platformCulqi = getPlatformCulqiCredentials()!;
+    const charge = await createCulqiCharge(
+      {
+        amount,
+        email: session.user.email,
+        sourceId,
+        description: `Suscripción ${plan.name} - EncuentroDeFe`,
+        metadata: {
+          userId: session.user.id,
+          planId: plan.id,
+          type: "subscription",
+        },
       },
-    });
+      platformCulqi,
+    );
 
     if (charge.outcome?.type !== "venta_exitosa") {
       return NextResponse.json({ error: "Pago rechazado por Culqi" }, { status: 402 });

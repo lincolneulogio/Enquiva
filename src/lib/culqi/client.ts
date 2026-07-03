@@ -2,6 +2,11 @@ import { env } from "@/env";
 
 const CULQI_API = "https://api.culqi.com/v2";
 
+export type CulqiCredentials = {
+  secretKey: string;
+  publicKey?: string;
+};
+
 type CulqiChargeInput = {
   amount: number;
   currencyCode?: string;
@@ -11,19 +16,37 @@ type CulqiChargeInput = {
   metadata?: Record<string, string>;
 };
 
-export function isCulqiConfigured() {
+/** Llaves Culqi de la plataforma (suscripciones SaaS → cuenta del super admin). */
+export function isPlatformCulqiConfigured() {
   return Boolean(env.CULQI_SECRET_KEY && env.NEXT_PUBLIC_CULQI_PUBLIC_KEY);
 }
 
-export async function createCulqiCharge(input: CulqiChargeInput) {
-  if (!env.CULQI_SECRET_KEY) {
+export function getPlatformCulqiCredentials(): CulqiCredentials | null {
+  if (!isPlatformCulqiConfigured()) return null;
+  return {
+    secretKey: env.CULQI_SECRET_KEY!,
+    publicKey: env.NEXT_PUBLIC_CULQI_PUBLIC_KEY!,
+  };
+}
+
+/** @deprecated Use isPlatformCulqiConfigured for billing or organizer-specific checks for events. */
+export function isCulqiConfigured() {
+  return isPlatformCulqiConfigured();
+}
+
+export async function createCulqiCharge(
+  input: CulqiChargeInput,
+  credentials?: CulqiCredentials,
+) {
+  const secretKey = credentials?.secretKey ?? env.CULQI_SECRET_KEY;
+  if (!secretKey) {
     throw new Error("CULQI_SECRET_KEY no configurada");
   }
 
   const response = await fetch(`${CULQI_API}/charges`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${env.CULQI_SECRET_KEY}`,
+      Authorization: `Bearer ${secretKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({

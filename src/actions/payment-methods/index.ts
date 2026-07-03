@@ -1,13 +1,23 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { paymentMethods, eventPaymentMethods, events } from "@/lib/db/schema";
+import { paymentMethods, eventPaymentMethods, events, type PaymentMethod } from "@/lib/db/schema";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { eq, and, isNull, inArray, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { isCulqiConfigured } from "@/lib/culqi/client";
-import { isCulqiEnabledForOrganizer } from "@/lib/culqi/capabilities";
+import { isPlatformCulqiConfigured } from "@/lib/culqi/client";
+import {
+  isOrganizerCulqiConfigured,
+  isOrganizerCulqiMethodConfigured,
+} from "@/lib/culqi/capabilities";
+
+function sanitizeMethodsForClient(methods: PaymentMethod[]): PaymentMethod[] {
+  return methods.map(({ culqiSecretKey: _secret, ...method }) => ({
+    ...method,
+    culqiSecretKey: null,
+  }));
+}
 
 export type PaymentMethodScope = "platform" | "organizer";
 
@@ -60,15 +70,18 @@ async function assertCanManageCulqi(
   userId: string,
   role: string | null | undefined,
 ) {
-  if (!isCulqiConfigured()) {
-    throw new Error("Culqi no está configurado en el servidor. Contacta al administrador.");
-  }
-  if (scope === "platform") return;
-  if (!["admin", "super_admin"].includes(role ?? "")) {
-    const allowed = await isCulqiEnabledForOrganizer(userId, role);
-    if (!allowed) {
-      throw new Error("Tu plan no incluye Culqi. Actualiza a Pro en /organizer/billing");
+  if (scope === "platform") {
+    if (!isPlatformCulqiConfigured()) {
+      throw new Error(
+        "Configura CULQI_SECRET_KEY y NEXT_PUBLIC_CULQI_PUBLIC_KEY en el servidor para cobros de suscripción.",
+      );
     }
+    return;
+  }
+
+  if (!["admin", "super_admin"].includes(role ?? "")) {
+    const { requirePlanFeature } = await import("@/lib/billing/enforce");
+    await requirePlanFeature(userId, role, "culqi");
   }
 }
 
@@ -103,10 +116,13 @@ export async function getPaymentMethodsPageContext(scope: PaymentMethodScope) {
       .where(and(isNull(paymentMethods.organizerId), ne(paymentMethods.type, "cash")))
       .orderBy(paymentMethods.createdAt);
 
-    const culqiConfigured = isCulqiConfigured();
+    const culqiConfigured = isPlatformCulqiConfigured();
     return {
-      methods,
+      methods: sanitizeMethodsForClient(methods),
       canUseCulqi: culqiConfigured,
+      planIncludesCulqi: true,
+      billedPlanIncludesCulqi: true,
+      subscriptionPastDue: false,
       culqiConfigured,
       hasCulqiMethod: methods.some((m) => m.type === "culqi" && m.isActive),
       role: user.role ?? "super_admin",
@@ -122,14 +138,22 @@ export async function getPaymentMethodsPageContext(scope: PaymentMethodScope) {
     .where(eq(paymentMethods.organizerId, ownerId))
     .orderBy(paymentMethods.createdAt);
 
-  const culqiConfigured = isCulqiConfigured();
-  const canUseCulqi =
-    culqiConfigured && (await isCulqiEnabledForOrganizer(ownerId, user.role));
+  const { SubscriptionService } = await import("@/lib/billing/subscription.service");
+  const subscription = await SubscriptionService.getOrCreateSubscription(ownerId, user.role);
+  const planIncludesCulqi = subscription.plan.features.culqi;
+  const billedPlanIncludesCulqi = subscription.billedPlan?.features.culqi ?? false;
+  const subscriptionPastDue = subscription.status === "past_due";
+
+  const organizerCulqiConfigured = await isOrganizerCulqiConfigured(ownerId);
+  const canUseCulqi = planIncludesCulqi;
 
   return {
-    methods,
+    methods: sanitizeMethodsForClient(methods),
     canUseCulqi,
-    culqiConfigured,
+    planIncludesCulqi,
+    billedPlanIncludesCulqi,
+    subscriptionPastDue,
+    culqiConfigured: organizerCulqiConfigured,
     hasCulqiMethod: methods.some((m) => m.type === "culqi" && m.isActive),
     role: user.role ?? "organizer",
     isStaff: false,
@@ -138,11 +162,15 @@ export async function getPaymentMethodsPageContext(scope: PaymentMethodScope) {
 
 /** Medios activos del organizador del evento (asistentes) */
 export async function getActivePaymentMethodsForOrganizer(organizerId: string) {
-  return db
+  const rows = await db
     .select()
     .from(paymentMethods)
     .where(and(eq(paymentMethods.organizerId, organizerId), eq(paymentMethods.isActive, true)))
     .orderBy(paymentMethods.createdAt);
+
+  return rows.filter(
+    (m) => m.type !== "culqi" || isOrganizerCulqiMethodConfigured(m),
+  );
 }
 
 /** Para el formulario de evento: medios del organizador dueño del evento */
@@ -189,6 +217,8 @@ export async function createPaymentMethod(
     qrCodeUrl?: string | null;
     phone?: string | null;
     holderName: string;
+    culqiPublicKey?: string | null;
+    culqiSecretKey?: string | null;
   },
 ) {
   const user = scope === "platform" ? await requireSuperAdmin() : await requireOrganizer();
@@ -199,10 +229,26 @@ export async function createPaymentMethod(
   if (input.type === "culqi") {
     await assertCanManageCulqi(scope, user.id, user.role);
     await assertNoDuplicateCulqi(scope, organizerId);
+
+    if (scope === "organizer") {
+      const publicKey = input.culqiPublicKey?.trim();
+      const secretKey = input.culqiSecretKey?.trim();
+      if (!publicKey || !secretKey) {
+        throw new Error("Ingresa tu llave pública y secreta de Culqi (cuenta de tu ministerio/iglesia).");
+      }
+    }
   }
 
   await db.insert(paymentMethods).values({
-    ...input,
+    type: input.type,
+    label: input.label,
+    qrCodeUrl: input.qrCodeUrl ?? null,
+    phone: input.phone ?? null,
+    holderName: input.holderName,
+    culqiPublicKey:
+      input.type === "culqi" && scope === "organizer" ? input.culqiPublicKey?.trim() ?? null : null,
+    culqiSecretKey:
+      input.type === "culqi" && scope === "organizer" ? input.culqiSecretKey?.trim() ?? null : null,
     organizerId,
     isActive: true,
   });
@@ -221,24 +267,58 @@ export async function updatePaymentMethod(
     phone?: string | null;
     holderName?: string;
     isActive?: boolean;
+    culqiPublicKey?: string | null;
+    culqiSecretKey?: string | null;
   },
 ) {
   const user = scope === "platform" ? await requireSuperAdmin() : await requireOrganizer();
   const organizerId = scope === "platform" ? null : user.id;
-  await getOwnedMethod(id, scope, organizerId);
+  const existing = await getOwnedMethod(id, scope, organizerId);
 
   if (input.type) {
     assertAllowedTypeForScope(scope, input.type);
   }
 
-  if (input.type === "culqi") {
+  const effectiveType = input.type ?? existing.type;
+
+  if (effectiveType === "culqi") {
     await assertCanManageCulqi(scope, user.id, user.role);
     await assertNoDuplicateCulqi(scope, organizerId, id);
   }
 
+  const patch: Record<string, unknown> = {
+    label: input.label,
+    qrCodeUrl: input.qrCodeUrl,
+    phone: input.phone,
+    holderName: input.holderName,
+    isActive: input.isActive,
+    type: input.type,
+    updatedAt: new Date(),
+  };
+
+  if (scope === "organizer" && effectiveType === "culqi") {
+    const nextPublic =
+      input.culqiPublicKey !== undefined ? input.culqiPublicKey?.trim() || null : existing.culqiPublicKey;
+    const nextSecret = input.culqiSecretKey?.trim() || existing.culqiSecretKey;
+
+    if (!nextPublic || !nextSecret) {
+      throw new Error("El medio Culqi requiere llave pública y secreta de tu comercio.");
+    }
+
+    patch.culqiPublicKey = nextPublic;
+    if (input.culqiSecretKey?.trim()) {
+      patch.culqiSecretKey = input.culqiSecretKey.trim();
+    }
+  }
+
+  if (scope === "platform" && effectiveType === "culqi") {
+    patch.culqiPublicKey = null;
+    patch.culqiSecretKey = null;
+  }
+
   await db
     .update(paymentMethods)
-    .set({ ...input, updatedAt: new Date() })
+    .set(patch)
     .where(and(eq(paymentMethods.id, id), scopeCondition(scope, organizerId)));
 
   revalidatePaymentMethodPaths(scope);
