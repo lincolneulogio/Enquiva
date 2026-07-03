@@ -25,6 +25,8 @@
     "db:migrate:subscription-payment-idempotency": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-subscription-payment-idempotency.ts",
     "db:migrate:platform-transaction-fk": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-platform-transaction-subscription-payment-fk.ts",
     "db:migrate:payment-methods-culqi-keys": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-payment-methods-culqi-keys.ts",
+    "db:migrate:subscription-auto-renew": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-subscription-auto-renew.ts",
+    "db:migrate:subscription-renewal-tracking": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-subscription-renewal-tracking.ts",
     "jobs:subscriptions": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/process-subscription-lifecycle.ts",
     "db:sync:event-categories": "npx tsx --env-file=.env --tsconfig tsconfig.json ./scripts/sync-event-categories.ts",
     "db:add-indexes": "node --env-file=.env ./scripts/add-unique-indexes.mjs",

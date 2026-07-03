@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
-import { plans } from "@/lib/db/schema";
+import { plans, subscriptions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { createCulqiCharge, getPlatformCulqiCredentials, isPlatformCulqiConfigured } from "@/lib/culqi/client";
 import { SubscriptionPaymentService } from "@/lib/billing/subscription-payment.service";
+import { SubscriptionAutoRenewService } from "@/lib/billing/subscription-auto-renew.service";
 
 export async function POST(req: Request) {
   try {
@@ -25,9 +26,14 @@ export async function POST(req: Request) {
     const body = await req.json();
     const planId = String(body.planId ?? "");
     const sourceId = String(body.sourceId ?? "");
+    const enableAutoRenew = Boolean(body.enableAutoRenew);
 
     if (!planId || !sourceId) {
       return NextResponse.json({ error: "planId y sourceId son requeridos" }, { status: 400 });
+    }
+
+    if (!session.user.email) {
+      return NextResponse.json({ error: "Tu cuenta necesita un email para pagar" }, { status: 400 });
     }
 
     const pending = await SubscriptionPaymentService.getPendingForUser(session.user.id);
@@ -49,11 +55,37 @@ export async function POST(req: Request) {
     }
 
     const platformCulqi = getPlatformCulqiCredentials()!;
+    let chargeSourceId = sourceId;
+    let useRecurrent = false;
+
+    if (enableAutoRenew) {
+      await SubscriptionAutoRenewService.prepareAutoRenewCard(
+        session.user.id,
+        session.user.email,
+        sourceId,
+      );
+      const [sub] = await db
+        .select({ culqiCardId: subscriptions.culqiCardId })
+        .from(subscriptions)
+        .where(eq(subscriptions.userId, session.user.id))
+        .limit(1);
+
+      if (!sub?.culqiCardId) {
+        return NextResponse.json(
+          { error: "No se pudo guardar la tarjeta para renovación automática" },
+          { status: 400 },
+        );
+      }
+      chargeSourceId = sub.culqiCardId;
+      useRecurrent = true;
+    }
+
     const charge = await createCulqiCharge(
       {
         amount,
         email: session.user.email,
-        sourceId,
+        sourceId: chargeSourceId,
+        recurrent: useRecurrent,
         description: `Suscripción ${plan.name} - EncuentroDeFe`,
         metadata: {
           userId: session.user.id,

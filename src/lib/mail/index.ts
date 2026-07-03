@@ -185,3 +185,34 @@ export async function sendCustomNotificationEmail(input: {
     html,
   });
 }
+
+export async function sendSubscriptionRenewalReminderEmail(input: {
+  email: string;
+  name?: string | null;
+  planName: string;
+  daysRemaining: number;
+  renewalDate: string;
+  billingUrl: string;
+  autoRenewEnabled: boolean;
+}) {
+  const { organizationName } = await getSystemSettings();
+  const greeting = input.name ? `Hola ${input.name},` : "Hola,";
+  const { getSubscriptionRenewalReminderTemplate } = await import("./templates");
+  const { subject, text, html } = getSubscriptionRenewalReminderTemplate({
+    greeting,
+    planName: input.planName,
+    daysRemaining: input.daysRemaining,
+    renewalDate: input.renewalDate,
+    billingUrl: input.billingUrl,
+    autoRenewEnabled: input.autoRenewEnabled,
+    orgName: organizationName,
+  });
+
+  await safeSendMail({
+    from: sender(),
+    to: input.email,
+    subject,
+    text,
+    html,
+  });
+}

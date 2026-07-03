@@ -63,6 +63,7 @@ export function PlanUpgradeCheckout({
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
+  const [enableAutoRenew, setEnableAutoRenew] = useState(true);
 
   const currentMethod = manualMethods.find((m) => m.id === methodId);
 
@@ -109,7 +110,7 @@ export function PlanUpgradeCheckout({
     const response = await fetch("/api/billing/culqi/charge", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ planId: plan.id, sourceId }),
+      body: JSON.stringify({ planId: plan.id, sourceId, enableAutoRenew }),
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error ?? t("billing.planCheckout.culqiProcessFailed"));
@@ -311,6 +312,20 @@ export function PlanUpgradeCheckout({
                 <ShieldCheck className="h-4 w-4" />
                 {t("billing.planCheckout.instantActivation")}
               </div>
+              <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-violet-200/40 bg-white/50 p-3 dark:border-violet-900/20 dark:bg-violet-950/20">
+                <input
+                  type="checkbox"
+                  checked={enableAutoRenew}
+                  onChange={(e) => setEnableAutoRenew(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                />
+                <span className="text-sm text-foreground">
+                  <span className="font-medium">{t("billing.planCheckout.autoRenewLabel")}</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    {t("billing.planCheckout.autoRenewHelp")}
+                  </span>
+                </span>
+              </label>
               <button
                 type="button"
                 onClick={openCulqi}

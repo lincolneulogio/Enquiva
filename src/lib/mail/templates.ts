@@ -256,3 +256,38 @@ export function getTicketTemplate(opts: {
     html: wrapInTemplate(title, opts.greeting, bodyHtml, footerNote, opts.orgName),
   };
 }
+
+export function getSubscriptionRenewalReminderTemplate(opts: {
+  greeting: string;
+  planName: string;
+  daysRemaining: number;
+  renewalDate: string;
+  billingUrl: string;
+  autoRenewEnabled: boolean;
+  orgName?: string;
+}) {
+  const title = "Tu plan vence pronto";
+  const autoRenewNote = opts.autoRenewEnabled
+    ? "Tienes la <strong>renovación automática</strong> activada: intentaremos cobrar con tu tarjeta guardada en la fecha de vencimiento."
+    : "Renueva manualmente desde tu panel para evitar perder funciones de pago.";
+
+  const bodyHtml = `
+    <p style="font-size: 15px; color: #334155; line-height: 1.6; margin-bottom: 20px; font-family: 'Outfit', sans-serif;">
+      Tu plan <strong>${opts.planName}</strong> vence en <strong>${opts.daysRemaining} día(s)</strong> (${opts.renewalDate}).
+    </p>
+    <p style="font-size: 14px; color: #64748b; line-height: 1.6; margin-bottom: 24px; font-family: 'Outfit', sans-serif;">
+      ${autoRenewNote}
+    </p>
+    <div style="text-align: center; margin: 28px 0;">
+      <a href="${opts.billingUrl}" style="background: linear-gradient(135deg, #4b1ab5 0%, #7c3aed 100%); color: #ffffff; padding: 14px 32px; font-size: 15px; font-weight: 700; text-decoration: none; border-radius: 14px; display: inline-block; font-family: 'Outfit', sans-serif;">
+        Ir a Mi plan
+      </a>
+    </div>
+  `;
+
+  return {
+    subject: `${opts.planName} vence en ${opts.daysRemaining} día(s) — EncuentroDeFe`,
+    text: `${opts.greeting}\n\nTu plan ${opts.planName} vence el ${opts.renewalDate} (${opts.daysRemaining} días).\n\nRenueva aquí: ${opts.billingUrl}`,
+    html: wrapInTemplate(title, opts.greeting, bodyHtml, undefined, opts.orgName),
+  };
+}

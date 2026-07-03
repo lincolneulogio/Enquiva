@@ -7,6 +7,36 @@ export type CulqiCredentials = {
   publicKey?: string;
 };
 
+type CulqiApiError = {
+  merchant_message?: string;
+  user_message?: string;
+};
+
+async function culqiApiRequest<T>(
+  path: string,
+  credentials: CulqiCredentials,
+  init: RequestInit & { recurrent?: boolean } = {},
+): Promise<T> {
+  const { recurrent, headers: extraHeaders, ...rest } = init;
+  const response = await fetch(`${CULQI_API}${path}`, {
+    ...rest,
+    headers: {
+      Authorization: `Bearer ${credentials.secretKey}`,
+      "Content-Type": "application/json",
+      ...(recurrent ? { "X-Charge-Channel": "recurrent" } : {}),
+      ...extraHeaders,
+    },
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    const err = data as CulqiApiError;
+    throw new Error(err?.merchant_message || err?.user_message || "Error en API Culqi");
+  }
+
+  return data as T;
+}
+
 type CulqiChargeInput = {
   amount: number;
   currencyCode?: string;
@@ -14,6 +44,7 @@ type CulqiChargeInput = {
   sourceId: string;
   description: string;
   metadata?: Record<string, string>;
+  recurrent?: boolean;
 };
 
 /** Llaves Culqi de la plataforma (suscripciones SaaS → cuenta del super admin). */
@@ -43,12 +74,15 @@ export async function createCulqiCharge(
     throw new Error("CULQI_SECRET_KEY no configurada");
   }
 
-  const response = await fetch(`${CULQI_API}/charges`, {
+  const creds = credentials ?? { secretKey };
+  return culqiApiRequest<{
+    id: string;
+    amount: number;
+    currency_code: string;
+    outcome: { type: string };
+  }>("/charges", creds, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${secretKey}`,
-      "Content-Type": "application/json",
-    },
+    recurrent: input.recurrent,
     body: JSON.stringify({
       amount: Math.round(input.amount * 100),
       currency_code: input.currencyCode ?? "PEN",
@@ -58,16 +92,48 @@ export async function createCulqiCharge(
       metadata: input.metadata,
     }),
   });
+}
 
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data?.merchant_message || data?.user_message || "Error al procesar pago Culqi");
-  }
+export async function createCulqiCustomer(
+  input: { email: string; firstName?: string; lastName?: string },
+  credentials?: CulqiCredentials,
+) {
+  const creds = credentials ?? getPlatformCulqiCredentials();
+  if (!creds) throw new Error("Culqi no configurado");
 
-  return data as {
+  return culqiApiRequest<{ id: string }>("/customers", creds, {
+    method: "POST",
+    body: JSON.stringify({
+      email: input.email,
+      first_name: input.firstName ?? "Organizador",
+      last_name: input.lastName ?? "EncuentroDeFe",
+    }),
+  });
+}
+
+export async function createCulqiCard(
+  input: { customerId: string; tokenId: string },
+  credentials?: CulqiCredentials,
+) {
+  const creds = credentials ?? getPlatformCulqiCredentials();
+  if (!creds) throw new Error("Culqi no configurado");
+
+  return culqiApiRequest<{
     id: string;
-    amount: number;
-    currency_code: string;
-    outcome: { type: string };
-  };
+    last_four?: string;
+    iin?: { card_brand?: string };
+  }>("/cards", creds, {
+    method: "POST",
+    body: JSON.stringify({
+      customer_id: input.customerId,
+      token_id: input.tokenId,
+    }),
+  });
+}
+
+export async function deleteCulqiCard(cardId: string, credentials?: CulqiCredentials) {
+  const creds = credentials ?? getPlatformCulqiCredentials();
+  if (!creds) throw new Error("Culqi no configurado");
+
+  await culqiApiRequest(`/cards/${cardId}`, creds, { method: "DELETE" });
 }

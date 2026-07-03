@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { SubscriptionService } from "@/lib/billing/subscription.service";
 import { SubscriptionPaymentService } from "@/lib/billing/subscription-payment.service";
+import { SubscriptionAutoRenewService } from "@/lib/billing/subscription-auto-renew.service";
 import { db } from "@/lib/db";
 import { plans } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -162,5 +163,13 @@ export async function rejectSubscriptionPayment(paymentId: string, notes?: strin
   await SubscriptionPaymentService.rejectPayment(paymentId, admin.id, notes);
   revalidatePath("/organizer/billing");
   revalidatePath("/admin/billing");
+  return { success: true };
+}
+
+export async function updateSubscriptionAutoRenew(enabled: boolean) {
+  const user = await requireOrganizerOrStaff();
+  await SubscriptionAutoRenewService.setAutoRenew(user.id, enabled);
+  revalidatePath("/organizer/billing");
+  revalidatePath("/organizer", "layout");
   return { success: true };
 }

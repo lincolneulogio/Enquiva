@@ -10,6 +10,8 @@ import {
 import { and, count, desc, eq, gt, gte, inArray, lt, ne, or, sql } from "drizzle-orm";
 import { DEFAULT_PLAN_DEFINITIONS, mapPlanRow, UNLIMITED_PLAN } from "./plans";
 import type { PlanUsage, PlanChangePreview, ResolvedPlan, SubscriptionInfo } from "./types";
+import { isOrganizerSubscriptionBlocked } from "./subscription-auto-renew.service";
+import { clearRenewalTrackingFields } from "./subscription-renewal.service";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { users } from "@/lib/db/schema";
 
@@ -109,6 +111,9 @@ export class SubscriptionService {
         usage: await this.getUsage(userId),
         renewalAlert: null,
         daysUntilRenewal: null,
+        autoRenewEnabled: false,
+        hasSavedCard: false,
+        accessBlocked: false,
       };
     }
 
@@ -184,6 +189,15 @@ export class SubscriptionService {
       usage: await this.getUsage(userId),
       renewalAlert,
       daysUntilRenewal,
+      autoRenewEnabled: subscription.autoRenewEnabled,
+      hasSavedCard: Boolean(subscription.culqiCardId),
+      culqiCardLastFour: subscription.culqiCardLastFour,
+      culqiCardBrand: subscription.culqiCardBrand,
+      accessBlocked: isOrganizerSubscriptionBlocked(
+        subscription.status,
+        planRow.slug,
+        Number(planRow.priceMonthly),
+      ),
     };
   }
 
@@ -221,6 +235,46 @@ export class SubscriptionService {
     if (subscription.currentPeriodEnd >= now) return;
 
     if (subscription.status === "active") {
+      const daysOver = Math.floor(
+        (now.getTime() - subscription.currentPeriodEnd.getTime()) / (1000 * 60 * 60 * 24),
+      );
+
+      if (subscription.autoRenewEnabled && subscription.culqiCardId) {
+        const { AUTO_RENEW_RETRY_DAYS, AUTO_RENEW_BLOCK_AFTER_DAYS } = await import(
+          "./subscription-renewal.service",
+        );
+        const shouldRetry = (AUTO_RENEW_RETRY_DAYS as readonly number[]).includes(daysOver);
+        const attemptedToday =
+          subscription.autoRenewLastAttemptAt &&
+          subscription.autoRenewLastAttemptAt.getUTCFullYear() === now.getUTCFullYear() &&
+          subscription.autoRenewLastAttemptAt.getUTCMonth() === now.getUTCMonth() &&
+          subscription.autoRenewLastAttemptAt.getUTCDate() === now.getUTCDate();
+
+        if (shouldRetry && !attemptedToday) {
+          const { users } = await import("@/lib/db/schema");
+          const [user] = await db
+            .select({ email: users.email })
+            .from(users)
+            .where(eq(users.id, userId))
+            .limit(1);
+
+          if (user?.email) {
+            const { SubscriptionAutoRenewService } = await import("./subscription-auto-renew.service");
+            const renewed = await SubscriptionAutoRenewService.tryAutoRenewForUser(userId, user.email);
+            await db
+              .update(subscriptions)
+              .set({ autoRenewLastAttemptAt: now, updatedAt: now })
+              .where(eq(subscriptions.id, subscription.id));
+            if (renewed) return;
+          }
+        }
+
+        if (daysOver < AUTO_RENEW_BLOCK_AFTER_DAYS) return;
+      } else {
+        const { MANUAL_PAYMENT_GRACE_DAYS } = await import("./subscription-renewal.service");
+        if (daysOver < MANUAL_PAYMENT_GRACE_DAYS) return;
+      }
+
       await db
         .update(subscriptions)
         .set({ status: "past_due", updatedAt: now })
@@ -228,12 +282,7 @@ export class SubscriptionService {
       return;
     }
 
-    if (subscription.status === "past_due") {
-      const freePlan = await this.getFreePlan();
-      await db.transaction(async (tx) => {
-        await this.assignPlanToUserTx(tx, userId, freePlan.id);
-      });
-    }
+    // past_due: permanece hasta que el organizador pague.
   }
 
   /**
@@ -242,44 +291,13 @@ export class SubscriptionService {
    */
   static async processSubscriptionLifecycle() {
     await this.ensureDefaultPlans();
-    const freePlan = await this.getFreePlan();
     const now = new Date();
 
-    const expiredPaid = await db
-      .select({
-        subscription: subscriptions,
-        plan: plans,
-      })
-      .from(subscriptions)
-      .innerJoin(plans, eq(subscriptions.planId, plans.id))
-      .where(
-        and(
-          lt(subscriptions.currentPeriodEnd, now),
-          ne(plans.slug, "free"),
-          gt(sql`cast(${plans.priceMonthly} as numeric)`, sql`0`),
-          inArray(subscriptions.status, ["active", "past_due"]),
-        ),
-      );
+    const { SubscriptionRenewalService } = await import("./subscription-renewal.service");
+    const remindersSent = await SubscriptionRenewalService.sendUpcomingRenewalReminders();
+    const expiredResult = await SubscriptionRenewalService.processExpiredPaidSubscriptions();
 
-    let markedPastDue = 0;
-    let downgraded = 0;
     let renewedFree = 0;
-
-    for (const row of expiredPaid) {
-      if (row.subscription.status === "active") {
-        await db
-          .update(subscriptions)
-          .set({ status: "past_due", updatedAt: now })
-          .where(eq(subscriptions.id, row.subscription.id));
-        markedPastDue += 1;
-        continue;
-      }
-
-      await db.transaction(async (tx) => {
-        await this.assignPlanToUserTx(tx, row.subscription.userId, freePlan.id);
-      });
-      downgraded += 1;
-    }
 
     const expiredFree = await db
       .select({ id: subscriptions.id })
@@ -305,7 +323,14 @@ export class SubscriptionService {
       renewedFree += 1;
     }
 
-    return { markedPastDue, downgraded, renewedFree, processed: expiredPaid.length + expiredFree.length };
+    return {
+      remindersSent,
+      autoRenewed: expiredResult.autoRenewed,
+      autoRenewAttempts: expiredResult.autoRenewAttempts,
+      markedPastDue: expiredResult.markedPastDue,
+      renewedFree,
+      processed: expiredResult.markedPastDue + expiredResult.autoRenewed + renewedFree,
+    };
   }
 
   static async getSubscriptionPlanForUserId(userId: string): Promise<ResolvedPlan> {
@@ -431,6 +456,7 @@ export class SubscriptionService {
           currentPeriodStart: periodStart,
           currentPeriodEnd: periodEnd,
           cancelledAt: null,
+          ...clearRenewalTrackingFields(),
           updatedAt: now,
         })
         .where(eq(subscriptions.id, existing.id));

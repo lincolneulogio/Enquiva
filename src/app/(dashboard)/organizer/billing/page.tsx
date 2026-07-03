@@ -3,6 +3,7 @@ import { OrganizerBillingClient } from "@/components/dashboard/organizer/Organiz
 import { env } from "@/env";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { isPlatformCulqiConfigured } from "@/lib/culqi/client";
 
 export default async function OrganizerBillingPage() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -28,6 +29,7 @@ export default async function OrganizerBillingPage() {
         platformMethods={platformMethods}
         culqiPublicKey={env.NEXT_PUBLIC_CULQI_PUBLIC_KEY ?? null}
         userEmail={session?.user?.email ?? null}
+        culqiAvailable={isPlatformCulqiConfigured()}
         pendingPayment={pendingPayment}
         paymentHistory={paymentHistory}
       />

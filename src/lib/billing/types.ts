@@ -50,4 +50,9 @@ export type SubscriptionInfo = {
   usage: PlanUsage;
   renewalAlert?: SubscriptionRenewalAlert | null;
   daysUntilRenewal?: number | null;
+  autoRenewEnabled: boolean;
+  hasSavedCard: boolean;
+  culqiCardLastFour?: string | null;
+  culqiCardBrand?: string | null;
+  accessBlocked: boolean;
 };
