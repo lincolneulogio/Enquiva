@@ -280,6 +280,30 @@ export class OrganizationService {
     }
   }
 
+  static async updateOrganizationName(input: {
+    actorId: string;
+    actorRole: string | null | undefined;
+    organizationId: string;
+    name: string;
+  }) {
+    const canEdit = await this.isOrgAdmin(input.actorId, input.actorRole);
+    if (!canEdit) throw new Error("No autorizado para editar esta entidad");
+
+    const name = input.name.trim();
+    if (name.length < 2) {
+      throw new Error("El nombre de la entidad debe tener al menos 2 caracteres");
+    }
+
+    const [updated] = await db
+      .update(organizations)
+      .set({ name, updatedAt: new Date() })
+      .where(eq(organizations.id, input.organizationId))
+      .returning();
+
+    if (!updated) throw new Error("Entidad no encontrada");
+    return updated;
+  }
+
   static serializeSignupIntent(payload: SignupIntentPayload): string {
     return JSON.stringify(payload);
   }

@@ -56,6 +56,29 @@ export async function createMyOrganization(orgName: string) {
   return { success: true };
 }
 
+export async function saveEntitySettingsAction(input: { name: string }) {
+  const user = await requireAuth();
+  const role = normalizeRole(user.role);
+  if (role !== "admin" && role !== "super_admin") {
+    throw new Error("No autorizado");
+  }
+
+  const org = await OrganizationService.getOrganizationForUser(user.id);
+  if (!org) throw new Error("No tienes una entidad vinculada");
+
+  await OrganizationService.updateOrganizationName({
+    actorId: user.id,
+    actorRole: user.role,
+    organizationId: org.id,
+    name: input.name,
+  });
+
+  revalidatePath("/admin/settings");
+  revalidatePath("/admin");
+  revalidatePath("/admin/team");
+  return { success: true };
+}
+
 export async function canManageOrgTeam() {
   const user = await requireAuth();
   const role = normalizeRole(user.role);

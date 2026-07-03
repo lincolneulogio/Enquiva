@@ -5,35 +5,65 @@ import { normalizeRole } from "@/lib/auth/rbac";
 import { getSystemSettings } from "@/lib/settings";
 import { SettingsTabs } from "@/components/dashboard/admin/SettingsTabs";
 import { BackupDatabaseButton } from "@/components/dashboard";
+import { resolveAdminScope } from "@/lib/organizations/admin-scope";
+import { OrganizationService } from "@/lib/organizations/organization.service";
 
 export default async function AdminSettingsPage() {
-    const { locale, t } = await getI18n();
+    const { t } = await getI18n();
     const session = await auth.api.getSession({ headers: await headers() });
     const user = session!.user;
-    
-    const settings = await getSystemSettings();
+
+    const adminScope = await resolveAdminScope();
     const normalizedRole = normalizeRole(user.role);
+    const isSuperAdmin = normalizedRole === "super_admin";
+
+    let entityContext: {
+        organizationId: string;
+        name: string;
+        inviteCode: string;
+        isOwner: boolean;
+    } | undefined;
+
+    if (adminScope.mode === "org") {
+        const isOwner = await OrganizationService.isOrgAdmin(user.id, user.role);
+        entityContext = {
+            organizationId: adminScope.organizationId,
+            name: adminScope.organizationName,
+            inviteCode: adminScope.inviteCode,
+            isOwner,
+        };
+    }
+
+    const platformSettings = isSuperAdmin ? await getSystemSettings() : null;
+
+    const introKey =
+        isSuperAdmin && entityContext
+            ? "settingsIntroBoth"
+            : isSuperAdmin
+              ? "settingsIntroPlatform"
+              : "settingsIntroEntity";
 
     return (
         <div className="space-y-8 pb-12">
             <div>
                 <h1 className="font-display text-3xl font-semibold text-foreground">{t("common.settings")}</h1>
-                <p className="mt-1 text-muted-foreground">{t("dashboard.admin.settingsIntro")}</p>
+                <p className="mt-1 text-muted-foreground">{t(`dashboard.admin.${introKey}`)}</p>
             </div>
 
             <div className="max-w-5xl">
-                <SettingsTabs 
-                    initialSettings={settings} 
+                <SettingsTabs
+                    isSuperAdmin={isSuperAdmin}
+                    entityContext={entityContext}
+                    initialPlatformSettings={platformSettings ?? undefined}
                     adminUser={{
                         name: user.name ?? "—",
                         email: user.email,
-                        role: normalizedRole
-                    }} 
+                        role: normalizedRole,
+                    }}
                 />
             </div>
 
-            {/* Database Backup Card - Only for Super Admins */}
-            {normalizedRole === "super_admin" && (
+            {isSuperAdmin && (
                 <div className="max-w-5xl pt-4">
                     <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
                         <h2 className="text-lg font-semibold text-foreground">Copia de Seguridad de la Base de Datos</h2>
