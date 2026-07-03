@@ -1,11 +1,11 @@
 "use server";
 
+import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { users, rolePermissions } from "@/lib/db/schema";
 import { getFullEffectivePermissionMatrix } from "@/lib/auth/effective-permissions";
 import { eq, count, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import {
     PERMISSIONS,
@@ -16,20 +16,12 @@ import {
 } from "@/lib/auth/rbac";
 import { LogService } from "@/lib/analytics/audit";
 import { OrganizationService } from "@/lib/organizations/organization.service";
+import {
+    requireSuperAdmin,
+    requireAdminOrSuper,
+} from "@/lib/auth/guards";
 
-export async function requireSuperAdmin() {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user) throw new Error("Unauthorized");
-    if (session.user.role !== "super_admin") throw new Error("Forbidden");
-    return session.user;
-}
-
-export async function requireAdminOrSuper() {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user) throw new Error("Unauthorized");
-    if (session.user.role !== "admin" && session.user.role !== "super_admin") throw new Error("Forbidden");
-    return session.user;
-}
+export { requireSuperAdmin, requireAdminOrSuper };
 
 export async function updateUserRole(
     userId: string,
@@ -61,6 +53,7 @@ export async function updateUserRole(
     }
 
     await db.update(users).set({ role }).where(eq(users.id, userId));
+    await OrganizationService.syncUserRoleWithOrganizationMembership(userId, role);
 
     await LogService.log({
         actorId: currentUser.id,

@@ -1,16 +1,9 @@
 "use server";
 
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { OrganizationService } from "@/lib/organizations/organization.service";
 import { normalizeRole } from "@/lib/auth/rbac";
-
-async function requireAuth() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) throw new Error("Unauthorized");
-  return session.user;
-}
+import { requireAuth } from "@/lib/auth/guards";
 
 export async function getMyOrganization() {
   const user = await requireAuth();

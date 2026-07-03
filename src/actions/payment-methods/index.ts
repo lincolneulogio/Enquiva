@@ -2,8 +2,6 @@
 
 import { db } from "@/lib/db";
 import { paymentMethods, eventPaymentMethods, events, type PaymentMethod } from "@/lib/db/schema";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { eq, and, isNull, inArray, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { isPlatformCulqiConfigured } from "@/lib/culqi/client";
@@ -16,6 +14,12 @@ import {
   eventOrganizerUsesPlatformPaymentsByUserId,
   getEventOrganizerRole,
 } from "@/lib/payments/event-payment-scope";
+import {
+  requireAuth,
+  requireSuperAdmin,
+  requireOrganizerRole,
+  requireEventManager,
+} from "@/lib/auth/guards";
 
 function sanitizeMethodsForClient(methods: PaymentMethod[]): PaymentMethod[] {
   return methods.map(({ culqiSecretKey: _secret, ...method }) => ({
@@ -25,34 +29,6 @@ function sanitizeMethodsForClient(methods: PaymentMethod[]): PaymentMethod[] {
 }
 
 export type PaymentMethodScope = "platform" | "organizer";
-
-async function requireAuth() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) throw new Error("Unauthorized");
-  return session.user;
-}
-
-async function requireSuperAdmin() {
-  const user = await requireAuth();
-  if (user.role !== "super_admin") throw new Error("Forbidden");
-  return user;
-}
-
-async function requireOrganizer() {
-  const user = await requireAuth();
-  if (!["organizer", "super_admin"].includes(user.role ?? "")) {
-    throw new Error("Forbidden");
-  }
-  return user;
-}
-
-async function requireEventManager() {
-  const user = await requireAuth();
-  if (!["organizer", "admin", "super_admin"].includes(user.role ?? "")) {
-    throw new Error("Forbidden");
-  }
-  return user;
-}
 
 function scopeCondition(scope: PaymentMethodScope, organizerId: string | null) {
   return scope === "platform"
@@ -135,7 +111,7 @@ export async function getPaymentMethodsPageContext(scope: PaymentMethodScope) {
     };
   }
 
-  const user = await requireOrganizer();
+  const user = await requireOrganizerRole();
   const ownerId = user.id;
   const methods = await db
     .select()
@@ -236,7 +212,7 @@ export async function createPaymentMethod(
     culqiSecretKey?: string | null;
   },
 ) {
-  const user = scope === "platform" ? await requireSuperAdmin() : await requireOrganizer();
+  const user = scope === "platform" ? await requireSuperAdmin() : await requireOrganizerRole();
   const organizerId = scope === "platform" ? null : user.id;
 
   assertAllowedTypeForScope(scope, input.type);
@@ -286,7 +262,7 @@ export async function updatePaymentMethod(
     culqiSecretKey?: string | null;
   },
 ) {
-  const user = scope === "platform" ? await requireSuperAdmin() : await requireOrganizer();
+  const user = scope === "platform" ? await requireSuperAdmin() : await requireOrganizerRole();
   const organizerId = scope === "platform" ? null : user.id;
   const existing = await getOwnedMethod(id, scope, organizerId);
 
@@ -341,7 +317,7 @@ export async function updatePaymentMethod(
 }
 
 export async function deletePaymentMethod(scope: PaymentMethodScope, id: string) {
-  const user = scope === "platform" ? await requireSuperAdmin() : await requireOrganizer();
+  const user = scope === "platform" ? await requireSuperAdmin() : await requireOrganizerRole();
   const organizerId = scope === "platform" ? null : user.id;
   await getOwnedMethod(id, scope, organizerId);
 
@@ -423,6 +399,6 @@ export async function getActivePaymentMethods() {
 
 /** @deprecated */
 export async function getPaymentMethods() {
-  const user = await requireOrganizer();
+  const user = await requireOrganizerRole();
   return getActivePaymentMethodsForEventOrganizer(user.id);
 }

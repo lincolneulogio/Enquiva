@@ -1,27 +1,18 @@
 "use server";
 
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { createRegistrationSchema, checkInSchema } from "@/lib/validations";
 import { RegistrationService } from "@/services/registrations/registration.service";
 import { registrationRatelimit } from "@/lib/redis";
 import { assertEventInAdminScope } from "@/lib/organizations/admin-scope";
-
-async function requireAuth() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) throw new Error("Unauthorized");
-  return session.user;
-}
+import { requireAuth } from "@/lib/auth/guards";
 
 /**
  * Controller Server Action: Registra a un asistente en un evento.
  */
 export async function registerForEvent(input: unknown) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) throw new Error("Debes iniciar sesión para registrarte en un evento.");
-
-  const sessionUser = session.user;
+  const sessionUser = await requireAuth();
   const validated = createRegistrationSchema.parse(input);
 
   // Rate Limiting (Capa Controladora de Red)

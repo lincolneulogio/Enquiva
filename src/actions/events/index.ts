@@ -18,22 +18,7 @@ import { transporter, sender } from "@/lib/mail/transporter";
 import { wrapInTemplate } from "@/lib/mail/templates";
 import { getSystemSettings } from "@/lib/settings";
 import { assertEventInAdminScope } from "@/lib/organizations/admin-scope";
-
-// ─── Auth Helpers ─────────────────────────────────────────────────────────────
-
-async function requireAuth() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) throw new Error("Unauthorized");
-  return session.user;
-}
-
-async function requireOrganizer() {
-  const user = await requireAuth();
-  if (user.role !== "organizer" && user.role !== "super_admin" && user.role !== "admin") {
-    throw new Error("Only organizers or administrators can perform this action");
-  }
-  return user;
-}
+import { requireAuth, requireOrganizer } from "@/lib/auth/guards";
 
 // ─── Categories ───────────────────────────────────────────────────────────────
 

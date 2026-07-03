@@ -1,8 +1,6 @@
 "use server";
 
 import { z } from "zod";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { SubscriptionService } from "@/lib/billing/subscription.service";
 import { SubscriptionPaymentService } from "@/lib/billing/subscription-payment.service";
@@ -10,26 +8,11 @@ import { SubscriptionAutoRenewService } from "@/lib/billing/subscription-auto-re
 import { db } from "@/lib/db";
 import { plans } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-
-async function requireAuthUser() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) throw new Error("Unauthorized");
-  return session.user;
-}
-
-async function requireOrganizerOrStaff() {
-  const user = await requireAuthUser();
-  if (!["organizer", "admin", "super_admin"].includes(user.role ?? "")) {
-    throw new Error("Forbidden");
-  }
-  return user;
-}
-
-async function requireSuperAdmin() {
-  const user = await requireAuthUser();
-  if (user.role !== "super_admin") throw new Error("Forbidden");
-  return user;
-}
+import {
+  requireAuthUser,
+  requireOrganizerOrStaff,
+  requireSuperAdmin,
+} from "@/lib/auth/guards";
 
 export async function getMySubscription() {
   const user = await requireAuthUser();

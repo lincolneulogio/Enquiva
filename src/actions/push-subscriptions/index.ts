@@ -1,17 +1,9 @@
 "use server";
 
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { pushSubscriptions } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-
-async function requireAuth() {
-  const requestHeaders = await headers();
-  const session = await auth.api.getSession({ headers: requestHeaders });
-  if (!session?.user) throw new Error("Unauthorized");
-  return session.user;
-}
+import { requireAuth } from "@/lib/auth/guards";
 
 interface SubscribeInput {
   endpoint: string;

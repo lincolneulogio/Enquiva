@@ -1,34 +1,15 @@
 "use server";
 
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { TransportService } from "@/services/transport/transport.service";
 import { requirePlanFeature } from "@/lib/billing/enforce";
 import { z } from "zod";
 import { assertEventInAdminScope, assertRouteInAdminScope } from "@/lib/organizations/admin-scope";
-
-// ─── Auth Helpers ─────────────────────────────────────────────────────────────
-
-async function requireAuth() {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user) throw new Error("Unauthorized");
-    return session.user;
-}
-
-async function requireOrganizerOrHigher() {
-    const user = await requireAuth();
-    if (!["organizer", "admin", "super_admin"].includes(user.role ?? "member"))
-        throw new Error("Forbidden");
-    return user;
-}
-
-async function requireAdminOrHigher() {
-    const user = await requireAuth();
-    if (!["admin", "super_admin"].includes(user.role ?? "member"))
-        throw new Error("Forbidden");
-    return user;
-}
+import {
+  requireAuth,
+  requireOrganizerOrHigher,
+  requireAdminOrHigher,
+} from "@/lib/auth/guards";
 
 // ─── Validators ───────────────────────────────────────────────────────────────
 

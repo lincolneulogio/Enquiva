@@ -2,16 +2,9 @@
 
 import { db } from "@/lib/db";
 import { notifications } from "@/lib/db/schema";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { eq, and, desc, count, inArray } from "drizzle-orm";
 import { getCached, setCached, invalidateCache, CACHE_KEYS, CACHE_TTL } from "@/lib/redis";
-
-async function requireAuth() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) throw new Error("Unauthorized");
-  return session.user;
-}
+import { requireAuth } from "@/lib/auth/guards";
 
 export async function getNotifications(limit = 20) {
   const user = await requireAuth();

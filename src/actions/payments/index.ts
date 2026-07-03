@@ -1,7 +1,5 @@
 "use server";
 
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import {
   createPaymentSchema,
@@ -11,34 +9,12 @@ import {
 } from "@/lib/validations";
 import { PaymentService } from "@/services/payments/payment.service";
 import { LogService } from "@/lib/analytics/audit";
-
-type AuthenticatedContext = {
-  user: NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>["user"];
-  headers: Headers;
-};
-
-async function requireAuthWithHeaders(): Promise<AuthenticatedContext> {
-  const requestHeaders = await headers();
-  const session = await auth.api.getSession({ headers: requestHeaders });
-  if (!session?.user) throw new Error("Unauthorized");
-  return { user: session.user, headers: requestHeaders };
-}
-
-async function requireOrganizerOrHigherWithHeaders(): Promise<AuthenticatedContext> {
-  const context = await requireAuthWithHeaders();
-  const allowed = ["organizer", "admin", "super_admin"];
-  const role = context.user.role ?? "member";
-  if (!allowed.includes(role)) throw new Error("Forbidden");
-  return context;
-}
-
-async function requireAdminOrHigherWithHeaders(): Promise<AuthenticatedContext> {
-  const context = await requireAuthWithHeaders();
-  const allowed = ["admin", "super_admin"];
-  const role = context.user.role ?? "member";
-  if (!allowed.includes(role)) throw new Error("Forbidden");
-  return context;
-}
+import {
+  requireAuthWithHeaders,
+  requireOrganizerOrHigherWithHeaders,
+  requireAdminOrHigherWithHeaders,
+} from "@/lib/auth/guards";
+import { resolveAdminScopeForUser } from "@/lib/organizations/admin-scope";
 
 /**
  * Controller Server Action: Registra la información de un pago pendiente.
@@ -71,7 +47,7 @@ export async function getPaymentCheckoutContext(registrationId: string) {
  * Controller Server Action: Actualiza el estado de un pago (Aprobación/Rechazo).
  */
 export async function updatePaymentStatus(input: UpdatePaymentStatusInput) {
-  const { user } = await requireOrganizerOrHigherWithHeaders();
+  const { user, headers: hdrs } = await requireOrganizerOrHigherWithHeaders();
   const validated = updatePaymentStatusSchema.parse(input);
 
   const result = await PaymentService.updatePaymentStatus(
@@ -80,7 +56,6 @@ export async function updatePaymentStatus(input: UpdatePaymentStatusInput) {
     validated
   );
 
-  const hdrs = await headers();
   const ipAddress = hdrs.get("x-forwarded-for") ?? hdrs.get("x-real-ip") ?? "unknown";
   const userAgent = hdrs.get("user-agent") ?? "unknown";
 
@@ -133,16 +108,18 @@ export async function getOrganizerPayments() {
  * Controller Server Action: Obtiene todos los pagos (Admin).
  */
 export async function getAdminPayments() {
-  await requireAdminOrHigherWithHeaders();
+  const { user } = await requireAdminOrHigherWithHeaders();
+  const scope = await resolveAdminScopeForUser(user.id, user.role);
 
-  return PaymentService.getAdminPayments();
+  return PaymentService.getAdminPayments(scope);
 }
 
 /**
  * Controller Server Action: Obtiene pagos paginados para administración.
  */
 export async function getAdminPaymentsPaginated(page = 1, limit = 10) {
-  await requireAdminOrHigherWithHeaders();
+  const { user } = await requireAdminOrHigherWithHeaders();
+  const scope = await resolveAdminScopeForUser(user.id, user.role);
 
-  return PaymentService.getAdminPaymentsPaginated(page, limit);
+  return PaymentService.getAdminPaymentsPaginated(scope, page, limit);
 }

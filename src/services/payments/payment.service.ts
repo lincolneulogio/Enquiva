@@ -8,7 +8,7 @@ import {
   transportBookings,
   transportRoutes,
 } from "@/lib/db/schema";
-import { eq, and, desc, count } from "drizzle-orm";
+import { eq, and, desc, count, type SQL } from "drizzle-orm";
 import {
   type CreatePaymentInput,
   type UpdatePaymentStatusInput,
@@ -23,7 +23,12 @@ import { sendTicketEmailWithPdf } from "@/lib/mail";
 import { env } from "@/env";
 import { runBackground } from "@/lib/background";
 import { sendPushNotification } from "@/lib/notifications/push";
-import { assertCanManageEvent } from "@/lib/organizations/admin-scope";
+import {
+  assertCanManageEvent,
+  type AdminScope,
+  paymentInOrgCondition,
+  scopeDenyAllCondition,
+} from "@/lib/organizations/admin-scope";
 
 export class PaymentService {
   /**
@@ -414,11 +419,19 @@ export class PaymentService {
       .orderBy(desc(payments.createdAt));
   }
 
+  private static adminPaymentsScopeCondition(scope: AdminScope): SQL | undefined {
+    if (scope.mode === "org") return paymentInOrgCondition(scope.organizationId);
+    if (scope.mode === "unassigned") return scopeDenyAllCondition();
+    return undefined;
+  }
+
   /**
-   * Obtiene todos los pagos registrados (Vía Administrador).
+   * Pagos visibles en panel admin, acotados por entidad cuando aplica.
    */
-  static async getAdminPayments() {
-    return db
+  static async getAdminPayments(scope: AdminScope) {
+    const scopeCondition = this.adminPaymentsScopeCondition(scope);
+
+    const query = db
       .select({
         payment: payments,
         registration: registrations,
@@ -434,22 +447,33 @@ export class PaymentService {
       .leftJoin(transportBookings, eq(transportBookings.id, payments.transportBookingId))
       .leftJoin(transportRoutes, eq(transportRoutes.id, transportBookings.routeId))
       .orderBy(desc(payments.createdAt));
+
+    if (scopeCondition) {
+      return query.where(scopeCondition);
+    }
+
+    return query;
   }
 
   /**
-   * Obtiene pagos paginados para administración.
+   * Pagos paginados para administración, acotados por entidad cuando aplica.
    */
-  static async getAdminPaymentsPaginated(page = 1, limit = 10) {
+  static async getAdminPaymentsPaginated(scope: AdminScope, page = 1, limit = 10) {
     const safeLimit = Math.max(1, Math.min(50, limit));
     const requestedPage = Math.max(1, page);
+    const scopeCondition = this.adminPaymentsScopeCondition(scope);
 
-    const [totalRow] = await db.select({ total: count() }).from(payments);
+    const countQuery = db.select({ total: count() }).from(payments);
+    const [totalRow] = scopeCondition
+      ? await countQuery.where(scopeCondition)
+      : await countQuery;
+
     const total = totalRow?.total ?? 0;
     const totalPages = Math.max(1, Math.ceil(total / safeLimit));
     const safePage = Math.min(requestedPage, totalPages);
     const offset = (safePage - 1) * safeLimit;
 
-    const items = await db
+    const itemsQuery = db
       .select({
         payment: payments,
         registration: registrations,
@@ -467,6 +491,8 @@ export class PaymentService {
       .orderBy(desc(payments.createdAt))
       .limit(safeLimit)
       .offset(offset);
+
+    const items = scopeCondition ? await itemsQuery.where(scopeCondition) : await itemsQuery;
 
     return {
       items,

@@ -225,6 +225,69 @@ export class OrganizationService {
     return { success: true };
   }
 
+  /**
+   * Alinea organizationMembers.role con users.role cuando el usuario pertenece a una entidad.
+   * Preserva el rol "owner" del dueño de la entidad.
+   */
+  static async syncUserRoleWithOrganizationMembership(
+    userId: string,
+    globalRole: "member" | "organizer" | "admin" | "super_admin",
+  ) {
+    const [user] = await db
+      .select({ organizationId: users.organizationId })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!user?.organizationId) return;
+
+    if (globalRole === "super_admin") return;
+
+    const [org] = await db
+      .select({ ownerId: organizations.ownerId })
+      .from(organizations)
+      .where(eq(organizations.id, user.organizationId))
+      .limit(1);
+
+    if (!org) return;
+
+    const [memberRow] = await db
+      .select({ id: organizationMembers.id, role: organizationMembers.role })
+      .from(organizationMembers)
+      .where(
+        and(
+          eq(organizationMembers.userId, userId),
+          eq(organizationMembers.organizationId, user.organizationId),
+        ),
+      )
+      .limit(1);
+
+    const targetMemberRole =
+      userId === org.ownerId
+        ? "owner"
+        : globalRole === "organizer" || globalRole === "admin"
+          ? "organizer"
+          : "member";
+
+    if (!memberRow) {
+      await db.insert(organizationMembers).values({
+        organizationId: user.organizationId,
+        userId,
+        role: targetMemberRole,
+      });
+      return;
+    }
+
+    if (memberRow.role === "owner") return;
+
+    if (memberRow.role !== targetMemberRole) {
+      await db
+        .update(organizationMembers)
+        .set({ role: targetMemberRole })
+        .where(eq(organizationMembers.id, memberRow.id));
+    }
+  }
+
   static async listTeamMembers(organizationId: string) {
     return db
       .select({
