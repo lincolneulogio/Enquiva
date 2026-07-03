@@ -7,6 +7,7 @@ import type { ExportScope, SessionUser } from "./types";
 import {
   resolveAdminScopeForUser,
   scopeEventConditionForOrgId,
+  scopeDenyAllCondition,
 } from "@/lib/organizations/admin-scope";
 
 export async function requireUser() {
@@ -47,6 +48,9 @@ export async function getScopedEvent(user: SessionUser, scope: ExportScope, even
 
     if (scope === "admin" && user.role === "admin") {
         const adminScope = await resolveAdminScopeForUser(user.id, user.role);
+        if (adminScope.mode === "unassigned") {
+            throw new Error("Configura tu entidad antes de exportar datos");
+        }
         if (adminScope.mode === "org") {
             const [eventOrg] = await db
               .select({ organizationId: events.organizationId })
@@ -65,6 +69,7 @@ export async function getScopedEvent(user: SessionUser, scope: ExportScope, even
 export async function getAdminOrgEventFilter(user: SessionUser) {
     if (user.role !== "admin") return undefined;
     const scope = await resolveAdminScopeForUser(user.id, user.role);
+    if (scope.mode === "unassigned") return scopeDenyAllCondition();
     if (scope.mode === "org") {
         return scopeEventConditionForOrgId(scope.organizationId);
     }

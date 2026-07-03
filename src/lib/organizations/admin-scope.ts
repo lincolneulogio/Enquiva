@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { eq, and, type SQL, inArray } from "drizzle-orm";
+import { eq, and, type SQL, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { events, users, categories, registrations, payments, transportRoutes, transportBookings } from "@/lib/db/schema";
 import { normalizeRole } from "@/lib/auth/rbac";
@@ -8,7 +8,17 @@ import { OrganizationService } from "@/lib/organizations/organization.service";
 
 export type AdminScope =
   | { mode: "platform" }
-  | { mode: "org"; organizationId: string; organizationName: string };
+  | { mode: "org"; organizationId: string; organizationName: string }
+  | { mode: "unassigned" };
+
+/** Condición SQL que no devuelve filas — para admin sin entidad. */
+export function scopeDenyAllCondition(): SQL {
+  return sql`1 = 0`;
+}
+
+export function isUnassignedAdminScope(scope: AdminScope): boolean {
+  return scope.mode === "unassigned";
+}
 
 export async function resolveAdminScope(): Promise<AdminScope> {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -24,6 +34,7 @@ export async function resolveAdminScope(): Promise<AdminScope> {
     if (org) {
       return { mode: "org", organizationId: org.id, organizationName: org.name };
     }
+    return { mode: "unassigned" };
   }
 
   return { mode: "platform" };
@@ -38,6 +49,7 @@ export async function resolveAdminScopeForUser(
   if (normalized === "admin") {
     const org = await OrganizationService.getOrganizationForUser(userId);
     if (org) return { mode: "org", organizationId: org.id, organizationName: org.name };
+    return { mode: "unassigned" };
   }
   return { mode: "platform" };
 }
@@ -46,6 +58,9 @@ export function scopeEventCondition(scope: AdminScope): SQL | undefined {
   if (scope.mode === "org") {
     return eq(events.organizationId, scope.organizationId);
   }
+  if (scope.mode === "unassigned") {
+    return scopeDenyAllCondition();
+  }
   return undefined;
 }
 
@@ -53,12 +68,18 @@ export function scopeUserCondition(scope: AdminScope): SQL | undefined {
   if (scope.mode === "org") {
     return eq(users.organizationId, scope.organizationId);
   }
+  if (scope.mode === "unassigned") {
+    return scopeDenyAllCondition();
+  }
   return undefined;
 }
 
 export function scopeCategoryCondition(scope: AdminScope): SQL | undefined {
   if (scope.mode === "org") {
     return eq(categories.organizationId, scope.organizationId);
+  }
+  if (scope.mode === "unassigned") {
+    return scopeDenyAllCondition();
   }
   return undefined;
 }
@@ -125,6 +146,14 @@ export async function getOrganizationIdForUser(userId: string): Promise<string |
 
 export function getOrganizationIdFromScope(scope: AdminScope): string | null {
   return scope.mode === "org" ? scope.organizationId : null;
+}
+
+const UNASSIGNED_ADMIN_ALLOWED_PATHS = ["/admin/onboarding", "/admin/profile"];
+
+export function isPathAllowedForUnassignedAdmin(pathname: string): boolean {
+  return UNASSIGNED_ADMIN_ALLOWED_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
 }
 
 export type EventScopeRecord = {

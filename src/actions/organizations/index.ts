@@ -34,6 +34,28 @@ export async function promoteOrgMember(targetUserId: string, newRole: "organizer
   return { success: true };
 }
 
+export async function createMyOrganization(orgName: string) {
+  const user = await requireAuth();
+  const role = normalizeRole(user.role);
+  if (role !== "admin") throw new Error("Solo administradores de entidad pueden crear una organización");
+
+  const existing = await OrganizationService.getOrganizationForUser(user.id);
+  if (existing) throw new Error("Ya tienes una entidad vinculada");
+
+  const name = orgName.trim();
+  if (name.length < 2) throw new Error("El nombre de la entidad debe tener al menos 2 caracteres");
+
+  await OrganizationService.createOrganizationForAdmin({
+    name,
+    ownerUserId: user.id,
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/onboarding");
+  revalidatePath("/admin/team");
+  return { success: true };
+}
+
 export async function canManageOrgTeam() {
   const user = await requireAuth();
   const role = normalizeRole(user.role);

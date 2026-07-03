@@ -13,6 +13,7 @@ import {
   UserCog,
   LogOut,
   Shield,
+  ShieldCheck,
   CreditCard,
   Ticket,
   Bus,
@@ -89,11 +90,35 @@ const organizerSections = (options?: { showBroadcasts?: boolean }): NavSection[]
 ]);
 
 type AdminNavOptions = {
-  variant: "super_admin" | "entity_admin";
+  variant: "super_admin" | "entity_admin" | "entity_admin_unassigned";
   showEntityTeam?: boolean;
 };
 
+const adminUnassignedSections = (): NavSection[] =>
+  compactSections([
+    {
+      titleKey: "dashboard.sidebar.groups.core",
+      items: [
+        {
+          labelKey: "dashboard.sidebar.admin.setupEntity",
+          href: "/admin/onboarding",
+          icon: ShieldCheck,
+        },
+      ],
+    },
+    {
+      titleKey: "dashboard.sidebar.groups.account",
+      items: [
+        { labelKey: "dashboard.sidebar.admin.profile", href: "/admin/profile", icon: User },
+      ],
+    },
+  ]);
+
 const adminSections = (options: AdminNavOptions): NavSection[] => {
+  if (options.variant === "entity_admin_unassigned") {
+    return adminUnassignedSections();
+  }
+
   const isSuperAdmin = options.variant === "super_admin";
   const isEntityAdmin = options.variant === "entity_admin";
 
@@ -221,7 +246,7 @@ export function DashboardSidebar({ role, user, organizerNav, adminNav }: Dashboa
         })
       : normalizedRole === "admin"
         ? adminSections({
-            variant: "entity_admin",
+            variant: adminNav?.variant ?? "entity_admin",
             showEntityTeam: adminNav?.showEntityTeam ?? true,
           })
         : normalizedRole === "organizer"

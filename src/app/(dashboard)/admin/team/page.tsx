@@ -16,11 +16,7 @@ export default async function AdminTeamPage() {
 
   const ctx = await getMyOrganization();
   if (!ctx && role === "admin") {
-    return (
-      <div className="rounded-2xl border border-dashed border-border p-8 text-center text-muted-foreground">
-        {t("dashboard.admin.noEntityYet")}
-      </div>
-    );
+    redirect("/admin/onboarding");
   }
 
   if (!ctx) {

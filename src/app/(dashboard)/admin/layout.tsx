@@ -3,7 +3,11 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { DashboardSidebar, DashboardTopbar } from "@/components/dashboard";
 import { normalizeRole } from "@/lib/auth/rbac";
-import { OrganizationService } from "@/lib/organizations/organization.service";
+import {
+  resolveAdminScope,
+  isPathAllowedForUnassignedAdmin,
+  isUnassignedAdminScope,
+} from "@/lib/organizations/admin-scope";
 
 export default async function AdminLayout({
   children,
@@ -25,7 +29,19 @@ export default async function AdminLayout({
     redirect("/organizer");
   }
   const isSuperAdmin = role === "super_admin";
-  const org = await OrganizationService.getOrganizationForUser(session.user.id);
+  const adminScope = await resolveAdminScope();
+  const requestHeaders = await headers();
+  const pathname = requestHeaders.get("x-pathname") ?? "";
+
+  if (isUnassignedAdminScope(adminScope) && !isPathAllowedForUnassignedAdmin(pathname)) {
+    redirect("/admin/onboarding");
+  }
+
+  const adminNavVariant = isSuperAdmin
+    ? "super_admin"
+    : isUnassignedAdminScope(adminScope)
+      ? "entity_admin_unassigned"
+      : "entity_admin";
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -33,8 +49,8 @@ export default async function AdminLayout({
         role={session.user.role ?? "admin"}
         user={session.user}
         adminNav={{
-          variant: isSuperAdmin ? "super_admin" : "entity_admin",
-          showEntityTeam: role === "admin" || !!org,
+          variant: adminNavVariant,
+          showEntityTeam: adminScope.mode === "org",
         }}
       />
       <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
