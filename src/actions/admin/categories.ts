@@ -11,6 +11,7 @@ import {
   scopeCategoryCondition,
   andWithScope,
 } from "@/lib/organizations/admin-scope";
+import { logAdminAction } from "@/lib/analytics/log-admin-action";
 
 async function assertCategoryAccess(categoryId: string, userId: string, role: string | null | undefined) {
   const scope = await resolveAdminScopeForUser(userId, role);
@@ -72,6 +73,14 @@ export async function createCategory(input: {
         createdBy: user.id,
         organizationId,
     }).returning();
+    await logAdminAction({
+        actorId: user.id,
+        actorName: user.name ?? user.email,
+        action: "category.create",
+        entityType: "category",
+        entityId: created.id,
+        details: `Categoría creada: ${created.label} (${created.slug})`,
+    });
     revalidatePath("/admin/categories");
     return { success: true, category: created };
 }
@@ -84,7 +93,7 @@ export async function updateCategory(id: string, input: {
     isActive?: boolean;
 }) {
     const user = await requireAdminOrSuper();
-    await assertCategoryAccess(id, user.id, user.role);
+    const { cat } = await assertCategoryAccess(id, user.id, user.role);
     await db.update(categories).set({
         ...(input.label !== undefined && { label: input.label.trim() }),
         ...(input.description !== undefined && { description: input.description.trim() }),
@@ -93,6 +102,14 @@ export async function updateCategory(id: string, input: {
         ...(input.isActive !== undefined && { isActive: input.isActive }),
         updatedAt: new Date(),
     }).where(eq(categories.id, id));
+    await logAdminAction({
+        actorId: user.id,
+        actorName: user.name ?? user.email,
+        action: "category.update",
+        entityType: "category",
+        entityId: id,
+        details: `Categoría actualizada: ${cat.label} (${cat.slug})`,
+    });
     revalidatePath("/admin/categories");
     return { success: true };
 }
@@ -111,6 +128,14 @@ export async function deleteCategory(id: string) {
         );
     if (cnt > 0) throw new Error(`Cannot delete — ${cnt} event(s) use this category`);
     await db.delete(categories).where(eq(categories.id, id));
+    await logAdminAction({
+        actorId: user.id,
+        actorName: user.name ?? user.email,
+        action: "category.delete",
+        entityType: "category",
+        entityId: id,
+        details: `Categoría eliminada: ${cat.label} (${cat.slug})`,
+    });
     revalidatePath("/admin/categories");
     return { success: true };
 }
@@ -141,6 +166,15 @@ export async function reorderCategories(orderedIds: string[]) {
                 .set({ sortOrder: i + 1, updatedAt: new Date() })
                 .where(eq(categories.id, orderedIds[i]));
         }
+    });
+
+    await logAdminAction({
+        actorId: user.id,
+        actorName: user.name ?? user.email,
+        action: "category.reorder",
+        entityType: "category",
+        entityId: scope.mode === "org" ? scope.organizationId : "platform",
+        details: `Reordenadas ${orderedIds.length} categorías`,
     });
 
     revalidatePath("/admin/categories");

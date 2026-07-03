@@ -41,6 +41,8 @@
     "db:setup:phones": "node --env-file=.env ./scripts/add-phone-columns.mjs",
     "doctor": "npx react-doctor@latest",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:ai": "tsx --env-file=.env ./scripts/test-ai-providers.ts",
     "test:uploadthing": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/test-uploadthing.ts",
     "test:redis": "tsx --env-file=.env ./scripts/test-redis.ts",
@@ -114,6 +116,7 @@
     "postcss": "^8.5.15",
     "tailwindcss": "^4.3.0",
     "tsx": "^4.22.4",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^3.2.4"
   }
 }

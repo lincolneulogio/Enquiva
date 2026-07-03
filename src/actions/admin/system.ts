@@ -17,6 +17,7 @@ import {
 import { eq, and, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireSuperAdmin } from "./users";
+import { logAdminAction } from "@/lib/analytics/log-admin-action";
 
 const DEFAULT_ROLES = [
     {
@@ -61,11 +62,21 @@ export async function updateRole(
     name: string,
     data: { label: string; description: string; color: string }
 ) {
-    await requireSuperAdmin();
+    const user = await requireSuperAdmin();
     await db
         .update(roles)
         .set({ ...data, updatedAt: new Date() })
         .where(eq(roles.name, name));
+
+    await logAdminAction({
+        actorId: user.id,
+        actorName: user.name ?? user.email,
+        action: "role.update",
+        entityType: "role",
+        entityId: name,
+        details: `Rol ${name} actualizado: label=${data.label}`,
+    });
+
     revalidatePath("/admin/roles");
     return { success: true };
 }

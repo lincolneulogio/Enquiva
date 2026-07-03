@@ -10,6 +10,7 @@ import {
   requireAuth,
   requireOrganizerOrHigher,
 } from "@/lib/auth/guards";
+import { logAdminAction } from "@/lib/analytics/log-admin-action";
 
 // ─── Validators ───────────────────────────────────────────────────────────────
 
@@ -40,6 +41,15 @@ export async function createRoute(input: z.infer<typeof createRouteSchema>) {
     await requirePlanFeature(user.id, user.role, "transport");
     const route = await TransportService.createRoute(input, user.id, user.role ?? "member");
 
+    await logAdminAction({
+        actorId: user.id,
+        actorName: user.name ?? user.email,
+        action: "transport.route.create",
+        entityType: "transport",
+        entityId: route.id,
+        details: `Ruta creada: ${input.name} (evento ${input.eventId})`,
+    });
+
     revalidatePath(`/organizer/events/${input.eventId}`);
     return { success: true, route };
 }
@@ -51,6 +61,15 @@ export async function updateRoute(
     const user = await requireOrganizerOrHigher();
     const eventId = await TransportService.updateRoute(routeId, input, user.id, user.role ?? "member");
 
+    await logAdminAction({
+        actorId: user.id,
+        actorName: user.name ?? user.email,
+        action: "transport.route.update",
+        entityType: "transport",
+        entityId: routeId,
+        details: `Ruta actualizada (evento ${eventId})`,
+    });
+
     revalidatePath(`/organizer/events/${eventId}`);
     return { success: true };
 }
@@ -58,6 +77,15 @@ export async function updateRoute(
 export async function deleteRoute(routeId: string) {
     const user = await requireOrganizerOrHigher();
     const eventId = await TransportService.deleteRoute(routeId, user.id, user.role ?? "member");
+
+    await logAdminAction({
+        actorId: user.id,
+        actorName: user.name ?? user.email,
+        action: "transport.route.delete",
+        entityType: "transport",
+        entityId: routeId,
+        details: `Ruta eliminada (evento ${eventId})`,
+    });
 
     revalidatePath(`/organizer/events/${eventId}`);
     return { success: true };
@@ -75,6 +103,15 @@ export async function toggleEventTransport(eventId: string, hasTransport: boolea
         await requirePlanFeature(user.id, user.role, "transport");
     }
     await TransportService.toggleEventTransport(eventId, hasTransport, user.id, user.role ?? "member");
+
+    await logAdminAction({
+        actorId: user.id,
+        actorName: user.name ?? user.email,
+        action: "transport.event.toggle",
+        entityType: "event",
+        entityId: eventId,
+        details: `Transporte ${hasTransport ? "habilitado" : "deshabilitado"} para el evento`,
+    });
 
     revalidatePath(`/organizer/transport`);
     revalidatePath(`/organizer/events/${eventId}`);
@@ -216,6 +253,15 @@ export async function createTransportStop(input: {
         })
         .returning();
 
+    await logAdminAction({
+        actorId: user.id,
+        actorName: user.name ?? user.email,
+        action: "transport.stop.create",
+        entityType: "transport",
+        entityId: stop.id,
+        details: `Parada creada: ${input.name} (ruta ${input.routeId})`,
+    });
+
     return { success: true, stop };
 }
 
@@ -234,6 +280,15 @@ export async function deleteTransportStop(stopId: string) {
     await db
         .delete(transportStops)
         .where(eq(transportStops.id, stopId));
+
+    await logAdminAction({
+        actorId: user.id,
+        actorName: user.name ?? user.email,
+        action: "transport.stop.delete",
+        entityType: "transport",
+        entityId: stopId,
+        details: `Parada eliminada (ruta ${stop.routeId})`,
+    });
 
     return { success: true };
 }

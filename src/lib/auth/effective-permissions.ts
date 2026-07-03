@@ -9,7 +9,7 @@ import {
   type PermissionMatrix,
 } from "@/lib/auth/rbac";
 
-function applyOverrides(
+export function applyOverrides(
   matrix: PermissionMatrix,
   overrides: { roleName: string; permission: string; allowed: boolean }[],
 ) {

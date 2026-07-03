@@ -7,7 +7,6 @@ export const redis = new Redis({
   token: env.UPSTASH_REDIS_REST_TOKEN,
 });
 
-// Rate limiter: 10 requests per 10 seconds per IP
 export const registrationRatelimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(10, "10 s"),
@@ -15,7 +14,6 @@ export const registrationRatelimit = new Ratelimit({
   prefix: "ratelimit:registration",
 });
 
-// Rate limiter for ticket verification: 30 requests per minute per IP
 export const ticketVerifyRatelimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(30, "1 m"),
@@ -23,7 +21,6 @@ export const ticketVerifyRatelimit = new Ratelimit({
   prefix: "ratelimit:ticket_verify",
 });
 
-/** Copilot: mensajes por usuario (además del límite de plan AI). */
 export const chatRatelimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(30, "10 m"),
@@ -31,10 +28,8 @@ export const chatRatelimit = new Ratelimit({
   prefix: "ratelimit:chat",
 });
 
-// Cache keys
 export const CACHE_KEYS = {
   publicEvents: "events:public",
-  featuredEvents: "events:featured",
   eventBySlug: (slug: string) => `events:slug:${slug}`,
   userNotificationsCount: (userId: string) => `notifications:unread:${userId}`,
   eventAttendeesCount: (eventId: string) => `events:attendees:${eventId}`,
@@ -42,39 +37,71 @@ export const CACHE_KEYS = {
 } as const;
 
 export const CACHE_TTL = {
-  publicEvents: 300,      // 5 minutes
-  eventDetail: 300,       // 5 minutes
-  featuredEvents: 600,    // 10 minutes
-  notificationsCount: 60, // 1 minute
-  adminDashboardStats: 300, // 5 minutes
+  publicEvents: 300,
+  eventDetail: 300,
+  notificationsCount: 60,
+  adminDashboardStats: 300,
 } as const;
 
-// Cache utilities
+export type CacheStats = {
+  hits: number;
+  misses: number;
+  setErrors: number;
+  getErrors: number;
+  delErrors: number;
+};
+
+const cacheStats: CacheStats = {
+  hits: 0,
+  misses: 0,
+  setErrors: 0,
+  getErrors: 0,
+  delErrors: 0,
+};
+
+export function getCacheStats(): CacheStats {
+  return { ...cacheStats };
+}
+
+export function resetCacheStats(): void {
+  cacheStats.hits = 0;
+  cacheStats.misses = 0;
+  cacheStats.setErrors = 0;
+  cacheStats.getErrors = 0;
+  cacheStats.delErrors = 0;
+}
+
 export async function getCached<T>(key: string): Promise<T | null> {
   try {
-    return await redis.get<T>(key);
-  } catch {
+    const value = await redis.get<T>(key);
+    if (value != null) {
+      cacheStats.hits++;
+    } else {
+      cacheStats.misses++;
+    }
+    return value;
+  } catch (error) {
+    cacheStats.getErrors++;
+    console.error(`[redis] GET failed key=${key}:`, error);
     return null;
   }
 }
 
-export async function setCached<T>(
-  key: string,
-  value: T,
-  ttl: number
-): Promise<void> {
+export async function setCached<T>(key: string, value: T, ttl: number): Promise<void> {
   try {
     await redis.setex(key, ttl, value);
-  } catch {
-    // Silent fail — cache is non-critical
+  } catch (error) {
+    cacheStats.setErrors++;
+    console.error(`[redis] SETEX failed key=${key} ttl=${ttl}:`, error);
   }
 }
 
 export async function invalidateCache(key: string): Promise<void> {
   try {
     await redis.del(key);
-  } catch {
-    // Silent fail
+  } catch (error) {
+    cacheStats.delErrors++;
+    console.error(`[redis] DEL failed key=${key}:`, error);
   }
 }
 
@@ -88,7 +115,8 @@ export async function invalidateCachePattern(pattern: string): Promise<void> {
         await redis.del(...keys);
       }
     } while (cursor !== "0");
-  } catch {
-    // Silent fail
+  } catch (error) {
+    cacheStats.delErrors++;
+    console.error(`[redis] SCAN/DEL pattern failed pattern=${pattern}:`, error);
   }
 }

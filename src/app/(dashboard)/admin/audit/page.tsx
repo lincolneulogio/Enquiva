@@ -43,6 +43,22 @@ const ACTION_LABEL_KEYS: Record<string, string> = {
   "event.delete": "dashboard.admin.auditActionEventDelete",
   "payment.status_update": "dashboard.admin.auditActionPaymentUpdate",
   "settings.update": "dashboard.admin.auditActionSettingsUpdate",
+  "permission.update": "dashboard.admin.auditActionPermissionUpdate",
+  "role.update": "dashboard.admin.auditActionRoleUpdate",
+  "category.create": "dashboard.admin.auditActionCategoryCreate",
+  "category.update": "dashboard.admin.auditActionCategoryUpdate",
+  "category.delete": "dashboard.admin.auditActionCategoryDelete",
+  "category.reorder": "dashboard.admin.auditActionCategoryReorder",
+  "plan.create": "dashboard.admin.auditActionPlanCreate",
+  "plan.update": "dashboard.admin.auditActionPlanUpdate",
+  "plan.delete": "dashboard.admin.auditActionPlanDelete",
+  "plan.assign": "dashboard.admin.auditActionPlanAssign",
+  "transport.route.create": "dashboard.admin.auditActionTransportRouteCreate",
+  "transport.route.update": "dashboard.admin.auditActionTransportRouteUpdate",
+  "transport.route.delete": "dashboard.admin.auditActionTransportRouteDelete",
+  "transport.event.toggle": "dashboard.admin.auditActionTransportEventToggle",
+  "transport.stop.create": "dashboard.admin.auditActionTransportStopCreate",
+  "transport.stop.delete": "dashboard.admin.auditActionTransportStopDelete",
 };
 
 export default async function AdminAuditPage({ searchParams }: AdminAuditPageProps) {
@@ -200,6 +216,10 @@ export default async function AdminAuditPage({ searchParams }: AdminAuditPagePro
               <option value="event">{t("common.event")}</option>
               <option value="payment">{t("common.payments")}</option>
               <option value="settings">{t("common.settings")}</option>
+              <option value="category">{t("common.categoriesLabel")}</option>
+              <option value="plan">{t("dashboard.sidebar.admin.plans")}</option>
+              <option value="transport">{t("common.transport")}</option>
+              <option value="permission">{t("dashboard.admin.permissionsTitle")}</option>
             </select>
           </div>
 

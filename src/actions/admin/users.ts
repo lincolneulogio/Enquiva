@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { users, rolePermissions } from "@/lib/db/schema";
 import { getFullEffectivePermissionMatrix } from "@/lib/auth/effective-permissions";
+import { logAdminAction } from "@/lib/analytics/log-admin-action";
 import { eq, count, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -173,6 +174,15 @@ export async function updateRolePermission(input: {
                 },
             });
     }
+
+    await logAdminAction({
+        actorId: currentUser.id,
+        actorName: currentUser.name ?? currentUser.email,
+        action: "permission.update",
+        entityType: "permission",
+        entityId: `${input.role}:${input.permission}`,
+        details: `Permiso ${input.permission} para rol ${input.role}: ${input.allowed ? "habilitado" : "deshabilitado"} (default=${defaultAllowed})`,
+    });
 
     revalidatePath("/admin/permissions");
 

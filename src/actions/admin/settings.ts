@@ -1,7 +1,8 @@
 "use server";
 
 import { requireSuperAdmin } from "./users";
-import { getSystemSettings, saveSystemSettings, type SystemSettings } from "@/lib/settings";
+import { getSystemSettings, saveSystemSettings, describeSettingsChanges, type SystemSettings } from "@/lib/settings";
+import { logAdminAction } from "@/lib/analytics/log-admin-action";
 import { transporter, sender } from "@/lib/mail/transporter";
 import { revalidatePath } from "next/cache";
 import { env } from "@/env";
@@ -20,8 +21,22 @@ export async function getSystemSettingsAction() {
  * Only accessible by Super Admins.
  */
 export async function saveSystemSettingsAction(settings: Partial<SystemSettings>) {
-    await requireSuperAdmin();
-    const updated = await saveSystemSettings(settings);
+    const user = await requireSuperAdmin();
+    const before = await getSystemSettings();
+    const updated = await saveSystemSettings(settings, {
+        id: user.id,
+        name: user.name ?? user.email,
+    });
+
+    await logAdminAction({
+        actorId: user.id,
+        actorName: user.name ?? user.email,
+        action: "settings.update",
+        entityType: "settings",
+        entityId: "platform",
+        details: describeSettingsChanges(before, updated),
+    });
+
     revalidatePath("/admin/settings");
     return { success: true, settings: updated };
 }

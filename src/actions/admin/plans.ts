@@ -6,6 +6,7 @@ import { eq, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireSuperAdmin } from "@/actions/admin/users";
 import { SubscriptionService } from "@/lib/billing/subscription.service";
+import { logAdminAction } from "@/lib/analytics/log-admin-action";
 
 export async function getAllPlans() {
   await requireSuperAdmin();
@@ -30,7 +31,7 @@ export async function createPlan(input: {
   featureCustomBranding?: boolean;
   sortOrder?: number;
 }) {
-  await requireSuperAdmin();
+  const user = await requireSuperAdmin();
 
   const slug = input.slug.trim().toLowerCase();
   if (!/^[a-z0-9_-]+$/.test(slug)) {
@@ -59,6 +60,15 @@ export async function createPlan(input: {
     })
     .returning();
 
+  await logAdminAction({
+    actorId: user.id,
+    actorName: user.name ?? user.email,
+    action: "plan.create",
+    entityType: "plan",
+    entityId: created.id,
+    details: `Plan creado: ${created.name} (${created.slug})`,
+  });
+
   revalidatePath("/admin/plans");
   return { success: true, plan: created };
 }
@@ -83,7 +93,7 @@ export async function updatePlan(
     sortOrder?: number;
   },
 ) {
-  await requireSuperAdmin();
+  const user = await requireSuperAdmin();
 
   await db
     .update(plans)
@@ -107,13 +117,22 @@ export async function updatePlan(
     })
     .where(eq(plans.id, id));
 
+  await logAdminAction({
+    actorId: user.id,
+    actorName: user.name ?? user.email,
+    action: "plan.update",
+    entityType: "plan",
+    entityId: id,
+    details: `Plan actualizado: ${input.name ?? "campos varios"}`,
+  });
+
   revalidatePath("/admin/plans");
   revalidatePath("/organizer/billing");
   return { success: true };
 }
 
 export async function deletePlan(id: string) {
-  await requireSuperAdmin();
+  const user = await requireSuperAdmin();
 
   const [inUse] = await db
     .select({ id: subscriptions.id })
@@ -124,6 +143,16 @@ export async function deletePlan(id: string) {
   if (inUse) throw new Error("No se puede eliminar: hay suscripciones usando este plan");
 
   await db.delete(plans).where(eq(plans.id, id));
+
+  await logAdminAction({
+    actorId: user.id,
+    actorName: user.name ?? user.email,
+    action: "plan.delete",
+    entityType: "plan",
+    entityId: id,
+    details: "Plan SaaS eliminado",
+  });
+
   revalidatePath("/admin/plans");
   return { success: true };
 }
@@ -131,6 +160,16 @@ export async function deletePlan(id: string) {
 export async function assignUserPlan(userId: string, planId: string) {
   const actor = await requireSuperAdmin();
   await SubscriptionService.assignPlanToUser(userId, planId, actor.role ?? "super_admin");
+
+  await logAdminAction({
+    actorId: actor.id,
+    actorName: actor.name ?? actor.email,
+    action: "plan.assign",
+    entityType: "plan",
+    entityId: planId,
+    details: `Plan asignado al usuario ${userId}`,
+  });
+
   revalidatePath("/admin/plans");
   revalidatePath("/admin/billing");
   revalidatePath("/organizer/billing");

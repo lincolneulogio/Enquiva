@@ -5,3 +5,4 @@ export * from "./transport";
 export * from "./logs";
 export * from "./billing";
 export * from "./organizations";
+export * from "./platform-settings";
