@@ -7,13 +7,19 @@ import {
   broadcastLogs,
   type Plan,
 } from "@/lib/db/schema";
-import { and, count, desc, eq, gt, gte, inArray, lt, ne, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, gt, gte, inArray, isNull, lt, ne, or, sql, type SQL } from "drizzle-orm";
 import { DEFAULT_PLAN_DEFINITIONS, mapPlanRow, UNLIMITED_PLAN } from "./plans";
 import type { PlanUsage, PlanChangePreview, ResolvedPlan, SubscriptionInfo } from "./types";
 import { isOrganizerSubscriptionBlocked } from "./subscription-auto-renew.service";
 import { clearRenewalTrackingFields } from "./subscription-renewal.service";
 import { normalizeRole } from "@/lib/auth/rbac";
-import { users } from "@/lib/db/schema";
+import { users, organizationMembers } from "@/lib/db/schema";
+import {
+  resolveSubscriptionBillingContext,
+  canManageSubscriptionBilling,
+  getBillingUserId,
+  type SubscriptionBillingContext,
+} from "./subscription-context";
 
 const ACTIVE_EVENT_STATUSES = ["draft", "published"] as const;
 
@@ -28,9 +34,61 @@ function addOneMonth(from = new Date()) {
 }
 
 export class SubscriptionService {
+  /** Solo super_admin de plataforma tiene plan ilimitado sin facturación. */
   static isPlatformStaff(role: string | null | undefined) {
-    const normalized = normalizeRole(role);
-    return normalized === "super_admin" || normalized === "admin";
+    return normalizeRole(role) === "super_admin";
+  }
+
+  static subscriptionWhere(ctx: SubscriptionBillingContext): SQL {
+    if (ctx.mode === "organization") {
+      return eq(subscriptions.organizationId, ctx.organizationId);
+    }
+    if (ctx.mode === "user") {
+      return and(eq(subscriptions.userId, ctx.userId), isNull(subscriptions.organizationId))!;
+    }
+    return sql`1 = 0`;
+  }
+
+  static async ensureOrganizationSubscription(organizationId: string, billingUserId: string) {
+    await this.ensureDefaultPlans();
+    const [existing] = await db
+      .select({ id: subscriptions.id })
+      .from(subscriptions)
+      .where(eq(subscriptions.organizationId, organizationId))
+      .limit(1);
+
+    if (existing) return existing.id;
+
+    const freePlan = await this.getFreePlan();
+    const periodEnd = addOneMonth();
+
+    const [created] = await db
+      .insert(subscriptions)
+      .values({
+        userId: billingUserId,
+        organizationId,
+        planId: freePlan.id,
+        status: "active",
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: periodEnd,
+      })
+      .returning({ id: subscriptions.id });
+
+    return created.id;
+  }
+
+  static async getOrganizationPlan(organizationId: string): Promise<ResolvedPlan> {
+    const [row] = await db
+      .select({ plan: plans, status: subscriptions.status })
+      .from(subscriptions)
+      .innerJoin(plans, eq(subscriptions.planId, plans.id))
+      .where(eq(subscriptions.organizationId, organizationId))
+      .limit(1);
+
+    if (!row || row.status !== "active") {
+      return this.getFreePlan();
+    }
+    return mapPlanRow(row.plan);
   }
 
   static async ensureDefaultPlans() {
@@ -73,10 +131,49 @@ export class SubscriptionService {
     return plan;
   }
 
-  static async getUsage(userId: string): Promise<PlanUsage> {
+  static async getUsage(userId: string, ctx?: SubscriptionBillingContext): Promise<PlanUsage> {
+    const billingCtx = ctx ?? (await resolveSubscriptionBillingContext(userId, null));
     const monthStart = new Date();
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
+
+    if (billingCtx.mode === "organization") {
+      const memberRows = await db
+        .select({ userId: organizationMembers.userId })
+        .from(organizationMembers)
+        .where(eq(organizationMembers.organizationId, billingCtx.organizationId));
+
+      const memberIds = memberRows.map((row) => row.userId);
+      if (memberIds.length === 0) {
+        return { activeEvents: 0, broadcastsThisMonth: 0 };
+      }
+
+      const [[eventsRow], [broadcastRow]] = await Promise.all([
+        db
+          .select({ total: count() })
+          .from(events)
+          .where(
+            and(
+              eq(events.organizationId, billingCtx.organizationId),
+              inArray(events.status, [...ACTIVE_EVENT_STATUSES]),
+            ),
+          ),
+        db
+          .select({ total: count() })
+          .from(broadcastLogs)
+          .where(
+            and(
+              inArray(broadcastLogs.senderId, memberIds),
+              gte(broadcastLogs.createdAt, monthStart),
+            ),
+          ),
+      ]);
+
+      return {
+        activeEvents: eventsRow?.total ?? 0,
+        broadcastsThisMonth: broadcastRow?.total ?? 0,
+      };
+    }
 
     const [[eventsRow], [broadcastRow]] = await Promise.all([
       db
@@ -101,24 +198,28 @@ export class SubscriptionService {
   }
 
   static async getOrCreateSubscription(userId: string, role?: string | null): Promise<SubscriptionInfo> {
-    if (this.isPlatformStaff(role)) {
+    const ctx = await resolveSubscriptionBillingContext(userId, role);
+
+    if (ctx.mode === "platform_unlimited") {
       return {
         id: "platform",
         status: "active",
         currentPeriodStart: new Date(),
         currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
         plan: UNLIMITED_PLAN,
-        usage: await this.getUsage(userId),
+        usage: await this.getUsage(userId, ctx),
         renewalAlert: null,
         daysUntilRenewal: null,
         autoRenewEnabled: false,
         hasSavedCard: false,
         accessBlocked: false,
+        billingScope: "platform",
+        canManageBilling: true,
       };
     }
 
     await this.ensureDefaultPlans();
-    await this.syncSubscriptionForUser(userId);
+    await this.syncSubscriptionForContext(ctx);
 
     const [existing] = await db
       .select({
@@ -127,20 +228,22 @@ export class SubscriptionService {
       })
       .from(subscriptions)
       .innerJoin(plans, eq(subscriptions.planId, plans.id))
-      .where(eq(subscriptions.userId, userId))
+      .where(this.subscriptionWhere(ctx))
       .limit(1);
 
     if (existing) {
-      return this.buildSubscriptionInfo(userId, existing.subscription, existing.plan);
+      return this.buildSubscriptionInfo(userId, role, ctx, existing.subscription, existing.plan);
     }
 
     const freePlan = await this.getFreePlan();
     const periodEnd = addOneMonth();
+    const billingUserId = getBillingUserId(ctx)!;
 
     const [created] = await db
       .insert(subscriptions)
       .values({
-        userId,
+        userId: billingUserId,
+        organizationId: ctx.mode === "organization" ? ctx.organizationId : null,
         planId: freePlan.id,
         status: "active",
         currentPeriodStart: new Date(),
@@ -150,11 +253,13 @@ export class SubscriptionService {
 
     const [planRow] = await db.select().from(plans).where(eq(plans.id, freePlan.id)).limit(1);
 
-    return this.buildSubscriptionInfo(userId, created, planRow as Plan);
+    return this.buildSubscriptionInfo(userId, role, ctx, created, planRow as Plan);
   }
 
   private static async buildSubscriptionInfo(
     userId: string,
+    role: string | null | undefined,
+    ctx: SubscriptionBillingContext,
     subscription: typeof subscriptions.$inferSelect,
     planRow: Plan,
   ): Promise<SubscriptionInfo> {
@@ -186,7 +291,7 @@ export class SubscriptionService {
       currentPeriodEnd: subscription.currentPeriodEnd,
       plan: effectivePlan,
       billedPlan: subscription.status === "past_due" ? billedPlan : undefined,
-      usage: await this.getUsage(userId),
+      usage: await this.getUsage(userId, ctx),
       renewalAlert,
       daysUntilRenewal,
       autoRenewEnabled: subscription.autoRenewEnabled,
@@ -198,11 +303,19 @@ export class SubscriptionService {
         planRow.slug,
         Number(planRow.priceMonthly),
       ),
+      billingScope: ctx.mode === "organization" ? "organization" : "user",
+      canManageBilling: canManageSubscriptionBilling(userId, role, ctx),
+      organizationName: ctx.mode === "organization" ? ctx.organizationName : null,
     };
   }
 
-  /** Sincroniza vencimiento de un usuario (past_due / downgrade / renovación free). */
-  static async syncSubscriptionForUser(userId: string) {
+  /** Sincroniza vencimiento según contexto de facturación (org o usuario). */
+  static async syncSubscriptionForContext(ctx: SubscriptionBillingContext) {
+    if (ctx.mode === "platform_unlimited") return;
+
+    const billingUserId = getBillingUserId(ctx);
+    if (!billingUserId) return;
+
     const [row] = await db
       .select({
         subscription: subscriptions,
@@ -210,7 +323,7 @@ export class SubscriptionService {
       })
       .from(subscriptions)
       .innerJoin(plans, eq(subscriptions.planId, plans.id))
-      .where(eq(subscriptions.userId, userId))
+      .where(this.subscriptionWhere(ctx))
       .limit(1);
 
     if (!row) return;
@@ -251,16 +364,15 @@ export class SubscriptionService {
           subscription.autoRenewLastAttemptAt.getUTCDate() === now.getUTCDate();
 
         if (shouldRetry && !attemptedToday) {
-          const { users } = await import("@/lib/db/schema");
           const [user] = await db
             .select({ email: users.email, name: users.name, phone: users.phone, address: users.address })
             .from(users)
-            .where(eq(users.id, userId))
+            .where(eq(users.id, billingUserId))
             .limit(1);
 
           if (user?.email) {
             const { SubscriptionAutoRenewService } = await import("./subscription-auto-renew.service");
-            const renewed = await SubscriptionAutoRenewService.tryAutoRenewForUser(userId, {
+            const renewed = await SubscriptionAutoRenewService.tryAutoRenewForUser(billingUserId, {
               name: user.name,
               email: user.email,
               phone: user.phone,
@@ -284,10 +396,18 @@ export class SubscriptionService {
         .update(subscriptions)
         .set({ status: "past_due", updatedAt: now })
         .where(eq(subscriptions.id, subscription.id));
-      return;
     }
+  }
 
-    // past_due: permanece hasta que el organizador pague.
+  /** @deprecated Usar syncSubscriptionForContext */
+  static async syncSubscriptionForUser(userId: string) {
+    const [user] = await db
+      .select({ role: users.role })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    const ctx = await resolveSubscriptionBillingContext(userId, user?.role);
+    return this.syncSubscriptionForContext(ctx);
   }
 
   /**
@@ -338,26 +458,19 @@ export class SubscriptionService {
     };
   }
 
-  static async getSubscriptionPlanForUserId(userId: string): Promise<ResolvedPlan> {
-    await this.ensureDefaultPlans();
-
-    const [existing] = await db
-      .select({ plan: plans, status: subscriptions.status })
-      .from(subscriptions)
-      .innerJoin(plans, eq(subscriptions.planId, plans.id))
-      .where(eq(subscriptions.userId, userId))
-      .limit(1);
-
-    if (!existing || existing.status !== "active") {
-      return this.getFreePlan();
-    }
-    return mapPlanRow(existing.plan);
+  static async getSubscriptionPlanForUserId(
+    userId: string,
+    role?: string | null,
+  ): Promise<ResolvedPlan> {
+    const info = await this.getOrCreateSubscription(userId, role);
+    return info.plan;
   }
 
-  /** Vista previa para confirmar cambio de plan (organizador). */
+  /** Vista previa para confirmar cambio de plan (organizador o admin de entidad). */
   static async getPlanChangePreview(
     userId: string,
     targetPlanSlug: string,
+    role?: string | null,
   ): Promise<PlanChangePreview | null> {
     await this.ensureDefaultPlans();
 
@@ -368,6 +481,8 @@ export class SubscriptionService {
       .limit(1);
     if (!targetPlan) return null;
 
+    const ctx = await resolveSubscriptionBillingContext(userId, role);
+
     const [row] = await db
       .select({
         subscription: subscriptions,
@@ -375,7 +490,7 @@ export class SubscriptionService {
       })
       .from(subscriptions)
       .innerJoin(plans, eq(subscriptions.planId, plans.id))
-      .where(eq(subscriptions.userId, userId))
+      .where(this.subscriptionWhere(ctx))
       .limit(1);
 
     const now = new Date();
@@ -414,17 +529,68 @@ export class SubscriptionService {
     };
   }
 
-  static async assignPlanFromOrganizerPayment(userId: string, planId: string) {
-    return db.transaction(async (tx) => this.assignPlanToUserTx(tx, userId, planId));
+  static async assignPlanFromOrganizerPayment(
+    actorUserId: string,
+    actorRole: string | null | undefined,
+    planId: string,
+  ) {
+    const ctx = await resolveSubscriptionBillingContext(actorUserId, actorRole);
+    if (!canManageSubscriptionBilling(actorUserId, actorRole, ctx)) {
+      throw new Error("No puedes gestionar el plan de esta entidad.");
+    }
+    const billingUserId = getBillingUserId(ctx);
+    if (!billingUserId) throw new Error("Contexto de facturación inválido");
+
+    return db.transaction(async (tx) =>
+      this.assignPlanToContextTx(tx, ctx, planId, billingUserId),
+    );
   }
 
   static async assignPlanToUser(userId: string, planId: string, actorRole: string) {
-    if (!this.isPlatformStaff(actorRole)) throw new Error("Forbidden");
+    if (normalizeRole(actorRole) !== "super_admin") throw new Error("Forbidden");
 
-    return db.transaction(async (tx) => this.assignPlanToUserTx(tx, userId, planId));
+    const [user] = await db
+      .select({ role: users.role })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    const ctx = await resolveSubscriptionBillingContext(userId, user?.role);
+    const billingUserId = getBillingUserId(ctx);
+    if (!billingUserId) throw new Error("Contexto de facturación inválido");
+
+    return db.transaction(async (tx) =>
+      this.assignPlanToContextTx(tx, ctx, planId, billingUserId),
+    );
   }
 
+  static async assignPlanForPaymentUserTx(
+    tx: DBTransaction,
+    paymentUserId: string,
+    planId: string,
+  ) {
+    const [user] = await tx
+      .select({ role: users.role })
+      .from(users)
+      .where(eq(users.id, paymentUserId))
+      .limit(1);
+    const ctx = await resolveSubscriptionBillingContext(paymentUserId, user?.role);
+    const billingUserId = getBillingUserId(ctx);
+    if (!billingUserId) throw new Error("Contexto de facturación inválido");
+
+    return this.assignPlanToContextTx(tx, ctx, planId, billingUserId);
+  }
+
+  /** @deprecated Usar assignPlanToContextTx */
   static async assignPlanToUserTx(tx: DBTransaction, userId: string, planId: string) {
+    return this.assignPlanForPaymentUserTx(tx, userId, planId);
+  }
+
+  static async assignPlanToContextTx(
+    tx: DBTransaction,
+    ctx: SubscriptionBillingContext,
+    planId: string,
+    billingUserId: string,
+  ) {
     const [plan] = await tx.select().from(plans).where(eq(plans.id, planId)).limit(1);
     if (!plan) throw new Error("Plan no encontrado");
 
@@ -433,7 +599,7 @@ export class SubscriptionService {
     const [existing] = await tx
       .select()
       .from(subscriptions)
-      .where(eq(subscriptions.userId, userId))
+      .where(this.subscriptionWhere(ctx))
       .limit(1);
 
     const stillActive =
@@ -443,8 +609,6 @@ export class SubscriptionService {
 
     const isSamePlan = existing?.planId === planId;
 
-    // Mismo plan activo = renovación (extiende desde el vencimiento actual).
-    // Cambio de plan, alta nueva o reactivación = período nuevo desde hoy (+1 mes).
     const periodStart =
       existing && isSamePlan && stillActive ? existing.currentPeriodStart : now;
     const periodEnd =
@@ -457,6 +621,7 @@ export class SubscriptionService {
         .update(subscriptions)
         .set({
           planId,
+          userId: billingUserId,
           status: "active",
           currentPeriodStart: periodStart,
           currentPeriodEnd: periodEnd,
@@ -472,7 +637,8 @@ export class SubscriptionService {
     const [created] = await tx
       .insert(subscriptions)
       .values({
-        userId,
+        userId: billingUserId,
+        organizationId: ctx.mode === "organization" ? ctx.organizationId : null,
         planId,
         status: "active",
         currentPeriodStart: periodStart,
@@ -481,6 +647,21 @@ export class SubscriptionService {
       .returning({ id: subscriptions.id });
 
     return created.id;
+  }
+
+  static async findSubscriptionRow(ctx: SubscriptionBillingContext) {
+    const [row] = await db
+      .select()
+      .from(subscriptions)
+      .where(this.subscriptionWhere(ctx))
+      .limit(1);
+    return row ?? null;
+  }
+
+  static async findSubscriptionForBillingUser(userId: string, role?: string | null) {
+    const ctx = await resolveSubscriptionBillingContext(userId, role);
+    if (ctx.mode === "platform_unlimited") return null;
+    return this.findSubscriptionRow(ctx);
   }
 
   static async listAllPlans(): Promise<Plan[]> {

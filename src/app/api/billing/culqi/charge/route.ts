@@ -2,12 +2,18 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
-import { plans, subscriptions } from "@/lib/db/schema";
+import { plans } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { createCulqiCharge, getPlatformCulqiCredentials, isPlatformCulqiConfigured } from "@/lib/culqi/client";
 import { getUserCulqiProfile, mergeSessionCulqiProfile, formatCulqiPhone } from "@/lib/culqi/customer-data";
 import { SubscriptionPaymentService } from "@/lib/billing/subscription-payment.service";
 import { SubscriptionAutoRenewService } from "@/lib/billing/subscription-auto-renew.service";
+import {
+  resolveSubscriptionBillingContext,
+  canManageSubscriptionBilling,
+  getBillingUserId,
+} from "@/lib/billing/subscription-context";
+import { SubscriptionService } from "@/lib/billing/subscription.service";
 
 export async function POST(req: Request) {
   try {
@@ -18,6 +24,22 @@ export async function POST(req: Request) {
 
     if (!["organizer", "admin", "super_admin"].includes(session.user.role ?? "")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const billingCtx = await resolveSubscriptionBillingContext(
+      session.user.id,
+      session.user.role,
+    );
+    if (!canManageSubscriptionBilling(session.user.id, session.user.role, billingCtx)) {
+      return NextResponse.json(
+        { error: "El plan de tu entidad lo gestiona el administrador." },
+        { status: 403 },
+      );
+    }
+
+    const billingUserId = getBillingUserId(billingCtx);
+    if (!billingUserId) {
+      return NextResponse.json({ error: "Contexto de facturación inválido" }, { status: 400 });
     }
 
     if (!isPlatformCulqiConfigured()) {
@@ -37,7 +59,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Tu cuenta necesita un email para pagar" }, { status: 400 });
     }
 
-    const pending = await SubscriptionPaymentService.getPendingForUser(session.user.id);
+    const pending = await SubscriptionPaymentService.getPendingForUser(billingUserId);
     if (pending) {
       return NextResponse.json(
         { error: "Tienes un pago de plan pendiente de revisión" },
@@ -72,15 +94,15 @@ export async function POST(req: Request) {
 
     if (enableAutoRenew) {
       await SubscriptionAutoRenewService.prepareAutoRenewCard(
-        session.user.id,
+        billingUserId,
         customer,
         sourceId,
+        session.user.role,
       );
-      const [sub] = await db
-        .select({ culqiCardId: subscriptions.culqiCardId })
-        .from(subscriptions)
-        .where(eq(subscriptions.userId, session.user.id))
-        .limit(1);
+      const sub = await SubscriptionService.findSubscriptionForBillingUser(
+        billingUserId,
+        session.user.role,
+      );
 
       if (!sub?.culqiCardId) {
         return NextResponse.json(
@@ -114,7 +136,7 @@ export async function POST(req: Request) {
     }
 
     const result = await SubscriptionPaymentService.fulfillCulqiSubscriptionCharge({
-      userId: session.user.id,
+      userId: billingUserId,
       planId: plan.id,
       planName: plan.name,
       amount,

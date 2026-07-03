@@ -9,12 +9,14 @@ import {
 } from "@/lib/culqi/client";
 import type { CulqiUserProfile } from "@/lib/culqi/customer-data";
 import { SubscriptionPaymentService } from "./subscription-payment.service";
+import { SubscriptionService } from "./subscription.service";
 
 export class SubscriptionAutoRenewService {
   static async saveCardFromToken(
     tx: DBTransaction,
     input: {
       userId: string;
+      role?: string | null;
       customer: CulqiUserProfile;
       tokenId: string;
       enableAutoRenew: boolean;
@@ -23,10 +25,21 @@ export class SubscriptionAutoRenewService {
     const creds = getPlatformCulqiCredentials();
     if (!creds) return;
 
+    const [user] = await tx
+      .select({ role: users.role })
+      .from(users)
+      .where(eq(users.id, input.userId))
+      .limit(1);
+
+    const ctx = await import("./subscription-context").then((m) =>
+      m.resolveSubscriptionBillingContext(input.userId, input.role ?? user?.role),
+    );
+    if (ctx.mode === "platform_unlimited") return;
+
     const [sub] = await tx
       .select()
       .from(subscriptions)
-      .where(eq(subscriptions.userId, input.userId))
+      .where(SubscriptionService.subscriptionWhere(ctx))
       .limit(1);
     if (!sub) return;
 
@@ -54,10 +67,16 @@ export class SubscriptionAutoRenewService {
       .where(eq(subscriptions.id, sub.id));
   }
 
-  static async prepareAutoRenewCard(userId: string, customer: CulqiUserProfile, tokenId: string) {
+  static async prepareAutoRenewCard(
+    userId: string,
+    customer: CulqiUserProfile,
+    tokenId: string,
+    role?: string | null,
+  ) {
     return db.transaction(async (tx) => {
       await this.saveCardFromToken(tx, {
         userId,
+        role,
         customer,
         tokenId,
         enableAutoRenew: true,
@@ -65,12 +84,8 @@ export class SubscriptionAutoRenewService {
     });
   }
 
-  static async setAutoRenew(userId: string, enabled: boolean) {
-    const [sub] = await db
-      .select()
-      .from(subscriptions)
-      .where(eq(subscriptions.userId, userId))
-      .limit(1);
+  static async setAutoRenew(userId: string, enabled: boolean, role?: string | null) {
+    const sub = await SubscriptionService.findSubscriptionForBillingUser(userId, role);
 
     if (!sub) throw new Error("Suscripción no encontrada");
     if (enabled && !sub.culqiCardId) {
@@ -88,20 +103,15 @@ export class SubscriptionAutoRenewService {
   static async tryAutoRenewForUser(
     userId: string,
     customer: CulqiUserProfile,
+    role?: string | null,
   ): Promise<boolean> {
-    const [row] = await db
-      .select({
-        subscription: subscriptions,
-        plan: plans,
-      })
-      .from(subscriptions)
-      .innerJoin(plans, eq(subscriptions.planId, plans.id))
-      .where(eq(subscriptions.userId, userId))
-      .limit(1);
+    const sub = await SubscriptionService.findSubscriptionForBillingUser(userId, role);
+    if (!sub) return false;
 
-    if (!row) return false;
+    const [plan] = await db.select().from(plans).where(eq(plans.id, sub.planId)).limit(1);
+    if (!plan) return false;
 
-    const { subscription, plan } = row;
+    const subscription = sub;
     if (!subscription.autoRenewEnabled || !subscription.culqiCardId) return false;
 
     const amount = Number(plan.priceMonthly);

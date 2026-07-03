@@ -199,7 +199,9 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
             { labelKey: "dashboard.sidebar.admin.plans", href: "/admin/plans", icon: Crown },
             { labelKey: "dashboard.sidebar.admin.platformBilling", href: "/admin/billing", icon: BarChart3 },
           ]
-        : []),
+        : isEntityAdmin
+          ? [{ labelKey: "dashboard.sidebar.admin.entityPlan", href: "/admin/plan", icon: Crown }]
+          : []),
     ]
   },
   {

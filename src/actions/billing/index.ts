@@ -13,6 +13,24 @@ import {
   requireOrganizerOrStaff,
   requireSuperAdmin,
 } from "@/lib/auth/guards";
+import {
+  resolveSubscriptionBillingContext,
+  canManageSubscriptionBilling,
+  getBillingUserId,
+} from "@/lib/billing/subscription-context";
+
+async function requireBillingManager() {
+  const user = await requireOrganizerOrStaff();
+  const ctx = await resolveSubscriptionBillingContext(user.id, user.role);
+  if (!canManageSubscriptionBilling(user.id, user.role, ctx)) {
+    throw new Error(
+      "El plan de tu entidad lo gestiona el administrador. Pídele que actualice el plan desde su panel.",
+    );
+  }
+  const billingUserId = getBillingUserId(ctx);
+  if (!billingUserId) throw new Error("Contexto de facturación inválido");
+  return { user, ctx, billingUserId };
+}
 
 export async function getMySubscription() {
   const user = await requireAuthUser();
@@ -39,12 +57,18 @@ export async function getPlatformBillingMethods() {
 
 export async function getMyPendingSubscriptionPayment() {
   const user = await requireOrganizerOrStaff();
-  return SubscriptionPaymentService.getPendingForUser(user.id);
+  const ctx = await resolveSubscriptionBillingContext(user.id, user.role);
+  const billingUserId = getBillingUserId(ctx);
+  if (!billingUserId) return null;
+  return SubscriptionPaymentService.getPendingForUser(billingUserId);
 }
 
 export async function getMySubscriptionPaymentHistory() {
   const user = await requireOrganizerOrStaff();
-  return SubscriptionPaymentService.listPaymentsForUser(user.id);
+  const ctx = await resolveSubscriptionBillingContext(user.id, user.role);
+  const billingUserId = getBillingUserId(ctx);
+  if (!billingUserId) return [];
+  return SubscriptionPaymentService.listPaymentsForUser(billingUserId);
 }
 
 const submitManualSchema = z.object({
@@ -56,7 +80,7 @@ const submitManualSchema = z.object({
 });
 
 export async function submitSubscriptionPayment(input: z.infer<typeof submitManualSchema>) {
-  const user = await requireOrganizerOrStaff();
+  const { user, billingUserId } = await requireBillingManager();
   const data = submitManualSchema.parse(input);
 
   const [plan] = await db.select().from(plans).where(eq(plans.id, data.planId)).limit(1);
@@ -64,13 +88,14 @@ export async function submitSubscriptionPayment(input: z.infer<typeof submitManu
 
   const amount = Number(plan.priceMonthly);
   if (amount <= 0) {
-    await SubscriptionService.assignPlanFromOrganizerPayment(user.id, plan.id);
+    await SubscriptionService.assignPlanFromOrganizerPayment(user.id, user.role, plan.id);
     revalidatePath("/organizer/billing");
+    revalidatePath("/admin/plan");
     return { success: true, mode: "assigned" as const };
   }
 
   await SubscriptionPaymentService.createManualPayment({
-    userId: user.id,
+    userId: billingUserId,
     planId: plan.id,
     amount,
     method: data.method,
@@ -80,6 +105,7 @@ export async function submitSubscriptionPayment(input: z.infer<typeof submitManu
   });
 
   revalidatePath("/organizer/billing");
+  revalidatePath("/admin/plan");
   revalidatePath("/admin/billing");
 
   return {
@@ -90,12 +116,12 @@ export async function submitSubscriptionPayment(input: z.infer<typeof submitManu
 }
 
 export async function requestPlanUpgrade(planSlug: string, confirmed = false) {
-  const user = await requireOrganizerOrStaff();
+  const { user } = await requireBillingManager();
 
   const plan = await SubscriptionService.getPlanBySlug(planSlug);
   if (!plan) throw new Error("Plan no encontrado");
 
-  const preview = await SubscriptionService.getPlanChangePreview(user.id, planSlug);
+  const preview = await SubscriptionService.getPlanChangePreview(user.id, planSlug, user.role);
 
   if (preview?.requiresConfirmation && !confirmed) {
     return {
@@ -110,8 +136,9 @@ export async function requestPlanUpgrade(planSlug: string, confirmed = false) {
   if (Number(plan.priceMonthly) <= 0) {
     const [planRow] = await db.select().from(plans).where(eq(plans.slug, planSlug)).limit(1);
     if (!planRow) throw new Error("Plan no encontrado");
-    await SubscriptionService.assignPlanFromOrganizerPayment(user.id, planRow.id);
+    await SubscriptionService.assignPlanFromOrganizerPayment(user.id, user.role, planRow.id);
     revalidatePath("/organizer/billing");
+    revalidatePath("/admin/plan");
     return {
       success: true,
       mode: "assigned" as const,
@@ -137,6 +164,7 @@ export async function approveSubscriptionPayment(paymentId: string) {
   const admin = await requireSuperAdmin();
   await SubscriptionPaymentService.approvePayment(paymentId, admin.id);
   revalidatePath("/organizer/billing");
+  revalidatePath("/admin/plan");
   revalidatePath("/admin/billing");
   return { success: true };
 }
@@ -145,14 +173,16 @@ export async function rejectSubscriptionPayment(paymentId: string, notes?: strin
   const admin = await requireSuperAdmin();
   await SubscriptionPaymentService.rejectPayment(paymentId, admin.id, notes);
   revalidatePath("/organizer/billing");
+  revalidatePath("/admin/plan");
   revalidatePath("/admin/billing");
   return { success: true };
 }
 
 export async function updateSubscriptionAutoRenew(enabled: boolean) {
-  const user = await requireOrganizerOrStaff();
-  await SubscriptionAutoRenewService.setAutoRenew(user.id, enabled);
+  const { user, billingUserId } = await requireBillingManager();
+  await SubscriptionAutoRenewService.setAutoRenew(billingUserId, enabled, user.role);
   revalidatePath("/organizer/billing");
+  revalidatePath("/admin/plan");
   revalidatePath("/organizer", "layout");
   return { success: true };
 }

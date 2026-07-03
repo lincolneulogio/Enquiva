@@ -31,7 +31,7 @@ function randomInviteCode() {
 
 export type SignupIntentPayload =
   | { type: "member" }
-  | { type: "organizer"; inviteCode?: string }
+  | { type: "organizer"; inviteCode: string }
   | { type: "entity_admin"; orgName: string };
 
 export class OrganizationService {
@@ -109,6 +109,9 @@ export class OrganizationService {
           .update(users)
           .set({ organizationId: org.id, role: "admin", updatedAt: new Date() })
           .where(eq(users.id, input.ownerUserId));
+
+        const { SubscriptionService } = await import("@/lib/billing/subscription.service");
+        await SubscriptionService.ensureOrganizationSubscription(org.id, input.ownerUserId);
 
         return org;
       } catch {
@@ -340,7 +343,7 @@ export class OrganizationService {
       .limit(1);
     if (!org) throw new Error("Entidad no encontrada.");
 
-    const plan = await SubscriptionService.getSubscriptionPlanForUserId(org.ownerId);
+    const plan = await SubscriptionService.getOrganizationPlan(organizationId);
     if (plan.maxOrganizers == null) return;
 
     const used = await this.countOrganizerSlotsInOrg(organizationId);
@@ -383,12 +386,14 @@ export class OrganizationService {
     try {
       const parsed = JSON.parse(raw) as SignupIntentPayload;
       if (parsed.type === "entity_admin" && parsed.orgName?.trim()) return parsed;
-      if (parsed.type === "organizer") return parsed;
+      if (parsed.type === "organizer" && parsed.inviteCode?.trim()) {
+        return { type: "organizer", inviteCode: parsed.inviteCode.trim() };
+      }
       if (parsed.type === "member") return parsed;
     } catch {
       // legacy plain string
     }
-    if (raw === "organizer") return { type: "organizer" };
+    if (raw === "organizer") return { type: "member" };
     return { type: "member" };
   }
 }

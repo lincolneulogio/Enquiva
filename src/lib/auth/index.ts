@@ -98,8 +98,8 @@ export const auth = betterAuth({
     },
   },
   session: {
-    expiresIn: 60 * 60, // 1 hour
-    updateAge: 60 * 15, // refresh if older than 15 minutes
+    expiresIn: 60 * 60 * 8, // 8 hours — jornadas largas de eventos
+    updateAge: 60 * 10, // renueva cookie si pasaron 10 min desde la última actualización
   },
 });
 

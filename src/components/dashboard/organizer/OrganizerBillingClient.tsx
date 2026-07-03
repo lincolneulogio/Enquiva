@@ -37,6 +37,8 @@ interface OrganizerBillingClientProps {
   culqiAvailable: boolean;
   pendingPayment: PendingPayment | null;
   paymentHistory: PaymentHistoryRow[];
+  readOnly?: boolean;
+  pageVariant?: "organizer" | "entity";
 }
 
 const PAYMENT_STATUS_KEYS: Record<string, string> = {
@@ -60,6 +62,8 @@ export function OrganizerBillingClient({
   culqiAvailable,
   pendingPayment,
   paymentHistory,
+  readOnly = false,
+  pageVariant = "organizer",
 }: OrganizerBillingClientProps) {
   const t = useTranslations();
   const { locale } = useLocale();
@@ -117,6 +121,16 @@ export function OrganizerBillingClient({
 
   return (
     <div className="space-y-6">
+      {subscription.billingScope === "organization" && subscription.organizationName && (
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground">
+          {readOnly
+            ? t("billing.organizer.orgPlanReadOnly", { org: subscription.organizationName })
+            : pageVariant === "entity"
+              ? t("billing.entityPlan.orgScope", { org: subscription.organizationName })
+              : t("billing.organizer.orgPlanManaged", { org: subscription.organizationName })}
+        </div>
+      )}
+
       {renewalAlert === "expiring_soon" && (
         <div className="flex items-start gap-3 rounded-2xl border border-amber-200/60 bg-amber-50/50 p-4 dark:border-amber-900/30 dark:bg-amber-950/20">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
@@ -217,7 +231,7 @@ export function OrganizerBillingClient({
         </div>
       </div>
 
-      <AutoRenewSettings subscription={subscription} culqiAvailable={culqiAvailable} />
+      {!readOnly && <AutoRenewSettings subscription={subscription} culqiAvailable={culqiAvailable} />}
 
       {historyWithoutActivePending.length > 0 && (
         <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
@@ -271,6 +285,8 @@ export function OrganizerBillingClient({
         </div>
       )}
 
+      {!readOnly && (
+        <>
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Sparkles className="h-4 w-4 text-primary" />
         <span>{t("billing.organizer.choosePlan")}</span>
@@ -358,6 +374,8 @@ export function OrganizerBillingClient({
           onClose={() => setCheckoutPlan(null)}
           onSuccess={() => window.location.reload()}
         />
+      )}
+        </>
       )}
     </div>
   );

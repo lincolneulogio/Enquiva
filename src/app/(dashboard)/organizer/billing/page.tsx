@@ -32,6 +32,7 @@ export default async function OrganizerBillingPage() {
         culqiAvailable={isPlatformCulqiConfigured()}
         pendingPayment={pendingPayment}
         paymentHistory={paymentHistory}
+        readOnly={!subscription.canManageBilling}
       />
     </div>
   );

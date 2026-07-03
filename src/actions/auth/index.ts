@@ -23,7 +23,7 @@ const signupIntentPayloadSchema = z.discriminatedUnion("type", [
     z.object({ type: z.literal("member") }),
     z.object({
         type: z.literal("organizer"),
-        inviteCode: z.string().trim().max(20).optional(),
+        inviteCode: z.string().trim().min(4).max(20),
     }),
     z.object({
         type: z.literal("entity_admin"),
@@ -184,19 +184,10 @@ export async function confirmVerificationCode(input: { email: string; code: stri
                 ownerUserId: user.id,
             });
         } else if (signupIntent.type === "organizer") {
-            if (signupIntent.inviteCode?.trim()) {
-                await OrganizationService.joinOrganizationAsOrganizer({
-                    userId: user.id,
-                    inviteCode: signupIntent.inviteCode,
-                });
-            } else {
-                await db
-                    .update(users)
-                    .set({ role: "organizer", updatedAt: new Date() })
-                    .where(eq(users.id, user.id));
-                const { SubscriptionService } = await import("@/lib/billing/subscription.service");
-                await SubscriptionService.getOrCreateSubscription(user.id, "organizer");
-            }
+            await OrganizationService.joinOrganizationAsOrganizer({
+                userId: user.id,
+                inviteCode: signupIntent.inviteCode.trim(),
+            });
         }
     }
 

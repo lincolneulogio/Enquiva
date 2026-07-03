@@ -190,10 +190,14 @@ export function RegisterForm() {
               {t("auth.inviteCodeLabel")}
             </label>
             <input
-              {...register("inviteCode")}
+              {...register("inviteCode", { required: accountType === "organizer" })}
               placeholder={t("auth.inviteCodePlaceholder")}
+              required={accountType === "organizer"}
               className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm uppercase"
             />
+            {errors.inviteCode && (
+              <p className="mt-1 text-xs text-destructive">{getValidationMessage(errors.inviteCode.message, t)}</p>
+            )}
             <p className="mt-1 text-xs text-muted-foreground">{t("auth.inviteCodeHelp")}</p>
           </div>
         )}

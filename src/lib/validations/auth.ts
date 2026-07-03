@@ -27,6 +27,11 @@ export const signUpSchema = z
   .refine(
     (data) => data.accountType !== "entity_admin" || (data.orgName?.trim().length ?? 0) >= 2,
     { message: "Organization name is required", path: ["orgName"] },
+  )
+  .refine(
+    (data) =>
+      data.accountType !== "organizer" || (data.inviteCode?.trim().length ?? 0) >= 4,
+    { message: "Invite code is required", path: ["inviteCode"] },
   );
 
 export const signInSchema = z.object({
@@ -43,9 +48,11 @@ export function buildSignupPayload(data: SignUpInput) {
     return { type: "entity_admin" as const, orgName: data.orgName!.trim() };
   }
   if (data.accountType === "organizer") {
+    const code = data.inviteCode?.trim();
+    if (!code) throw new Error("Invite code is required");
     return {
       type: "organizer" as const,
-      inviteCode: data.inviteCode?.trim() || undefined,
+      inviteCode: code,
     };
   }
   return { type: "member" as const };

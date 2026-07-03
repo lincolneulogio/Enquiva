@@ -29,6 +29,7 @@
     "db:migrate:subscription-renewal-tracking": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-subscription-renewal-tracking.ts",
     "db:migrate:users-address": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-users-address.ts",
     "db:migrate:events-view-count": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-events-view-count.ts",
+    "db:migrate:subscriptions-organization": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-subscriptions-organization.ts",
     "jobs:subscriptions": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/process-subscription-lifecycle.ts",
     "db:sync:event-categories": "npx tsx --env-file=.env --tsconfig tsconfig.json ./scripts/sync-event-categories.ts",
     "db:add-indexes": "node --env-file=.env ./scripts/add-unique-indexes.mjs",

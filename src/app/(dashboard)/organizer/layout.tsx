@@ -5,6 +5,7 @@ import { DashboardSidebar, DashboardTopbar } from "@/components/dashboard";
 import { getOrganizerPlanSummary, planIncludesBroadcasts, planIncludesFeature } from "@/lib/billing/enforce";
 import { getMySubscription } from "@/actions/billing";
 import { OrganizerSubscriptionGate } from "@/components/dashboard/organizer/OrganizerSubscriptionGate";
+import { SessionKeepAlive } from "@/components/auth/SessionKeepAlive";
 
 export default async function OrganizerLayout({
   children,
@@ -31,6 +32,7 @@ export default async function OrganizerLayout({
 
   return (
     <div className="flex min-h-screen bg-background">
+      <SessionKeepAlive />
       <DashboardSidebar
         role="organizer"
         user={session.user}

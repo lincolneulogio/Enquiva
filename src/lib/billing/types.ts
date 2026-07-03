@@ -55,4 +55,7 @@ export type SubscriptionInfo = {
   culqiCardLastFour?: string | null;
   culqiCardBrand?: string | null;
   accessBlocked: boolean;
+  billingScope?: "organization" | "user" | "platform";
+  canManageBilling?: boolean;
+  organizationName?: string | null;
 };

@@ -14,6 +14,7 @@ import {
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
 import { payments } from "./transport";
+import { organizations } from "./organizations";
 
 export const subscriptionStatusEnum = pgEnum("subscription_status", [
   "active",
@@ -70,6 +71,9 @@ export const subscriptions = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "cascade",
+    }),
     planId: uuid("plan_id")
       .notNull()
       .references(() => plans.id, { onDelete: "restrict" }),
@@ -89,7 +93,7 @@ export const subscriptions = pgTable(
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (t) => [
-    uniqueIndex("subscriptions_user_unique_idx").on(t.userId),
+    index("subscriptions_org_idx").on(t.organizationId),
     index("subscriptions_plan_idx").on(t.planId),
     index("subscriptions_status_idx").on(t.status),
   ],
@@ -179,6 +183,10 @@ export const platformTransactionsRelations = relations(platformTransactions, ({ 
 
 export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
   user: one(users, { fields: [subscriptions.userId], references: [users.id] }),
+  organization: one(organizations, {
+    fields: [subscriptions.organizationId],
+    references: [organizations.id],
+  }),
   plan: one(plans, { fields: [subscriptions.planId], references: [plans.id] }),
 }));
 
