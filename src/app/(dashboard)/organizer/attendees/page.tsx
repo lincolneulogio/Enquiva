@@ -18,6 +18,8 @@ import { Suspense } from "react";
 import { getExportEventOptions } from "@/actions/exports";
 import { getCategories } from "@/actions/events";
 import { categoryLabel } from "@/lib/utils";
+import { getMyPlanSummary } from "@/actions/billing";
+import { planIncludesFeature } from "@/lib/billing/enforce";
 import { TablePagination } from "@/components/dashboard";
 
 const PAGE_SIZE = 10;
@@ -40,6 +42,8 @@ export default async function OrganizerAttendeesPage({
   const params = await searchParams;
   const session = await auth.api.getSession({ headers: await headers() });
   const organizerId = session!.user.id;
+  const planSummary = await getMyPlanSummary();
+  const showExports = planIncludesFeature(planSummary.plan, "exports", planSummary.isUnlimited);
 
   const requestedPage = Number(params.page ?? "1");
   const currentPage =
@@ -166,15 +170,17 @@ export default async function OrganizerAttendeesPage({
         }))}
       />
 
-      <Suspense>
-        <ExportDataPanel
-          resource="registrations"
-          scope="organizer"
-          eventOptions={exportEventOptions}
-          categoryOptions={exportCategoryOptions}
-          statusOptions={exportStatusOptions}
-        />
-      </Suspense>
+      {showExports ? (
+        <Suspense>
+          <ExportDataPanel
+            resource="registrations"
+            scope="organizer"
+            eventOptions={exportEventOptions}
+            categoryOptions={exportCategoryOptions}
+            statusOptions={exportStatusOptions}
+          />
+        </Suspense>
+      ) : null}
 
       {rows.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">

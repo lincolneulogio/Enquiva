@@ -16,6 +16,8 @@ import { getPaymentStatusLabel } from "@/lib/i18n/core";
 import { PaymentNotesButton } from "@/components/payments/PaymentNotesButton";
 import { PaymentStatusSelect } from "@/components/payments/PaymentStatusSelect";
 import { getPaymentMethodLabel } from "@/lib/payments/labels";
+import { getMyPlanSummary } from "@/actions/billing";
+import { planIncludesFeature } from "@/lib/billing/enforce";
 import { Clock } from "lucide-react";
 
 function getPaymentDynamicCaption(
@@ -95,6 +97,8 @@ export default async function OrganizerPaymentsPage({ searchParams }: PageProps)
   const params = await searchParams;
   const session = await auth.api.getSession({ headers: await headers() });
   const organizerId = session!.user.id;
+  const planSummary = await getMyPlanSummary();
+  const showExports = planIncludesFeature(planSummary.plan, "exports", planSummary.isUnlimited);
 
   const requestedPage = Number(params.page ?? "1");
   const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
@@ -192,15 +196,17 @@ export default async function OrganizerPaymentsPage({ searchParams }: PageProps)
         </div>
       )}
 
-      <Suspense>
-        <ExportDataPanel
-          resource="payments"
-          scope="organizer"
-          eventOptions={exportEventOptions}
-          categoryOptions={exportCategoryOptions}
-          statusOptions={exportStatusOptions}
-        />
-      </Suspense>
+      {showExports ? (
+        <Suspense>
+          <ExportDataPanel
+            resource="payments"
+            scope="organizer"
+            eventOptions={exportEventOptions}
+            categoryOptions={exportCategoryOptions}
+            statusOptions={exportStatusOptions}
+          />
+        </Suspense>
+      ) : null}
 
       {payments.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-border bg-card p-12 text-center">

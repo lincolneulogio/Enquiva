@@ -25,6 +25,7 @@ import {
   Wallet,
   Megaphone,
   Crown,
+  FileSpreadsheet,
 } from "lucide-react";
 import { signOut } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
@@ -46,7 +47,14 @@ interface NavSection {
 const compactSections = (sections: NavSection[]): NavSection[] =>
   sections.filter((section) => section.items.length > 0);
 
-const organizerSections = (options?: { showBroadcasts?: boolean }): NavSection[] =>
+type OrganizerNavOptions = {
+  showBroadcasts: boolean;
+  showTransport: boolean;
+  showCulqi: boolean;
+  showExports: boolean;
+};
+
+const organizerSections = (options: OrganizerNavOptions): NavSection[] =>
   compactSections([
   {
     titleKey: "dashboard.sidebar.groups.core",
@@ -60,7 +68,7 @@ const organizerSections = (options?: { showBroadcasts?: boolean }): NavSection[]
     items: [
       { labelKey: "dashboard.sidebar.organizer.myEvents", href: "/organizer/events", icon: Calendar },
       { labelKey: "dashboard.sidebar.organizer.attendees", href: "/organizer/attendees", icon: Users },
-      ...(options?.showBroadcasts
+      ...(options.showBroadcasts
         ? [{ labelKey: "dashboard.sidebar.organizer.broadcasts", href: "/organizer/broadcasts", icon: Megaphone }]
         : []),
     ]
@@ -71,13 +79,18 @@ const organizerSections = (options?: { showBroadcasts?: boolean }): NavSection[]
       { labelKey: "dashboard.sidebar.organizer.payments", href: "/organizer/payments", icon: CreditCard },
       { labelKey: "dashboard.sidebar.organizer.paymentMethods", href: "/organizer/payment-methods", icon: Wallet },
       { labelKey: "dashboard.sidebar.organizer.billing", href: "/organizer/billing", icon: Crown },
-      { labelKey: "dashboard.sidebar.organizer.transport", href: "/organizer/transport", icon: Bus },
+      ...(options.showTransport
+        ? [{ labelKey: "dashboard.sidebar.organizer.transport", href: "/organizer/transport", icon: Bus }]
+        : []),
     ]
   },
   {
     titleKey: "dashboard.sidebar.groups.tools",
     items: [
       { labelKey: "dashboard.sidebar.organizer.scan", href: "/organizer/scan", icon: QrCode },
+      ...(options.showExports
+        ? [{ labelKey: "dashboard.sidebar.organizer.exports", href: "/organizer/attendees", icon: FileSpreadsheet }]
+        : []),
     ]
   },
   {
@@ -224,10 +237,8 @@ interface DashboardSidebarProps {
     image?: string | null;
     role?: string | null;
   };
-  /** Solo organizador: oculta ítems según plan (p. ej. Comunicados en Free) */
-  organizerNav?: {
-    showBroadcasts: boolean;
-  };
+  /** Solo organizador: oculta ítems según plan (Comunicados, Transporte, Culqi, Exportaciones) */
+  organizerNav?: OrganizerNavOptions;
   /** Solo panel admin: diferencia super_admin vs admin de entidad */
   adminNav?: AdminNavOptions;
 }
@@ -250,7 +261,14 @@ export function DashboardSidebar({ role, user, organizerNav, adminNav }: Dashboa
             showEntityTeam: adminNav?.showEntityTeam ?? true,
           })
         : normalizedRole === "organizer"
-          ? organizerSections(organizerNav)
+          ? organizerSections(
+              organizerNav ?? {
+                showBroadcasts: true,
+                showTransport: true,
+                showCulqi: true,
+                showExports: true,
+              },
+            )
           : memberSections;
 
   useEffect(() => {

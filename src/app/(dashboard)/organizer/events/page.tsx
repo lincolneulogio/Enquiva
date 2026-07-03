@@ -14,6 +14,7 @@ import { getCategories } from "@/actions/events";
 import { TablePagination } from "@/components/dashboard";
 import { getExportEventOptions } from "@/actions/exports";
 import { getMyPlanSummary } from "@/actions/billing";
+import { planIncludesFeature } from "@/lib/billing/enforce";
 import { PlanUsageBanner } from "@/components/dashboard/organizer/PlanUsageBanner";
 
 const PAGE_SIZE = 10;
@@ -113,6 +114,7 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
     }));
 
     const planSummary = await getMyPlanSummary();
+    const showExports = planIncludesFeature(planSummary.plan, "exports", planSummary.isUnlimited);
 
     return (
         <div className="space-y-6">
@@ -168,16 +170,18 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                 })}
             </div>
 
-            <Suspense>
-                <ExportDataPanel
-                    resource="events"
-                    scope="organizer"
-                    eventOptions={exportEventOptions}
-                    categoryOptions={exportCategoryOptions}
-                    statusOptions={exportStatusOptions}
-                    initialStatus={activeStatus}
-                />
-            </Suspense>
+            {showExports ? (
+                <Suspense>
+                    <ExportDataPanel
+                        resource="events"
+                        scope="organizer"
+                        eventOptions={exportEventOptions}
+                        categoryOptions={exportCategoryOptions}
+                        statusOptions={exportStatusOptions}
+                        initialStatus={activeStatus}
+                    />
+                </Suspense>
+            ) : null}
 
             {filteredEvents.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">

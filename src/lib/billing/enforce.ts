@@ -123,6 +123,15 @@ export function planIncludesBroadcasts(plan: ResolvedPlan, isUnlimited = false) 
   return plan.maxBroadcastsPerMonth === null || plan.maxBroadcastsPerMonth > 0;
 }
 
+export function planIncludesFeature(
+  plan: ResolvedPlan,
+  feature: FeatureKey,
+  isUnlimited = false,
+) {
+  if (isUnlimited) return true;
+  return plan.features[feature];
+}
+
 export async function getOrganizerPlanSummary(userId: string, role?: string | null) {
   const info = await SubscriptionService.getOrCreateSubscription(userId, role);
   const { plan, usage } = info;

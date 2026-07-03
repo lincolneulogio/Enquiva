@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { DashboardSidebar, DashboardTopbar } from "@/components/dashboard";
-import { getOrganizerPlanSummary, planIncludesBroadcasts } from "@/lib/billing/enforce";
+import { getOrganizerPlanSummary, planIncludesBroadcasts, planIncludesFeature } from "@/lib/billing/enforce";
 
 export default async function OrganizerLayout({
   children,
@@ -24,14 +24,19 @@ export default async function OrganizerLayout({
   }
 
   const planSummary = await getOrganizerPlanSummary(session.user.id, role);
-  const showBroadcasts = planIncludesBroadcasts(planSummary.plan, planSummary.isUnlimited);
+  const { plan, isUnlimited } = planSummary;
 
   return (
     <div className="flex min-h-screen bg-background">
       <DashboardSidebar
         role="organizer"
         user={session.user}
-        organizerNav={{ showBroadcasts }}
+        organizerNav={{
+          showBroadcasts: planIncludesBroadcasts(plan, isUnlimited),
+          showTransport: planIncludesFeature(plan, "transport", isUnlimited),
+          showCulqi: planIncludesFeature(plan, "culqi", isUnlimited),
+          showExports: planIncludesFeature(plan, "exports", isUnlimited),
+        }}
       />
       <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
         <DashboardTopbar user={session.user} />
