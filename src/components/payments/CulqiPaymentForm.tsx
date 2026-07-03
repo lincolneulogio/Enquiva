@@ -1,12 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CreditCard, Loader2, ShieldCheck } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
-
-const CULQI_SCRIPT = "https://js.culqi.com/checkout-js";
+import { loadCulqiCheckoutScript, openCulqiCheckout } from "@/lib/culqi/open-checkout";
 
 interface CulqiPaymentFormProps {
   paymentId: string;
@@ -14,22 +13,7 @@ interface CulqiPaymentFormProps {
   eventTitle: string;
   culqiPublicKey: string;
   holderName?: string;
-}
-
-function loadCulqiScript(): Promise<void> {
-  if (typeof window === "undefined") return Promise.reject(new Error("SSR"));
-  if (document.querySelector(`script[src="${CULQI_SCRIPT}"]`)) {
-    return Promise.resolve();
-  }
-
-  return new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = CULQI_SCRIPT;
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("No se pudo cargar Culqi"));
-    document.body.appendChild(script);
-  });
+  userEmail?: string | null;
 }
 
 export function CulqiPaymentForm({
@@ -38,36 +22,16 @@ export function CulqiPaymentForm({
   eventTitle,
   culqiPublicKey,
   holderName,
+  userEmail,
 }: CulqiPaymentFormProps) {
   const t = useTranslations();
   const router = useRouter();
-  const checkoutRef = useRef<CulqiCheckoutInstance | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
 
-  const processCharge = useCallback(
-    async (sourceId: string) => {
-      const response = await fetch("/api/payments/culqi/charge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentId, sourceId }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error ?? t("payments.culqi.failed"));
-      }
-
-      toast.success(t("payments.culqi.success"));
-      router.push("/member/tickets");
-      router.refresh();
-    },
-    [paymentId, router, t],
-  );
-
   useEffect(() => {
     let mounted = true;
-    loadCulqiScript()
+    loadCulqiCheckoutScript()
       .then(() => {
         if (mounted) setScriptReady(true);
       })
@@ -80,61 +44,39 @@ export function CulqiPaymentForm({
   }, [t]);
 
   const openCheckout = async () => {
-    if (!scriptReady || !window.CulqiCheckout) {
+    if (!scriptReady) {
       toast.error(t("payments.culqi.loadError"));
       return;
     }
 
     setIsLoading(true);
-
-    const handleCulqi = async () => {
-      if (window.Culqi?.token?.id) {
-        try {
-          checkoutRef.current?.close();
-          await processCharge(window.Culqi.token.id);
-        } catch (error) {
-          toast.error(error instanceof Error ? error.message : t("payments.culqi.failed"));
-        } finally {
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      if (window.Culqi?.error) {
-        const msg =
-          window.Culqi.error.user_message ??
-          window.Culqi.error.merchant_message ??
-          t("payments.culqi.failed");
-        toast.error(msg);
-        setIsLoading(false);
-      }
-    };
-
-    window.culqi = handleCulqi;
-
-    const checkout = new window.CulqiCheckout(culqiPublicKey, {
-      settings: {
+    try {
+      const tokenId = await openCulqiCheckout({
+        publicKey: culqiPublicKey,
         title: "EncuentroDeFe",
-        currency: "PEN",
-        amount: Math.round(amount * 100),
-        order: paymentId,
-      },
-      options: {
-        paymentMethods: {
-          tarjeta: true,
-          yape: false,
-          billetera: false,
-          bancaMovil: false,
-          agente: false,
-          cuotealo: false,
-        },
-      },
-    });
+        amount,
+        email: userEmail,
+      });
 
-    checkout.culqi = handleCulqi;
-    checkoutRef.current = checkout;
-    checkout.open();
-    setIsLoading(false);
+      const response = await fetch("/api/payments/culqi/charge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentId, sourceId: tokenId }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? t("payments.culqi.failed"));
+      }
+
+      toast.success(t("payments.culqi.success"));
+      router.push("/member/tickets");
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("payments.culqi.failed"));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

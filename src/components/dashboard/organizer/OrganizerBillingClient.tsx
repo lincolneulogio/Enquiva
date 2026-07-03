@@ -30,6 +30,7 @@ interface OrganizerBillingClientProps {
   availablePlans: Plan[];
   platformMethods: PaymentMethod[];
   culqiPublicKey: string | null;
+  userEmail: string | null;
   pendingPayment: PendingPayment | null;
   paymentHistory: PaymentHistoryRow[];
 }
@@ -51,6 +52,7 @@ export function OrganizerBillingClient({
   availablePlans,
   platformMethods,
   culqiPublicKey,
+  userEmail,
   pendingPayment,
   paymentHistory,
 }: OrganizerBillingClientProps) {
@@ -298,6 +300,7 @@ export function OrganizerBillingClient({
           plan={checkoutPlan}
           platformMethods={platformMethods}
           culqiPublicKey={culqiPublicKey}
+          userEmail={userEmail}
           onClose={() => setCheckoutPlan(null)}
           onSuccess={() => window.location.reload()}
         />

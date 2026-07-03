@@ -17,30 +17,38 @@ declare global {
     open: () => void;
     close: () => void;
     culqi?: () => void;
+    token?: CulqiToken;
+    error?: CulqiError;
+    order?: unknown;
+  }
+
+  interface CulqiCheckoutConfig {
+    settings: {
+      title: string;
+      currency: string;
+      amount: number;
+      order?: string;
+    };
+    client?: {
+      email?: string;
+    };
+    options?: {
+      lang?: string;
+      modal?: boolean;
+      installments?: boolean;
+      paymentMethods?: {
+        tarjeta?: boolean;
+        yape?: boolean;
+        billetera?: boolean;
+        bancaMovil?: boolean;
+        agente?: boolean;
+        cuotealo?: boolean;
+      };
+    };
   }
 
   interface Window {
-    CulqiCheckout?: new (
-      publicKey: string,
-      config: {
-        settings: {
-          title: string;
-          currency: string;
-          amount: number;
-          order?: string;
-        };
-        options?: {
-          paymentMethods?: {
-            tarjeta?: boolean;
-            yape?: boolean;
-            billetera?: boolean;
-            bancaMovil?: boolean;
-            agente?: boolean;
-            cuotealo?: boolean;
-          };
-        };
-      },
-    ) => CulqiCheckoutInstance;
+    CulqiCheckout?: new (publicKey: string, config: CulqiCheckoutConfig) => CulqiCheckoutInstance;
     Culqi?: {
       token?: CulqiToken;
       error?: CulqiError;

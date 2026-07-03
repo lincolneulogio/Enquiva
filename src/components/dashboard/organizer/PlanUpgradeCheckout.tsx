@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   CreditCard,
@@ -17,34 +17,22 @@ import { submitSubscriptionPayment } from "@/actions/billing";
 import { UploadDropzone } from "@/lib/uploadthing/components";
 import type { PaymentMethod, Plan } from "@/lib/db/schema";
 import { useTranslations } from "@/components/providers/LocaleProvider";
-
-const CULQI_SCRIPT = "https://js.culqi.com/checkout-js";
+import { loadCulqiCheckoutScript, openCulqiCheckout } from "@/lib/culqi/open-checkout";
 
 interface PlanUpgradeCheckoutProps {
   plan: Plan;
   platformMethods: PaymentMethod[];
   culqiPublicKey: string | null;
+  userEmail: string | null;
   onClose: () => void;
   onSuccess: () => void;
-}
-
-function loadCulqiScript(): Promise<void> {
-  if (typeof window === "undefined") return Promise.reject(new Error("SSR"));
-  if (document.querySelector(`script[src="${CULQI_SCRIPT}"]`)) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = CULQI_SCRIPT;
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("No se pudo cargar Culqi"));
-    document.body.appendChild(script);
-  });
 }
 
 export function PlanUpgradeCheckout({
   plan,
   platformMethods,
   culqiPublicKey,
+  userEmail,
   onClose,
   onSuccess,
 }: PlanUpgradeCheckoutProps) {
@@ -64,16 +52,15 @@ export function PlanUpgradeCheckout({
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
-  const checkoutRef = useRef<CulqiCheckoutInstance | null>(null);
 
   const currentMethod = manualMethods.find((m) => m.id === methodId);
 
   useEffect(() => {
     if (!culqiPublicKey) return;
-    loadCulqiScript()
+    loadCulqiCheckoutScript()
       .then(() => setScriptReady(true))
       .catch(() => toast.error(t("billing.planCheckout.culqiLoadFailed")));
-  }, [culqiPublicKey]);
+  }, [culqiPublicKey, t]);
 
   const submitManual = async () => {
     if (!receiptUrl) {
@@ -107,67 +94,45 @@ export function PlanUpgradeCheckout({
     }
   };
 
-  const processCulqiCharge = useCallback(
-    async (sourceId: string) => {
-      const response = await fetch("/api/billing/culqi/charge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId: plan.id, sourceId }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? t("billing.planCheckout.culqiProcessFailed"));
-      toast.success(t("billing.planCheckout.culqiSuccess"));
-      onSuccess();
-    },
-    [plan.id, onSuccess, t],
-  );
+  const processCulqiCharge = async (sourceId: string) => {
+    const response = await fetch("/api/billing/culqi/charge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ planId: plan.id, sourceId }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error ?? t("billing.planCheckout.culqiProcessFailed"));
+    toast.success(t("billing.planCheckout.culqiSuccess"));
+    onSuccess();
+  };
 
   const openCulqi = async () => {
-    if (!culqiPublicKey || !scriptReady || !window.CulqiCheckout) {
+    if (!culqiPublicKey || !scriptReady) {
       toast.error(t("billing.planCheckout.culqiUnavailable"));
       return;
     }
 
-    const handleCulqi = async () => {
-      if (window.Culqi?.token?.id) {
-        try {
-          checkoutRef.current?.close();
-          setIsSaving(true);
-          await processCulqiCharge(window.Culqi.token.id);
-        } catch (e) {
-          toast.error(e instanceof Error ? e.message : t("billing.planCheckout.culqiPayFailed"));
-        } finally {
-          setIsSaving(false);
-        }
-        return;
-      }
-      if (window.Culqi?.error) {
-        toast.error(
-          window.Culqi.error.user_message ??
-            window.Culqi.error.merchant_message ??
-            t("billing.planCheckout.culqiRejected"),
-        );
-        setIsSaving(false);
-      }
-    };
-
-    window.culqi = handleCulqi;
-    const checkout = new window.CulqiCheckout(culqiPublicKey, {
-      settings: {
+    setIsSaving(true);
+    try {
+      const tokenId = await openCulqiCheckout({
+        publicKey: culqiPublicKey,
         title: "EncuentroDeFe",
-        currency: "PEN",
-        amount: Math.round(amount * 100),
-        order: plan.id,
-      },
-      options: { paymentMethods: { tarjeta: true } },
-    });
-    checkout.culqi = handleCulqi;
-    checkoutRef.current = checkout;
-    checkout.open();
+        amount,
+        email: userEmail,
+      });
+      await processCulqiCharge(tokenId);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t("billing.planCheckout.culqiPayFailed"));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
+    <div
+      data-checkout-overlay
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
+    >
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-card shadow-xl">
         <div className="sticky top-0 flex items-center justify-between border-b border-border bg-card px-5 py-4">
           <div>

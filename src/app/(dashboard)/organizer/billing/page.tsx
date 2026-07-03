@@ -1,8 +1,11 @@
 import { getMySubscription, getPublicPlans, getPlatformBillingMethods, getMyPendingSubscriptionPayment, getMySubscriptionPaymentHistory } from "@/actions/billing";
 import { OrganizerBillingClient } from "@/components/dashboard/organizer/OrganizerBillingClient";
 import { env } from "@/env";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export default async function OrganizerBillingPage() {
+  const session = await auth.api.getSession({ headers: await headers() });
   const [subscription, availablePlans, platformMethods, pendingPayment, paymentHistory] = await Promise.all([
     getMySubscription(),
     getPublicPlans(),
@@ -24,6 +27,7 @@ export default async function OrganizerBillingPage() {
         availablePlans={availablePlans}
         platformMethods={platformMethods}
         culqiPublicKey={env.NEXT_PUBLIC_CULQI_PUBLIC_KEY ?? null}
+        userEmail={session?.user?.email ?? null}
         pendingPayment={pendingPayment}
         paymentHistory={paymentHistory}
       />

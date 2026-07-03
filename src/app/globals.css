@@ -389,3 +389,13 @@ main {
 .fe-glow-hover:hover::before {
   opacity: 1;
 }
+
+/* Culqi checkout must sit above in-app modals (z-50) */
+body.culqi-checkout-open [data-checkout-overlay] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+body.culqi-checkout-open [class*="Culqi-"] {
+  z-index: 2147483646 !important;
+}
