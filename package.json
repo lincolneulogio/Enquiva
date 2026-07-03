@@ -29,6 +29,7 @@
     "db:migrate:subscription-renewal-tracking": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-subscription-renewal-tracking.ts",
     "db:migrate:users-address": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-users-address.ts",
     "db:migrate:events-view-count": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-events-view-count.ts",
+    "db:migrate:payments-gateway-order-id": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-payments-gateway-order-id.ts",
     "db:migrate:subscriptions-organization": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-subscriptions-organization.ts",
     "db:cleanup:orphan-guests": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/cleanup-orphan-guest-users.ts",
     "jobs:subscriptions": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/process-subscription-lifecycle.ts",
