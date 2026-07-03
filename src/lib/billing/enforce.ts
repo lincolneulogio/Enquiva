@@ -109,7 +109,14 @@ export async function getOrganizerPlanForEvent(eventId: string) {
     .limit(1);
 
   if (!event) return null;
-  return getResolvedPlanForUser(event.organizerId, "organizer");
+
+  const { eventOrganizerUsesPlatformPayments, getEventOrganizerRole } = await import(
+    "@/lib/payments/event-payment-scope"
+  );
+  const role = await getEventOrganizerRole(event.organizerId);
+  if (eventOrganizerUsesPlatformPayments(role)) return null;
+
+  return getResolvedPlanForUser(event.organizerId, role ?? "organizer");
 }
 
 const ACTIVE_EVENT_STATUSES = ["draft", "published"] as const;

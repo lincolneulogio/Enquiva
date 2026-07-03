@@ -3,7 +3,7 @@ import { events, paymentMethods, users } from "@/lib/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { getPlatformCulqiCredentials, isPlatformCulqiConfigured } from "@/lib/culqi/client";
 import { getResolvedPlanForUser } from "@/lib/billing/enforce";
-import { SubscriptionService } from "@/lib/billing/subscription.service";
+import { eventOrganizerUsesPlatformPayments } from "@/lib/payments/event-payment-scope";
 
 export function isOrganizerCulqiMethodConfigured(method: {
   type: string;
@@ -39,9 +39,27 @@ export async function isOrganizerCulqiConfigured(organizerId: string) {
   return Boolean(method);
 }
 
+export async function getPlatformCulqiPaymentMethod() {
+  if (!isPlatformCulqiConfigured()) return null;
+
+  const [method] = await db
+    .select()
+    .from(paymentMethods)
+    .where(
+      and(
+        isNull(paymentMethods.organizerId),
+        eq(paymentMethods.type, "culqi"),
+        eq(paymentMethods.isActive, true),
+      ),
+    )
+    .limit(1);
+
+  return method ?? null;
+}
+
 export async function isCulqiEnabledForOrganizer(organizerId: string, organizerRole?: string | null) {
-  if (SubscriptionService.isPlatformStaff(organizerRole)) {
-    return isPlatformCulqiConfigured();
+  if (eventOrganizerUsesPlatformPayments(organizerRole)) {
+    return isPlatformBillingCulqiReady();
   }
 
   const plan = await getResolvedPlanForUser(organizerId, organizerRole);
@@ -64,23 +82,55 @@ export async function isCulqiEnabledForEvent(eventId: string) {
     return false;
   }
 
+  if (eventOrganizerUsesPlatformPayments(organizer?.role)) {
+    return isPlatformBillingCulqiReady();
+  }
+
   const culqiMethod = await getOrganizerCulqiPaymentMethod(event.organizerId);
   return Boolean(culqiMethod);
 }
 
-/** Llave pública Culqi para checkout de asistentes (cuenta del organizador del evento). */
+/** Llave pública Culqi para checkout de asistentes. */
 export async function getCulqiPublicKeyForEvent(eventId: string) {
   const [event] = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
   if (!event) return null;
+
+  const [organizer] = await db
+    .select({ role: users.role })
+    .from(users)
+    .where(eq(users.id, event.organizerId))
+    .limit(1);
+
+  if (eventOrganizerUsesPlatformPayments(organizer?.role)) {
+    return getPlatformBillingCulqiPublicKey();
+  }
 
   const method = await getOrganizerCulqiPaymentMethod(event.organizerId);
   return method?.culqiPublicKey ?? null;
 }
 
-/** Credenciales Culqi para cobrar un evento (cuenta del organizador). */
+/** Credenciales Culqi para cobrar un evento. */
 export async function getCulqiCredentialsForEvent(eventId: string) {
   const [event] = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
   if (!event) return null;
+
+  const [organizer] = await db
+    .select({ role: users.role })
+    .from(users)
+    .where(eq(users.id, event.organizerId))
+    .limit(1);
+
+  if (eventOrganizerUsesPlatformPayments(organizer?.role)) {
+    const creds = getPlatformCulqiCredentials();
+    const method = await getPlatformCulqiPaymentMethod();
+    if (!creds || !method) return null;
+
+    return {
+      secretKey: creds.secretKey,
+      publicKey: creds.publicKey,
+      paymentMethodId: method.id,
+    };
+  }
 
   const method = await getOrganizerCulqiPaymentMethod(event.organizerId);
   if (!method?.culqiSecretKey || !method.culqiPublicKey) return null;

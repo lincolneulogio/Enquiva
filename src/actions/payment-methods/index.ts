@@ -11,6 +11,11 @@ import {
   isOrganizerCulqiConfigured,
   isOrganizerCulqiMethodConfigured,
 } from "@/lib/culqi/capabilities";
+import {
+  eventOrganizerUsesPlatformPayments,
+  eventOrganizerUsesPlatformPaymentsByUserId,
+  getEventOrganizerRole,
+} from "@/lib/payments/event-payment-scope";
 
 function sanitizeMethodsForClient(methods: PaymentMethod[]): PaymentMethod[] {
   return methods.map(({ culqiSecretKey: _secret, ...method }) => ({
@@ -160,7 +165,7 @@ export async function getPaymentMethodsPageContext(scope: PaymentMethodScope) {
   };
 }
 
-/** Medios activos del organizador del evento (asistentes) */
+/** Medios activos del organizador (solo cuenta propia, sin plataforma). */
 export async function getActivePaymentMethodsForOrganizer(organizerId: string) {
   const rows = await db
     .select()
@@ -173,6 +178,16 @@ export async function getActivePaymentMethodsForOrganizer(organizerId: string) {
   );
 }
 
+/** Medios activos según quién organiza el evento (plataforma si super_admin, sino cuenta del organizador). */
+export async function getActivePaymentMethodsForEventOrganizer(organizerId: string) {
+  const role = await getEventOrganizerRole(organizerId);
+  if (eventOrganizerUsesPlatformPayments(role)) {
+    const rows = await getPlatformPaymentMethods();
+    return rows.filter((m) => m.type !== "culqi" || isPlatformCulqiConfigured());
+  }
+  return getActivePaymentMethodsForOrganizer(organizerId);
+}
+
 /** Para el formulario de evento: medios del organizador dueño del evento */
 export async function getPaymentMethodsForEventForm(eventOrganizerId?: string | null) {
   const user = await requireEventManager();
@@ -182,7 +197,7 @@ export async function getPaymentMethodsForEventForm(eventOrganizerId?: string | 
     throw new Error("Forbidden");
   }
 
-  return getActivePaymentMethodsForOrganizer(organizerId);
+  return getActivePaymentMethodsForEventOrganizer(organizerId);
 }
 
 /** Medios activos de la plataforma (licencias SaaS) */
@@ -351,22 +366,26 @@ export async function setEventPaymentMethods(eventId: string, methodIds: string[
   }
 
   if (methodIds.length > 0) {
+    const usesPlatform = await eventOrganizerUsesPlatformPaymentsByUserId(event.organizerId);
+
     const owned = await db
       .select()
       .from(paymentMethods)
       .where(
         and(
           inArray(paymentMethods.id, methodIds),
-          eq(paymentMethods.organizerId, event.organizerId),
+          usesPlatform
+            ? isNull(paymentMethods.organizerId)
+            : eq(paymentMethods.organizerId, event.organizerId),
         ),
       );
 
     if (owned.length !== methodIds.length) {
-      throw new Error("Solo puedes asignar tus propios medios de pago al evento");
+      throw new Error("Solo puedes asignar medios de pago válidos para este evento");
     }
 
     const hasCulqi = owned.some((m) => m.type === "culqi");
-    if (hasCulqi) {
+    if (hasCulqi && !usesPlatform) {
       const { requirePlanFeature } = await import("@/lib/billing/enforce");
       await requirePlanFeature(event.organizerId, "organizer", "culqi");
     }
@@ -387,16 +406,17 @@ function revalidatePaymentMethodPaths(scope: PaymentMethodScope) {
   if (scope === "platform") {
     revalidatePath("/admin/payment-methods");
     revalidatePath("/organizer/billing");
+    revalidatePath("/admin/events");
   } else {
     revalidatePath("/organizer/payment-methods");
   }
 }
 
-/** @deprecated Use getActivePaymentMethodsForOrganizer */
+/** @deprecated Use getActivePaymentMethodsForEventOrganizer */
 export async function getActivePaymentMethods() {
   const user = await requireAuth();
   if (user.role === "organizer" || user.role === "super_admin") {
-    return getActivePaymentMethodsForOrganizer(user.id);
+    return getActivePaymentMethodsForEventOrganizer(user.id);
   }
   return [];
 }
@@ -404,5 +424,5 @@ export async function getActivePaymentMethods() {
 /** @deprecated */
 export async function getPaymentMethods() {
   const user = await requireOrganizer();
-  return getActivePaymentMethodsForOrganizer(user.id);
+  return getActivePaymentMethodsForEventOrganizer(user.id);
 }

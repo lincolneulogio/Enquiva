@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, Bus, Ticket, CreditCard, Calendar, MapPin } from "lucide-react";
 import { getPaymentCheckoutContext } from "@/actions/payments";
-import { getEventPaymentMethods, getActivePaymentMethodsForOrganizer } from "@/actions/payment-methods";
+import { getEventPaymentMethods, getActivePaymentMethodsForEventOrganizer } from "@/actions/payment-methods";
 import { getI18n } from "@/lib/i18n/server";
 import { PaymentCheckoutForm } from "@/components/payments/PaymentCheckoutForm";
 import { notFound, redirect } from "next/navigation";
@@ -96,7 +96,7 @@ export default async function MemberPaymentCheckoutPage({ params }: Props) {
   // Fallback: If no event-specific payment methods are configured but there is an amount to pay (e.g. paid transport for free event)
   if (eventMethods.length === 0 && paymentAmount > 0) {
     try {
-      eventMethods = await getActivePaymentMethodsForOrganizer(event.organizerId);
+      eventMethods = await getActivePaymentMethodsForEventOrganizer(event.organizerId);
     } catch (err) {
       console.error("Failed to load organizer payment methods:", err);
     }
