@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Megaphone, Send, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Send, AlertCircle, CheckCircle2 } from "lucide-react";
 import { sendBroadcastEmailAction } from "@/actions/events";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 
 interface EventItem {
   id: string;
@@ -16,6 +17,7 @@ interface BroadcastFormProps {
 }
 
 export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) {
+  const t = useTranslations();
   const router = useRouter();
   const [eventId, setEventId] = useState("");
   const [recipientStatus, setRecipientStatus] = useState<"all" | "registered" | "checked_in" | "waitlisted">("all");
@@ -27,7 +29,7 @@ export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!eventId || !subject || !message) {
-      setStatus({ type: "error", text: "Por favor, completa todos los campos requeridos." });
+      setStatus({ type: "error", text: t("dashboard.organizer.broadcastFormRequiredFields") });
       return;
     }
 
@@ -45,7 +47,10 @@ export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) 
       if (res.success) {
         setStatus({
           type: "success",
-          text: `¡Comunicado enviado con éxito! Se enviaron ${res.successCount} correos y ${res.failureCount} fallaron.`,
+          text: t("dashboard.organizer.broadcastFormSuccessMessage", {
+            success: res.successCount ?? 0,
+            failed: res.failureCount ?? 0,
+          }),
         });
         setSubject("");
         setMessage("");
@@ -53,14 +58,17 @@ export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) 
       } else {
         setStatus({
           type: "error",
-          text: res.error || "Ocurrió un error al enviar el comunicado.",
+          text: res.error || t("dashboard.organizer.broadcastFormSendError"),
         });
       }
     } catch (error) {
       console.error(error);
       setStatus({
         type: "error",
-        text: error instanceof Error ? error.message : "Error inesperado al enviar el correo.",
+        text:
+          error instanceof Error
+            ? error.message
+            : t("dashboard.organizer.broadcastFormUnexpectedError"),
       });
     } finally {
       setIsPending(false);
@@ -83,17 +91,20 @@ export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) 
             <AlertCircle className="h-5 w-5 shrink-0 text-red-500" />
           )}
           <div>
-            <p className="font-semibold">{status.type === "success" ? "Operación exitosa" : "Atención"}</p>
+            <p className="font-semibold">
+              {status.type === "success"
+                ? t("dashboard.organizer.broadcastFormSuccessTitle")
+                : t("dashboard.organizer.broadcastFormErrorTitle")}
+            </p>
             <p className="mt-0.5 leading-relaxed">{status.text}</p>
           </div>
         </div>
       )}
 
       <div className="grid gap-5 sm:grid-cols-2">
-        {/* Event Selection */}
         <div className="space-y-2">
           <label htmlFor="eventId" className="text-sm font-semibold text-foreground">
-            Seleccionar Evento <span className="text-destructive">*</span>
+            {t("dashboard.organizer.broadcastFormSelectEvent")} <span className="text-destructive">*</span>
           </label>
           <select
             id="eventId"
@@ -103,7 +114,7 @@ export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) 
             className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
             required
           >
-            <option value="">-- Selecciona un evento --</option>
+            <option value="">{t("dashboard.organizer.broadcastFormSelectEventPlaceholder")}</option>
             {events.map((event) => (
               <option key={event.id} value={event.id}>
                 {event.title}
@@ -112,65 +123,61 @@ export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) 
           </select>
         </div>
 
-        {/* Recipients Filter */}
         <div className="space-y-2">
           <label htmlFor="recipientStatus" className="text-sm font-semibold text-foreground">
-            Filtrar Destinatarios <span className="text-destructive">*</span>
+            {t("dashboard.organizer.broadcastFormFilterRecipients")} <span className="text-destructive">*</span>
           </label>
           <select
             id="recipientStatus"
             value={recipientStatus}
-            onChange={(e) => setRecipientStatus(e.target.value as any)}
+            onChange={(e) => setRecipientStatus(e.target.value as typeof recipientStatus)}
             disabled={disabled || isPending}
             className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
             required
           >
-            <option value="all">Todos los activos (Inscritos y Presentes)</option>
-            <option value="registered">Solo Pre-inscritos (Pendientes de Check-in)</option>
-            <option value="checked_in">Solo Asistentes Confirmados (Check-in marcado)</option>
-            <option value="waitlisted">Solo en Lista de Espera</option>
+            <option value="all">{t("dashboard.organizer.broadcastFormRecipientsAll")}</option>
+            <option value="registered">{t("dashboard.organizer.broadcastFormRecipientsRegistered")}</option>
+            <option value="checked_in">{t("dashboard.organizer.broadcastFormRecipientsCheckedIn")}</option>
+            <option value="waitlisted">{t("dashboard.organizer.broadcastFormRecipientsWaitlisted")}</option>
           </select>
         </div>
       </div>
 
-      {/* Subject */}
       <div className="space-y-2">
         <label htmlFor="subject" className="text-sm font-semibold text-foreground">
-          Asunto del Correo <span className="text-destructive">*</span>
+          {t("dashboard.organizer.broadcastFormSubject")} <span className="text-destructive">*</span>
         </label>
         <input
           id="subject"
           type="text"
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
-          placeholder="Ej: Información importante sobre el punto de encuentro y transporte"
+          placeholder={t("dashboard.organizer.broadcastFormSubjectPlaceholder")}
           disabled={disabled || isPending}
           className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
           required
         />
       </div>
 
-      {/* Message Body */}
       <div className="space-y-2">
         <label htmlFor="message" className="text-sm font-semibold text-foreground">
-          Contenido del Mensaje <span className="text-destructive">*</span>
+          {t("dashboard.organizer.broadcastFormMessage")} <span className="text-destructive">*</span>
         </label>
         <textarea
           id="message"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Escribe el cuerpo del mensaje aquí. Se enviará con el diseño premium de EncuentroDeFe."
+          placeholder={t("dashboard.organizer.broadcastFormMessagePlaceholder")}
           rows={8}
           disabled={disabled || isPending}
           className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 font-sans"
           required
         />
         <p className="text-xs text-muted-foreground">
-          Nota: El correo se enviará en formato HTML responsivo con una cabecera elegante de la organización.
+          {t("dashboard.organizer.broadcastFormMessageNote")}
         </p>
       </div>
 
-      {/* Submit Button */}
       <button
         type="submit"
         disabled={disabled || isPending}
@@ -179,12 +186,12 @@ export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) 
         {isPending ? (
           <>
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-            Enviando comunicados...
+            {t("dashboard.organizer.broadcastFormSending")}
           </>
         ) : (
           <>
             <Send className="h-4 w-4" />
-            Enviar Comunicado Masivo
+            {t("dashboard.organizer.broadcastFormSubmit")}
           </>
         )}
       </button>

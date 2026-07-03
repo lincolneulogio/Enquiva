@@ -13,14 +13,8 @@ import {
   getPluralLabel,
   getRegistrationStatusLabel,
 } from "@/lib/i18n/core";
-import { ExportDataPanel } from "@/components/dashboard";
-import { Suspense } from "react";
-import { getExportEventOptions } from "@/actions/exports";
-import { getCategories } from "@/actions/events";
-import { categoryLabel } from "@/lib/utils";
-import { getMyPlanSummary } from "@/actions/billing";
-import { planIncludesFeature } from "@/lib/billing/enforce";
 import { TablePagination } from "@/components/dashboard";
+import { getExportEventOptions } from "@/actions/exports";
 
 const PAGE_SIZE = 10;
 
@@ -42,8 +36,6 @@ export default async function OrganizerAttendeesPage({
   const params = await searchParams;
   const session = await auth.api.getSession({ headers: await headers() });
   const organizerId = session!.user.id;
-  const planSummary = await getMyPlanSummary();
-  const showExports = planIncludesFeature(planSummary.plan, "exports", planSummary.isUnlimited);
 
   const requestedPage = Number(params.page ?? "1");
   const currentPage =
@@ -51,24 +43,7 @@ export default async function OrganizerAttendeesPage({
       ? Math.floor(requestedPage)
       : 1;
 
-  const exportEventOptions = await getExportEventOptions("organizer");
-  const exportCategoryOptions = (await getCategories()).map((category) => ({
-    value: category.slug,
-    label: categoryLabel(category.slug, locale),
-  }));
-  const exportStatusOptions = [
-    "all",
-    "registered",
-    "checked_in",
-    "waitlisted",
-    "cancelled",
-  ].map((value) => ({
-    value,
-    label:
-      value === "all"
-        ? t("common.all")
-        : getRegistrationStatusLabel(value, locale),
-  }));
+  const eventOptions = await getExportEventOptions("organizer");
 
   const conditions = [eq(events.organizerId, organizerId)];
 
@@ -155,7 +130,7 @@ export default async function OrganizerAttendeesPage({
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <ManualRegistrationDialog
-            events={exportEventOptions.map((e) => ({
+            events={eventOptions.map((e) => ({
               value: e.id,
               label: e.title,
             }))}
@@ -164,23 +139,11 @@ export default async function OrganizerAttendeesPage({
       </div>
 
       <ExpressCheckInConsole
-        events={exportEventOptions.map((e) => ({
+        events={eventOptions.map((e) => ({
           value: e.id,
           label: e.title,
         }))}
       />
-
-      {showExports ? (
-        <Suspense>
-          <ExportDataPanel
-            resource="registrations"
-            scope="organizer"
-            eventOptions={exportEventOptions}
-            categoryOptions={exportCategoryOptions}
-            statusOptions={exportStatusOptions}
-          />
-        </Suspense>
-      ) : null}
 
       {rows.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">

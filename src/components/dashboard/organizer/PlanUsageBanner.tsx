@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import { Crown, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { getOrganizerPlanSummary } from "@/lib/billing/enforce";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 
 type PlanSummary = Awaited<ReturnType<typeof getOrganizerPlanSummary>>;
 
@@ -12,6 +15,8 @@ interface PlanUsageBannerProps {
 }
 
 export function PlanUsageBanner({ summary, className, showFeatures = false }: PlanUsageBannerProps) {
+  const t = useTranslations();
+
   if (summary.isUnlimited) return null;
 
   const { plan, usage } = summary;
@@ -42,27 +47,30 @@ export function PlanUsageBanner({ summary, className, showFeatures = false }: Pl
               Plan {plan.name}
               {!summary.canCreateEvent && (
                 <span className="ml-2 text-xs font-medium text-amber-600 dark:text-amber-400">
-                  · Límite alcanzado
+                  {t("dashboard.organizer.planUsageLimitReached")}
                 </span>
               )}
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Eventos activos (borrador/publicado): <strong className="text-foreground">{eventsLabel}</strong>
+              {t("dashboard.organizer.planUsageActiveEvents")}{" "}
+              <strong className="text-foreground">{eventsLabel}</strong>
               {" · "}
-              Broadcasts este mes: <strong className="text-foreground">{broadcastsLabel}</strong>
+              {t("dashboard.organizer.planUsageBroadcasts")}{" "}
+              <strong className="text-foreground">{broadcastsLabel}</strong>
               {plan.maxAttendeesPerEvent != null && (
                 <>
                   {" · "}
-                  Máx. asistentes/evento: <strong className="text-foreground">{plan.maxAttendeesPerEvent}</strong>
+                  {t("dashboard.organizer.planUsageMaxAttendees")}{" "}
+                  <strong className="text-foreground">{plan.maxAttendeesPerEvent}</strong>
                 </>
               )}
             </p>
             {showFeatures && (
               <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
-                <FeaturePill ok={plan.features.transport} label="Transporte" />
-                <FeaturePill ok={plan.features.culqi} label="Culqi" />
-                <FeaturePill ok={plan.features.ai} label="IA" />
-                <FeaturePill ok={plan.features.exports} label="Exportar" />
+                <FeaturePill ok={plan.features.transport} label={t("dashboard.organizer.planUsageFeatureTransport")} />
+                <FeaturePill ok={plan.features.culqi} label={t("dashboard.organizer.planUsageFeatureCulqi")} />
+                <FeaturePill ok={plan.features.ai} label={t("dashboard.organizer.planUsageFeatureAi")} />
+                <FeaturePill ok={plan.features.exports} label={t("dashboard.organizer.planUsageFeatureExports")} />
               </div>
             )}
           </div>
@@ -71,7 +79,7 @@ export function PlanUsageBanner({ summary, className, showFeatures = false }: Pl
           href="/organizer/billing"
           className="inline-flex shrink-0 items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
         >
-          Mejorar plan
+          {t("dashboard.organizer.planUsageUpgrade")}
         </Link>
       </div>
     </div>

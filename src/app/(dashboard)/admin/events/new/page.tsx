@@ -3,27 +3,22 @@ import { ArrowLeft } from "lucide-react";
 import { EventForm } from "@/components/events/EventForm";
 import { getCategories } from "@/actions/events";
 import { getI18n } from "@/lib/i18n/server";
+import { resolveAdminScope } from "@/lib/organizations/admin-scope";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { normalizeRole } from "@/lib/auth/rbac";
 
 export default async function AdminNewEventPage() {
-    const { t, locale } = await getI18n();
+    const { t } = await getI18n();
     const categories = await getCategories();
-
-    const titleKey = t("dashboard.admin.createEventTitle");
-    const introKey = t("dashboard.admin.createEventIntro");
-
-    const createEventTitle =
-        titleKey === "dashboard.admin.createEventTitle"
-            ? locale === "es"
-                ? "Crear nuevo evento"
-                : "Create New Event"
-            : titleKey;
+    const session = await auth.api.getSession({ headers: await headers() });
+    const role = normalizeRole(session?.user?.role);
+    const adminScope = await resolveAdminScope();
 
     const createEventIntro =
-        introKey === "dashboard.admin.createEventIntro"
-            ? locale === "es"
-                ? "Como super admin, puedes publicar y gestionar cualquier evento."
-                : "As super admin, you can publish and manage any event."
-            : introKey;
+        role === "super_admin" && adminScope.mode === "platform"
+            ? t("dashboard.admin.createEventIntro")
+            : t("dashboard.admin.createEventIntroEntity");
 
     return (
         <div className="space-y-6">
@@ -36,7 +31,7 @@ export default async function AdminNewEventPage() {
                     {t("dashboard.admin.backToEvents")}
                 </Link>
                 <h1 className="mt-3 font-display text-3xl font-semibold text-foreground">
-                    {createEventTitle}
+                    {t("dashboard.admin.createEventTitle")}
                 </h1>
                 <p className="mt-1 text-muted-foreground">
                     {createEventIntro}

@@ -1,8 +1,8 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { eq, and, type SQL, inArray, sql } from "drizzle-orm";
+import { eq, and, type SQL, inArray, sql, or } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { events, users, categories, registrations, payments, transportRoutes, transportBookings } from "@/lib/db/schema";
+import { events, users, categories, registrations, payments, transportRoutes, transportBookings, activityLogs } from "@/lib/db/schema";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { OrganizationService } from "@/lib/organizations/organization.service";
 
@@ -117,6 +117,32 @@ export function paymentInOrgCondition(organizationId: string) {
       .innerJoin(events, eq(registrations.eventId, events.id))
       .where(eq(events.organizationId, organizationId)),
   );
+}
+
+/** Filtra registros de auditoría a entidades de una organización (eventos, usuarios, pagos). */
+export function activityLogInOrgCondition(organizationId: string): SQL {
+  const orgEventIds = db
+    .select({ id: sql<string>`${events.id}::text` })
+    .from(events)
+    .where(eq(events.organizationId, organizationId));
+
+  const orgUserIds = db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.organizationId, organizationId));
+
+  const orgPaymentIds = db
+    .select({ id: sql<string>`${payments.id}::text` })
+    .from(payments)
+    .innerJoin(registrations, eq(payments.registrationId, registrations.id))
+    .innerJoin(events, eq(registrations.eventId, events.id))
+    .where(eq(events.organizationId, organizationId));
+
+  return or(
+    and(eq(activityLogs.entityType, "event"), inArray(activityLogs.entityId, orgEventIds)),
+    and(eq(activityLogs.entityType, "user"), inArray(activityLogs.entityId, orgUserIds)),
+    and(eq(activityLogs.entityType, "payment"), inArray(activityLogs.entityId, orgPaymentIds)),
+  )!;
 }
 
 export function transportRouteInOrgCondition(organizationId: string) {

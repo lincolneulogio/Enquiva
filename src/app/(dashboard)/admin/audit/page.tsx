@@ -3,12 +3,17 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { activityLogs } from "@/lib/db/schema";
-import { desc, or, and, eq, ilike, count, sql, inArray } from "drizzle-orm";
-import { ShieldCheck, Search, Shield, User, Globe, Laptop, KeyRound } from "lucide-react";
+import { desc, or, and, eq, ilike, count, inArray } from "drizzle-orm";
+import { ShieldCheck, Search, Shield, User } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
-import { formatEventDate } from "@/lib/utils";
 import { TablePagination } from "@/components/dashboard";
 import Link from "next/link";
+import { normalizeRole } from "@/lib/auth/rbac";
+import {
+  activityLogInOrgCondition,
+  isUnassignedAdminScope,
+  resolveAdminScope,
+} from "@/lib/organizations/admin-scope";
 
 interface AdminAuditPageProps {
   searchParams: Promise<{
@@ -30,40 +35,25 @@ const actionBadgeStyles: Record<string, string> = {
   "payment.status_update": "bg-purple-500/10 text-purple-700 border border-purple-500/20 dark:bg-purple-950/30 dark:text-purple-400",
 };
 
-const actionLabels: Record<string, Record<string, string>> = {
-  "user.role_change": {
-    es: "Cambio de rol",
-    en: "Role change",
-  },
-  "user.delete": {
-    es: "Usuario eliminado",
-    en: "User deleted",
-  },
-  "event.create": {
-    es: "Evento creado",
-    en: "Event created",
-  },
-  "event.update": {
-    es: "Evento modificado",
-    en: "Event updated",
-  },
-  "event.delete": {
-    es: "Evento eliminado",
-    en: "Event deleted",
-  },
-  "payment.status_update": {
-    es: "Actualización de pago",
-    en: "Payment status update",
-  },
-  "settings.update": {
-    es: "Configuración actualizada",
-    en: "Settings updated",
-  },
+const ACTION_LABEL_KEYS: Record<string, string> = {
+  "user.role_change": "dashboard.admin.auditActionRoleChange",
+  "user.delete": "dashboard.admin.auditActionUserDelete",
+  "event.create": "dashboard.admin.auditActionEventCreate",
+  "event.update": "dashboard.admin.auditActionEventUpdate",
+  "event.delete": "dashboard.admin.auditActionEventDelete",
+  "payment.status_update": "dashboard.admin.auditActionPaymentUpdate",
+  "settings.update": "dashboard.admin.auditActionSettingsUpdate",
 };
 
 export default async function AdminAuditPage({ searchParams }: AdminAuditPageProps) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (session?.user?.role !== "super_admin") redirect("/admin");
+  const role = normalizeRole(session?.user?.role);
+  const adminScope = await resolveAdminScope();
+  const isSuperAdmin = role === "super_admin";
+  const isEntityAdmin = adminScope.mode === "org";
+
+  if (!isSuperAdmin && !isEntityAdmin) redirect("/admin");
+  if (isUnassignedAdminScope(adminScope)) redirect("/admin");
 
   const { locale, t } = await getI18n();
   const params = await searchParams;
@@ -73,19 +63,19 @@ export default async function AdminAuditPage({ searchParams }: AdminAuditPagePro
   const selectedAction = params.action ? String(params.action).trim() : "";
   const selectedEntity = params.entityType ? String(params.entityType).trim() : "";
 
-  // Build filter conditions
   const conditions = [];
+
+  if (isEntityAdmin && adminScope.mode === "org") {
+    conditions.push(activityLogInOrgCondition(adminScope.organizationId));
+  }
+
   if (searchQuery) {
     const matchedActions: string[] = [];
     const lowerSearch = searchQuery.toLowerCase();
-    
-    // Match search query against bilingual action labels
-    for (const [actionKey, translations] of Object.entries(actionLabels)) {
-      if (
-        translations.es.toLowerCase().includes(lowerSearch) ||
-        translations.en.toLowerCase().includes(lowerSearch) ||
-        actionKey.toLowerCase().includes(lowerSearch)
-      ) {
+
+    for (const [actionKey, labelKey] of Object.entries(ACTION_LABEL_KEYS)) {
+      const label = t(labelKey).toLowerCase();
+      if (label.includes(lowerSearch) || actionKey.toLowerCase().includes(lowerSearch)) {
         matchedActions.push(actionKey);
       }
     }
@@ -97,14 +87,13 @@ export default async function AdminAuditPage({ searchParams }: AdminAuditPagePro
       ilike(activityLogs.entityType, `%${searchQuery}%`),
     ];
 
-    // Smart-map Spanish search status inputs to DB english status fields
-    if (lowerSearch.includes("rechaz")) {
+    if (lowerSearch.includes("rechaz") || lowerSearch.includes("reject")) {
       searchConditions.push(ilike(activityLogs.details, "%rejected%"));
     }
-    if (lowerSearch.includes("aprob") || lowerSearch.includes("valid")) {
+    if (lowerSearch.includes("aprob") || lowerSearch.includes("valid") || lowerSearch.includes("approv")) {
       searchConditions.push(ilike(activityLogs.details, "%approved%"));
     }
-    if (lowerSearch.includes("pend")) {
+    if (lowerSearch.includes("pend") || lowerSearch.includes("pending")) {
       searchConditions.push(ilike(activityLogs.details, "%pending%"));
     }
 
@@ -142,30 +131,30 @@ export default async function AdminAuditPage({ searchParams }: AdminAuditPagePro
     .limit(PAGE_SIZE)
     .offset(offset);
 
+  const entityScopeNote =
+    isEntityAdmin && adminScope.mode === "org"
+      ? t("dashboard.admin.auditEntityScopeNote", { name: adminScope.organizationName })
+      : null;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-semibold text-foreground flex items-center gap-2">
             <ShieldCheck className="h-8 w-8 text-primary" />
-            {locale === "en" ? "Security Audit Logs" : "Registro de Auditoría"}
+            {t("dashboard.admin.auditTitle")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {locale === "en"
-              ? "Monitor administrative activity, role shifts, and critical database actions."
-              : "Monitorea la actividad administrativa, cambios de roles y modificaciones críticas del sistema."}
+            {entityScopeNote ?? t("dashboard.admin.auditIntro")}
           </p>
         </div>
       </div>
 
-      {/* Search and Filters Panel */}
       <div className="bg-card border border-border/60 rounded-3xl p-6 shadow-sm">
         <form method="GET" action="/admin/audit" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-          
-          {/* Text Search */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-muted-foreground block">
-              {locale === "en" ? "Search" : "Buscar"}
+              {t("dashboard.admin.auditSearchLabel")}
             </label>
             <div className="relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
@@ -173,78 +162,71 @@ export default async function AdminAuditPage({ searchParams }: AdminAuditPagePro
                 type="text"
                 name="search"
                 defaultValue={params.search ?? ""}
-                placeholder={locale === "en" ? "Actor, details..." : "Autor, detalles..."}
+                placeholder={t("dashboard.admin.auditSearchPlaceholder")}
                 className="w-full rounded-xl border border-border bg-background pl-10 pr-4 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary h-10 transition-all text-foreground"
               />
             </div>
           </div>
 
-          {/* Action Filter */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-muted-foreground block">
-              {locale === "en" ? "Action" : "Acción"}
+              {t("dashboard.admin.auditActionLabel")}
             </label>
             <select
               name="action"
               defaultValue={selectedAction}
               className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary h-10 transition-all text-foreground cursor-pointer"
             >
-              <option value="">{locale === "en" ? "All Actions" : "Todas las acciones"}</option>
-              {Object.entries(actionLabels).map(([key, trans]) => (
+              <option value="">{t("dashboard.admin.auditAllActions")}</option>
+              {Object.entries(ACTION_LABEL_KEYS).map(([key, labelKey]) => (
                 <option key={key} value={key}>
-                  {trans[locale]}
+                  {t(labelKey)}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Module/Entity Filter */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-muted-foreground block">
-              {locale === "en" ? "Module" : "Módulo"}
+              {t("dashboard.admin.auditModuleLabel")}
             </label>
             <select
               name="entityType"
               defaultValue={selectedEntity}
               className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary h-10 transition-all text-foreground cursor-pointer"
             >
-              <option value="">{locale === "en" ? "All Modules" : "Todos los módulos"}</option>
-              <option value="user">{locale === "en" ? "Users" : "Usuarios"}</option>
-              <option value="event">{locale === "en" ? "Events" : "Eventos"}</option>
-              <option value="payment">{locale === "en" ? "Payments" : "Pagos"}</option>
-              <option value="settings">{locale === "en" ? "Settings" : "Configuración"}</option>
+              <option value="">{t("dashboard.admin.auditAllModules")}</option>
+              <option value="user">{t("common.users")}</option>
+              <option value="event">{t("common.event")}</option>
+              <option value="payment">{t("common.payments")}</option>
+              <option value="settings">{t("common.settings")}</option>
             </select>
           </div>
 
-          {/* Filter Buttons */}
           <div className="flex gap-2 h-10">
             <button
               type="submit"
               className="flex-1 rounded-xl bg-primary hover:bg-primary/95 text-primary-foreground font-semibold px-4 text-xs transition duration-200 cursor-pointer h-full"
             >
-              {locale === "en" ? "Filter" : "Filtrar"}
+              {t("dashboard.admin.auditFilter")}
             </button>
             {(params.search || params.action || params.entityType) && (
               <Link
                 href="/admin/audit"
                 className="rounded-xl border border-border bg-background hover:bg-secondary px-3 text-xs font-semibold flex items-center justify-center text-foreground transition-all h-full"
               >
-                {locale === "en" ? "Clear" : "Limpiar"}
+                {t("dashboard.admin.auditClear")}
               </Link>
             )}
           </div>
-
         </form>
       </div>
 
-      {/* Logs Table */}
       {logs.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
           <Shield className="mx-auto h-10 w-10 text-muted-foreground/50" />
-          <p className="mt-4 font-medium text-foreground">{locale === "en" ? "No logs found" : "No se encontraron registros"}</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {locale === "en" ? "Try adjusting your filters or complete system actions." : "Prueba ajustando los filtros de búsqueda."}
-          </p>
+          <p className="mt-4 font-medium text-foreground">{t("dashboard.admin.auditNoLogs")}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{t("dashboard.admin.auditNoLogsHelp")}</p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
@@ -252,16 +234,17 @@ export default async function AdminAuditPage({ searchParams }: AdminAuditPagePro
             <table className="w-full min-w-[800px] table-fixed text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/50 text-left font-medium text-muted-foreground">
-                  <th className="px-4 py-3 w-[180px]">{locale === "en" ? "Date" : "Fecha"}</th>
-                  <th className="px-4 py-3 w-[180px]">{locale === "en" ? "Actor" : "Autor"}</th>
-                  <th className="px-4 py-3 w-[180px]">{locale === "en" ? "Action" : "Acción"}</th>
-                  <th className="px-4 py-3 w-[460px]">{locale === "en" ? "Details" : "Detalles"}</th>
+                  <th className="px-4 py-3 w-[180px]">{t("common.date")}</th>
+                  <th className="px-4 py-3 w-[180px]">{t("common.actor")}</th>
+                  <th className="px-4 py-3 w-[180px]">{t("dashboard.admin.auditActionLabel")}</th>
+                  <th className="px-4 py-3 w-[460px]">{t("common.details")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {logs.map((log) => {
-                  const actionText = actionLabels[log.action]?.[locale] ?? log.action;
-                  
+                  const labelKey = ACTION_LABEL_KEYS[log.action];
+                  const actionText = labelKey ? t(labelKey) : log.action;
+
                   let displayDetails = log.details || "—";
                   if (displayDetails.includes(". Notas:")) {
                     displayDetails = displayDetails.split(". Notas:")[0];
@@ -290,11 +273,16 @@ export default async function AdminAuditPage({ searchParams }: AdminAuditPagePro
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${actionBadgeStyles[log.action] ?? "bg-slate-100 text-slate-800 border"}`}>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                            actionBadgeStyles[log.action] ??
+                            "bg-muted text-muted-foreground border border-border"
+                          }`}
+                        >
                           {actionText}
                         </span>
                       </td>
-                      <td className="px-4 py-4 text-xs text-foreground font-medium whitespace-pre-wrap">
+                      <td className="px-4 py-4 text-xs text-muted-foreground leading-relaxed break-words">
                         {displayDetails}
                       </td>
                     </tr>
@@ -303,6 +291,7 @@ export default async function AdminAuditPage({ searchParams }: AdminAuditPagePro
               </tbody>
             </table>
           </div>
+
           <TablePagination
             basePath="/admin/audit"
             currentPage={safePage}

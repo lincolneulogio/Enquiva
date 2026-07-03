@@ -89,9 +89,10 @@ const organizerSections = (options: OrganizerNavOptions): NavSection[] =>
   {
     titleKey: "dashboard.sidebar.groups.tools",
     items: [
+      { labelKey: "dashboard.sidebar.organizer.analytics", href: "/organizer/analytics", icon: BarChart3 },
       { labelKey: "dashboard.sidebar.organizer.scan", href: "/organizer/scan", icon: QrCode },
       ...(options.showExports
-        ? [{ labelKey: "dashboard.sidebar.organizer.exports", href: "/organizer/attendees", icon: FileSpreadsheet }]
+        ? [{ labelKey: "dashboard.sidebar.organizer.exports", href: "/organizer/exports", icon: FileSpreadsheet }]
         : []),
     ]
   },
@@ -213,7 +214,9 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
             { labelKey: "dashboard.sidebar.admin.audit", href: "/admin/audit", icon: Shield },
             { labelKey: "dashboard.sidebar.admin.permissions", href: "/admin/permissions", icon: KeyRound },
           ]
-        : []),
+        : isEntityAdmin
+          ? [{ labelKey: "dashboard.sidebar.admin.audit", href: "/admin/audit", icon: Shield }]
+          : []),
     ],
   },
   {
