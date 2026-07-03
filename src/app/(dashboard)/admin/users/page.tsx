@@ -11,6 +11,7 @@ import { getIntlLocale, getRoleLabel } from "@/lib/i18n/core";
 import { TablePagination } from "@/components/dashboard";
 import { ROLE_BADGE_STYLES, normalizeRole, isEntityAssignableRole } from "@/lib/auth/rbac";
 import { resolveAdminScope, scopeUserCondition } from "@/lib/organizations/admin-scope";
+import { OrganizationService } from "@/lib/organizations/organization.service";
 import Link from "next/link";
 
 interface AdminUsersPageProps {
@@ -38,6 +39,10 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
     const adminScope = await resolveAdminScope();
     const scopeFilter = scopeUserCondition(adminScope);
     const isPlatformScope = adminScope.mode === "platform";
+    const canManageRoles =
+        isPlatformScope ||
+        (await OrganizationService.isOrgAdmin(currentUserId, session!.user.role));
+    const roleColumnLabel = canManageRoles ? t("common.changeRole") : t("common.role");
     const params = await searchParams;
     const requestedPage = Number(params.page ?? "1");
     const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
@@ -275,12 +280,13 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
 
                                     <div className="flex items-center justify-between gap-3 pt-1">
                                         <div className="flex-1">
-                                            <span className="block text-[9px] uppercase font-bold text-muted-foreground tracking-wider mb-1">{t("common.changeRole")}</span>
+                                            <span className="block text-[9px] uppercase font-bold text-muted-foreground tracking-wider mb-1">{roleColumnLabel}</span>
                                             <RoleSelector
                                                 userId={user.id}
                                                 currentRole={(user.role ?? "member") as "member" | "organizer" | "admin" | "super_admin"}
                                                 currentUserId={currentUserId}
                                                 scopeMode={isPlatformScope ? "platform" : "org"}
+                                                canEdit={canManageRoles}
                                             />
                                         </div>
                                         <div className="self-end pb-0.5">
@@ -308,7 +314,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                     <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{locale === "en" ? "Status" : "Estado"}</th>
                                     <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{t("common.joined")}</th>
                                     <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{locale === "en" ? "Last Active" : "Última Conexión"}</th>
-                                    <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{t("common.changeRole")}</th>
+                                    <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{roleColumnLabel}</th>
                                     <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{t("common.actions")}</th>
                                 </tr>
                             </thead>
@@ -383,6 +389,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                                     currentRole={(user.role ?? "member") as "member" | "organizer" | "admin" | "super_admin"}
                                                     currentUserId={currentUserId}
                                                     scopeMode={isPlatformScope ? "platform" : "org"}
+                                                    canEdit={canManageRoles}
                                                 />
                                             </td>
                                             <td className="px-4 py-3.5">

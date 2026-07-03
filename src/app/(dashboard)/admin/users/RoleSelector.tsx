@@ -4,7 +4,7 @@ import { updateUserRole } from "@/actions/admin";
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
-import { getRoleLabel } from "@/lib/i18n/core";
+import { getRoleLabel, type Locale } from "@/lib/i18n/core";
 import { confirmDeleteAction } from "@/lib/ui/confirm";
 import {
     ENTITY_ASSIGNABLE_ROLES,
@@ -17,6 +17,21 @@ interface RoleSelectorProps {
     currentRole: AppRole;
     currentUserId: string;
     scopeMode?: "platform" | "org";
+    canEdit?: boolean;
+}
+
+function getOrgReadOnlyRoleLabel(
+    currentRole: AppRole,
+    locale: Locale,
+    t: ReturnType<typeof useTranslations>,
+) {
+    if (currentRole === "admin") {
+        return t("dashboard.admin.entityOwner");
+    }
+    if (isEntityAssignableRole(currentRole)) {
+        return getRoleLabel(currentRole, locale);
+    }
+    return getRoleLabel("member", locale);
 }
 
 export function RoleSelector({
@@ -24,6 +39,7 @@ export function RoleSelector({
     currentRole,
     currentUserId,
     scopeMode = "platform",
+    canEdit = true,
 }: RoleSelectorProps) {
     const { locale } = useLocale();
     const t = useTranslations();
@@ -31,11 +47,23 @@ export function RoleSelector({
     const isSelf = userId === currentUserId;
     const isOrgScope = scopeMode === "org";
 
+    if (!canEdit) {
+        const label = isOrgScope
+            ? getOrgReadOnlyRoleLabel(currentRole, locale, t)
+            : getRoleLabel(currentRole, locale);
+
+        return (
+            <span
+                className="inline-flex rounded-lg border border-border bg-muted/50 px-2 py-1 text-xs font-medium text-muted-foreground"
+                title={t("dashboard.admin.roleViewOnly")}
+            >
+                {label}
+            </span>
+        );
+    }
+
     if (isOrgScope && !isEntityAssignableRole(currentRole)) {
-        const label =
-            currentRole === "admin"
-                ? t("dashboard.admin.entityOwner")
-                : getRoleLabel("member", locale);
+        const label = getOrgReadOnlyRoleLabel(currentRole, locale, t);
 
         return (
             <span
