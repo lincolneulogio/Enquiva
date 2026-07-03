@@ -259,4 +259,16 @@ export class SubscriptionPaymentService {
       .limit(1);
     return payment ?? null;
   }
+
+  static async listPaymentsForUser(userId: string) {
+    return db
+      .select({
+        payment: subscriptionPayments,
+        plan: plans,
+      })
+      .from(subscriptionPayments)
+      .innerJoin(plans, eq(subscriptionPayments.planId, plans.id))
+      .where(eq(subscriptionPayments.userId, userId))
+      .orderBy(desc(subscriptionPayments.createdAt));
+  }
 }

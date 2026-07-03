@@ -3,9 +3,9 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { requestPlanUpgrade } from "@/actions/billing";
-import { Check, Crown, Loader2, Sparkles, Clock } from "lucide-react";
+import { Check, Crown, Loader2, Sparkles, Clock, AlertTriangle, History } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Plan, PaymentMethod } from "@/lib/db/schema";
+import type { Plan, PaymentMethod, SubscriptionPayment } from "@/lib/db/schema";
 import type { SubscriptionInfo } from "@/lib/billing/types";
 import { PlanUpgradeCheckout } from "@/components/dashboard/organizer/PlanUpgradeCheckout";
 
@@ -19,13 +19,31 @@ interface PendingPayment {
   plan: Plan;
 }
 
+interface PaymentHistoryRow {
+  payment: SubscriptionPayment;
+  plan: Plan;
+}
+
 interface OrganizerBillingClientProps {
   subscription: SubscriptionInfo;
   availablePlans: Plan[];
   platformMethods: PaymentMethod[];
   culqiPublicKey: string | null;
   pendingPayment: PendingPayment | null;
+  paymentHistory: PaymentHistoryRow[];
 }
+
+const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  pending: "Pendiente",
+  approved: "Aprobado",
+  rejected: "Rechazado",
+};
+
+const PAYMENT_STATUS_STYLES: Record<string, string> = {
+  pending: "bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-400",
+  approved: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:text-emerald-400",
+  rejected: "bg-rose-500/10 text-rose-700 border-rose-500/20 dark:text-rose-400",
+};
 
 export function OrganizerBillingClient({
   subscription,
@@ -33,13 +51,15 @@ export function OrganizerBillingClient({
   platformMethods,
   culqiPublicKey,
   pendingPayment,
+  paymentHistory,
 }: OrganizerBillingClientProps) {
   const [isPending, startTransition] = useTransition();
   const [checkoutPlan, setCheckoutPlan] = useState<Plan | null>(null);
-  const { plan, usage } = subscription;
+  const { plan, usage, billedPlan, renewalAlert, daysUntilRenewal } = subscription;
+  const displayPlanName = billedPlan?.name ?? plan.name;
 
   const onSelectPlan = (target: Plan) => {
-    if (target.slug === plan.slug) return;
+    if (target.slug === plan.slug && !billedPlan) return;
     if (pendingPayment) {
       toast.info("Ya tienes un pago pendiente de revisión. Espera la aprobación del administrador.");
       return;
@@ -60,8 +80,42 @@ export function OrganizerBillingClient({
     });
   };
 
+  const renewalDate = new Date(subscription.currentPeriodEnd).toLocaleDateString("es-PE");
+  const historyWithoutActivePending = paymentHistory.filter(
+    (row) => !(row.payment.status === "pending" && pendingPayment?.payment.id === row.payment.id),
+  );
+
   return (
     <div className="space-y-6">
+      {renewalAlert === "expiring_soon" && (
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200/60 bg-amber-50/50 p-4 dark:border-amber-900/30 dark:bg-amber-950/20">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+          <div>
+            <p className="font-medium text-foreground">Tu plan vence pronto</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {displayPlanName} se renueva el {renewalDate}
+              {daysUntilRenewal != null && daysUntilRenewal >= 0
+                ? ` (en ${daysUntilRenewal} día${daysUntilRenewal === 1 ? "" : "s"}).`
+                : "."}{" "}
+              Renueva ahora para evitar perder funciones de pago.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {renewalAlert === "past_due" && (
+        <div className="flex items-start gap-3 rounded-2xl border border-rose-200/60 bg-rose-50/50 p-4 dark:border-rose-900/30 dark:bg-rose-950/20">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600 dark:text-rose-400" />
+          <div>
+            <p className="font-medium text-foreground">Suscripción vencida</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Tu plan {billedPlan?.name ?? displayPlanName} venció el {renewalDate}. Estás usando límites
+              del plan {plan.name} hasta que renueves.
+            </p>
+          </div>
+        </div>
+      )}
+
       {pendingPayment && (
         <div className="flex items-start gap-3 rounded-2xl border border-amber-200/60 bg-amber-50/50 p-4 dark:border-amber-900/30 dark:bg-amber-950/20">
           <Clock className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
@@ -80,21 +134,81 @@ export function OrganizerBillingClient({
       <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/10 via-card to-card p-6 shadow-sm dark:from-primary/20 dark:via-card dark:to-background">
         <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-2xl dark:bg-primary/20" />
         <div className="relative">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 dark:bg-primary/25">
               <Crown className="h-5 w-5 text-primary" />
             </div>
-            <h2 className="text-xl font-semibold text-foreground">Plan actual: {plan.name}</h2>
+            <h2 className="text-xl font-semibold text-foreground">Plan actual: {displayPlanName}</h2>
+            {subscription.status === "past_due" && (
+              <span className="rounded-full border border-rose-500/30 bg-rose-500/10 px-2.5 py-0.5 text-xs font-semibold text-rose-700 dark:text-rose-400">
+                Vencido
+              </span>
+            )}
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">{plan.description}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{billedPlan?.description ?? plan.description}</p>
+          {billedPlan && subscription.status === "past_due" && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Límites activos: plan {plan.name}
+            </p>
+          )}
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <UsageCard label="Eventos activos" value={`${usage.activeEvents} / ${plan.maxActiveEvents ?? "∞"}`} />
             <UsageCard label="Broadcasts este mes" value={`${usage.broadcastsThisMonth} / ${plan.maxBroadcastsPerMonth ?? "∞"}`} />
             <UsageCard label="Comisión plataforma" value={`${plan.commissionPercent}%`} />
-            <UsageCard label="Renovación" value={new Date(subscription.currentPeriodEnd).toLocaleDateString("es-PE")} />
+            <UsageCard label="Renovación" value={renewalDate} />
           </div>
         </div>
       </div>
+
+      {historyWithoutActivePending.length > 0 && (
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <History className="h-5 w-5 text-primary" />
+            <h3 className="font-semibold text-foreground">Historial de pagos</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px] text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                  <th className="pb-2 pr-4 font-medium">Fecha</th>
+                  <th className="pb-2 pr-4 font-medium">Plan</th>
+                  <th className="pb-2 pr-4 font-medium">Monto</th>
+                  <th className="pb-2 pr-4 font-medium">Método</th>
+                  <th className="pb-2 font-medium">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {historyWithoutActivePending.map(({ payment, plan: paymentPlan }) => (
+                  <tr key={payment.id}>
+                    <td className="py-3 pr-4 text-muted-foreground">
+                      {new Date(payment.createdAt).toLocaleDateString("es-PE", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </td>
+                    <td className="py-3 pr-4 font-medium text-foreground">{paymentPlan.name}</td>
+                    <td className="py-3 pr-4 text-foreground">
+                      S/ {Number(payment.amount).toFixed(2)}
+                    </td>
+                    <td className="py-3 pr-4 capitalize text-muted-foreground">{payment.method}</td>
+                    <td className="py-3">
+                      <span
+                        className={cn(
+                          "inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold",
+                          PAYMENT_STATUS_STYLES[payment.status] ?? PAYMENT_STATUS_STYLES.pending,
+                        )}
+                      >
+                        {PAYMENT_STATUS_LABELS[payment.status] ?? payment.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Sparkles className="h-4 w-4 text-primary" />
@@ -103,7 +217,8 @@ export function OrganizerBillingClient({
 
       <div className="grid gap-4 md:grid-cols-3">
         {availablePlans.map((p) => {
-          const isCurrent = p.slug === plan.slug;
+          const isCurrent = subscription.status === "active" && p.slug === plan.slug;
+          const isBilledCurrent = billedPlan?.slug === p.slug;
           const isPro = p.slug === "pro";
           const isPaid = Number(p.priceMonthly) > 0;
           return (
@@ -111,10 +226,10 @@ export function OrganizerBillingClient({
               key={p.id}
               className={cn(
                 "flex flex-col rounded-2xl border p-5 shadow-sm transition",
-                isCurrent
+                isCurrent || isBilledCurrent
                   ? "border-primary bg-primary/5 ring-2 ring-primary/25 dark:bg-primary/10"
                   : "border-border bg-card hover:border-primary/30 hover:shadow-md",
-                isPro && !isCurrent && "border-primary/20 dark:border-primary/30",
+                isPro && !isCurrent && !isBilledCurrent && "border-primary/20 dark:border-primary/30",
               )}
             >
               {isPro && (
@@ -149,6 +264,8 @@ export function OrganizerBillingClient({
                   <Loader2 className="mx-auto h-4 w-4 animate-spin" />
                 ) : isCurrent ? (
                   "Plan actual"
+                ) : isBilledCurrent && subscription.status === "past_due" ? (
+                  "Renovar plan"
                 ) : isPaid ? (
                   "Pagar y activar"
                 ) : (

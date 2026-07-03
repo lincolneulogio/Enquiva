@@ -7,13 +7,23 @@ import {
   broadcastLogs,
   type Plan,
 } from "@/lib/db/schema";
-import { and, count, desc, eq, gt, gte, inArray, ne, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, gt, gte, inArray, lt, ne, or, sql } from "drizzle-orm";
 import { DEFAULT_PLAN_DEFINITIONS, mapPlanRow, UNLIMITED_PLAN } from "./plans";
 import type { PlanUsage, ResolvedPlan, SubscriptionInfo } from "./types";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { users } from "@/lib/db/schema";
 
 const ACTIVE_EVENT_STATUSES = ["draft", "published"] as const;
+
+function isPaidPlanRow(plan: { slug: string; priceMonthly: string | number }) {
+  return plan.slug !== "free" && Number(plan.priceMonthly) > 0;
+}
+
+function addOneMonth(from = new Date()) {
+  const periodEnd = new Date(from);
+  periodEnd.setMonth(periodEnd.getMonth() + 1);
+  return periodEnd;
+}
 
 export class SubscriptionService {
   static isPlatformStaff(role: string | null | undefined) {
@@ -97,10 +107,13 @@ export class SubscriptionService {
         currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
         plan: UNLIMITED_PLAN,
         usage: await this.getUsage(userId),
+        renewalAlert: null,
+        daysUntilRenewal: null,
       };
     }
 
     await this.ensureDefaultPlans();
+    await this.syncSubscriptionForUser(userId);
 
     const [existing] = await db
       .select({
@@ -113,19 +126,11 @@ export class SubscriptionService {
       .limit(1);
 
     if (existing) {
-      return {
-        id: existing.subscription.id,
-        status: existing.subscription.status,
-        currentPeriodStart: existing.subscription.currentPeriodStart,
-        currentPeriodEnd: existing.subscription.currentPeriodEnd,
-        plan: mapPlanRow(existing.plan),
-        usage: await this.getUsage(userId),
-      };
+      return this.buildSubscriptionInfo(userId, existing.subscription, existing.plan);
     }
 
     const freePlan = await this.getFreePlan();
-    const periodEnd = new Date();
-    periodEnd.setMonth(periodEnd.getMonth() + 1);
+    const periodEnd = addOneMonth();
 
     const [created] = await db
       .insert(subscriptions)
@@ -140,28 +145,183 @@ export class SubscriptionService {
 
     const [planRow] = await db.select().from(plans).where(eq(plans.id, freePlan.id)).limit(1);
 
+    return this.buildSubscriptionInfo(userId, created, planRow as Plan);
+  }
+
+  private static async buildSubscriptionInfo(
+    userId: string,
+    subscription: typeof subscriptions.$inferSelect,
+    planRow: Plan,
+  ): Promise<SubscriptionInfo> {
+    const billedPlan = mapPlanRow(planRow);
+    const now = new Date();
+    const daysUntilRenewal = Math.ceil(
+      (subscription.currentPeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    let renewalAlert: SubscriptionInfo["renewalAlert"] = null;
+    if (subscription.status === "past_due") {
+      renewalAlert = "past_due";
+    } else if (
+      isPaidPlanRow(planRow) &&
+      subscription.status === "active" &&
+      daysUntilRenewal <= 7 &&
+      daysUntilRenewal >= 0
+    ) {
+      renewalAlert = "expiring_soon";
+    }
+
+    const effectivePlan =
+      subscription.status === "past_due" ? await this.getFreePlan() : billedPlan;
+
     return {
-      id: created.id,
-      status: created.status,
-      currentPeriodStart: created.currentPeriodStart,
-      currentPeriodEnd: created.currentPeriodEnd,
-      plan: mapPlanRow(planRow as Plan),
+      id: subscription.id,
+      status: subscription.status,
+      currentPeriodStart: subscription.currentPeriodStart,
+      currentPeriodEnd: subscription.currentPeriodEnd,
+      plan: effectivePlan,
+      billedPlan: subscription.status === "past_due" ? billedPlan : undefined,
       usage: await this.getUsage(userId),
+      renewalAlert,
+      daysUntilRenewal,
     };
+  }
+
+  /** Sincroniza vencimiento de un usuario (past_due / downgrade / renovación free). */
+  static async syncSubscriptionForUser(userId: string) {
+    const [row] = await db
+      .select({
+        subscription: subscriptions,
+        plan: plans,
+      })
+      .from(subscriptions)
+      .innerJoin(plans, eq(subscriptions.planId, plans.id))
+      .where(eq(subscriptions.userId, userId))
+      .limit(1);
+
+    if (!row) return;
+
+    const now = new Date();
+    const { subscription, plan } = row;
+
+    if (!isPaidPlanRow(plan)) {
+      if (subscription.status === "active" && subscription.currentPeriodEnd < now) {
+        await db
+          .update(subscriptions)
+          .set({
+            currentPeriodStart: now,
+            currentPeriodEnd: addOneMonth(now),
+            updatedAt: now,
+          })
+          .where(eq(subscriptions.id, subscription.id));
+      }
+      return;
+    }
+
+    if (subscription.currentPeriodEnd >= now) return;
+
+    if (subscription.status === "active") {
+      await db
+        .update(subscriptions)
+        .set({ status: "past_due", updatedAt: now })
+        .where(eq(subscriptions.id, subscription.id));
+      return;
+    }
+
+    if (subscription.status === "past_due") {
+      const freePlan = await this.getFreePlan();
+      await db.transaction(async (tx) => {
+        await this.assignPlanToUserTx(tx, userId, freePlan.id);
+      });
+    }
+  }
+
+  /**
+   * Job batch: marca past_due al vencer y hace downgrade a Free.
+   * Ejecutar diariamente vía cron o script.
+   */
+  static async processSubscriptionLifecycle() {
+    await this.ensureDefaultPlans();
+    const freePlan = await this.getFreePlan();
+    const now = new Date();
+
+    const expiredPaid = await db
+      .select({
+        subscription: subscriptions,
+        plan: plans,
+      })
+      .from(subscriptions)
+      .innerJoin(plans, eq(subscriptions.planId, plans.id))
+      .where(
+        and(
+          lt(subscriptions.currentPeriodEnd, now),
+          ne(plans.slug, "free"),
+          gt(sql`cast(${plans.priceMonthly} as numeric)`, sql`0`),
+          inArray(subscriptions.status, ["active", "past_due"]),
+        ),
+      );
+
+    let markedPastDue = 0;
+    let downgraded = 0;
+    let renewedFree = 0;
+
+    for (const row of expiredPaid) {
+      if (row.subscription.status === "active") {
+        await db
+          .update(subscriptions)
+          .set({ status: "past_due", updatedAt: now })
+          .where(eq(subscriptions.id, row.subscription.id));
+        markedPastDue += 1;
+        continue;
+      }
+
+      await db.transaction(async (tx) => {
+        await this.assignPlanToUserTx(tx, row.subscription.userId, freePlan.id);
+      });
+      downgraded += 1;
+    }
+
+    const expiredFree = await db
+      .select({ id: subscriptions.id })
+      .from(subscriptions)
+      .innerJoin(plans, eq(subscriptions.planId, plans.id))
+      .where(
+        and(
+          eq(subscriptions.status, "active"),
+          or(eq(plans.slug, "free"), eq(plans.priceMonthly, "0")),
+          lt(subscriptions.currentPeriodEnd, now),
+        ),
+      );
+
+    for (const row of expiredFree) {
+      await db
+        .update(subscriptions)
+        .set({
+          currentPeriodStart: now,
+          currentPeriodEnd: addOneMonth(now),
+          updatedAt: now,
+        })
+        .where(eq(subscriptions.id, row.id));
+      renewedFree += 1;
+    }
+
+    return { markedPastDue, downgraded, renewedFree, processed: expiredPaid.length + expiredFree.length };
   }
 
   static async getSubscriptionPlanForUserId(userId: string): Promise<ResolvedPlan> {
     await this.ensureDefaultPlans();
 
     const [existing] = await db
-      .select({ plan: plans })
+      .select({ plan: plans, status: subscriptions.status })
       .from(subscriptions)
       .innerJoin(plans, eq(subscriptions.planId, plans.id))
-      .where(and(eq(subscriptions.userId, userId), eq(subscriptions.status, "active")))
+      .where(eq(subscriptions.userId, userId))
       .limit(1);
 
-    if (existing) return mapPlanRow(existing.plan);
-    return this.getFreePlan();
+    if (!existing || existing.status !== "active") {
+      return this.getFreePlan();
+    }
+    return mapPlanRow(existing.plan);
   }
 
   static async assignPlanToUser(userId: string, planId: string, actorRole: string) {
@@ -174,8 +334,7 @@ export class SubscriptionService {
     const [plan] = await tx.select().from(plans).where(eq(plans.id, planId)).limit(1);
     if (!plan) throw new Error("Plan no encontrado");
 
-    const periodEnd = new Date();
-    periodEnd.setMonth(periodEnd.getMonth() + 1);
+    const periodEnd = addOneMonth();
 
     const [existing] = await tx
       .select({ id: subscriptions.id })

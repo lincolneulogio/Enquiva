@@ -1,13 +1,14 @@
-import { getMySubscription, getPublicPlans, getPlatformBillingMethods, getMyPendingSubscriptionPayment } from "@/actions/billing";
+import { getMySubscription, getPublicPlans, getPlatformBillingMethods, getMyPendingSubscriptionPayment, getMySubscriptionPaymentHistory } from "@/actions/billing";
 import { OrganizerBillingClient } from "@/components/dashboard/organizer/OrganizerBillingClient";
 import { env } from "@/env";
 
 export default async function OrganizerBillingPage() {
-  const [subscription, availablePlans, platformMethods, pendingPayment] = await Promise.all([
+  const [subscription, availablePlans, platformMethods, pendingPayment, paymentHistory] = await Promise.all([
     getMySubscription(),
     getPublicPlans(),
     getPlatformBillingMethods(),
     getMyPendingSubscriptionPayment(),
+    getMySubscriptionPaymentHistory(),
   ]);
 
   return (
@@ -24,6 +25,7 @@ export default async function OrganizerBillingPage() {
         platformMethods={platformMethods}
         culqiPublicKey={env.NEXT_PUBLIC_CULQI_PUBLIC_KEY ?? null}
         pendingPayment={pendingPayment}
+        paymentHistory={paymentHistory}
       />
     </div>
   );

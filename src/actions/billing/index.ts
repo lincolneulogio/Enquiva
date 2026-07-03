@@ -58,6 +58,11 @@ export async function getMyPendingSubscriptionPayment() {
   return SubscriptionPaymentService.getPendingForUser(user.id);
 }
 
+export async function getMySubscriptionPaymentHistory() {
+  const user = await requireOrganizerOrStaff();
+  return SubscriptionPaymentService.listPaymentsForUser(user.id);
+}
+
 const submitManualSchema = z.object({
   planId: z.string().uuid(),
   method: z.enum(["yape", "plin"]),

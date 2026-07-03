@@ -28,11 +28,17 @@ export type PlanUsage = {
   broadcastsThisMonth: number;
 };
 
+export type SubscriptionRenewalAlert = "expiring_soon" | "past_due";
+
 export type SubscriptionInfo = {
   id: string;
   status: string;
   currentPeriodStart: Date;
   currentPeriodEnd: Date;
   plan: ResolvedPlan;
+  /** Plan facturado en BD cuando el estado es past_due (límites efectivos = plan). */
+  billedPlan?: ResolvedPlan;
   usage: PlanUsage;
+  renewalAlert?: SubscriptionRenewalAlert | null;
+  daysUntilRenewal?: number | null;
 };
