@@ -129,7 +129,7 @@ export async function getPermissionMatrix() {
     if (!session?.user) throw new Error("Unauthorized");
 
     const currentRole = normalizeRole(session.user.role);
-    if (currentRole !== "super_admin" && currentRole !== "admin") {
+    if (currentRole !== "super_admin") {
         throw new Error("Forbidden");
     }
 

@@ -1,3 +1,6 @@
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { activityLogs } from "@/lib/db/schema";
 import { desc, or, and, eq, ilike, count, sql, inArray } from "drizzle-orm";
@@ -59,6 +62,9 @@ const actionLabels: Record<string, Record<string, string>> = {
 };
 
 export default async function AdminAuditPage({ searchParams }: AdminAuditPageProps) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (session?.user?.role !== "super_admin") redirect("/admin");
+
   const { locale, t } = await getI18n();
   const params = await searchParams;
   const requestedPage = Number(params.page ?? "1");

@@ -15,15 +15,10 @@ import { getPermissionLabel, getRoleLabel } from "@/lib/i18n/core";
 export default async function AdminPermissionsPage() {
     const { locale, t } = await getI18n();
     const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user) redirect("/login");
+    if (session?.user?.role !== "super_admin") redirect("/admin");
 
     const currentRole = normalizeRole(session.user.role);
-    if (currentRole !== "super_admin" && currentRole !== "admin") {
-        redirect("/organizer");
-    }
-
     const matrix = await getPermissionMatrix();
-    const canEdit = currentRole === "super_admin";
 
     return (
         <div className="space-y-6">
@@ -42,9 +37,7 @@ export default async function AdminPermissionsPage() {
                     {getRoleLabel(currentRole, locale)}
                 </span>
                 <p className="mt-2 text-xs text-muted-foreground">
-                    {canEdit
-                        ? t("dashboard.admin.canEditPermissions")
-                        : t("dashboard.admin.readOnlyPermissions")}
+                    {t("dashboard.admin.canEditPermissions")}
                 </p>
             </div>
 
@@ -78,7 +71,7 @@ export default async function AdminPermissionsPage() {
                                                     role={role}
                                                     permission={permission}
                                                     allowed={allowed}
-                                                    canEdit={canEdit && role !== "super_admin"}
+                                                    canEdit={role !== "super_admin"}
                                                 />
                                             </td>
                                         );
