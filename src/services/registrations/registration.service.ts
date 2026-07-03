@@ -28,6 +28,11 @@ import { runBackground } from "@/lib/background";
 import { assertCanRegisterAttendee } from "@/lib/billing/enforce";
 import { assertCanManageEvent } from "@/lib/organizations/admin-scope";
 import { RegistrationErrorCode, registrationError } from "@/lib/errors/registration";
+import { OCCUPYING_REGISTRATION_STATUSES } from "@/lib/registrations/constants";
+import {
+  promoteNextWaitlisted,
+  releaseRegistrationResources,
+} from "@/lib/registrations/cleanup";
 
 export interface RegisterEventInput {
   eventId: string;
@@ -88,15 +93,19 @@ export class RegistrationService {
         .limit(1);
 
       if (existing) {
-        if (existing.status === "cancelled") {
-          throw registrationError(RegistrationErrorCode.CANCELLED);
+        if (existing.status === "waitlisted") {
+          throw registrationError(RegistrationErrorCode.ALREADY_REGISTERED);
         }
-        throw registrationError(RegistrationErrorCode.ALREADY_REGISTERED);
+        if (existing.status !== "cancelled") {
+          throw registrationError(RegistrationErrorCode.ALREADY_REGISTERED);
+        }
       }
 
-      // 3. Validar capacidad del evento (incluyendo los invitados)
-      const status = "registered";
-      const totalNewRegistrations = 1 + (input.guests?.length ?? 0);
+      const guests = input.guests || [];
+      const totalNewRegistrations = 1 + guests.length;
+
+      // 3. Validar capacidad — lista de espera si está lleno (solo titular, sin invitados ni transporte)
+      let status: "registered" | "waitlisted" = "registered";
       if (event.capacity) {
         const [{ count: currentCount }] = await tx
           .select({ count: count() })
@@ -104,20 +113,27 @@ export class RegistrationService {
           .where(
             and(
               eq(registrations.eventId, eventId),
-              inArray(registrations.status, ["registered", "checked_in"])
-            )
+              inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES]),
+            ),
           );
 
         if (currentCount + totalNewRegistrations > event.capacity) {
-          throw registrationError(RegistrationErrorCode.CLOSED_EVENT_FULL);
+          if (guests.length > 0 || input.routeId) {
+            throw registrationError(RegistrationErrorCode.WAITLIST_NO_EXTRAS);
+          }
+          status = "waitlisted";
         }
+      }
+
+      if (status === "waitlisted" && (guests.length > 0 || input.routeId)) {
+        throw registrationError(RegistrationErrorCode.WAITLIST_NO_EXTRAS);
       }
 
       // 4. Crear cuentas de usuarios invitados/fantasma si existen
       const guestRegIds: string[] = [];
       const guestUserIdMap = new Map<string, string>();
-      const guests = input.guests || [];
 
+      if (status === "registered") {
       for (const guest of guests) {
         const guestUserId = `guest_${crypto.randomUUID()}`;
         const guestEmail = `${guestUserId}@sistemaevents.com`;
@@ -146,31 +162,69 @@ export class RegistrationService {
         guestRegIds.push(guestReg.id);
         guestUserIdMap.set(guestReg.id, guestUserId);
       }
+      }
 
       // Guardar el listado de IDs de invitados en la nota del registro principal
       const guestPrefix = guestRegIds.length > 0 ? `[GUESTS:${guestRegIds.join(",")}]` : "";
       const finalNotes = guestPrefix + (input.notes ?? "");
 
-      // 4b. Crear/Actualizar el registro principal
-      const [registration] = await tx
-        .insert(registrations)
-        .values({
-          eventId,
-          userId: attendee.id,
-          status,
-          contactPhone,
-          notes: finalNotes,
-        })
-        .onConflictDoUpdate({
-          target: [registrations.eventId, registrations.userId],
-          set: {
+      // 4b. Crear o reactivar el registro principal
+      let registration;
+      if (existing?.status === "cancelled") {
+        const [reactivated] = await tx
+          .update(registrations)
+          .set({
             status,
             contactPhone,
             notes: finalNotes,
             registeredAt: new Date(),
-          },
-        })
-        .returning();
+            checkedInAt: null,
+          })
+          .where(eq(registrations.id, existing.id))
+          .returning();
+        registration = reactivated;
+      } else {
+        const [created] = await tx
+          .insert(registrations)
+          .values({
+            eventId,
+            userId: attendee.id,
+            status,
+            contactPhone,
+            notes: finalNotes,
+          })
+          .onConflictDoUpdate({
+            target: [registrations.eventId, registrations.userId],
+            set: {
+              status,
+              contactPhone,
+              notes: finalNotes,
+              registeredAt: new Date(),
+            },
+          })
+          .returning();
+        registration = created;
+      }
+
+      if (status === "waitlisted") {
+        await tx.insert(notifications).values({
+          userId: attendee.id,
+          type: "registration_confirmed",
+          title: "En lista de espera",
+          message: `Te añadimos a la lista de espera de "${event.title}". Te avisaremos si se libera un cupo.`,
+          metadata: { eventId, eventTitle: event.title, registrationId: registration.id },
+        });
+
+        return {
+          success: true,
+          status,
+          registration,
+          ticketCode: null,
+          requiresPayment: false,
+          registrationId: registration.id,
+          eventSlug: event.slug,
+        };
+      }
 
       // 5. Gestionar reserva de transporte si aplica
       const eventPrice = event.price ? Number(event.price) : 0;
@@ -348,7 +402,7 @@ export class RegistrationService {
           .where(
             and(
               eq(registrations.eventId, eventId),
-              inArray(registrations.status, ["registered", "checked_in"])
+              inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES]),
             )
           );
 
@@ -425,49 +479,48 @@ export class RegistrationService {
 
       if (!reg) throw registrationError(RegistrationErrorCode.NOT_FOUND);
 
-      // 3. Cancelar la inscripción y el ticket transaccionalmente
+      // 3. Cancelar la inscripción y liberar recursos asociados
+      await releaseRegistrationResources(tx, reg);
+
       await tx
         .update(registrations)
         .set({ status: "cancelled" })
         .where(eq(registrations.id, registrationId));
 
-      await tx
-        .update(tickets)
-        .set({ status: "cancelled" })
-        .where(eq(tickets.registrationId, reg.id));
+      const promotedUserId = await promoteNextWaitlisted(tx, reg.eventId);
 
-      // 4. Promover automáticamente al primer usuario en lista de espera
-      const [waitlisted] = await tx
-        .select()
-        .from(registrations)
-        .where(
-          and(
-            eq(registrations.eventId, reg.eventId),
-            eq(registrations.status, "waitlisted")
-          )
-        )
-        .orderBy(registrations.registeredAt)
-        .limit(1);
+      runBackground(async () => {
+        await invalidateCache(CACHE_KEYS.userNotificationsCount(userId));
+        if (promotedUserId) {
+          await invalidateCache(CACHE_KEYS.userNotificationsCount(promotedUserId));
+        }
 
-      if (waitlisted) {
-        await tx
-          .update(registrations)
-          .set({ status: "registered" })
-          .where(eq(registrations.id, waitlisted.id));
+        const [{ count: newCount }] = await db
+          .select({ count: count() })
+          .from(registrations)
+          .where(
+            and(
+              eq(registrations.eventId, reg.eventId),
+              inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES]),
+            ),
+          );
 
-        await tx.insert(notifications).values({
-          userId: waitlisted.userId,
-          type: "waitlist_promoted",
-          title: "Great news! You're in!",
-          message: "A spot opened up and you've been registered from the waitlist.",
-          metadata: { eventId: reg.eventId },
-        });
+        try {
+          await pusherServer.trigger(
+            PUSHER_CHANNELS.event(reg.eventId),
+            PUSHER_EVENTS.attendeeCountUpdated,
+            { eventId: reg.eventId, count: newCount },
+          );
+        } catch (error) {
+          console.error("Fallo al actualizar contador tras cancelación", error);
+        }
 
-        // Tarea asíncrona para invalidar caché del usuario promovido
-        runBackground(async () => {
-          await invalidateCache(CACHE_KEYS.userNotificationsCount(waitlisted.userId));
-        });
-      }
+        try {
+          await redis.set(CACHE_KEYS.eventAttendeesCount(reg.eventId), newCount);
+        } catch (error) {
+          console.error("Fallo al actualizar Redis tras cancelación", error);
+        }
+      });
 
       return { success: true };
     });
@@ -485,8 +538,8 @@ export class RegistrationService {
           and(
             eq(registrations.id, input.registrationId),
             eq(registrations.eventId, input.eventId),
-            eq(registrations.status, "registered")
-          )
+            eq(registrations.status, "registered"),
+          ),
         )
         .returning();
 
@@ -500,13 +553,12 @@ export class RegistrationService {
         })
         .where(eq(tickets.registrationId, input.registrationId));
 
-      // Segundo plano: Pusher para actualización del feed en vivo
       runBackground(async () => {
         try {
           await pusherServer.trigger(
             PUSHER_CHANNELS.event(input.eventId),
             PUSHER_EVENTS.checkIn,
-            { registrationId: reg.id, userId: reg.userId, checkedInAt: reg.checkedInAt }
+            { registrationId: reg.id, userId: reg.userId, checkedInAt: reg.checkedInAt },
           );
         } catch (error) {
           console.error("Fallo al emitir evento Pusher para check-in", error);

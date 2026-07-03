@@ -1,6 +1,7 @@
-import { and, count, desc, eq, gte, lte } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { events, registrations, users } from "@/lib/db/schema";
+import { OCCUPYING_REGISTRATION_STATUSES } from "@/lib/registrations/constants";
 import { getI18n } from "@/lib/i18n/server";
 import { categoryLabel, eventStatusLabel, formatEventDateShort } from "@/lib/utils";
 import type { ExportFilters, ExportPayload, ExportScope, SessionUser } from "./types";
@@ -69,7 +70,10 @@ export async function exportEventsData(
         .innerJoin(users, eq(events.organizerId, users.id))
         .leftJoin(
             registrations,
-            and(eq(registrations.eventId, events.id), eq(registrations.status, "registered"))
+            and(
+              eq(registrations.eventId, events.id),
+              inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES]),
+            ),
         )
         .where(conditions.length ? and(...conditions) : undefined)
         .groupBy(events.id, users.name)

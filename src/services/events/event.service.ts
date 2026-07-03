@@ -21,6 +21,8 @@ import {
   type CreateEventInput,
   type UpdateEventInput,
 } from "@/lib/validations";
+import { OCCUPYING_REGISTRATION_STATUSES } from "@/lib/registrations/constants";
+import { cascadeEventCancellation } from "@/lib/events/lifecycle";
 
 const FALLBACK_CATEGORIES: Pick<Category, "slug" | "label" | "colorClass">[] = [
   { slug: "worship", label: "Adoración", colorClass: "bg-purple-100 text-purple-800" },
@@ -142,6 +144,10 @@ export class EventService {
       .where(eq(events.id, eventId))
       .returning();
 
+    if (validated.status === "cancelled" && existing.status !== "cancelled") {
+      await cascadeEventCancellation(eventId, updated.title);
+    }
+
     // Notificar a los participantes en tiempo real
     await pusherServer.trigger(
       PUSHER_CHANNELS.event(eventId),
@@ -231,8 +237,8 @@ export class EventService {
           registrations,
           and(
             eq(registrations.eventId, events.id),
-            inArray(registrations.status, ["registered", "checked_in"])
-          )
+            inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES]),
+          ),
         )
         .where(and(...conditions))
         .groupBy(events.id)
@@ -250,7 +256,7 @@ export class EventService {
         .where(
           and(
             ...conditions,
-            inArray(registrations.status, ["registered", "checked_in"])
+            inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES])
           )
         ),
     ]);
@@ -294,7 +300,7 @@ export class EventService {
       .where(
         and(
           eq(registrations.eventId, event.id),
-          inArray(registrations.status, ["registered", "checked_in"])
+          inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES])
         )
       );
 
@@ -317,8 +323,8 @@ export class EventService {
         registrations,
         and(
           eq(registrations.eventId, events.id),
-          eq(registrations.status, "registered")
-        )
+          inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES]),
+        ),
       )
       .where(eq(events.organizerId, organizerId))
       .groupBy(events.id)

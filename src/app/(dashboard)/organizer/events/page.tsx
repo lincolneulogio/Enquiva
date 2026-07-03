@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { events, registrations } from "@/lib/db/schema";
-import { eq, desc, and, gte, lte, count, sql } from "drizzle-orm";
+import { eq, desc, and, gte, lte, count, sql, inArray } from "drizzle-orm";
+import { OCCUPYING_REGISTRATION_STATUSES } from "@/lib/registrations/constants";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -93,8 +94,8 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
             registrations,
             and(
                 eq(registrations.eventId, events.id),
-                eq(registrations.status, "registered")
-            )
+                inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES]),
+            ),
         )
         .where(whereClause)
         .groupBy(events.id)

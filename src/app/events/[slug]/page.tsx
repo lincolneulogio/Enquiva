@@ -164,15 +164,14 @@ export default async function EventDetailPage({ params }: EventPageProps) {
     typeof event.capacity === "number" &&
     (event.attendeeCount ?? 0) >= event.capacity;
   const isEventExpired = new Date(event.date).getTime() <= Date.now();
-  const isRegistrationClosed =
-    isEventExpired || Boolean(isFull) || event.status !== "published";
+  const isRegistrationClosed = isEventExpired || event.status !== "published";
+  const waitlistAvailable =
+    isFull && !isEventExpired && event.status === "published";
   const registrationClosedReason = isEventExpired
     ? t("register.eventExpired")
-    : isFull
-      ? t("register.eventFull")
-      : event.status !== "published"
-        ? t("register.registrationUnavailable")
-        : null;
+    : event.status !== "published"
+      ? t("register.registrationUnavailable")
+      : null;
   const eventStatusLabel =
     event.status === "published"
       ? "Publicado"
@@ -440,6 +439,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                 eventId={event.id}
                 isAuthenticated={isAuthenticated}
                 isRegistrationClosed={isRegistrationClosed}
+                waitlistAvailable={waitlistAvailable}
                 closedReason={registrationClosedReason}
                 hasTransport={event.hasTransport}
                 currentStatus={registration?.status}

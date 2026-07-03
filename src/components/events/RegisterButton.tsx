@@ -29,6 +29,7 @@ interface RegisterButtonProps {
   eventId: string;
   isAuthenticated: boolean;
   isRegistrationClosed?: boolean;
+  waitlistAvailable?: boolean;
   closedReason?: string | null;
   hasTransport?: boolean;
   currentStatus?: "registered" | "waitlisted" | "checked_in" | "cancelled" | null;
@@ -53,6 +54,7 @@ export function RegisterButton({
   eventId,
   isAuthenticated,
   isRegistrationClosed = false,
+  waitlistAvailable = false,
   closedReason,
   hasTransport = false,
   currentStatus,
@@ -197,11 +199,19 @@ export function RegisterButton({
 
         const result = await registerForEvent(payload);
         if (result.success) {
-          setOptimisticStatus("registered");
-          toast.success(wantsTransport ? "¡Inscripción y reserva de transporte registradas!" : t("register.registrationSuccess"));
+          setOptimisticStatus(result.status);
+          toast.success(
+            result.status === "waitlisted"
+              ? t("register.addedToWaitlist")
+              : wantsTransport
+                ? "¡Inscripción y reserva de transporte registradas!"
+                : t("register.registrationSuccess"),
+          );
           setIsModalOpen(false);
 
-          if (result.requiresPayment && result.registrationId) {
+          if (result.status === "waitlisted") {
+            router.refresh();
+          } else if (result.requiresPayment && result.registrationId) {
             router.push(`/member/payments/new/${result.registrationId}`);
           } else {
             router.push(wantsTransport ? "/member/transport" : "/member/tickets");
@@ -342,14 +352,44 @@ export function RegisterButton({
 
   if (optimisticStatus === "cancelled") {
     return (
-      <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4.5 flex flex-col gap-2 shadow-sm text-center">
-        <div className="flex items-center justify-center gap-2 text-amber-600 dark:text-amber-400 font-semibold text-sm">
-          <AlertTriangle className="h-4.5 w-4.5 shrink-0 animate-pulse" />
-          Inscripción Cancelada
+      <div className="space-y-2">
+        <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 text-center text-sm text-muted-foreground">
+          {t("register.cancelledCanRejoin")}
         </div>
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          Tu inscripción para este evento ha sido cancelada. Para garantizar la disponibilidad de vacantes y evitar reservas repetitivas, el auto-registro ha sido deshabilitado. Ponte en contacto con el organizador si deseas reactivar tu participación.
-        </p>
+        <button
+          type="button"
+          onClick={() => {
+            startTransition(async () => {
+              try {
+                const result = await registerForEvent({ eventId });
+                if (result.success) {
+                  setOptimisticStatus(result.status);
+                  toast.success(
+                    result.status === "waitlisted"
+                      ? t("register.addedToWaitlist")
+                      : t("register.registrationSuccess"),
+                  );
+                  if (result.requiresPayment && result.registrationId) {
+                    router.push(`/member/payments/new/${result.registrationId}`);
+                  } else if (result.status === "registered") {
+                    router.push("/member/tickets");
+                  }
+                  router.refresh();
+                }
+              } catch (error) {
+                toast.error(
+                  error instanceof Error
+                    ? mapRegistrationError(error.message)
+                    : t("register.registrationFailed"),
+                );
+              }
+            });
+          }}
+          disabled={isPending}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground"
+        >
+          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("register.registerAgain")}
+        </button>
       </div>
     );
   }
@@ -392,6 +432,26 @@ export function RegisterButton({
     <div className="space-y-3">
       <button
         onClick={() => {
+          if (waitlistAvailable) {
+            startTransition(async () => {
+              try {
+                const result = await registerForEvent({ eventId });
+                if (result.success) {
+                  setOptimisticStatus(result.status);
+                  toast.success(t("register.addedToWaitlist"));
+                  router.refresh();
+                }
+              } catch (error) {
+                toast.error(
+                  error instanceof Error
+                    ? mapRegistrationError(error.message)
+                    : t("register.registrationFailed"),
+                );
+              }
+            });
+            return;
+          }
+
           if (hasTransport && transportRoutes.length > 0) {
             setIsModalOpen(true);
           } else {
@@ -400,9 +460,15 @@ export function RegisterButton({
               try {
                 const result = await registerForEvent({ eventId });
                 if (result.success) {
-                  setOptimisticStatus("registered");
-                  toast.success(t("register.registrationSuccess"));
-                  if (result.requiresPayment && result.registrationId) {
+                  setOptimisticStatus(result.status);
+                  toast.success(
+                    result.status === "waitlisted"
+                      ? t("register.addedToWaitlist")
+                      : t("register.registrationSuccess"),
+                  );
+                  if (result.status === "waitlisted") {
+                    router.refresh();
+                  } else if (result.requiresPayment && result.registrationId) {
                     router.push(`/member/payments/new/${result.registrationId}`);
                   } else {
                     router.push("/member/tickets");
@@ -424,6 +490,8 @@ export function RegisterButton({
       >
         {isPending ? (
           <Loader2 className="h-4 w-4 animate-spin" />
+        ) : waitlistAvailable ? (
+          t("register.joinWaitlist")
         ) : (
           t("register.registerNow")
         )}
