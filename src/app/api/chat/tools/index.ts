@@ -2,7 +2,7 @@ import { getMyTickets } from "./my-tickets";
 import { createSearchEvents } from "./search-events";
 import { createGetEventStats } from "./event-stats";
 import { createGetEventRoutes } from "./event-routes";
-import { createSendMassNotification } from "./mass-notification";
+import { createPreviewMassNotification, createSendMassNotification } from "./mass-notification";
 import { createGetAuditLogs } from "./audit-logs";
 import { createGetUsersList } from "./users";
 import { createGetRegistrationsList } from "./registrations";
@@ -47,6 +47,7 @@ export async function buildTools(userRole: AppRole, userId: string, userName: st
   }
 
   if (canSendNotifications) {
+    addTool(tools, "previewMassNotification", createPreviewMassNotification(scope));
     addTool(tools, "sendMassNotification", createSendMassNotification(scope));
   }
 
@@ -54,7 +55,11 @@ export async function buildTools(userRole: AppRole, userId: string, userName: st
     addTool(tools, "getUsersList", createGetUsersList(scope));
   }
 
-  if (userRole === "super_admin" && (await hasEffectivePermission(userRole, "permissions:view"))) {
+  const canViewAudit =
+    (userRole === "super_admin" && (await hasEffectivePermission(userRole, "permissions:view"))) ||
+    (scope.adminScope.mode === "org" && userRole === "admin");
+
+  if (canViewAudit) {
     addTool(tools, "getAuditLogs", createGetAuditLogs(scope));
   }
 

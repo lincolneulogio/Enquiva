@@ -7,6 +7,7 @@ import { buildSystemPrompt } from "./prompts";
 import { buildTools } from "./tools";
 import { streamWithFallback } from "./providers";
 import { requirePlanFeature } from "@/lib/billing/enforce";
+import { chatRatelimit } from "@/lib/redis";
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
@@ -23,6 +24,21 @@ export async function POST(req: Request) {
     const userId = session.user.id;
 
     await requirePlanFeature(userId, userRole, "ai");
+
+    try {
+      const { success } = await chatRatelimit.limit(userId);
+      if (!success) {
+        return NextResponse.json(
+          {
+            error:
+              "Has alcanzado el límite de mensajes del Copilot. Espera unos minutos antes de continuar.",
+          },
+          { status: 429 },
+        );
+      }
+    } catch (error) {
+      console.error("Chat rate limit unavailable, continuing without enforcement", error);
+    }
 
     // 2. System prompt dinámico según rol
     const systemPrompt = buildSystemPrompt(userName, userRole);

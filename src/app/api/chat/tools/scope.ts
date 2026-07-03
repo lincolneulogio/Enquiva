@@ -59,6 +59,10 @@ export function canUsePlatformAuditTools(scope: ChatToolScope): boolean {
   return scope.role === "super_admin";
 }
 
+export function canUseScopedAuditTools(scope: ChatToolScope): boolean {
+  return scope.role === "admin" && scope.adminScope.mode === "org";
+}
+
 export function canUseScopedUserList(scope: ChatToolScope): boolean {
   return scope.role === "super_admin" || scope.role === "admin";
 }

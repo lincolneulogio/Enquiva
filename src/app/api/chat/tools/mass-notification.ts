@@ -1,15 +1,103 @@
 import { db } from "@/lib/db";
-import { users, events, registrations, activityLogs, transportRoutes, transportBookings } from "@/lib/db/schema";
-import { and, eq, ne } from "drizzle-orm";
+import { activityLogs } from "@/lib/db/schema";
 import { z } from "zod";
-import { assertEventInAdminScope, assertRouteInAdminScope } from "@/lib/organizations/admin-scope";
 import { canUseStaffChatTools, type ChatToolScope } from "./scope";
 import {
   DEFAULT_MASS_CHANNELS,
   deliverMassCommunication,
-  type MassCommunicationRecipient,
 } from "@/lib/notifications/mass-communication";
 import { runBackground } from "@/lib/background";
+import {
+  consumeMassNotificationConfirmation,
+  storeMassNotificationConfirmation,
+} from "@/lib/chat/mass-notification-confirm";
+import { maskEmail, resolveMassNotificationRecipients } from "@/lib/chat/resolve-mass-recipients";
+import { logChatToolUse } from "@/lib/chat/tool-audit";
+
+const massNotificationParams = z.object({
+  eventId: z.string().uuid().describe("El ID único del evento."),
+  target: z.enum(["all_attendees", "route_passengers"]).describe("El grupo objetivo."),
+  routeId: z.string().uuid().optional().describe("Obligatorio si target es route_passengers."),
+  title: z.string().describe("Título o asunto de la notificación."),
+  body: z.string().describe("Contenido de la notificación."),
+});
+
+export function createPreviewMassNotification(scope: ChatToolScope) {
+  if (!canUseStaffChatTools(scope)) {
+    return null;
+  }
+
+  return {
+    description:
+      "Vista previa (dry-run) de notificación masiva. NO envía nada. Devuelve conteo de destinatarios, muestra de nombres y un confirmationId válido 10 minutos. Obligatorio antes de sendMassNotification.",
+    parameters: massNotificationParams,
+    execute: async (input: z.infer<typeof massNotificationParams>) => {
+      try {
+        const resolved = await resolveMassNotificationRecipients({
+          eventId: input.eventId,
+          target: input.target,
+          routeId: input.routeId,
+          actorId: scope.userId,
+          actorRole: scope.role,
+        });
+
+        if (!resolved.ok) {
+          return { error: resolved.error };
+        }
+
+        const { recipients, eventTitle } = resolved;
+
+        if (recipients.length === 0) {
+          return { message: "No se encontraron destinatarios activos para el filtro indicado." };
+        }
+
+        const confirmationId = await storeMassNotificationConfirmation({
+          userId: scope.userId,
+          eventId: input.eventId,
+          eventTitle,
+          target: input.target,
+          routeId: input.routeId,
+          title: input.title,
+          body: input.body,
+          recipientCount: recipients.length,
+        });
+
+        const sample = recipients.slice(0, 8).map((r) => ({
+          name: r.name ?? "Sin nombre",
+          email: maskEmail(r.email),
+        }));
+
+        await logChatToolUse(
+          { id: scope.userId, name: scope.userName },
+          "previewMassNotification",
+          `Dry-run: "${input.title}" → ${recipients.length} destinatarios (${input.target}) en evento "${eventTitle}". confirmationId=${confirmationId}`,
+          "event",
+          input.eventId,
+        );
+
+        return {
+          dryRun: true,
+          confirmationId,
+          expiresInMinutes: 10,
+          eventTitle,
+          target: input.target,
+          recipientCount: recipients.length,
+          channels: ["email", "in-app", "push", "pusher"],
+          sampleRecipients: sample,
+          title: input.title,
+          body: input.body,
+          instructions:
+            "Muestra este resumen al usuario y pregunta si desea enviar. Solo si confirma, llama sendMassNotification con el mismo confirmationId.",
+        };
+      } catch (err) {
+        console.error("Error in previewMassNotification:", err);
+        return {
+          error: err instanceof Error ? err.message : "Error al generar la vista previa.",
+        };
+      }
+    },
+  };
+}
 
 export function createSendMassNotification(scope: ChatToolScope) {
   if (!canUseStaffChatTools(scope)) {
@@ -18,116 +106,102 @@ export function createSendMassNotification(scope: ChatToolScope) {
 
   return {
     description:
-      "Envía notificación masiva a asistentes de un evento o pasajeros de una ruta que gestionas. Pide confirmación antes de enviar.",
+      "Envía notificación masiva confirmada. Requiere confirmationId de previewMassNotification. Sin token válido no se envía nada.",
     parameters: z.object({
-      eventId: z.string().uuid().describe("El ID único del evento."),
-      target: z.enum(["all_attendees", "route_passengers"]).describe("El grupo objetivo."),
-      routeId: z.string().uuid().optional().describe("Obligatorio si target es route_passengers."),
-      title: z.string().describe("Título o asunto de la notificación."),
-      body: z.string().describe("Contenido de la notificación."),
+      confirmationId: z
+        .string()
+        .uuid()
+        .describe("ID devuelto por previewMassNotification tras confirmación del usuario."),
     }),
-    execute: async ({
-      eventId,
-      target,
-      routeId,
-      title,
-      body,
-    }: {
-      eventId: string;
-      target: "all_attendees" | "route_passengers";
-      routeId?: string;
-      title: string;
-      body: string;
-    }) => {
+    execute: async ({ confirmationId }: { confirmationId: string }) => {
       try {
-        await assertEventInAdminScope(eventId, scope.userId, scope.role);
+        const confirmed = await consumeMassNotificationConfirmation(confirmationId, scope.userId);
 
-        const [event] = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
-        if (!event) return { error: "El evento especificado no existe." };
-
-        let recipients: MassCommunicationRecipient[] = [];
-
-        if (target === "all_attendees") {
-          const rows = await db
-            .select({ id: users.id, name: users.name, email: users.email })
-            .from(registrations)
-            .innerJoin(users, eq(registrations.userId, users.id))
-            .where(and(eq(registrations.eventId, eventId), ne(registrations.status, "cancelled")));
-          recipients = rows.filter((r) => !!r.email) as MassCommunicationRecipient[];
-        } else {
-          if (!routeId) return { error: "El parámetro routeId es obligatorio para pasajeros de una ruta." };
-          await assertRouteInAdminScope(routeId, scope.userId, scope.role);
-
-          const [route] = await db.select().from(transportRoutes).where(eq(transportRoutes.id, routeId)).limit(1);
-          if (!route || route.eventId !== eventId) {
-            return { error: "La ruta no pertenece al evento indicado." };
-          }
-
-          const rows = await db
-            .select({ id: users.id, name: users.name, email: users.email })
-            .from(transportBookings)
-            .innerJoin(users, eq(transportBookings.userId, users.id))
-            .where(and(eq(transportBookings.routeId, routeId), ne(transportBookings.status, "cancelled")));
-          recipients = rows.filter((r) => !!r.email) as MassCommunicationRecipient[];
-        }
-
-        if (recipients.length === 0) return { message: "No se encontraron destinatarios activos." };
-
-        const unique = Array.from(new Map(recipients.map((r) => [r.id, r])).values());
-        const payload = {
-          eventId,
-          eventTitle: event.title,
-          title,
-          body,
-          senderId: scope.userId,
-          channels: DEFAULT_MASS_CHANNELS,
-          metadata: { routeId: routeId || null, sentBy: scope.userId, targetGroup: target },
-          pushUrl: "/member/notifications",
-        };
-
-        if (unique.length > 15) {
-          runBackground(async () => {
-            const { successCount, failureCount } = await deliverMassCommunication(unique, payload);
-            await db
-              .insert(activityLogs)
-              .values({
-                actorId: scope.userId,
-                actorName: scope.userName,
-                action: "send_mass_notification",
-                entityType: "notification",
-                entityId: eventId,
-                details: `Notificación masiva enviada a ${successCount} destinatarios (${failureCount} fallos). Asunto: "${title}".`,
-              })
-              .catch((e) => console.error("Audit log failed:", e));
-          });
-
+        if (!confirmed) {
           return {
-            success: true,
-            queued: true,
-            totalRecipients: unique.length,
-            message: `Comunicado encolado para ${unique.length} destinatarios (email, app, push y tiempo real).`,
+            error:
+              "confirmationId inválido o expirado. Ejecuta previewMassNotification de nuevo y pide confirmación al usuario.",
           };
         }
 
-        const { successCount, failureCount } = await deliverMassCommunication(unique, payload);
+        const resolved = await resolveMassNotificationRecipients({
+          eventId: confirmed.eventId,
+          target: confirmed.target,
+          routeId: confirmed.routeId,
+          actorId: scope.userId,
+          actorRole: scope.role,
+        });
 
-        await db
-          .insert(activityLogs)
-          .values({
-            actorId: scope.userId,
-            actorName: scope.userName,
-            action: "send_mass_notification",
-            entityType: "notification",
-            entityId: eventId,
-            details: `Notificación masiva enviada a ${successCount} destinatarios. Asunto: "${title}".`,
-          })
-          .catch((e) => console.error("Audit log failed:", e));
+        if (!resolved.ok) {
+          return { error: resolved.error };
+        }
 
+        const { recipients, eventTitle } = resolved;
+
+        if (recipients.length === 0) {
+          return { message: "No se encontraron destinatarios activos." };
+        }
+
+        const payload = {
+          eventId: confirmed.eventId,
+          eventTitle,
+          title: confirmed.title,
+          body: confirmed.body,
+          senderId: scope.userId,
+          channels: DEFAULT_MASS_CHANNELS,
+          metadata: {
+            routeId: confirmed.routeId || null,
+            sentBy: scope.userId,
+            targetGroup: confirmed.target,
+            confirmationId,
+          },
+          pushUrl: "/member/notifications",
+        };
+
+        const deliverAndAudit = async () => {
+          const { successCount, failureCount } = await deliverMassCommunication(recipients, payload);
+          await db
+            .insert(activityLogs)
+            .values({
+              actorId: scope.userId,
+              actorName: scope.userName,
+              action: "send_mass_notification",
+              entityType: "notification",
+              entityId: confirmed.eventId,
+              details: `Notificación masiva (copilot) a ${successCount} destinatarios (${failureCount} fallos). Asunto: "${confirmed.title}".`,
+            })
+            .catch((e) => console.error("Audit log failed:", e));
+
+          await logChatToolUse(
+            { id: scope.userId, name: scope.userName },
+            "sendMassNotification",
+            `Enviado: "${confirmed.title}" → ${successCount}/${recipients.length} entregas en evento "${eventTitle}".`,
+            "event",
+            confirmed.eventId,
+          );
+
+          return { successCount, failureCount };
+        };
+
+        if (recipients.length > 15) {
+          runBackground(async () => {
+            await deliverAndAudit();
+          });
+          return {
+            success: true,
+            queued: true,
+            totalRecipients: recipients.length,
+            message: `Comunicado encolado para ${recipients.length} destinatarios (email, app, push y tiempo real).`,
+          };
+        }
+
+        const { successCount, failureCount } = await deliverAndAudit();
         return {
           success: true,
+          totalRecipients: recipients.length,
           totalSent: successCount,
           totalFailed: failureCount,
-          message: `Se enviaron ${successCount} notificaciones (fallaron ${failureCount}).`,
+          message: `Notificación enviada: ${successCount} entregas, ${failureCount} fallos.`,
         };
       } catch (err) {
         console.error("Error in sendMassNotification:", err);

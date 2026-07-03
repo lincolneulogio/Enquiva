@@ -3,6 +3,7 @@ import { users } from "@/lib/db/schema";
 import { and, eq, ilike, or, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { canUseScopedUserList, scopeUsersForChat, type ChatToolScope } from "./scope";
+import { logChatToolUse } from "@/lib/chat/tool-audit";
 
 export function createGetUsersList(scope: ChatToolScope) {
   if (!canUseScopedUserList(scope)) {
@@ -43,6 +44,13 @@ export function createGetUsersList(scope: ChatToolScope) {
           .limit(50);
 
         if (rows.length === 0) return { message: "No se encontraron usuarios." };
+
+        await logChatToolUse(
+          { id: scope.userId, name: scope.userName },
+          "getUsersList",
+          `Listado de usuarios: ${rows.length} resultados. query=${query ?? "—"}, role=${role ?? "—"}.`,
+          "user",
+        );
 
         return rows.map((u) => ({
           id: u.id,

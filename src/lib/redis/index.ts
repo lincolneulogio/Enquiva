@@ -23,6 +23,14 @@ export const ticketVerifyRatelimit = new Ratelimit({
   prefix: "ratelimit:ticket_verify",
 });
 
+/** Copilot: mensajes por usuario (además del límite de plan AI). */
+export const chatRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(30, "10 m"),
+  analytics: true,
+  prefix: "ratelimit:chat",
+});
+
 // Cache keys
 export const CACHE_KEYS = {
   publicEvents: "events:public",

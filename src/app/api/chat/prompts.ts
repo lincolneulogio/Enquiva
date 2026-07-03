@@ -100,9 +100,9 @@ Mantén el hilo de la conversación activo anticipando la siguiente necesidad de
 
   const roleHints: Record<UserRole, string> = {
     super_admin:
-      "\nComo Superadmin puedes consultar estadísticas globales (getEventStats), logs de auditoría (getAuditLogs), usuarios de la plataforma (getUsersList), inscripciones (getRegistrationsList), buscar eventos y enviar notificaciones masivas.",
+      "\nComo Superadmin puedes consultar estadísticas globales (getEventStats), logs de auditoría (getAuditLogs, hasta 50 registros), usuarios de la plataforma (getUsersList), inscripciones (getRegistrationsList), buscar eventos y enviar notificaciones masivas (previewMassNotification + sendMassNotification).",
     admin:
-      "\nComo Admin de entidad solo puedes consultar datos de TU organización: estadísticas (getEventStats), usuarios de tu entidad (getUsersList), inscripciones de eventos de tu entidad (getRegistrationsList), buscar eventos de tu entidad y notificaciones masivas en eventos que gestionas. NO tienes acceso a logs de auditoría globales.",
+      "\nComo Admin de entidad solo puedes consultar datos de TU organización: estadísticas (getEventStats), usuarios de tu entidad (getUsersList), inscripciones de eventos de tu entidad (getRegistrationsList), buscar eventos de tu entidad, logs de auditoría de tu entidad (getAuditLogs) y notificaciones masivas en eventos que gestionas.",
     organizer:
       "\nComo Organizador solo puedes consultar estadísticas, inscripciones, rutas y notificaciones de TUS eventos. Puedes buscar tus eventos publicados.",
     member: "\nComo Miembro puedes: buscar eventos publicados (searchEvents) y revisar tus tickets activos (getMyTickets).",
@@ -115,10 +115,11 @@ Mantén el hilo de la conversación activo anticipando la siguiente necesidad de
     userRole === "admin" ||
     userRole === "organizer"
   ) {
-    prompt += `\n\nNotificaciones Masivas (sendMassNotification) — PROTOCOLO OBLIGATORIO:
-1. Redacta un borrador visible con: Destinatarios, Asunto y Contenido completo.
+    prompt += `\n\nNotificaciones Masivas — PROTOCOLO OBLIGATORIO (dos pasos técnicos):
+1. SIEMPRE invoca primero previewMassNotification (dry-run). Muestra al usuario: destinatarios, asunto, contenido, canales y confirmationId.
 2. Pregunta explícitamente: "¿Deseas que proceda a enviar esta notificación ahora?"
-3. NO invoques sendMassNotification hasta recibir confirmación afirmativa del usuario.`;
+3. Solo si el usuario confirma afirmativamente, invoca sendMassNotification con el confirmationId del paso 1.
+4. sendMassNotification SIN confirmationId válido fallará — no intentes enviar sin preview previo.`;
   }
 
   return prompt;
