@@ -3,6 +3,9 @@ import {
   resolveCulqiCustomerData,
   type CulqiUserProfile,
 } from "@/lib/culqi/customer-data";
+import { CULQI_ORDER_MIN_AMOUNT_PEN } from "@/lib/culqi/constants";
+
+export { CULQI_ORDER_MIN_AMOUNT_PEN };
 
 const CULQI_API = "https://api.culqi.com/v2";
 
@@ -174,9 +177,6 @@ type CulqiOrderInput = {
   metadata?: Record<string, string>;
   expirationHours?: number;
 };
-
-/** Monto mínimo Culqi para órdenes (Yape/billeteras): S/ 6.00 */
-export const CULQI_ORDER_MIN_AMOUNT_PEN = 6;
 
 export async function createCulqiOrder(
   input: CulqiOrderInput,

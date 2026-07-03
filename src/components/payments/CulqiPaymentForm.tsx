@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { CreditCard, Loader2, ShieldCheck } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import { loadCulqiCheckoutScript, openCulqiCheckout } from "@/lib/culqi/open-checkout";
-import { CULQI_ORDER_MIN_AMOUNT_PEN } from "@/lib/culqi/client";
+import { CULQI_ORDER_MIN_AMOUNT_PEN } from "@/lib/culqi/constants";
 import { useSession } from "@/lib/auth/client";
 
 interface CulqiPaymentFormProps {

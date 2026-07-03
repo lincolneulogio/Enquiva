@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { AdminStatsCharts, AdminStatsSectionHeader, AdminOwnEventsEmptyState } from "@/components/dashboard";
+import { AdminStatsCharts } from "./AdminStatsCharts";
+import { AdminStatsSectionHeader } from "./AdminStatsSectionHeader";
+import { AdminOwnEventsEmptyState } from "./AdminOwnEventsEmptyState";
 import { AdminAnalyticsExportBar } from "@/components/dashboard/admin/AdminAnalyticsExportBar";
 import type { AdminStatsRange } from "@/lib/analytics/admin";
 import { Users, CalendarDays, Ticket, BadgeCheck, Coins } from "lucide-react";

@@ -1,12 +1,12 @@
 import Link from "next/link";
 import {
-  AdminStatsSectionHeader,
-  AdminAnalyticsQuickLinks,
-  EntityInviteBanner,
   AdminKpiCard,
-  AdminPendingPaymentsAlert,
-  AdminRevenueSplitCards,
+  EntityInviteBanner,
 } from "@/components/dashboard";
+import { AdminStatsSectionHeader } from "@/components/dashboard/admin/AdminStatsSectionHeader";
+import { AdminAnalyticsQuickLinks } from "@/components/dashboard/admin/AdminAnalyticsQuickLinks";
+import { AdminPendingPaymentsAlert } from "@/components/dashboard/admin/AdminPendingPaymentsAlert";
+import { AdminRevenueSplitCards } from "@/components/dashboard/admin/AdminRevenueSplitCards";
 import { Users, CalendarDays, BadgeCheck, Ticket } from "lucide-react";
 import { getAdminDashboardStats } from "@/lib/analytics/admin";
 import { getDashboardRevenueSnapshot } from "@/lib/analytics/platform-revenue";

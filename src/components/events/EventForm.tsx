@@ -16,7 +16,7 @@ import type { FieldErrors } from "react-hook-form";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { categoryLabel, cn } from "@/lib/utils";
 import { getRoutesByEvent } from "@/actions/transport";
-import { TransportRoutesManager } from "@/components/dashboard";
+import { TransportRoutesManager } from "@/components/dashboard/organizer/TransportRoutesManager";
 import { PlanUsageBanner } from "@/components/dashboard/organizer/PlanUsageBanner";
 import type { getOrganizerPlanSummary } from "@/lib/billing/enforce";
 import Link from "next/link";

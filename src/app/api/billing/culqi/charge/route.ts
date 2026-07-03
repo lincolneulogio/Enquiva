@@ -5,7 +5,8 @@ import { db } from "@/lib/db";
 import { plans } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { createCulqiCharge, getPlatformCulqiCredentials, isPlatformCulqiConfigured } from "@/lib/culqi/client";
-import { getUserCulqiProfile, mergeSessionCulqiProfile, formatCulqiPhone } from "@/lib/culqi/customer-data";
+import { getUserCulqiProfile } from "@/lib/culqi/customer-data.server";
+import { mergeSessionCulqiProfile, formatCulqiPhone } from "@/lib/culqi/customer-data";
 import { SubscriptionPaymentService } from "@/lib/billing/subscription-payment.service";
 import { SubscriptionAutoRenewService } from "@/lib/billing/subscription-auto-renew.service";
 import {
