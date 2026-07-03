@@ -7,14 +7,26 @@ import {
   transportRoutes,
   transportBookings,
 } from "@/lib/db/schema";
-import { count, eq, sql, desc, and, gte } from "drizzle-orm";
+import { count, eq, sql, desc, and, gte, lte } from "drizzle-orm";
+import { createHash } from "crypto";
 import {
   registrationInOrgCondition,
   paymentInOrgCondition,
   transportRouteInOrgCondition,
   transportBookingInOrgCondition,
+  registrationForOrganizerCondition,
+  paymentForOrganizerCondition,
+  transportRouteForOrganizerCondition,
+  transportBookingForOrganizerCondition,
   andWithScope,
 } from "@/lib/organizations/admin-scope";
+import { getCached, setCached, CACHE_KEYS, CACHE_TTL } from "@/lib/redis";
+import { sumEventViews } from "@/lib/analytics/event-views";
+import {
+  computePercentChange,
+  getComparisonWindows,
+  type StatsComparison,
+} from "@/lib/analytics/comparison";
 
 export type AdminStatsRange = "30d" | "90d" | "12m" | "all";
 
@@ -71,27 +83,78 @@ function getMonthsForRange(range: AdminStatsRange) {
   return 12;
 }
 
+export type AdminDashboardStatsResult = Awaited<ReturnType<typeof computeAdminDashboardStats>>;
+
+function buildStatsCacheKey(options?: {
+  range?: AdminStatsRange;
+  organizationId?: string | null;
+  organizerId?: string | null;
+}) {
+  const raw = JSON.stringify({
+    range: options?.range ?? "all",
+    organizationId: options?.organizationId ?? "",
+    organizerId: options?.organizerId ?? "",
+  });
+  return createHash("sha256").update(raw).digest("hex").slice(0, 24);
+}
+
 export async function getAdminDashboardStats(options?: {
   range?: AdminStatsRange;
   organizationId?: string | null;
+  organizerId?: string | null;
+  skipCache?: boolean;
+}) {
+  const cacheKey = buildStatsCacheKey(options);
+  if (!options?.skipCache) {
+    const cached = await getCached<AdminDashboardStatsResult>(
+      CACHE_KEYS.adminDashboardStats(cacheKey),
+    );
+    if (cached) return cached;
+  }
+
+  const result = await computeAdminDashboardStats(options);
+  await setCached(CACHE_KEYS.adminDashboardStats(cacheKey), result, CACHE_TTL.adminDashboardStats);
+  return result;
+}
+
+async function computeAdminDashboardStats(options?: {
+  range?: AdminStatsRange;
+  organizationId?: string | null;
+  organizerId?: string | null;
 }) {
   const range = options?.range ?? "all";
   const organizationId = options?.organizationId ?? null;
+  const organizerId = options?.organizerId ?? null;
   const rangeStart = getRangeStartDate(range);
   const lastMonths = buildLastMonthsKeys(getMonthsForRange(range));
+  const organizerOnly = Boolean(organizerId) && !organizationId;
 
-  const eventOrgScope = organizationId ? eq(events.organizationId, organizationId) : undefined;
+  const eventOrgScope = organizationId
+    ? eq(events.organizationId, organizationId)
+    : organizerId
+      ? eq(events.organizerId, organizerId)
+      : undefined;
   const userOrgScope = organizationId ? eq(users.organizationId, organizationId) : undefined;
   const registrationOrgScope = organizationId
     ? registrationInOrgCondition(organizationId)
-    : undefined;
-  const paymentOrgScope = organizationId ? paymentInOrgCondition(organizationId) : undefined;
+    : organizerId
+      ? registrationForOrganizerCondition(organizerId)
+      : undefined;
+  const paymentOrgScope = organizationId
+    ? paymentInOrgCondition(organizationId)
+    : organizerId
+      ? paymentForOrganizerCondition(organizerId)
+      : undefined;
   const transportRouteOrgScope = organizationId
     ? transportRouteInOrgCondition(organizationId)
-    : undefined;
+    : organizerId
+      ? transportRouteForOrganizerCondition(organizerId)
+      : undefined;
   const transportBookingOrgScope = organizationId
     ? transportBookingInOrgCondition(organizationId)
-    : undefined;
+    : organizerId
+      ? transportBookingForOrganizerCondition(organizerId)
+      : undefined;
 
   const eventMonthExpr = sql<string>`to_char(date_trunc('month', ${events.createdAt}), 'YYYY-MM')`;
   const regMonthExpr = sql<string>`to_char(date_trunc('month', ${registrations.registeredAt}), 'YYYY-MM')`;
@@ -123,16 +186,20 @@ export async function getAdminDashboardStats(options?: {
     eventOrgScope,
   );
 
-  const membersWhere = andWithScope(
-    rangeStart ? [gte(users.createdAt, rangeStart)] : [],
-    eq(users.role, "member"),
-    userOrgScope,
-  );
-  const organizersWhere = andWithScope(
-    rangeStart ? [gte(users.createdAt, rangeStart)] : [],
-    eq(users.role, "organizer"),
-    userOrgScope,
-  );
+  const membersWhere = organizerOnly
+    ? undefined
+    : andWithScope(
+        rangeStart ? [gte(users.createdAt, rangeStart)] : [],
+        eq(users.role, "member"),
+        userOrgScope,
+      );
+  const organizersWhere = organizerOnly
+    ? undefined
+    : andWithScope(
+        rangeStart ? [gte(users.createdAt, rangeStart)] : [],
+        eq(users.role, "organizer"),
+        userOrgScope,
+      );
 
   const [
     totalUsers,
@@ -144,9 +211,11 @@ export async function getAdminDashboardStats(options?: {
     memberCount,
     organizerCount,
   ] = await Promise.all([
-    usersWhere
-      ? db.select({ count: count() }).from(users).where(usersWhere)
-      : db.select({ count: count() }).from(users),
+    organizerOnly
+      ? Promise.resolve([{ count: 0 }])
+      : usersWhere
+        ? db.select({ count: count() }).from(users).where(usersWhere)
+        : db.select({ count: count() }).from(users),
     eventsWhere
       ? db.select({ count: count() }).from(events).where(eventsWhere)
       : db.select({ count: count() }).from(events),
@@ -159,9 +228,30 @@ export async function getAdminDashboardStats(options?: {
     db.select({ count: count() }).from(events).where(publishedWhere),
     db.select({ count: count() }).from(events).where(draftWhere),
     db.select({ count: count() }).from(events).where(cancelledWhere),
-    db.select({ count: count() }).from(users).where(membersWhere),
-    db.select({ count: count() }).from(users).where(organizersWhere),
+    membersWhere
+      ? db.select({ count: count() }).from(users).where(membersWhere)
+      : Promise.resolve([{ count: 0 }]),
+    organizersWhere
+      ? db.select({ count: count() }).from(users).where(organizersWhere)
+      : Promise.resolve([{ count: 0 }]),
   ]);
+
+  const usersByMonthQuery = organizerOnly
+    ? null
+    : usersWhere
+      ? db
+          .select({
+            month: userMonthExpr,
+            value: count(),
+          })
+          .from(users)
+          .where(usersWhere)
+      : db
+          .select({
+            month: userMonthExpr,
+            value: count(),
+          })
+          .from(users);
 
   const [
     eventsByMonth,
@@ -203,23 +293,11 @@ export async function getAdminDashboardStats(options?: {
     )
       .groupBy(sql`date_trunc('month', ${registrations.registeredAt})`)
       .orderBy(sql`date_trunc('month', ${registrations.registeredAt})`),
-    (usersWhere
-      ? db
-          .select({
-            month: userMonthExpr,
-            value: count(),
-          })
-          .from(users)
-          .where(usersWhere)
-      : db
-          .select({
-            month: userMonthExpr,
-            value: count(),
-          })
-          .from(users)
-    )
-      .groupBy(sql`date_trunc('month', ${users.createdAt})`)
-      .orderBy(sql`date_trunc('month', ${users.createdAt})`),
+    usersByMonthQuery
+      ? usersByMonthQuery
+          .groupBy(sql`date_trunc('month', ${users.createdAt})`)
+          .orderBy(sql`date_trunc('month', ${users.createdAt})`)
+      : Promise.resolve([] as { month: string; value: number }[]),
     (eventsWhere
       ? db
           .select({
@@ -273,7 +351,7 @@ export async function getAdminDashboardStats(options?: {
   const [revenueResult] = await db
     .select({
       totalRevenue: sql<string>`coalesce(sum(${payments.amount}), '0')`,
-      pendingPaymentsCount: sql<number>`count(case when ${payments.status} = 'pending' then 1 end)`,
+      approvedPaymentsCount: count(),
       avgPayment: sql<string>`coalesce(avg(${payments.amount}), '0')`,
     })
     .from(payments)
@@ -351,12 +429,134 @@ export async function getAdminDashboardStats(options?: {
     .from(registrations)
     .where(registrationsWhere);
 
+  const totalEventViews = await sumEventViews({
+    eventScope: eventOrgScope,
+    rangeStart,
+  });
+
+  const windows = getComparisonWindows(range);
+
+  const compCurrentEventWhere = andWithScope(
+    [gte(events.createdAt, windows.currentStart), lte(events.createdAt, windows.currentEnd)],
+    eventOrgScope,
+  );
+  const compCurrentRegWhere = andWithScope(
+    [
+      gte(registrations.registeredAt, windows.currentStart),
+      lte(registrations.registeredAt, windows.currentEnd),
+    ],
+    registrationOrgScope,
+  );
+  const compCurrentUserWhere =
+    organizerOnly || !userOrgScope
+      ? undefined
+      : and(
+          gte(users.createdAt, windows.currentStart),
+          lte(users.createdAt, windows.currentEnd),
+          userOrgScope,
+        );
+  const compCurrentRevenueWhere = andWithScope(
+    [
+      eq(payments.status, "approved"),
+      gte(payments.createdAt, windows.currentStart),
+      lte(payments.createdAt, windows.currentEnd),
+    ],
+    paymentOrgScope,
+  );
+
+  const prevEventWhere = andWithScope(
+    [gte(events.createdAt, windows.previousStart), lte(events.createdAt, windows.previousEnd)],
+    eventOrgScope,
+  );
+  const prevRegWhere = andWithScope(
+    [
+      gte(registrations.registeredAt, windows.previousStart),
+      lte(registrations.registeredAt, windows.previousEnd),
+    ],
+    registrationOrgScope,
+  );
+  const prevUserWhere =
+    organizerOnly || !userOrgScope
+      ? undefined
+      : and(
+          gte(users.createdAt, windows.previousStart),
+          lte(users.createdAt, windows.previousEnd),
+          userOrgScope,
+        );
+  const prevRevenueWhere = andWithScope(
+    [
+      eq(payments.status, "approved"),
+      gte(payments.createdAt, windows.previousStart),
+      lte(payments.createdAt, windows.previousEnd),
+    ],
+    paymentOrgScope,
+  );
+
+  const [
+    [compUsers],
+    [compEvents],
+    [compRegistrations],
+    [compRevenue],
+    [prevUsers],
+    [prevEvents],
+    [prevRegistrations],
+    [prevRevenue],
+  ] = await Promise.all([
+    compCurrentUserWhere
+      ? db.select({ count: count() }).from(users).where(compCurrentUserWhere)
+      : Promise.resolve([{ count: 0 }]),
+    compCurrentEventWhere
+      ? db.select({ count: count() }).from(events).where(compCurrentEventWhere)
+      : db.select({ count: count() }).from(events),
+    compCurrentRegWhere
+      ? db.select({ count: count() }).from(registrations).where(compCurrentRegWhere)
+      : db.select({ count: count() }).from(registrations),
+    db
+      .select({ total: sql<string>`coalesce(sum(${payments.amount}), '0')` })
+      .from(payments)
+      .where(compCurrentRevenueWhere),
+    prevUserWhere
+      ? db.select({ count: count() }).from(users).where(prevUserWhere)
+      : Promise.resolve([{ count: 0 }]),
+    prevEventWhere
+      ? db.select({ count: count() }).from(events).where(prevEventWhere)
+      : db.select({ count: count() }).from(events),
+    prevRegWhere
+      ? db.select({ count: count() }).from(registrations).where(prevRegWhere)
+      : db.select({ count: count() }).from(registrations),
+    db
+      .select({ total: sql<string>`coalesce(sum(${payments.amount}), '0')` })
+      .from(payments)
+      .where(prevRevenueWhere),
+  ]);
+
+  const currentUsers = totalUsers[0]?.count ?? 0;
+  const currentEvents = totalEvents[0]?.count ?? 0;
+  const currentRegistrations = totalRegistrations[0]?.count ?? 0;
+  const currentRevenue = Number(revenueResult?.totalRevenue ?? 0);
+
+  const comparisons: StatsComparison = {
+    totalUsers: organizerOnly
+      ? null
+      : computePercentChange(compUsers?.count ?? 0, prevUsers?.count ?? 0),
+    totalEvents: computePercentChange(compEvents?.count ?? 0, prevEvents?.count ?? 0),
+    totalRegistrations: computePercentChange(
+      compRegistrations?.count ?? 0,
+      prevRegistrations?.count ?? 0,
+    ),
+    totalRevenue: computePercentChange(
+      Number(compRevenue?.total ?? 0),
+      Number(prevRevenue?.total ?? 0),
+    ),
+    periodLabelKey: windows.periodLabelKey,
+  };
+
   return {
     range,
     rangeStart,
-    totalUsers: totalUsers[0]?.count ?? 0,
-    totalEvents: totalEvents[0]?.count ?? 0,
-    totalRegistrations: totalRegistrations[0]?.count ?? 0,
+    totalUsers: currentUsers,
+    totalEvents: currentEvents,
+    totalRegistrations: currentRegistrations,
     publishedEvents: publishedEvents[0]?.count ?? 0,
     draftEvents: draftEvents[0]?.count ?? 0,
     cancelledEvents: cancelledEvents[0]?.count ?? 0,
@@ -364,7 +564,7 @@ export async function getAdminDashboardStats(options?: {
     organizerCount: organizerCount[0]?.count ?? 0,
     monthlyActivity,
     categoryData,
-    totalRevenue: Number(revenueResult?.totalRevenue ?? 0),
+    totalRevenue: currentRevenue,
     pendingPaymentsCount: truePendingResult?.count ?? 0,
     avgPayment: Number(revenueResult?.avgPayment ?? 0),
     paymentMethodsStats,
@@ -373,5 +573,8 @@ export async function getAdminDashboardStats(options?: {
     checkedInCount: Number(attendanceStats?.checkedInCount ?? 0),
     registeredCount: Number(attendanceStats?.registeredCount ?? 0),
     waitlistedCount: Number(attendanceStats?.waitlistedCount ?? 0),
+    approvedPaymentsCount: Number(revenueResult?.approvedPaymentsCount ?? 0),
+    totalEventViews,
+    comparisons,
   };
 }

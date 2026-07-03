@@ -35,6 +35,7 @@ export const events = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
     price: numeric("price", { precision: 10, scale: 2 }),
     hasTransport: boolean("has_transport").notNull().default(false),
+    viewCount: integer("view_count").notNull().default(0),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (t) => [

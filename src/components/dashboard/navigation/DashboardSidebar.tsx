@@ -26,6 +26,7 @@ import {
   Megaphone,
   Crown,
   FileSpreadsheet,
+  LineChart,
 } from "lucide-react";
 import { signOut } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
@@ -141,9 +142,28 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
     titleKey: "dashboard.sidebar.groups.core",
     items: [
       { labelKey: "dashboard.sidebar.admin.overview", href: "/admin", icon: LayoutDashboard },
-      { labelKey: "dashboard.sidebar.admin.analytics", href: "/admin/analytics", icon: BarChart3 },
+      ...(isSuperAdmin
+        ? [
+            {
+              labelKey: "dashboard.sidebar.admin.analyticsGlobal",
+              href: "/admin/analytics",
+              icon: BarChart3,
+            },
+            {
+              labelKey: "dashboard.sidebar.admin.analyticsOwn",
+              href: "/admin/my-events/analytics",
+              icon: LineChart,
+            },
+          ]
+        : [
+            {
+              labelKey: "dashboard.sidebar.admin.analytics",
+              href: "/admin/analytics",
+              icon: BarChart3,
+            },
+          ]),
       { labelKey: "dashboard.sidebar.admin.notifications", href: "/admin/notifications", icon: Bell },
-    ]
+    ],
   },
   {
     titleKey: "dashboard.sidebar.groups.management",

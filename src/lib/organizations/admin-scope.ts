@@ -137,6 +137,42 @@ export function transportBookingInOrgCondition(organizationId: string) {
   );
 }
 
+export function registrationForOrganizerCondition(organizerId: string) {
+  return inArray(
+    registrations.eventId,
+    db.select({ id: events.id }).from(events).where(eq(events.organizerId, organizerId)),
+  );
+}
+
+export function paymentForOrganizerCondition(organizerId: string) {
+  return inArray(
+    payments.registrationId,
+    db
+      .select({ id: registrations.id })
+      .from(registrations)
+      .innerJoin(events, eq(registrations.eventId, events.id))
+      .where(eq(events.organizerId, organizerId)),
+  );
+}
+
+export function transportRouteForOrganizerCondition(organizerId: string) {
+  return inArray(
+    transportRoutes.eventId,
+    db.select({ id: events.id }).from(events).where(eq(events.organizerId, organizerId)),
+  );
+}
+
+export function transportBookingForOrganizerCondition(organizerId: string) {
+  return inArray(
+    transportBookings.routeId,
+    db
+      .select({ id: transportRoutes.id })
+      .from(transportRoutes)
+      .innerJoin(events, eq(transportRoutes.eventId, events.id))
+      .where(eq(events.organizerId, organizerId)),
+  );
+}
+
 export function andWithScope(
   conditions: SQL[],
   ...scopes: Array<SQL | undefined>

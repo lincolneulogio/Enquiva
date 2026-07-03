@@ -30,6 +30,7 @@ export const CACHE_KEYS = {
   eventBySlug: (slug: string) => `events:slug:${slug}`,
   userNotificationsCount: (userId: string) => `notifications:unread:${userId}`,
   eventAttendeesCount: (eventId: string) => `events:attendees:${eventId}`,
+  adminDashboardStats: (key: string) => `admin:stats:${key}`,
 } as const;
 
 export const CACHE_TTL = {
@@ -37,6 +38,7 @@ export const CACHE_TTL = {
   eventDetail: 300,       // 5 minutes
   featuredEvents: 600,    // 10 minutes
   notificationsCount: 60, // 1 minute
+  adminDashboardStats: 300, // 5 minutes
 } as const;
 
 // Cache utilities

@@ -41,6 +41,10 @@ interface AdminStatsChartsProps {
   checkedInCount: number;
   registeredCount: number;
   waitlistedCount: number;
+  approvedPaymentsCount?: number;
+  totalEventViews?: number;
+  /** Oculta usuarios en el gráfico mensual (p. ej. métricas solo de eventos propios). */
+  hideUserSeries?: boolean;
 }
 
 const COLORS = ["#7c3aed", "#e11d48", "#ea580c", "#16a34a", "#d97706", "#4f46e5", "#06b6d4"];
@@ -57,6 +61,9 @@ export function AdminStatsCharts({
   checkedInCount,
   registeredCount,
   waitlistedCount,
+  approvedPaymentsCount = 0,
+  totalEventViews = 0,
+  hideUserSeries = false,
 }: AdminStatsChartsProps) {
   const t = useTranslations();
   const { locale } = useLocale();
@@ -70,37 +77,39 @@ export function AdminStatsCharts({
   const showUpRate = registeredCount > 0 ? Math.round((checkedInCount / registeredCount) * 100) : 0;
   const seatsOccupancy = totalCapacity > 0 ? Math.round((occupiedSeats / totalCapacity) * 100) : 0;
 
-  // Funnel conversion stage calculation
-  const calculatedTraffic = Math.max((registeredCount + waitlistedCount) * 4.2 + 85, 120);
+  // Funnel: tráfico real (vistas) o estimado si aún no hay datos
+  const estimatedTraffic = Math.max((registeredCount + waitlistedCount) * 4.2 + 85, 120);
+  const trafficValue = totalEventViews > 0 ? totalEventViews : Math.round(estimatedTraffic);
+  const usesEstimatedTraffic = totalEventViews === 0;
   const totalSubmissions = registeredCount + waitlistedCount;
-  const approvedRegistrations = Math.max(registeredCount - pendingPaymentsCount, 0);
+  const paidRegistrations = approvedPaymentsCount;
 
   const trafficPercent = 100;
-  const submissionsPercent = Math.round((totalSubmissions / Math.max(calculatedTraffic, 1)) * 100) || 0;
-  const approvedPercent = Math.round((approvedRegistrations / Math.max(totalSubmissions, 1)) * 100) || 0;
-  const attendancePercent = Math.round((checkedInCount / Math.max(approvedRegistrations, 1)) * 100) || 0;
+  const submissionsPercent = Math.round((totalSubmissions / Math.max(trafficValue, 1)) * 100) || 0;
+  const approvedPercent = Math.round((paidRegistrations / Math.max(totalSubmissions, 1)) * 100) || 0;
+  const attendancePercent = Math.round((checkedInCount / Math.max(paidRegistrations, 1)) * 100) || 0;
 
   const funnelData = [
     {
-      stage: "1. Tráfico Estimado",
-      value: Math.round(calculatedTraffic),
+      stage: t("dashboard.admin.statsFunnelStageTraffic"),
+      value: trafficValue,
       color: "#8b5cf6",
       percent: trafficPercent,
     },
     {
-      stage: "2. Inscripciones",
+      stage: t("dashboard.admin.statsFunnelStageRegistration"),
       value: totalSubmissions,
       color: "#ec4899",
       percent: submissionsPercent,
     },
     {
-      stage: "3. Pagos Aprobados",
-      value: approvedRegistrations,
+      stage: t("dashboard.admin.statsFunnelStagePayment"),
+      value: paidRegistrations,
       color: "#f59e0b",
       percent: approvedPercent,
     },
     {
-      stage: "4. Asistencia (QR)",
+      stage: t("dashboard.admin.statsFunnelStageAttendance"),
       value: checkedInCount,
       color: "#10b981",
       percent: attendancePercent,
@@ -114,7 +123,9 @@ export function AdminStatsCharts({
         {/* Total recaudado */}
         <div className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:shadow-md">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">Total Recaudado</span>
+            <span className="text-sm font-medium text-muted-foreground">
+              {t("dashboard.admin.statsTotalRevenue")}
+            </span>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400">
               <Coins className="h-4 w-4" />
             </div>
@@ -125,7 +136,7 @@ export function AdminStatsCharts({
             </h3>
             <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
               <TrendingUp className="h-3.5 w-3.5 text-green-500" />
-              Ticket Promedio: S/. {avgPayment.toFixed(2)}
+              {t("dashboard.admin.statsAvgTicket", { amount: avgPayment.toFixed(2) })}
             </p>
           </div>
         </div>
@@ -133,7 +144,9 @@ export function AdminStatsCharts({
         {/* Pagos pendientes */}
         <div className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:shadow-md">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">Pagos Pendientes</span>
+            <span className="text-sm font-medium text-muted-foreground">
+              {t("dashboard.admin.statsPendingPayments")}
+            </span>
             <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${pendingPaymentsCount > 0 ? "bg-amber-500/10 text-amber-600 animate-pulse" : "bg-muted text-muted-foreground"}`}>
               <ShieldAlert className="h-4 w-4" />
             </div>
@@ -143,7 +156,9 @@ export function AdminStatsCharts({
               {pendingPaymentsCount}
             </h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              {pendingPaymentsCount > 0 ? "⚠️ Requiere verificación manual" : "✅ Todo validado"}
+              {pendingPaymentsCount > 0
+                ? t("dashboard.admin.statsPendingReview")
+                : t("dashboard.admin.statsAllValidated")}
             </p>
           </div>
         </div>
@@ -151,7 +166,9 @@ export function AdminStatsCharts({
         {/* Tasa de Asistencia */}
         <div className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:shadow-md">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">Tasa de Asistencia</span>
+            <span className="text-sm font-medium text-muted-foreground">
+              {t("dashboard.admin.statsAttendanceRate")}
+            </span>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400">
               <UserCheck className="h-4 w-4" />
             </div>
@@ -164,7 +181,10 @@ export function AdminStatsCharts({
               <div className="h-1.5 rounded-full bg-indigo-600" style={{ width: `${showUpRate}%` }} />
             </div>
             <p className="mt-1 text-[11px] text-muted-foreground">
-              {checkedInCount} de {registeredCount} asistentes presentes
+              {t("dashboard.admin.statsAttendanceDetail", {
+                checkedIn: checkedInCount,
+                registered: registeredCount,
+              })}
             </p>
           </div>
         </div>
@@ -172,7 +192,9 @@ export function AdminStatsCharts({
         {/* Ocupación de transporte */}
         <div className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:shadow-md">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">Ocupación Transporte</span>
+            <span className="text-sm font-medium text-muted-foreground">
+              {t("dashboard.admin.statsTransportOccupancy")}
+            </span>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
               <Bus className="h-4 w-4" />
             </div>
@@ -185,7 +207,10 @@ export function AdminStatsCharts({
               <div className="h-1.5 rounded-full bg-blue-600" style={{ width: `${seatsOccupancy}%` }} />
             </div>
             <p className="mt-1 text-[11px] text-muted-foreground">
-              {occupiedSeats} de {totalCapacity} asientos reservados
+              {t("dashboard.admin.statsTransportDetail", {
+                occupied: occupiedSeats,
+                capacity: totalCapacity,
+              })}
             </p>
           </div>
         </div>
@@ -196,9 +221,13 @@ export function AdminStatsCharts({
         {/* Monthly activity (3 barras ahora!) */}
         <div className="rounded-2xl border border-border bg-card p-6">
           <h3 className="mb-1 font-display text-lg font-semibold text-foreground">
-            Actividad y Crecimiento Mensual
+            {t("dashboard.admin.statsMonthlyActivityTitle")}
           </h3>
-          <p className="mb-4 text-xs text-muted-foreground">Registro histórico de eventos, inscripciones y nuevos usuarios</p>
+          <p className="mb-4 text-xs text-muted-foreground">
+            {hideUserSeries
+              ? t("dashboard.admin.statsMonthlyActivityOwnDescription")
+              : t("dashboard.admin.statsMonthlyActivityDescription")}
+          </p>
           {monthlyData.length === 0 ? (
             <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
               {t("dashboard.admin.noMonthlyData")}
@@ -221,9 +250,11 @@ export function AdminStatsCharts({
                   }}
                 />
                 <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: "11px" }} />
-                <Bar dataKey="events" name="Eventos" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="registrations" name="Inscripciones" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="users" name="Nuevos Usuarios" fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="events" name={t("dashboard.admin.statsChartEvents")} fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="registrations" name={t("dashboard.admin.statsChartRegistrations")} fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
+                {!hideUserSeries ? (
+                  <Bar dataKey="users" name={t("dashboard.admin.statsChartNewUsers")} fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                ) : null}
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -232,12 +263,14 @@ export function AdminStatsCharts({
         {/* Métodos de pago más utilizados */}
         <div className="rounded-2xl border border-border bg-card p-6">
           <h3 className="mb-1 font-display text-lg font-semibold text-foreground">
-            Métodos de Pago Más Utilizados
+            {t("dashboard.admin.statsPaymentMethodsTitle")}
           </h3>
-          <p className="mb-4 text-xs text-muted-foreground">Volumen de pagos aprobados en las inscripciones y transporte</p>
+          <p className="mb-4 text-xs text-muted-foreground">
+            {t("dashboard.admin.statsPaymentMethodsDescription")}
+          </p>
           {paymentMethodsStats.length === 0 ? (
             <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
-              No hay pagos registrados para este rango.
+              {t("dashboard.admin.statsNoPaymentsInRange")}
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={280}>
@@ -282,7 +315,7 @@ export function AdminStatsCharts({
           <h3 className="mb-1 font-display text-lg font-semibold text-foreground">
             {t("dashboard.admin.eventsByCategory")}
           </h3>
-          <p className="mb-4 text-xs text-muted-foreground">Distribución de eventos según categorías registradas</p>
+          <p className="mb-4 text-xs text-muted-foreground">{t("dashboard.admin.statsCategoryDescription")}</p>
           {translatedCategoryData.length === 0 ? (
             <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
               {t("dashboard.admin.noCategoriesYet")}
@@ -329,9 +362,9 @@ export function AdminStatsCharts({
         <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-6">
           <div>
             <h3 className="mb-1 font-display text-lg font-semibold text-foreground">
-              Estado de la Lista de Espera y Asistencia
+              {t("dashboard.admin.statsWaitlistTitle")}
             </h3>
-            <p className="mb-6 text-xs text-muted-foreground">Métricas operacionales de soporte y fluidez del evento</p>
+            <p className="mb-6 text-xs text-muted-foreground">{t("dashboard.admin.statsWaitlistDescription")}</p>
             
             <div className="space-y-5">
               {/* Cola de espera */}
@@ -341,13 +374,13 @@ export function AdminStatsCharts({
                     <Clock className="h-5 w-5" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-semibold text-foreground">Lista de Espera Activa</h4>
-                    <p className="text-xs text-muted-foreground">Inscripciones retenidas por aforo agotado</p>
+                    <h4 className="text-sm font-semibold text-foreground">{t("dashboard.admin.statsWaitlistActive")}</h4>
+                    <p className="text-xs text-muted-foreground">{t("dashboard.admin.statsWaitlistActiveHelp")}</p>
                   </div>
                 </div>
                 <div className="text-right">
                   <span className="font-display text-2xl font-bold text-amber-600">{waitlistedCount}</span>
-                  <p className="text-[10px] text-muted-foreground">personas en cola</p>
+                  <p className="text-[10px] text-muted-foreground">{t("dashboard.admin.statsWaitlistPeople")}</p>
                 </div>
               </div>
 
@@ -358,22 +391,20 @@ export function AdminStatsCharts({
                     <CreditCard className="h-5 w-5" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-semibold text-foreground">Total de Inscripciones Activas</h4>
-                    <p className="text-xs text-muted-foreground">Usuarios oficialmente con entrada emitida</p>
+                    <h4 className="text-sm font-semibold text-foreground">{t("dashboard.admin.statsWaitlistActiveRegistrations")}</h4>
+                    <p className="text-xs text-muted-foreground">{t("dashboard.admin.statsWaitlistActiveRegistrationsHelp")}</p>
                   </div>
                 </div>
                 <div className="text-right">
                   <span className="font-display text-2xl font-bold text-indigo-600">{registeredCount}</span>
-                  <p className="text-[10px] text-muted-foreground">entradas activas</p>
+                  <p className="text-[10px] text-muted-foreground">{t("dashboard.admin.statsWaitlistTickets")}</p>
                 </div>
               </div>
             </div>
           </div>
 
           <div className="mt-6 border-t border-border pt-4 text-center">
-            <p className="text-xs text-muted-foreground">
-              Tip: Los cambios se recalculan basándose en el filtro de fecha de arriba.
-            </p>
+            <p className="text-xs text-muted-foreground">{t("dashboard.admin.statsRangeTip")}</p>
           </div>
         </div>
       </div>
@@ -383,28 +414,30 @@ export function AdminStatsCharts({
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div>
             <h3 className="font-display text-lg font-semibold text-foreground">
-              Embudo de Conversión Operacional
+              {t("dashboard.admin.statsFunnelTitle")}
             </h3>
             <p className="text-xs text-muted-foreground">
-              Trazabilidad de interacción de usuarios en eventos (Simulación de interés vs Realidad de Asistencia)
+              {usesEstimatedTraffic
+                ? t("dashboard.admin.statsFunnelDescriptionEstimated")
+                : t("dashboard.admin.statsFunnelDescriptionReal")}
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs">
             <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 font-medium">
               <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
-              1. Tráfico
+              {t("dashboard.admin.statsFunnelBadgeTraffic")}
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 bg-pink-500/10 text-pink-600 dark:text-pink-400 font-medium">
               <span className="h-1.5 w-1.5 rounded-full bg-pink-500" />
-              2. Inscripción
+              {t("dashboard.admin.statsFunnelBadgeRegistration")}
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-medium">
               <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-              3. Pago
+              {t("dashboard.admin.statsFunnelBadgePayment")}
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              4. Asistencia
+              {t("dashboard.admin.statsFunnelBadgeAttendance")}
             </span>
           </div>
         </div>
@@ -434,10 +467,13 @@ export function AdminStatsCharts({
                     borderRadius: "12px",
                     fontSize: "12px",
                   }}
-                  formatter={(value: any, name: any, props: any) => [
-                    `${value} (${props.payload.percent}% tasa)`,
-                    'Volumen'
-                  ]}
+                  formatter={(value, _name, item) => {
+                    const percent = (item?.payload as { percent?: number } | undefined)?.percent ?? 0;
+                    return [
+                      `${value ?? 0} (${percent}% ${t("dashboard.admin.statsFunnelRate")})`,
+                      t("dashboard.admin.statsFunnelVolume"),
+                    ];
+                  }}
                 />
                 <Bar
                   dataKey="value"
@@ -455,12 +491,12 @@ export function AdminStatsCharts({
           {/* Estadísticas de Conversión Paso a Paso */}
           <div className="space-y-4 rounded-xl bg-muted/20 p-5 border border-border/60">
             <h4 className="text-sm font-semibold text-foreground border-b border-border pb-2">
-              Tasas de Conversión
+              {t("dashboard.admin.statsFunnelRatesTitle")}
             </h4>
             <div className="space-y-3">
               <div>
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="text-muted-foreground">Tasa de Registro (Interés)</span>
+                  <span className="text-muted-foreground">{t("dashboard.admin.statsFunnelRateRegistration")}</span>
                   <span className="font-semibold text-foreground">{submissionsPercent}%</span>
                 </div>
                 <div className="h-1.5 w-full rounded-full bg-muted/60">
@@ -470,7 +506,7 @@ export function AdminStatsCharts({
               
               <div>
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="text-muted-foreground">Tasa de Conversión a Pago</span>
+                  <span className="text-muted-foreground">{t("dashboard.admin.statsFunnelRatePayment")}</span>
                   <span className="font-semibold text-foreground">{approvedPercent}%</span>
                 </div>
                 <div className="h-1.5 w-full rounded-full bg-muted/60">
@@ -480,7 +516,7 @@ export function AdminStatsCharts({
 
               <div>
                 <div className="flex justify-between text-xs mb-1">
-                  <span className="text-muted-foreground">Tasa de Asistencia QR</span>
+                  <span className="text-muted-foreground">{t("dashboard.admin.statsFunnelRateAttendance")}</span>
                   <span className="font-semibold text-foreground">{attendancePercent}%</span>
                 </div>
                 <div className="h-1.5 w-full rounded-full bg-muted/60">
@@ -489,7 +525,9 @@ export function AdminStatsCharts({
               </div>
             </div>
             <div className="pt-2 text-[10px] text-muted-foreground leading-relaxed">
-              * Datos calculados dinámicamente según filtros. El tráfico inicial estima vistas a la landing page en función de clicks históricos.
+              {usesEstimatedTraffic
+                ? t("dashboard.admin.statsFunnelFootnoteEstimated")
+                : t("dashboard.admin.statsFunnelFootnoteReal")}
             </div>
           </div>
         </div>

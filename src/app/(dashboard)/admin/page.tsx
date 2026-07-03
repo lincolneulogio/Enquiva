@@ -1,18 +1,76 @@
-import { AdminStatsCharts, EntityInviteBanner } from "@/components/dashboard";
+import Link from "next/link";
+import {
+  AdminStatsSectionHeader,
+  AdminAnalyticsQuickLinks,
+  EntityInviteBanner,
+  AdminKpiCard,
+  AdminPendingPaymentsAlert,
+  AdminRevenueSplitCards,
+} from "@/components/dashboard";
 import { Users, CalendarDays, BadgeCheck, Ticket } from "lucide-react";
 import { getAdminDashboardStats } from "@/lib/analytics/admin";
+import { getDashboardRevenueSnapshot } from "@/lib/analytics/platform-revenue";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
 import { resolveAdminScope, getOrganizationIdFromScope } from "@/lib/organizations/admin-scope";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export default async function AdminDashboardPage() {
   const { locale, t } = await getI18n();
+  const session = await auth.api.getSession({ headers: await headers() });
   const adminScope = await resolveAdminScope();
-  const stats = await getAdminDashboardStats({
-    organizationId: getOrganizationIdFromScope(adminScope),
-  });
-
+  const organizationId = getOrganizationIdFromScope(adminScope);
   const isEntityScope = adminScope.mode === "org";
+  const isPlatformSuperAdmin =
+    adminScope.mode === "platform" && session?.user?.role === "super_admin";
+
+  const stats = await getAdminDashboardStats({ organizationId });
+  const revenueSnapshot =
+    isPlatformSuperAdmin && !isEntityScope
+      ? await getDashboardRevenueSnapshot(stats.totalRevenue)
+      : null;
+
+  const intl = getIntlLocale(locale);
+  const periodLabel = t(`dashboard.admin.${stats.comparisons.periodLabelKey}`);
+
+  const kpis = [
+    {
+      label: t("dashboard.admin.totalUsers"),
+      value: stats.totalUsers.toLocaleString(intl),
+      color: "text-primary",
+      iconBg: "bg-primary/10",
+      Icon: Users,
+      href: "/admin/users",
+      delta: stats.comparisons.totalUsers,
+    },
+    {
+      label: t("dashboard.admin.totalEvents"),
+      value: stats.totalEvents.toLocaleString(intl),
+      color: "text-blue-600",
+      iconBg: "bg-blue-500/10",
+      Icon: CalendarDays,
+      href: "/admin/events",
+      delta: stats.comparisons.totalEvents,
+    },
+    {
+      label: t("dashboard.admin.publishedEvents"),
+      value: stats.publishedEvents.toLocaleString(intl),
+      color: "text-green-600",
+      iconBg: "bg-green-500/10",
+      Icon: BadgeCheck,
+      href: "/admin/events?status=published",
+    },
+    {
+      label: t("dashboard.admin.totalRegistrations"),
+      value: stats.totalRegistrations.toLocaleString(intl),
+      color: "text-accent",
+      iconBg: "bg-accent/10",
+      Icon: Ticket,
+      href: "/admin/registrations",
+      delta: stats.comparisons.totalRegistrations,
+    },
+  ];
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -31,64 +89,49 @@ export default async function AdminDashboardPage() {
 
       {isEntityScope ? <EntityInviteBanner inviteCode={adminScope.inviteCode} /> : null}
 
-      {/* Stats Grid */}
+      <AdminPendingPaymentsAlert count={stats.pendingPaymentsCount} />
+
+      {isEntityScope ? (
+        <AdminStatsSectionHeader scope="entity" />
+      ) : (
+        <AdminStatsSectionHeader scope="platform-global" />
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          {
-            label: t("dashboard.admin.totalUsers"),
-            value: stats.totalUsers,
-            color: "text-primary",
-            iconBg: "bg-primary/10",
-            Icon: Users,
-          },
-          {
-            label: t("dashboard.admin.totalEvents"),
-            value: stats.totalEvents,
-            color: "text-blue-600",
-            iconBg: "bg-blue-500/10",
-            Icon: CalendarDays,
-          },
-          {
-            label: t("dashboard.admin.publishedEvents"),
-            value: stats.publishedEvents,
-            color: "text-green-600",
-            iconBg: "bg-green-500/10",
-            Icon: BadgeCheck,
-          },
-          {
-            label: t("dashboard.admin.totalRegistrations"),
-            value: stats.totalRegistrations,
-            color: "text-accent",
-            iconBg: "bg-accent/10",
-            Icon: Ticket,
-          },
-        ].map(({ label, value, color, iconBg, Icon }) => (
-          <div key={label} className="rounded-2xl border border-border bg-card p-5 sm:p-6">
-            <div className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}>
-              <Icon className={`h-5 w-5 ${color}`} />
-            </div>
-            <p className="text-sm text-muted-foreground">{label}</p>
-            <p className={`mt-1 font-display text-3xl font-semibold ${color} sm:text-4xl`}>
-              {value.toLocaleString(getIntlLocale(locale))}
-            </p>
-          </div>
+        {kpis.map((kpi) => (
+          <AdminKpiCard key={kpi.label} {...kpi} periodLabel={kpi.delta != null ? periodLabel : undefined} />
         ))}
       </div>
 
-      {/* Charts */}
-      <AdminStatsCharts
-        monthlyData={stats.monthlyActivity}
-        categoryData={stats.categoryData}
-        paymentMethodsStats={stats.paymentMethodsStats}
-        totalRevenue={stats.totalRevenue}
-        pendingPaymentsCount={stats.pendingPaymentsCount}
-        avgPayment={stats.avgPayment}
-        totalCapacity={stats.totalCapacity}
-        occupiedSeats={stats.occupiedSeats}
-        checkedInCount={stats.checkedInCount}
-        registeredCount={stats.registeredCount}
-        waitlistedCount={stats.waitlistedCount}
-      />
+      {revenueSnapshot ? (
+        <section className="space-y-4">
+          <h2 className="font-display text-lg font-semibold text-foreground">
+            {t("dashboard.admin.revenueSplitTitle")}
+          </h2>
+          <AdminRevenueSplitCards snapshot={revenueSnapshot} />
+        </section>
+      ) : null}
+
+      {isPlatformSuperAdmin ? (
+        <section className="space-y-4">
+          <h2 className="font-display text-lg font-semibold text-foreground">
+            {t("dashboard.admin.analyticsQuickLinksTitle")}
+          </h2>
+          <AdminAnalyticsQuickLinks />
+        </section>
+      ) : isEntityScope ? (
+        <section className="space-y-4">
+          <h2 className="font-display text-lg font-semibold text-foreground">
+            {t("dashboard.admin.analyticsQuickLinksTitle")}
+          </h2>
+          <Link
+            href="/admin/analytics"
+            className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+          >
+            {t("dashboard.admin.analyticsEntityLink")}
+          </Link>
+        </section>
+      ) : null}
     </div>
   );
 }

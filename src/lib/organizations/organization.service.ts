@@ -45,6 +45,14 @@ export class OrganizationService {
     return org ?? null;
   }
 
+  static async listActiveOrganizations() {
+    return db
+      .select({ id: organizations.id, name: organizations.name })
+      .from(organizations)
+      .where(eq(organizations.isActive, true))
+      .orderBy(asc(organizations.name));
+  }
+
   static async getOrganizationForUser(userId: string): Promise<Organization | null> {
     const [user] = await db
       .select({ organizationId: users.organizationId })

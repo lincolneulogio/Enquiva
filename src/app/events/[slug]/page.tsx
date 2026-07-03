@@ -12,6 +12,7 @@ import Image from "next/image";
 import { categoryColor, categoryLabel, cn, formatEventDate } from "@/lib/utils";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
+import { incrementEventViewCount } from "@/lib/analytics/event-views";
 import { db } from "@/lib/db";
 import { transportRoutes, transportBookings } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
@@ -50,6 +51,10 @@ export default async function EventDetailPage({ params }: EventPageProps) {
 
   if (!event) {
     return notFound();
+  }
+
+  if (event.status === "published") {
+    await incrementEventViewCount(event.id);
   }
 
   // Fetch active transport routes if transport is enabled
