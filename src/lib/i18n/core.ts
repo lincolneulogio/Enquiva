@@ -894,6 +894,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                 success: "¡Pago exitoso! Tu ticket ya está disponible.",
                 failed: "No se pudo procesar el pago con tarjeta",
                 loadError: "No se pudo cargar la pasarela Culqi",
+                emailRequired: "No se encontró el correo de tu cuenta. Vuelve a iniciar sesión.",
             },
             organizer: {
                 pendingBanner: "{count} pago(s) pendiente(s) de revisión",
@@ -1065,6 +1066,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                 submitFailed: "Error al enviar pago",
                 culqiUnavailable: "Culqi no disponible",
                 culqiLoadFailed: "No se pudo cargar Culqi",
+                culqiEmailRequired: "No se encontró el correo de tu cuenta. Vuelve a iniciar sesión.",
                 culqiPayFailed: "Error al pagar",
                 culqiRejected: "Pago rechazado",
                 culqiSuccess: "¡Plan activado! Tu suscripción ya está disponible.",
@@ -2014,6 +2016,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                 success: "Payment successful! Your ticket is ready.",
                 failed: "Could not process card payment",
                 loadError: "Could not load Culqi checkout",
+                emailRequired: "Your account email was not found. Please sign in again.",
             },
             organizer: {
                 pendingBanner: "{count} payment(s) pending review",
@@ -2185,6 +2188,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                 submitFailed: "Failed to submit payment",
                 culqiUnavailable: "Culqi unavailable",
                 culqiLoadFailed: "Could not load Culqi",
+                culqiEmailRequired: "Your account email was not found. Please sign in again.",
                 culqiPayFailed: "Payment failed",
                 culqiRejected: "Payment declined",
                 culqiSuccess: "Plan activated! Your subscription is ready.",

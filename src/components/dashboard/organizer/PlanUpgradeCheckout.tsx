@@ -18,6 +18,7 @@ import { UploadDropzone } from "@/lib/uploadthing/components";
 import type { PaymentMethod, Plan } from "@/lib/db/schema";
 import { useTranslations, useLocale } from "@/components/providers/LocaleProvider";
 import { loadCulqiCheckoutScript, openCulqiCheckout } from "@/lib/culqi/open-checkout";
+import { useSession } from "@/lib/auth/client";
 
 interface PlanUpgradeCheckoutProps {
   plan: Plan;
@@ -64,6 +65,8 @@ export function PlanUpgradeCheckout({
   const [isUploading, setIsUploading] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
   const [enableAutoRenew, setEnableAutoRenew] = useState(true);
+  const { data: session } = useSession();
+  const checkoutEmail = userEmail ?? session?.user?.email ?? null;
 
   const currentMethod = manualMethods.find((m) => m.id === methodId);
 
@@ -124,13 +127,18 @@ export function PlanUpgradeCheckout({
       return;
     }
 
+    if (!checkoutEmail) {
+      toast.error(t("billing.planCheckout.culqiEmailRequired"));
+      return;
+    }
+
     setIsSaving(true);
     try {
       const tokenId = await openCulqiCheckout({
         publicKey: culqiPublicKey,
         title: "EncuentroDeFe",
         amount,
-        email: userEmail,
+        email: checkoutEmail,
       });
       await processCulqiCharge(tokenId);
     } catch (e) {

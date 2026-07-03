@@ -32,6 +32,9 @@ declare global {
     client?: {
       email?: string;
     };
+    appearance?: {
+      hiddenEmail?: boolean;
+    };
     options?: {
       lang?: string;
       modal?: boolean;

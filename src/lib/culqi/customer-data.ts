@@ -23,7 +23,7 @@ export function parseFullName(fullName: string) {
   };
 }
 
-/** Culqi espera 9 dígitos sin prefijo +51 en phone_number. */
+/** Culqi espera 9 dígitos locales sin prefijo +51. */
 export function formatCulqiPhone(phone?: string | null): string {
   const digits = (phone ?? "").replace(/\D/g, "");
   if (digits.startsWith("51") && digits.length === 11) {
@@ -33,6 +33,18 @@ export function formatCulqiPhone(phone?: string | null): string {
     return digits.slice(-9);
   }
   return "";
+}
+
+const CULQI_DEFAULT_LOCAL_PHONE = "999999999";
+
+export function formatCulqiLocalPhone(phone?: string | null): string {
+  const local = formatCulqiPhone(phone);
+  return local && /^9\d{8}$/.test(local) ? local : CULQI_DEFAULT_LOCAL_PHONE;
+}
+
+/** 9 dígitos locales como string (ej. 986765435). Formato que exige Culqi en clientes y cargos. */
+export function formatCulqiPhoneNumberForApi(phone?: string | null): string {
+  return formatCulqiLocalPhone(phone);
 }
 
 const CULQI_DEFAULT_ADDRESS = "Av. Javier Prado 150, Lima, Perú";
@@ -66,12 +78,13 @@ export function buildCulqiAddress(profile: CulqiUserProfile): string {
 export function resolveCulqiCustomerData(profile: CulqiUserProfile) {
   const nameSource = (profile.name ?? "").trim() || profile.email.split("@")[0] || "Cliente";
   const { firstName, lastName } = parseFullName(nameSource);
-  const phone = formatCulqiPhone(profile.phone);
+  const localPhone = formatCulqiLocalPhone(profile.phone);
+  const apiPhone = formatCulqiPhoneNumberForApi(profile.phone);
 
   return {
     firstName: firstName.slice(0, 50),
     lastName: lastName.slice(0, 50),
-    phone: phone || "999999999",
+    phone: localPhone,
     email: profile.email,
     antifraud: {
       first_name: firstName.slice(0, 50),
@@ -79,7 +92,7 @@ export function resolveCulqiCustomerData(profile: CulqiUserProfile) {
       address: buildCulqiAddress(profile),
       address_city: "Lima",
       country_code: "PE",
-      phone_number: (phone || "999999999").slice(0, 15),
+      phone_number: apiPhone,
     },
   };
 }

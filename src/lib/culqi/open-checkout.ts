@@ -14,6 +14,7 @@ export interface OpenCulqiCheckoutParams {
   title: string;
   /** Amount in PEN (soles), not cents */
   amount: number;
+  /** Correo de la cuenta (sesión). Se envía a Culqi y se oculta el campo. */
   email?: string | null;
 }
 
@@ -61,6 +62,11 @@ export async function openCulqiCheckout(params: OpenCulqiCheckoutParams): Promis
     throw new Error("Culqi no disponible");
   }
 
+  const email = params.email?.trim().toLowerCase();
+  if (!email) {
+    throw new Error("No se encontró el correo de tu cuenta para el pago.");
+  }
+
   const CulqiCheckoutCtor = window.CulqiCheckout;
 
   return new Promise((resolve, reject) => {
@@ -85,7 +91,10 @@ export async function openCulqiCheckout(params: OpenCulqiCheckoutParams): Promis
           amount: Math.round(params.amount * 100),
           // Sin `order`: solo tarjeta. Culqi exige ord_live_* para Yape/billeteras.
         },
-        ...(params.email ? { client: { email: params.email } } : {}),
+        client: { email },
+        appearance: {
+          hiddenEmail: true,
+        },
         options: {
           lang: "auto",
           modal: true,

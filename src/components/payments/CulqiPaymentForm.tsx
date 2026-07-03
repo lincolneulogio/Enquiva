@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { CreditCard, Loader2, ShieldCheck } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import { loadCulqiCheckoutScript, openCulqiCheckout } from "@/lib/culqi/open-checkout";
+import { useSession } from "@/lib/auth/client";
 
 interface CulqiPaymentFormProps {
   paymentId: string;
@@ -26,6 +27,8 @@ export function CulqiPaymentForm({
 }: CulqiPaymentFormProps) {
   const t = useTranslations();
   const router = useRouter();
+  const { data: session } = useSession();
+  const checkoutEmail = userEmail ?? session?.user?.email ?? null;
   const [isLoading, setIsLoading] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
 
@@ -49,13 +52,18 @@ export function CulqiPaymentForm({
       return;
     }
 
+    if (!checkoutEmail) {
+      toast.error(t("payments.culqi.emailRequired"));
+      return;
+    }
+
     setIsLoading(true);
     try {
       const tokenId = await openCulqiCheckout({
         publicKey: culqiPublicKey,
         title: "EncuentroDeFe",
         amount,
-        email: userEmail,
+        email: checkoutEmail,
       });
 
       const response = await fetch("/api/payments/culqi/charge", {

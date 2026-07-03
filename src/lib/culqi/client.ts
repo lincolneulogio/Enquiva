@@ -130,7 +130,7 @@ export async function createCulqiCustomer(
       email: input.email,
       first_name: customer.firstName,
       last_name: customer.lastName,
-      phone_number: Number(customer.phone) || 999999999,
+      phone_number: customer.antifraud.phone_number,
       address: customer.antifraud.address,
       address_city: customer.antifraud.address_city,
       country_code: customer.antifraud.country_code,
