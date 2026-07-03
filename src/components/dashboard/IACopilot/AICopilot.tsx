@@ -7,9 +7,9 @@ import { ChatHeader } from "./ChatHeader";
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
 
-export function AICopilot() {
-  const { data: session } = useSession();
-  if (!session) return null;
+export function AICopilot({ enabled = true }: { enabled?: boolean }) {
+  const { data: session, isPending } = useSession();
+  if (!enabled || isPending || !session?.user) return null;
   return <AICopilotInner />;
 }
 
@@ -30,6 +30,7 @@ function AICopilotInner() {
     handleResetChat,
     RoleIcon,
     ROLE_BADGE_STYLES,
+    aiUsage,
   } = useChatCopilot();
 
   if (!session) return null;
@@ -53,6 +54,7 @@ function AICopilotInner() {
               locale={locale}
               RoleIcon={RoleIcon}
               roleBadgeStyle={ROLE_BADGE_STYLES[userRole]}
+              aiUsage={aiUsage}
               onReset={handleResetChat}
               onClose={handleToggle}
             />

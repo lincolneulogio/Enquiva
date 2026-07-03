@@ -43,6 +43,7 @@ const emptyForm = {
   maxAttendeesPerEvent: "",
   commissionPercent: "0",
   maxBroadcastsPerMonth: "",
+  maxAiMessagesPerMonth: "",
   featureCulqi: false,
   featureTransport: false,
   featureAi: false,
@@ -78,6 +79,7 @@ export function PlansManager({ initialPlans, organizers }: PlansManagerProps) {
       maxAttendeesPerEvent: form.maxAttendeesPerEvent ? Number(form.maxAttendeesPerEvent) : null,
       commissionPercent: Number(form.commissionPercent) || 0,
       maxBroadcastsPerMonth: form.maxBroadcastsPerMonth ? Number(form.maxBroadcastsPerMonth) : null,
+      maxAiMessagesPerMonth: form.maxAiMessagesPerMonth ? Number(form.maxAiMessagesPerMonth) : null,
       featureCulqi: form.featureCulqi,
       featureTransport: form.featureTransport,
       featureAi: form.featureAi,
@@ -114,6 +116,7 @@ export function PlansManager({ initialPlans, organizers }: PlansManagerProps) {
       maxAttendeesPerEvent: plan.maxAttendeesPerEvent != null ? String(plan.maxAttendeesPerEvent) : "",
       commissionPercent: String(plan.commissionPercent ?? 0),
       maxBroadcastsPerMonth: plan.maxBroadcastsPerMonth != null ? String(plan.maxBroadcastsPerMonth) : "",
+      maxAiMessagesPerMonth: plan.maxAiMessagesPerMonth != null ? String(plan.maxAiMessagesPerMonth) : "",
       featureCulqi: plan.featureCulqi,
       featureTransport: plan.featureTransport,
       featureAi: plan.featureAi,
@@ -186,6 +189,7 @@ export function PlansManager({ initialPlans, organizers }: PlansManagerProps) {
           <input className={inputClass} placeholder="Máx. eventos activos" type="number" value={form.maxActiveEvents} onChange={(e) => setForm({ ...form, maxActiveEvents: e.target.value })} />
           <input className={inputClass} placeholder="Máx. asistentes/evento" type="number" value={form.maxAttendeesPerEvent} onChange={(e) => setForm({ ...form, maxAttendeesPerEvent: e.target.value })} />
           <input className={inputClass} placeholder="Máx. broadcasts/mes" type="number" value={form.maxBroadcastsPerMonth} onChange={(e) => setForm({ ...form, maxBroadcastsPerMonth: e.target.value })} />
+          <input className={inputClass} placeholder="Máx. mensajes IA/mes (vacío = ∞)" type="number" value={form.maxAiMessagesPerMonth} onChange={(e) => setForm({ ...form, maxAiMessagesPerMonth: e.target.value })} />
         </div>
         <div className="mt-4 grid gap-2 sm:grid-cols-2 md:grid-cols-3">
           <FeatureToggle label="Culqi" checked={form.featureCulqi} onChange={(v) => setForm({ ...form, featureCulqi: v })} />
@@ -259,7 +263,7 @@ export function PlansManager({ initialPlans, organizers }: PlansManagerProps) {
                   S/ {plan.priceMonthly}/mes · Comisión {plan.commissionPercent}%
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Eventos: {plan.maxActiveEvents ?? "∞"} · Asistentes: {plan.maxAttendeesPerEvent ?? "∞"} · Broadcasts: {plan.maxBroadcastsPerMonth ?? "∞"}
+                  Eventos: {plan.maxActiveEvents ?? "∞"} · Asistentes: {plan.maxAttendeesPerEvent ?? "∞"} · Broadcasts: {plan.maxBroadcastsPerMonth ?? "∞"} · IA: {plan.maxAiMessagesPerMonth ?? "∞"}/mes
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2 text-xs">
                   {plan.featureCulqi && <span className={cn("rounded-md px-2 py-0.5 font-medium", featureBadgeClass.culqi)}>Culqi</span>}

@@ -6,7 +6,8 @@ import { normalizeRole } from "@/lib/auth/rbac";
 import { buildSystemPrompt } from "./prompts";
 import { buildTools } from "./tools";
 import { streamWithFallback } from "./providers";
-import { requirePlanFeature } from "@/lib/billing/enforce";
+import { requirePlanFeature, PlanLimitError } from "@/lib/billing/enforce";
+import { assertAiChatMessageAllowed } from "@/lib/billing/ai-chat-usage";
 import { chatRatelimit } from "@/lib/redis";
 export const maxDuration = 30;
 
@@ -40,6 +41,8 @@ export async function POST(req: Request) {
       console.error("Chat rate limit unavailable, continuing without enforcement", error);
     }
 
+    await assertAiChatMessageAllowed(userId, userRole);
+
     // 2. System prompt dinámico según rol
     const systemPrompt = buildSystemPrompt(userName, userRole);
 
@@ -57,6 +60,12 @@ export async function POST(req: Request) {
     return response;
   } catch (error: unknown) {
     console.error("Error in Chat API Route:", error);
+    if (error instanceof PlanLimitError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: 429 },
+      );
+    }
     const message =
       error instanceof Error ? error.message : "Error interno del servidor al procesar la conversación.";
     const status = message.includes("GEMINI_API_KEY") || message.includes("OPENROUTER_API_KEY") ? 503 : 500;

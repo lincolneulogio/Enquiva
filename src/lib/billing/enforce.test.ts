@@ -18,6 +18,7 @@ const basePlan: ResolvedPlan = {
   maxAttendeesPerEvent: 200,
   commissionPercent: 5,
   maxBroadcastsPerMonth: 10,
+  maxAiMessagesPerMonth: 200,
   maxOrganizers: null,
   features: {
     culqi: true,

@@ -10,11 +10,12 @@ interface ChatHeaderProps {
   locale: Locale;
   RoleIcon: LucideIcon;
   roleBadgeStyle: string;
+  aiUsage?: { used: number; limit: number | null; remaining: number | null } | null;
   onReset: () => void;
   onClose: () => void;
 }
 
-export function ChatHeader({ userRole, locale, RoleIcon, roleBadgeStyle, onReset, onClose }: ChatHeaderProps) {
+export function ChatHeader({ userRole, locale, RoleIcon, roleBadgeStyle, aiUsage, onReset, onClose }: ChatHeaderProps) {
   return (
     <div className="flex items-center justify-between p-4.5 border-b border-border bg-muted/40">
       <div className="flex items-center gap-2.5">
@@ -30,6 +31,12 @@ export function ChatHeader({ userRole, locale, RoleIcon, roleBadgeStyle, onReset
             <RoleIcon className="h-2.5 w-2.5" />
             {getRoleLabel(userRole as any, locale)}
           </span>
+          {aiUsage?.limit != null && (
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              {aiUsage.used} / {aiUsage.limit}{" "}
+              {locale === "en" ? "messages this month" : "mensajes este mes"}
+            </p>
+          )}
         </div>
       </div>
 

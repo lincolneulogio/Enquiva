@@ -225,6 +225,16 @@ export function OrganizerBillingClient({
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <UsageCard label={t("billing.organizer.usageEvents")} value={`${usage.activeEvents} / ${plan.maxActiveEvents ?? "∞"}`} />
             <UsageCard label={t("billing.organizer.usageBroadcasts")} value={`${usage.broadcastsThisMonth} / ${plan.maxBroadcastsPerMonth ?? "∞"}`} />
+            {plan.features.ai && (
+              <UsageCard
+                label={t("billing.organizer.usageAiMessages")}
+                value={
+                  plan.maxAiMessagesPerMonth != null
+                    ? `${usage.aiMessagesThisMonth} / ${plan.maxAiMessagesPerMonth}`
+                    : `${usage.aiMessagesThisMonth} / ∞`
+                }
+              />
+            )}
             <UsageCard label={t("billing.organizer.usageCommission")} value={`${plan.commissionPercent}%`} />
             <UsageCard label={t("billing.organizer.usageRenewal")} value={renewalDate} />
           </div>
@@ -323,7 +333,16 @@ export function OrganizerBillingClient({
               <ul className="mt-4 flex-1 space-y-2 text-sm">
                 <FeatureLine ok={p.featureCulqi} text={t("billing.organizer.featureCulqi")} />
                 <FeatureLine ok={p.featureTransport} text={t("billing.organizer.featureTransport")} />
-                <FeatureLine ok={p.featureAi} text={t("billing.organizer.featureAi")} />
+                <FeatureLine
+                  ok={p.featureAi}
+                  text={
+                    p.featureAi
+                      ? p.maxAiMessagesPerMonth != null
+                        ? t("billing.organizer.featureAiLimited", { count: p.maxAiMessagesPerMonth })
+                        : t("billing.organizer.featureAiUnlimited")
+                      : t("billing.organizer.featureAi")
+                  }
+                />
                 <FeatureLine ok={p.featureExports} text={t("billing.organizer.featureExports")} />
               </ul>
               <button

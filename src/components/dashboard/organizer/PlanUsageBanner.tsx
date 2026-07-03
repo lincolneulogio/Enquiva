@@ -28,6 +28,10 @@ export function PlanUsageBanner({ summary, className, showFeatures = false }: Pl
     plan.maxBroadcastsPerMonth != null
       ? `${usage.broadcastsThisMonth} / ${plan.maxBroadcastsPerMonth}`
       : `${usage.broadcastsThisMonth} / ∞`;
+  const aiMessagesLabel =
+    plan.features.ai && plan.maxAiMessagesPerMonth != null
+      ? `${usage.aiMessagesThisMonth} / ${plan.maxAiMessagesPerMonth}`
+      : null;
 
   return (
     <div
@@ -57,6 +61,13 @@ export function PlanUsageBanner({ summary, className, showFeatures = false }: Pl
               {" · "}
               {t("dashboard.organizer.planUsageBroadcasts")}{" "}
               <strong className="text-foreground">{broadcastsLabel}</strong>
+              {aiMessagesLabel && (
+                <>
+                  {" · "}
+                  {t("dashboard.organizer.planUsageAiMessages")}{" "}
+                  <strong className="text-foreground">{aiMessagesLabel}</strong>
+                </>
+              )}
               {plan.maxAttendeesPerEvent != null && (
                 <>
                   {" · "}

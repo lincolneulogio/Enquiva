@@ -6,6 +6,7 @@ import { getOrganizerPlanSummary, planIncludesBroadcasts, planIncludesFeature } 
 import { getMySubscription } from "@/actions/billing";
 import { OrganizerSubscriptionGate } from "@/components/dashboard/organizer/OrganizerSubscriptionGate";
 import { SessionKeepAlive } from "@/components/auth/SessionKeepAlive";
+import { DashboardAICopilot } from "@/components/dashboard/IACopilot/DashboardAICopilot";
 
 export default async function OrganizerLayout({
   children,
@@ -53,6 +54,7 @@ export default async function OrganizerLayout({
           )}
         </main>
       </div>
+      <DashboardAICopilot userId={session.user.id} role={role} />
     </div>
   );
 }

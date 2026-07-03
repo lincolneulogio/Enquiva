@@ -7,7 +7,6 @@ import { AOSProvider } from "@/components/providers/AOSProvider";
 import { LenisProvider } from "@/components/providers/LenisProvider";
 import { getLocale } from "@/lib/i18n/server";
 import { AccentColorInitializer } from "@/components/dashboard/admin/AccentColorInitializer";
-import { AICopilot } from "@/components/dashboard/IACopilot/AICopilot";
 import "./globals.css";
 import "aos/dist/aos.css";
 import "lenis/dist/lenis.css";
@@ -46,7 +45,6 @@ export default async function RootLayout({
             <LenisProvider>
               <AOSProvider>
                 {children}
-                <AICopilot />
                 <Toaster
                   position="bottom-right"
                   richColors

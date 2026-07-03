@@ -23,6 +23,7 @@ export async function createPlan(input: {
   maxAttendeesPerEvent?: number | null;
   commissionPercent?: number;
   maxBroadcastsPerMonth?: number | null;
+  maxAiMessagesPerMonth?: number | null;
   maxOrganizers?: number | null;
   featureCulqi?: boolean;
   featureTransport?: boolean;
@@ -49,6 +50,7 @@ export async function createPlan(input: {
       maxAttendeesPerEvent: input.maxAttendeesPerEvent ?? null,
       commissionPercent: String(input.commissionPercent ?? 0),
       maxBroadcastsPerMonth: input.maxBroadcastsPerMonth ?? null,
+      maxAiMessagesPerMonth: input.maxAiMessagesPerMonth ?? null,
       maxOrganizers: input.maxOrganizers ?? null,
       featureCulqi: input.featureCulqi ?? false,
       featureTransport: input.featureTransport ?? false,
@@ -83,6 +85,7 @@ export async function updatePlan(
     maxAttendeesPerEvent?: number | null;
     commissionPercent?: number;
     maxBroadcastsPerMonth?: number | null;
+    maxAiMessagesPerMonth?: number | null;
     maxOrganizers?: number | null;
     featureCulqi?: boolean;
     featureTransport?: boolean;
@@ -105,6 +108,7 @@ export async function updatePlan(
       ...(input.maxAttendeesPerEvent !== undefined && { maxAttendeesPerEvent: input.maxAttendeesPerEvent }),
       ...(input.commissionPercent !== undefined && { commissionPercent: String(input.commissionPercent) }),
       ...(input.maxBroadcastsPerMonth !== undefined && { maxBroadcastsPerMonth: input.maxBroadcastsPerMonth }),
+      ...(input.maxAiMessagesPerMonth !== undefined && { maxAiMessagesPerMonth: input.maxAiMessagesPerMonth }),
       ...(input.maxOrganizers !== undefined && { maxOrganizers: input.maxOrganizers }),
       ...(input.featureCulqi !== undefined && { featureCulqi: input.featureCulqi }),
       ...(input.featureTransport !== undefined && { featureTransport: input.featureTransport }),

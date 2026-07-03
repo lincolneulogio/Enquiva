@@ -10,6 +10,7 @@ export const DEFAULT_PLAN_DEFINITIONS: Array<{
   maxAttendeesPerEvent: number | null;
   commissionPercent: string;
   maxBroadcastsPerMonth: number | null;
+  maxAiMessagesPerMonth: number | null;
   maxOrganizers: number | null;
   featureCulqi: boolean;
   featureTransport: boolean;
@@ -27,6 +28,7 @@ export const DEFAULT_PLAN_DEFINITIONS: Array<{
     maxAttendeesPerEvent: 100,
     commissionPercent: "5",
     maxBroadcastsPerMonth: 0,
+    maxAiMessagesPerMonth: 0,
     maxOrganizers: 1,
     featureCulqi: false,
     featureTransport: false,
@@ -44,6 +46,7 @@ export const DEFAULT_PLAN_DEFINITIONS: Array<{
     maxAttendeesPerEvent: 1000,
     commissionPercent: "0",
     maxBroadcastsPerMonth: 50,
+    maxAiMessagesPerMonth: 200,
     maxOrganizers: 3,
     featureCulqi: true,
     featureTransport: true,
@@ -61,6 +64,7 @@ export const DEFAULT_PLAN_DEFINITIONS: Array<{
     maxAttendeesPerEvent: null,
     commissionPercent: "0",
     maxBroadcastsPerMonth: null,
+    maxAiMessagesPerMonth: null,
     maxOrganizers: null,
     featureCulqi: true,
     featureTransport: true,
@@ -82,6 +86,7 @@ export const UNLIMITED_PLAN: ResolvedPlan = {
   maxAttendeesPerEvent: null,
   commissionPercent: 0,
   maxBroadcastsPerMonth: null,
+  maxAiMessagesPerMonth: null,
   maxOrganizers: null,
   features: {
     culqi: true,
@@ -104,6 +109,7 @@ export function mapPlanRow(plan: Plan): ResolvedPlan {
     maxAttendeesPerEvent: plan.maxAttendeesPerEvent,
     commissionPercent: Number(plan.commissionPercent ?? 0),
     maxBroadcastsPerMonth: plan.maxBroadcastsPerMonth,
+    maxAiMessagesPerMonth: plan.maxAiMessagesPerMonth,
     maxOrganizers: plan.maxOrganizers,
     features: {
       culqi: plan.featureCulqi,

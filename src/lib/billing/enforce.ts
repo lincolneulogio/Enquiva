@@ -3,6 +3,7 @@ import { events, registrations } from "@/lib/db/schema";
 import { and, count, eq, inArray } from "drizzle-orm";
 import { SubscriptionService } from "./subscription.service";
 import type { PlanFeatures, ResolvedPlan } from "./types";
+import { getAiChatUsage } from "./ai-chat-usage";
 
 export class PlanLimitError extends Error {
   code = "PLAN_LIMIT";
@@ -143,11 +144,15 @@ export async function getOrganizerPlanSummary(userId: string, role?: string | nu
   const info = await SubscriptionService.getOrCreateSubscription(userId, role);
   const { plan, usage } = info;
   const isUnlimited = SubscriptionService.isPlatformStaff(role);
+  const aiUsage = await getAiChatUsage(userId, role);
 
   return {
     plan,
-    usage,
+    usage: { ...usage, aiMessagesThisMonth: aiUsage.used },
     isUnlimited,
+    aiChatLimit: aiUsage.limit,
+    canSendAiChat:
+      isUnlimited || aiUsage.limit == null || aiUsage.used < aiUsage.limit,
     canCreateEvent:
       isUnlimited ||
       plan.maxActiveEvents == null ||

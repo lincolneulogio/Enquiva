@@ -19,6 +19,7 @@ export type ResolvedPlan = {
   maxAttendeesPerEvent: number | null;
   commissionPercent: number;
   maxBroadcastsPerMonth: number | null;
+  maxAiMessagesPerMonth: number | null;
   maxOrganizers: number | null;
   features: PlanFeatures;
 };
@@ -26,6 +27,7 @@ export type ResolvedPlan = {
 export type PlanUsage = {
   activeEvents: number;
   broadcastsThisMonth: number;
+  aiMessagesThisMonth: number;
 };
 
 export type SubscriptionRenewalAlert = "expiring_soon" | "past_due";

@@ -106,6 +106,7 @@ export class SubscriptionService {
             maxAttendeesPerEvent: definition.maxAttendeesPerEvent,
             commissionPercent: definition.commissionPercent,
             maxBroadcastsPerMonth: definition.maxBroadcastsPerMonth,
+            maxAiMessagesPerMonth: definition.maxAiMessagesPerMonth,
             maxOrganizers: definition.maxOrganizers,
             featureCulqi: definition.featureCulqi,
             featureTransport: definition.featureTransport,
@@ -145,7 +146,7 @@ export class SubscriptionService {
 
       const memberIds = memberRows.map((row) => row.userId);
       if (memberIds.length === 0) {
-        return { activeEvents: 0, broadcastsThisMonth: 0 };
+        return { activeEvents: 0, broadcastsThisMonth: 0, aiMessagesThisMonth: 0 };
       }
 
       const [[eventsRow], [broadcastRow]] = await Promise.all([
@@ -172,6 +173,7 @@ export class SubscriptionService {
       return {
         activeEvents: eventsRow?.total ?? 0,
         broadcastsThisMonth: broadcastRow?.total ?? 0,
+        aiMessagesThisMonth: 0,
       };
     }
 
@@ -194,6 +196,7 @@ export class SubscriptionService {
     return {
       activeEvents: eventsRow?.total ?? 0,
       broadcastsThisMonth: broadcastRow?.total ?? 0,
+      aiMessagesThisMonth: 0,
     };
   }
 

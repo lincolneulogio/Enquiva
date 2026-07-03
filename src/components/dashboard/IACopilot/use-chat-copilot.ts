@@ -36,6 +36,7 @@ export function useChatCopilot() {
   const { locale } = useLocale();
   const [isOpen, setIsOpen] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
+  const [aiUsage, setAiUsage] = useState<{ used: number; limit: number | null; remaining: number | null } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const userRole = normalizeRole(session?.user.role ?? "member");
@@ -67,9 +68,32 @@ export function useChatCopilot() {
     if (!isOpen && messages.length > 1) setHasUnread(true);
   }, [messages, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    fetch("/api/chat/usage")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && typeof data.used === "number") setAiUsage(data);
+      })
+      .catch(() => undefined);
+  }, [isOpen, messages.length]);
+
+  const refreshAiUsage = () => {
+    fetch("/api/chat/usage")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && typeof data.used === "number") setAiUsage(data);
+      })
+      .catch(() => undefined);
+  };
+
   const handleToggle = () => {
     setIsOpen((p) => !p);
     setHasUnread(false);
+  };
+  const wrappedSubmit = (event?: { preventDefault?: () => void }) => {
+    handleSubmit(event);
+    window.setTimeout(refreshAiUsage, 500);
   };
   const handleResetChat = () =>
     setMessages([
@@ -91,10 +115,11 @@ export function useChatCopilot() {
     messages,
     input,
     handleInputChange,
-    handleSubmit,
+    handleSubmit: wrappedSubmit,
     isLoading,
     handleToggle,
     handleResetChat,
+    aiUsage,
     RoleIcon: ROLE_ICON[userRole] ?? UserRound,
     ROLE_BADGE_STYLES,
   };

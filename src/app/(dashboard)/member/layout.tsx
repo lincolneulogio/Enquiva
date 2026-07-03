@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { DashboardSidebar, DashboardTopbar } from "@/components/dashboard";
 import { normalizeRole } from "@/lib/auth/rbac";
+import { DashboardAICopilot } from "@/components/dashboard/IACopilot/DashboardAICopilot";
 
 export default async function MemberLayout({
   children,
@@ -29,6 +30,7 @@ export default async function MemberLayout({
         <DashboardTopbar user={session.user} />
         <main className="min-w-0 flex-1 overflow-x-hidden p-4 pt-[calc(env(safe-area-inset-top)+5.75rem)] sm:p-6 sm:pt-[calc(env(safe-area-inset-top)+6.25rem)] lg:p-8 lg:pt-8">{children}</main>
       </div>
+      <DashboardAICopilot userId={session.user.id} role={role} />
     </div>
   );
 }

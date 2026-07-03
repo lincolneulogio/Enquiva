@@ -50,6 +50,7 @@ export const plans = pgTable(
       .notNull()
       .default("0"),
     maxBroadcastsPerMonth: integer("max_broadcasts_per_month"),
+    maxAiMessagesPerMonth: integer("max_ai_messages_per_month"),
     maxOrganizers: integer("max_organizers"),
     featureCulqi: boolean("feature_culqi").notNull().default(false),
     featureTransport: boolean("feature_transport").notNull().default(false),
