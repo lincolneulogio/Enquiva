@@ -80,8 +80,7 @@ function AICopilotInner() {
           <button
             type="button"
             onClick={handleToggle}
-            className="relative h-14 w-14 rounded-full bg-gradient-to-tr from-primary to-accent text-primary-foreground flex items-center justify-center shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 active:scale-95 focus:outline-none cursor-pointer border border-white/10 select-none animate-bounce"
-            style={{ animationDuration: "3s" }}
+            className="relative h-14 w-14 rounded-full bg-gradient-to-tr from-primary to-accent text-primary-foreground flex items-center justify-center shadow-xl hover:shadow-2xl transition-shadow duration-300 hover:scale-105 active:scale-95 focus:outline-none cursor-pointer border border-white/10 select-none"
           >
             <Sparkles className="h-6 w-6" />
             {hasUnread && (
