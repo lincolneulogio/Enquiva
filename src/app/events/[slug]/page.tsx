@@ -14,8 +14,8 @@ import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
 import { incrementEventViewCount } from "@/lib/analytics/event-views";
 import { db } from "@/lib/db";
-import { transportRoutes, transportBookings } from "@/lib/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { transportRoutes, transportBookings, transportStops } from "@/lib/db/schema";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import {
   Calendar,
   MapPin,
@@ -75,6 +75,21 @@ export default async function EventDetailPage({ params }: EventPageProps) {
         )
         .orderBy(transportRoutes.departureTime);
 
+      const routeIds = routes.map((r) => r.id);
+      const stops =
+        routeIds.length > 0
+          ? await db
+              .select()
+              .from(transportStops)
+              .where(inArray(transportStops.routeId, routeIds))
+          : [];
+
+      const stopsByRoute = stops.reduce<Record<string, typeof stops>>((acc, stop) => {
+        if (!acc[stop.routeId]) acc[stop.routeId] = [];
+        acc[stop.routeId].push(stop);
+        return acc;
+      }, {});
+
       serializedRoutes = routes.map((r) => ({
         id: r.id,
         eventId: r.eventId,
@@ -94,6 +109,12 @@ export default async function EventDetailPage({ params }: EventPageProps) {
         totalSeats: Number(r.totalSeats),
         description: r.description,
         isActive: r.isActive,
+        stops: (stopsByRoute[r.id] ?? []).map((stop) => ({
+          id: stop.id,
+          name: stop.name,
+          latitude: stop.latitude,
+          longitude: stop.longitude,
+        })),
       }));
 
       // Calculate total seats capacity

@@ -45,6 +45,12 @@ interface RegisterButtonProps {
     totalSeats: number;
     description: string | null;
     isActive: boolean;
+    stops?: Array<{
+      id: string;
+      name: string;
+      latitude: string | null;
+      longitude: string | null;
+    }>;
   }>;
   eventPrice?: number;
   paymentStatus?: "pending" | "approved" | "rejected" | null;
@@ -77,6 +83,7 @@ export function RegisterButton({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [wantsTransport, setWantsTransport] = useState(false);
   const [selectedRouteId, setSelectedRouteId] = useState("");
+  const [selectedStopId, setSelectedStopId] = useState("");
   const [seatsCount, setSeatsCount] = useState(1);
   const [contactPhone, setContactPhone] = useState("");
   const [visualHeight, setVisualHeight] = useState("90vh");
@@ -115,6 +122,10 @@ export function RegisterButton({
       setSelectedRouteId(transportRoutes[0].id);
     }
   }, [transportRoutes, selectedRouteId]);
+
+  useEffect(() => {
+    setSelectedStopId("");
+  }, [selectedRouteId]);
 
   // Lock body scroll when modal is open to hide scrollbar and prevent background scrolling
   useEffect(() => {
@@ -190,6 +201,7 @@ export function RegisterButton({
           eventId,
           contactPhone: wantsTransport && contactPhone ? `+51${contactPhone.replace(/\D/g, "")}` : undefined,
           routeId: wantsTransport ? selectedRouteId : null,
+          stopId: wantsTransport && selectedStopId ? selectedStopId : null,
           seats: wantsTransport ? seatsCount : null,
           guests: guests.map((g) => ({
             name: g.name.trim(),
@@ -581,7 +593,10 @@ export function RegisterButton({
                       {transportRoutes.map((route) => (
                         <div
                           key={route.id}
-                          onClick={() => setSelectedRouteId(route.id)}
+                          onClick={() => {
+                            setSelectedRouteId(route.id);
+                            setSelectedStopId("");
+                          }}
                           className={`cursor-pointer rounded-xl border p-3.5 transition-all text-left flex flex-col gap-2 ${
                             selectedRouteId === route.id
                               ? "border-primary bg-primary/10 dark:bg-primary/20 ring-1 ring-primary"
@@ -614,6 +629,30 @@ export function RegisterButton({
                       ))}
                     </div>
                   </div>
+
+                  {activeRoute?.stops && activeRoute.stops.length > 0 && (
+                    <div className="space-y-1.5">
+                      <label
+                        htmlFor="register-stop-id"
+                        className="text-xs font-semibold text-foreground uppercase tracking-wider block"
+                      >
+                        Punto de recojo (opcional)
+                      </label>
+                      <select
+                        id="register-stop-id"
+                        value={selectedStopId}
+                        onChange={(e) => setSelectedStopId(e.target.value)}
+                        className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      >
+                        <option value="">Punto de partida general ({activeRoute.departurePoint})</option>
+                        {activeRoute.stops.map((stop) => (
+                          <option key={stop.id} value={stop.id}>
+                            {stop.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   {/* Contact Phone (Optional but highly recommended) */}
                   <div className="space-y-1.5">

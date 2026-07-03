@@ -11,6 +11,7 @@ export const createRegistrationSchema = z.object({
   notes: z.string().max(500).optional(),
   routeId: z.string().uuid().optional().nullable(),
   seats: z.number().int().min(1).max(10).optional().nullable(),
+  stopId: z.string().uuid().optional().nullable(),
   guests: z.array(
     z.object({
       name: z.string().min(2, "El nombre del invitado debe tener al menos 2 caracteres"),

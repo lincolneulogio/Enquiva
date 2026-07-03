@@ -6,7 +6,6 @@ import {
   users,
   tickets,
   payments,
-  transportRoutes,
   transportBookings,
   accounts,
 } from "@/lib/db/schema";
@@ -34,12 +33,14 @@ import {
   promoteNextWaitlisted,
   releaseRegistrationResources,
 } from "@/lib/registrations/cleanup";
+import { createTransportBookingInTx } from "@/lib/transport/booking";
 
 export interface RegisterEventInput {
   eventId: string;
   contactPhone?: string | null;
   routeId?: string | null;
   seats?: number | null;
+  stopId?: string | null;
   notes?: string | null;
   guests?: Array<{ name: string; phone?: string | null }> | null;
 }
@@ -234,51 +235,31 @@ export class RegistrationService {
 
       if (input.routeId) {
         const seats = input.seats || 1;
-        const [route] = await tx
-          .select()
-          .from(transportRoutes)
-          .where(and(eq(transportRoutes.id, input.routeId), eq(transportRoutes.isActive, true)))
-          .limit(1);
 
-        if (!route) throw registrationError(RegistrationErrorCode.TRANSPORT_ROUTE_UNAVAILABLE);
+        const draft = await createTransportBookingInTx(tx, {
+          routeId: input.routeId,
+          registrationId: registration.id,
+          userId: attendee.id,
+          seats,
+          stopId: input.stopId,
+          notes: finalNotes,
+          status: "pending",
+          skipDuplicateCheck: true,
+          useRegistrationErrors: true,
+        });
 
-        // Comprobar disponibilidad de asientos
-        const [{ bookedCount }] = await tx
-          .select({
-            bookedCount: sql<number>`COALESCE(SUM(seats), 0)`,
-          })
-          .from(transportBookings)
-          .where(
-            and(
-              eq(transportBookings.routeId, input.routeId),
-              sql`${transportBookings.status} != 'cancelled'`
-            )
-          );
+        transportBooking = draft.booking;
+        transportPrice = draft.transportPrice;
 
-        const available = route.totalSeats - Number(bookedCount);
-        if (seats > available) {
-          throw registrationError(RegistrationErrorCode.TRANSPORT_SEATS_INSUFFICIENT, {
-            available: String(available),
-            routeName: route.name,
-          });
+        const bookingStatus = eventPrice + transportPrice > 0 ? "pending" : "confirmed";
+        if (bookingStatus === "confirmed") {
+          const [confirmedBooking] = await tx
+            .update(transportBookings)
+            .set({ status: "confirmed", updatedAt: new Date() })
+            .where(eq(transportBookings.id, draft.booking.id))
+            .returning();
+          transportBooking = confirmedBooking;
         }
-
-        transportPrice = Number(route.pricePerSeat) * seats;
-        const bookingStatus = (eventPrice + transportPrice > 0) ? "pending" : "confirmed";
-
-        // Insertar reserva de transporte (consolidada bajo el usuario principal)
-        const [insertedBooking] = await tx
-          .insert(transportBookings)
-          .values({
-            routeId: input.routeId,
-            registrationId: registration.id,
-            userId: attendee.id,
-            seats,
-            status: bookingStatus,
-            notes: finalNotes,
-          })
-          .returning();
-        transportBooking = insertedBooking;
       }
 
       // 6. Gestionar cobro/pago (Multiplicar el costo de entrada por la cantidad de asistentes)

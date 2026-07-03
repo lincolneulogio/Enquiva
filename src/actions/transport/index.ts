@@ -2,13 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { TransportService } from "@/services/transport/transport.service";
+import { bookTransportSchema } from "@/services/booking/booking.service";
 import { requirePlanFeature } from "@/lib/billing/enforce";
 import { z } from "zod";
 import { assertEventInAdminScope, assertRouteInAdminScope } from "@/lib/organizations/admin-scope";
 import {
   requireAuth,
   requireOrganizerOrHigher,
-  requireAdminOrHigher,
 } from "@/lib/auth/guards";
 
 // ─── Validators ───────────────────────────────────────────────────────────────
@@ -22,18 +22,6 @@ const createRouteSchema = z.object({
     pricePerSeat: z.number().nonnegative(),
     totalSeats: z.number().int().positive(),
     description: z.string().optional().nullable(),
-});
-
-const bookTransportSchema = z.object({
-    routeId: z.string().uuid(),
-    registrationId: z.string().uuid(),
-    seats: z.number().int().min(1).max(10),
-    notes: z.string().optional(),
-    receiptUrl: z.string().url().optional(),
-    receiptFileName: z.string().optional(),
-    method: z.string().min(1),
-    reference: z.string().optional(),
-    stopId: z.string().uuid().optional().nullable(),
 });
 
 // ─── Organizer: Gestión de rutas ──────────────────────────────────────────────
@@ -131,19 +119,21 @@ export async function getTransportBookingsForEvent(eventId: string) {
 }
 
 export async function approveTransportPayment(paymentId: string) {
-    const user = await requireAdminOrHigher();
+    const user = await requireOrganizerOrHigher();
     await TransportService.approveTransportPayment(paymentId, user.id, user.role ?? "member");
 
     revalidatePath("/admin/payments");
+    revalidatePath("/organizer/payments");
     revalidatePath("/organizer/transport");
     return { success: true };
 }
 
 export async function rejectTransportPayment(paymentId: string, reason?: string) {
-    const user = await requireAdminOrHigher();
+    const user = await requireOrganizerOrHigher();
     await TransportService.rejectTransportPayment(paymentId, user.id, user.role ?? "member", reason);
 
     revalidatePath("/admin/payments");
+    revalidatePath("/organizer/payments");
     revalidatePath("/organizer/transport");
     return { success: true };
 }
