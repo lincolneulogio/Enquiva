@@ -9,7 +9,7 @@ import { DeleteUserButton } from "./DeleteUserButton";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale, getRoleLabel } from "@/lib/i18n/core";
 import { TablePagination } from "@/components/dashboard";
-import { ROLE_BADGE_STYLES, normalizeRole } from "@/lib/auth/rbac";
+import { ROLE_BADGE_STYLES, normalizeRole, isEntityAssignableRole } from "@/lib/auth/rbac";
 import { resolveAdminScope, scopeUserCondition } from "@/lib/organizations/admin-scope";
 import Link from "next/link";
 
@@ -42,12 +42,25 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
     const requestedPage = Number(params.page ?? "1");
     const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
     const searchQuery = String(params.search ?? "").trim();
-    const selectedRole = params.role ? String(params.role).trim() : "";
+    const rawSelectedRole = params.role ? String(params.role).trim() : "";
+    const selectedRole =
+        !isPlatformScope && rawSelectedRole && !isEntityAssignableRole(rawSelectedRole)
+            ? ""
+            : rawSelectedRole;
 
     // Build filter conditions
     const conditions = [];
     if (scopeFilter) {
         conditions.push(scopeFilter);
+    }
+    if (!isPlatformScope) {
+        conditions.push(
+            or(
+                eq(users.role, "member"),
+                eq(users.role, "organizer"),
+                eq(users.role, "admin"),
+            ),
+        );
     }
     if (searchQuery) {
         conditions.push(
@@ -68,6 +81,14 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
     const safePage = Math.min(currentPage, totalPages);
     const offset = (safePage - 1) * PAGE_SIZE;
     const rowStart = offset;
+
+    const getDisplayRoleLabel = (role: string) => {
+        const normalized = normalizeRole(role);
+        if (!isPlatformScope && normalized === "admin") {
+            return t("dashboard.admin.entityOwner");
+        }
+        return getRoleLabel(normalized, locale);
+    };
 
     const allUsers = await db
         .select({
@@ -133,8 +154,12 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                             <option value="">{locale === "en" ? "All Roles" : "Todos los roles"}</option>
                             <option value="member">{getRoleLabel("member", locale)}</option>
                             <option value="organizer">{getRoleLabel("organizer", locale)}</option>
-                            <option value="admin">{getRoleLabel("admin", locale)}</option>
-                            <option value="super_admin">{getRoleLabel("super_admin", locale)}</option>
+                            {isPlatformScope && (
+                                <>
+                                    <option value="admin">{getRoleLabel("admin", locale)}</option>
+                                    <option value="super_admin">{getRoleLabel("super_admin", locale)}</option>
+                                </>
+                            )}
                         </select>
                     </div>
 
@@ -211,7 +236,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                             <span className="block text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t("common.role")}</span>
                                             <span className={`inline-flex items-center gap-1 mt-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${ROLE_BADGE_STYLES[normalizedRole]}`}>
                                                 <RoleIcon className="h-3 w-3" />
-                                                {getRoleLabel(normalizedRole, locale)}
+                                                {getDisplayRoleLabel(user.role ?? "member")}
                                             </span>
                                         </div>
                                         <div>
@@ -259,7 +284,9 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                             />
                                         </div>
                                         <div className="self-end pb-0.5">
-                                            <DeleteUserButton userId={user.id} isSelf={user.id === currentUserId} />
+                                            {isPlatformScope && (
+                                                <DeleteUserButton userId={user.id} isSelf={user.id === currentUserId} />
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -317,7 +344,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                             <td className="px-4 py-3.5">
                                                 <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${ROLE_BADGE_STYLES[normalizedRole]}`}>
                                                     <RoleIcon className="h-3.5 w-3.5" />
-                                                    {getRoleLabel(normalizedRole, locale)}
+                                                    {getDisplayRoleLabel(user.role ?? "member")}
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3.5">

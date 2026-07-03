@@ -6,12 +6,15 @@ import { toast } from "sonner";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { getRoleLabel } from "@/lib/i18n/core";
 import { confirmDeleteAction } from "@/lib/ui/confirm";
-
-type Role = "member" | "organizer" | "admin" | "super_admin";
+import {
+    ENTITY_ASSIGNABLE_ROLES,
+    isEntityAssignableRole,
+    type AppRole,
+} from "@/lib/auth/rbac";
 
 interface RoleSelectorProps {
     userId: string;
-    currentRole: Role;
+    currentRole: AppRole;
     currentUserId: string;
     scopeMode?: "platform" | "org";
 }
@@ -28,8 +31,24 @@ export function RoleSelector({
     const isSelf = userId === currentUserId;
     const isOrgScope = scopeMode === "org";
 
+    if (isOrgScope && !isEntityAssignableRole(currentRole)) {
+        const label =
+            currentRole === "admin"
+                ? t("dashboard.admin.entityOwner")
+                : getRoleLabel("member", locale);
+
+        return (
+            <span
+                className="inline-flex rounded-lg border border-border bg-muted/50 px-2 py-1 text-xs font-medium text-muted-foreground"
+                title={t("dashboard.admin.roleNotAssignable")}
+            >
+                {label}
+            </span>
+        );
+    }
+
     const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newRole = e.target.value as Role;
+        const newRole = e.target.value as AppRole;
         if (newRole === currentRole) return;
 
         const selectEl = e.target;
@@ -58,6 +77,9 @@ export function RoleSelector({
         });
     };
 
+    const platformRoles: AppRole[] = ["member", "organizer", "admin", "super_admin"];
+    const options = isOrgScope ? [...ENTITY_ASSIGNABLE_ROLES] : platformRoles;
+
     return (
         <select
             defaultValue={currentRole}
@@ -66,14 +88,11 @@ export function RoleSelector({
             title={isSelf ? t("dashboard.admin.cannotChangeOwnRole") : undefined}
             className="rounded-lg border border-border bg-background px-2 py-1 text-xs font-medium text-foreground transition-colors hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50"
         >
-            <option value="member">{getRoleLabel("member", locale)}</option>
-            <option value="organizer">{getRoleLabel("organizer", locale)}</option>
-            {!isOrgScope && (
-                <>
-                    <option value="admin">{getRoleLabel("admin", locale)}</option>
-                    <option value="super_admin">{getRoleLabel("super_admin", locale)}</option>
-                </>
-            )}
+            {options.map((role) => (
+                <option key={role} value={role}>
+                    {getRoleLabel(role, locale)}
+                </option>
+            ))}
         </select>
     );
 }

@@ -53,6 +53,17 @@ export const ROLE_LABELS: Record<AppRole, string> = {
 
 export const ROLE_ORDER: AppRole[] = ["super_admin", "admin", "organizer", "member"];
 
+/** Roles que un admin de entidad puede asignar a miembros del equipo. */
+export const ENTITY_ASSIGNABLE_ROLES = ["member", "organizer"] as const;
+export type EntityAssignableRole = (typeof ENTITY_ASSIGNABLE_ROLES)[number];
+
+export function isEntityAssignableRole(role: string): role is EntityAssignableRole {
+    return role === "member" || role === "organizer";
+}
+
+/** Roles visibles en listados/filtros del admin de entidad (sin exponer super_admin). */
+export const ENTITY_VISIBLE_ROLES = ["admin", "organizer", "member"] as const;
+
 export const ROLE_BADGE_STYLES: Record<AppRole, string> = {
     super_admin: "border border-cyan-400/80 bg-cyan-100 text-cyan-900 ring-1 ring-cyan-300 dark:border-cyan-300/60 dark:bg-cyan-400/20 dark:text-cyan-100 dark:ring-cyan-300/30",
     admin: "border border-rose-300/70 bg-rose-100 text-rose-800 ring-1 ring-rose-200 dark:border-rose-500/40 dark:bg-rose-900/40 dark:text-rose-200 dark:ring-rose-500/20",
