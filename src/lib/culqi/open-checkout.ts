@@ -6,7 +6,7 @@ const CULQI_READY_TIMEOUT_MS = 8000;
 interface CulqiCheckoutWithState extends CulqiCheckoutInstance {
   token?: { id: string };
   error?: CulqiError;
-  order?: unknown;
+  order?: { id?: string; state?: string };
 }
 
 export interface OpenCulqiCheckoutParams {
@@ -16,7 +16,15 @@ export interface OpenCulqiCheckoutParams {
   amount: number;
   /** Correo de la cuenta (sesión). Se envía a Culqi y se oculta el campo. */
   email?: string | null;
+  /** Orden Culqi (ord_*) — habilita Yape y billeteras */
+  orderId?: string | null;
+  /** Habilitar Yape en checkout (requiere orderId y monto >= S/ 6) */
+  enableYape?: boolean;
 }
+
+export type CulqiCheckoutResult =
+  | { type: "token"; tokenId: string }
+  | { type: "order_paid"; orderId: string };
 
 function waitForCulqiCheckout(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -55,7 +63,7 @@ export async function loadCulqiCheckoutScript(): Promise<void> {
   await waitForCulqiCheckout();
 }
 
-export async function openCulqiCheckout(params: OpenCulqiCheckoutParams): Promise<string> {
+export async function openCulqiCheckout(params: OpenCulqiCheckoutParams): Promise<CulqiCheckoutResult> {
   await loadCulqiCheckoutScript();
 
   if (!window.CulqiCheckout) {
@@ -68,6 +76,7 @@ export async function openCulqiCheckout(params: OpenCulqiCheckoutParams): Promis
   }
 
   const CulqiCheckoutCtor = window.CulqiCheckout;
+  const yapeEnabled = Boolean(params.orderId && params.enableYape);
 
   return new Promise((resolve, reject) => {
     let settled = false;
@@ -89,7 +98,7 @@ export async function openCulqiCheckout(params: OpenCulqiCheckoutParams): Promis
           title: params.title,
           currency: "PEN",
           amount: Math.round(params.amount * 100),
-          // Sin `order`: solo tarjeta. Culqi exige ord_live_* para Yape/billeteras.
+          ...(params.orderId ? { order: params.orderId } : {}),
         },
         client: { email },
         appearance: {
@@ -101,8 +110,8 @@ export async function openCulqiCheckout(params: OpenCulqiCheckoutParams): Promis
           installments: false,
           paymentMethods: {
             tarjeta: true,
-            yape: false,
-            billetera: false,
+            yape: yapeEnabled,
+            billetera: yapeEnabled,
             bancaMovil: false,
             agente: false,
             cuotealo: false,
@@ -119,7 +128,15 @@ export async function openCulqiCheckout(params: OpenCulqiCheckoutParams): Promis
 
       if (tokenId) {
         checkout.close();
-        finish(() => resolve(tokenId));
+        finish(() => resolve({ type: "token", tokenId }));
+        return;
+      }
+
+      const orderState = instance.order?.state;
+      const orderId = instance.order?.id ?? params.orderId;
+      if (orderId && orderState === "paid") {
+        checkout.close();
+        finish(() => resolve({ type: "order_paid", orderId }));
         return;
       }
 

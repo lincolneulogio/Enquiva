@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { env } from "@/env";
+import { processCulqiWebhook } from "@/lib/culqi/webhook-handler";
 
 export async function POST(req: Request) {
   try {
@@ -9,9 +10,13 @@ export async function POST(req: Request) {
     }
 
     const payload = await req.json();
-    console.log("[Culqi webhook]", payload?.type ?? "unknown");
+    const result = await processCulqiWebhook(payload);
 
-    return NextResponse.json({ received: true });
+    if (!result.ok) {
+      return NextResponse.json({ error: "Webhook processing failed" }, { status: 500 });
+    }
+
+    return NextResponse.json({ received: true, ...result });
   } catch (error) {
     console.error("[Culqi webhook]", error);
     return NextResponse.json({ error: "Webhook error" }, { status: 500 });

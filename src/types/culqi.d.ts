@@ -19,7 +19,7 @@ declare global {
     culqi?: () => void;
     token?: CulqiToken;
     error?: CulqiError;
-    order?: unknown;
+    order?: { id?: string; state?: string };
   }
 
   interface CulqiCheckoutConfig {

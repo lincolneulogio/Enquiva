@@ -106,8 +106,11 @@ export class PaymentService {
     await db.insert(notifications).values({
       userId: registration.userId,
       type: "payment_submitted",
-      title: "Pago registrado",
-      message: `Has registrado un pago de S/ ${existingPayment.amount} vía ${validated.method}. Un organizador lo revisará pronto.`,
+      title: validated.method === "cash" ? "Pago en efectivo registrado" : "Pago registrado",
+      message:
+        validated.method === "cash"
+          ? `Registraste pago en efectivo de S/ ${existingPayment.amount}. Tu ticket se emitirá cuando el organizador confirme el pago en la entrada.`
+          : `Has registrado un pago de S/ ${existingPayment.amount} vía ${validated.method}. Un organizador lo revisará pronto.`,
       metadata: {
         registrationId: registration.id,
         paymentId: existingPayment.id,

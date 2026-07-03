@@ -164,3 +164,66 @@ export async function deleteCulqiCard(cardId: string, credentials?: CulqiCredent
 
   await culqiApiRequest(`/cards/${cardId}`, creds, { method: "DELETE" });
 }
+
+type CulqiOrderInput = {
+  amount: number;
+  description: string;
+  orderNumber: string;
+  email: string;
+  customer: CulqiUserProfile;
+  metadata?: Record<string, string>;
+  expirationHours?: number;
+};
+
+/** Monto mínimo Culqi para órdenes (Yape/billeteras): S/ 6.00 */
+export const CULQI_ORDER_MIN_AMOUNT_PEN = 6;
+
+export async function createCulqiOrder(
+  input: CulqiOrderInput,
+  credentials: CulqiCredentials,
+) {
+  const customer = resolveCulqiCustomerData(input.customer);
+  const amountCents = Math.round(input.amount * 100);
+  if (amountCents < 600) {
+    throw new Error("El monto mínimo para Yape vía Culqi es S/ 6.00");
+  }
+
+  const expirationDate = Math.floor(
+    Date.now() / 1000 + (input.expirationHours ?? 24) * 3600,
+  );
+
+  return culqiApiRequest<{ id: string; state?: string }>("/orders", credentials, {
+    method: "POST",
+    body: JSON.stringify({
+      amount: amountCents,
+      currency_code: "PEN",
+      description: input.description.slice(0, 80),
+      order_number: input.orderNumber.slice(0, 36),
+      expiration_date: expirationDate,
+      client_details: {
+        first_name: customer.firstName,
+        last_name: customer.lastName,
+        email: input.email,
+        phone_number: customer.antifraud.phone_number,
+      },
+      confirm: true,
+      metadata: input.metadata,
+    }),
+  });
+}
+
+export async function getCulqiCharge(chargeId: string, credentials: CulqiCredentials) {
+  return culqiApiRequest<{
+    id: string;
+    outcome?: { type?: string };
+    metadata?: Record<string, string>;
+  }>(`/charges/${chargeId}`, credentials, { method: "GET" });
+}
+
+export async function getCulqiOrder(orderId: string, credentials: CulqiCredentials) {
+  return culqiApiRequest<{ id: string; state?: string; metadata?: Record<string, string> }>(
+    `/orders/${orderId}`,
+    credentials,
+    { method: "GET" },
+  );
+}

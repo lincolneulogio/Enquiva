@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Loader2 } from "lucide-react";
 import { checkInAttendee } from "@/actions/registrations";
+import { translateRegistrationError } from "@/lib/errors/registration";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 
 interface ManualCheckInButtonProps {
@@ -24,7 +25,11 @@ export function ManualCheckInButton({ registrationId, eventId }: ManualCheckInBu
         toast.success(t("dashboard.organizer.checkInSuccess"));
         router.refresh();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : t("dashboard.organizer.checkInError"));
+        toast.error(
+          error instanceof Error
+            ? translateRegistrationError(t, error.message)
+            : t("dashboard.organizer.checkInError"),
+        );
       }
     });
   };

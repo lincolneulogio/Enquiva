@@ -532,8 +532,8 @@ export class RegistrationService {
   static async checkInAttendee(organizerUserId: string, input: CheckInInput) {
     return db.transaction(async (tx) => {
       const [reg] = await tx
-        .update(registrations)
-        .set({ status: "checked_in", checkedInAt: new Date() })
+        .select()
+        .from(registrations)
         .where(
           and(
             eq(registrations.id, input.registrationId),
@@ -541,15 +541,50 @@ export class RegistrationService {
             eq(registrations.status, "registered"),
           ),
         )
-        .returning();
+        .limit(1);
 
       if (!reg) throw registrationError(RegistrationErrorCode.CHECKIN_NOT_FOUND);
+
+      const [event] = await tx
+        .select({ price: events.price })
+        .from(events)
+        .where(eq(events.id, input.eventId))
+        .limit(1);
+
+      const [ticket] = await tx
+        .select({ id: tickets.id, status: tickets.status })
+        .from(tickets)
+        .where(eq(tickets.registrationId, input.registrationId))
+        .limit(1);
+
+      if (!ticket || ticket.status !== "active") {
+        throw registrationError(RegistrationErrorCode.CHECKIN_NO_ACTIVE_TICKET);
+      }
+
+      const eventPrice = event?.price ? Number(event.price) : 0;
+      if (eventPrice > 0) {
+        const [payment] = await tx
+          .select({ status: payments.status })
+          .from(payments)
+          .where(eq(payments.registrationId, input.registrationId))
+          .limit(1);
+
+        if (payment && payment.status !== "approved") {
+          throw registrationError(RegistrationErrorCode.CHECKIN_PAYMENT_REQUIRED);
+        }
+      }
+
+      const [checkedIn] = await tx
+        .update(registrations)
+        .set({ status: "checked_in", checkedInAt: new Date() })
+        .where(eq(registrations.id, input.registrationId))
+        .returning();
 
       await tx
         .update(tickets)
         .set({
           status: "used",
-          checkedInAt: reg.checkedInAt,
+          checkedInAt: checkedIn.checkedInAt,
         })
         .where(eq(tickets.registrationId, input.registrationId));
 
@@ -558,14 +593,14 @@ export class RegistrationService {
           await pusherServer.trigger(
             PUSHER_CHANNELS.event(input.eventId),
             PUSHER_EVENTS.checkIn,
-            { registrationId: reg.id, userId: reg.userId, checkedInAt: reg.checkedInAt },
+            { registrationId: reg.id, userId: reg.userId, checkedInAt: checkedIn.checkedInAt },
           );
         } catch (error) {
           console.error("Fallo al emitir evento Pusher para check-in", error);
         }
       });
 
-      return { success: true, registration: reg };
+      return { success: true, registration: checkedIn };
     });
   }
 

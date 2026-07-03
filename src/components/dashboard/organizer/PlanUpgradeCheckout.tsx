@@ -134,13 +134,16 @@ export function PlanUpgradeCheckout({
 
     setIsSaving(true);
     try {
-      const tokenId = await openCulqiCheckout({
+      const checkoutResult = await openCulqiCheckout({
         publicKey: culqiPublicKey,
         title: "EncuentroDeFe",
         amount,
         email: checkoutEmail,
       });
-      await processCulqiCharge(tokenId);
+      if (checkoutResult.type !== "token") {
+        throw new Error(t("billing.planCheckout.culqiPayFailed"));
+      }
+      await processCulqiCharge(checkoutResult.tokenId);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t("billing.planCheckout.culqiPayFailed"));
     } finally {

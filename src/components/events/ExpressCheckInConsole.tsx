@@ -4,6 +4,8 @@ import { useState, useEffect, useTransition } from "react";
 import { toast } from "sonner";
 import { Search, CheckCircle, Clock, QrCode, User, Check, Loader2, AlertCircle, Lightbulb, Phone } from "lucide-react";
 import { searchPreRegisteredAttendeesAction, checkInAttendee } from "@/actions/registrations";
+import { translateRegistrationError } from "@/lib/errors/registration";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 
 interface EventOption {
   value: string;
@@ -26,6 +28,7 @@ interface ExpressCheckInConsoleProps {
 }
 
 export function ExpressCheckInConsole({ events }: ExpressCheckInConsoleProps) {
+  const t = useTranslations();
   const [selectedEventId, setSelectedEventId] = useState("");
   const [query, setQuery] = useState("");
   const [attendees, setAttendees] = useState<Attendee[]>([]);
@@ -82,7 +85,11 @@ export function ExpressCheckInConsole({ events }: ExpressCheckInConsoleProps) {
           )
         );
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Error al realizar check-in.");
+        toast.error(
+          error instanceof Error
+            ? translateRegistrationError(t, error.message)
+            : "Error al realizar check-in.",
+        );
       } finally {
         setCheckingId(null);
       }

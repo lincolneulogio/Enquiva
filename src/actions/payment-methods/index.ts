@@ -196,8 +196,11 @@ export async function getEventPaymentMethods(eventId: string) {
     .select({ method: paymentMethods })
     .from(eventPaymentMethods)
     .innerJoin(paymentMethods, eq(eventPaymentMethods.paymentMethodId, paymentMethods.id))
-    .where(eq(eventPaymentMethods.eventId, eventId));
-  return rows.map((r) => r.method);
+    .where(and(eq(eventPaymentMethods.eventId, eventId), eq(paymentMethods.isActive, true)));
+
+  return rows
+    .map((r) => r.method)
+    .filter((m) => m.type !== "culqi" || isOrganizerCulqiMethodConfigured(m));
 }
 
 export async function createPaymentMethod(

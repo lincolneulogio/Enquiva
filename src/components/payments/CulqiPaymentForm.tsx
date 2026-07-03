@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { CreditCard, Loader2, ShieldCheck } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import { loadCulqiCheckoutScript, openCulqiCheckout } from "@/lib/culqi/open-checkout";
+import { CULQI_ORDER_MIN_AMOUNT_PEN } from "@/lib/culqi/client";
 import { useSession } from "@/lib/auth/client";
 
 interface CulqiPaymentFormProps {
@@ -31,6 +32,7 @@ export function CulqiPaymentForm({
   const checkoutEmail = userEmail ?? session?.user?.email ?? null;
   const [isLoading, setIsLoading] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
+  const yapeAvailable = amount >= CULQI_ORDER_MIN_AMOUNT_PEN;
 
   useEffect(() => {
     let mounted = true;
@@ -59,17 +61,36 @@ export function CulqiPaymentForm({
 
     setIsLoading(true);
     try {
-      const tokenId = await openCulqiCheckout({
+      const orderResponse = await fetch("/api/payments/culqi/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentId }),
+      });
+      const orderData = await orderResponse.json();
+      if (!orderResponse.ok) {
+        throw new Error(orderData.error ?? t("payments.culqi.failed"));
+      }
+
+      const checkoutResult = await openCulqiCheckout({
         publicKey: culqiPublicKey,
         title: "EncuentroDeFe",
         amount,
         email: checkoutEmail,
+        orderId: orderData.orderId,
+        enableYape: orderData.enableYape ?? yapeAvailable,
       });
+
+      if (checkoutResult.type === "order_paid") {
+        toast.success(t("payments.culqi.success"));
+        router.push("/member/tickets");
+        router.refresh();
+        return;
+      }
 
       const response = await fetch("/api/payments/culqi/charge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentId, sourceId: tokenId }),
+        body: JSON.stringify({ paymentId, sourceId: checkoutResult.tokenId }),
       });
 
       const data = await response.json();
@@ -107,6 +128,9 @@ export function CulqiPaymentForm({
             <ShieldCheck className="h-3.5 w-3.5" />
             {t("payments.culqi.instantTicket")}
           </div>
+          {yapeAvailable && (
+            <p className="mt-2 text-xs text-muted-foreground">{t("payments.culqi.yapeAvailable")}</p>
+          )}
         </div>
       </div>
 

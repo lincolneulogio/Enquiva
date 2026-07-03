@@ -268,9 +268,13 @@ export function ManualPaymentMethodForm({
         )}
 
         {currentMethod?.type === "cash" && (
-          <div className="rounded-xl border border-purple-200 bg-purple-50 dark:bg-purple-950/10 dark:border-purple-900/30 p-4 text-sm">
-            <p className="font-medium text-purple-800 dark:text-purple-300">Pagarás en efectivo el día del evento</p>
-            <p className="mt-1 text-purple-600 dark:text-purple-400">Lleva el monto exacto ({`S/ ${defaultAmount.toFixed(2)}`}) y paga al momento del ingreso.</p>
+          <div className="rounded-xl border border-purple-200 bg-purple-50 dark:bg-purple-950/10 dark:border-purple-900/30 p-4 text-sm space-y-2">
+            <p className="font-medium text-purple-800 dark:text-purple-300">{t("payments.manual.cashTitle")}</p>
+            <p className="text-purple-600 dark:text-purple-400">{t("payments.manual.cashDescription")}</p>
+            <p className="text-xs text-purple-700/80 dark:text-purple-400/90">{t("payments.manual.cashNoTicketYet")}</p>
+            <p className="text-purple-600 dark:text-purple-400">
+              {t("payments.manual.amountPen")}: <strong>S/ {defaultAmount.toFixed(2)}</strong>
+            </p>
           </div>
         )}
 

@@ -91,6 +91,7 @@ export const payments = pgTable("payments", {
   verifiedAt: timestamp("verified_at"),
   gatewayProvider: text("gateway_provider"),
   gatewayChargeId: text("gateway_charge_id"),
+  gatewayOrderId: text("gateway_order_id"),
   gatewayStatus: text("gateway_status"),
   platformFee: numeric("platform_fee", { precision: 12, scale: 2 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -98,6 +99,8 @@ export const payments = pgTable("payments", {
 }, (t) => [
   index("payments_registration_idx").on(t.registrationId),
   index("payments_status_idx").on(t.status),
+  index("payments_gateway_charge_idx").on(t.gatewayChargeId),
+  index("payments_gateway_order_idx").on(t.gatewayOrderId),
 ]);
 
 export const paymentMethods = pgTable("payment_methods", {

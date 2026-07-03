@@ -4,12 +4,11 @@ import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { payments, registrations, events } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { createCulqiCharge } from "@/lib/culqi/client";
+import { createCulqiCharge, getCulqiCharge } from "@/lib/culqi/client";
 import { getUserCulqiProfile, mergeSessionCulqiProfile } from "@/lib/culqi/customer-data";
 import { getCulqiCredentialsForEvent } from "@/lib/culqi/capabilities";
 import { requirePlanFeature, getOrganizerPlanForEvent, getPlatformFee } from "@/lib/billing/enforce";
-import { PaymentService } from "@/services/payments/payment.service";
-import { SubscriptionService } from "@/lib/billing/subscription.service";
+import { CulqiEventPaymentService } from "@/lib/culqi/event-payment.service";
 
 export async function POST(req: Request) {
   try {
@@ -29,6 +28,18 @@ export async function POST(req: Request) {
     const [payment] = await db.select().from(payments).where(eq(payments.id, paymentId)).limit(1);
     if (!payment || payment.userId !== session.user.id) {
       return NextResponse.json({ error: "Pago no encontrado" }, { status: 404 });
+    }
+
+    if (payment.status === "approved") {
+      return NextResponse.json({
+        success: true,
+        chargeId: payment.gatewayChargeId,
+        idempotent: true,
+      });
+    }
+
+    if (payment.status !== "pending" && payment.status !== "rejected") {
+      return NextResponse.json({ error: "Este pago no puede procesarse" }, { status: 409 });
     }
 
     const [registration] = await db
@@ -59,6 +70,28 @@ export async function POST(req: Request) {
       await requirePlanFeature(event.organizerId, "organizer", "culqi");
     }
 
+    if (payment.gatewayChargeId) {
+      try {
+        const existingCharge = await getCulqiCharge(payment.gatewayChargeId, organizerCulqi);
+        if (existingCharge.outcome?.type === "venta_exitosa") {
+          const result = await CulqiEventPaymentService.fulfillApprovedCharge({
+            paymentId: payment.id,
+            chargeId: existingCharge.id,
+            gatewayStatus: existingCharge.outcome.type,
+            platformFee: organizerPlan ? getPlatformFee(Number(payment.amount), organizerPlan) : 0,
+            notes: "Aprobado automáticamente vía Culqi (reconciliación)",
+          });
+          return NextResponse.json({
+            success: true,
+            chargeId: existingCharge.id,
+            idempotent: result.idempotent ?? true,
+          });
+        }
+      } catch (reconcileError) {
+        console.warn("[Culqi charge] reconcile existing charge failed", reconcileError);
+      }
+    }
+
     const amount = Number(payment.amount);
     const platformFee = organizerPlan ? getPlatformFee(amount, organizerPlan) : 0;
 
@@ -86,37 +119,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Pago rechazado por Culqi" }, { status: 402 });
     }
 
-    await db
-      .update(payments)
-      .set({
-        method: "culqi",
-        gatewayProvider: "culqi",
-        gatewayChargeId: charge.id,
-        gatewayStatus: charge.outcome.type,
-        platformFee: platformFee > 0 ? String(platformFee) : null,
-        reference: charge.id,
-        updatedAt: new Date(),
-      })
-      .where(eq(payments.id, payment.id));
-
-    if (platformFee > 0) {
-      await SubscriptionService.recordPlatformTransaction({
-        type: "commission",
-        amount: platformFee,
-        userId: event.organizerId,
-        paymentId: payment.id,
-        description: `Comisión plataforma evento ${event.title}`,
-        metadata: { chargeId: charge.id },
-      });
-    }
-
-    await PaymentService.updatePaymentStatus(event.organizerId, "organizer", {
+    const result = await CulqiEventPaymentService.fulfillApprovedCharge({
       paymentId: payment.id,
-      status: "approved",
+      chargeId: charge.id,
+      gatewayStatus: charge.outcome.type,
+      platformFee,
       notes: "Aprobado automáticamente vía Culqi",
     });
 
-    return NextResponse.json({ success: true, chargeId: charge.id });
+    return NextResponse.json({
+      success: true,
+      chargeId: charge.id,
+      idempotent: result.idempotent ?? false,
+    });
   } catch (error) {
     console.error("[Culqi charge]", error);
     return NextResponse.json(

@@ -13,6 +13,8 @@ export const RegistrationErrorCode = {
   PASSWORD_INVALID: "REGISTRATION_PASSWORD_INVALID",
   NOT_FOUND: "REGISTRATION_NOT_FOUND",
   CHECKIN_NOT_FOUND: "REGISTRATION_CHECKIN_NOT_FOUND",
+  CHECKIN_PAYMENT_REQUIRED: "REGISTRATION_CHECKIN_PAYMENT_REQUIRED",
+  CHECKIN_NO_ACTIVE_TICKET: "REGISTRATION_CHECKIN_NO_ACTIVE_TICKET",
   EVENT_NOT_PUBLISHED: "REGISTRATION_EVENT_NOT_PUBLISHED",
 } as const;
 
@@ -56,6 +58,8 @@ const ERROR_I18N_KEYS: Record<string, string> = {
   [RegistrationErrorCode.PASSWORD_INVALID]: "register.errors.passwordInvalid",
   [RegistrationErrorCode.NOT_FOUND]: "register.errors.notFound",
   [RegistrationErrorCode.CHECKIN_NOT_FOUND]: "register.errors.checkinNotFound",
+  [RegistrationErrorCode.CHECKIN_PAYMENT_REQUIRED]: "register.errors.checkinPaymentRequired",
+  [RegistrationErrorCode.CHECKIN_NO_ACTIVE_TICKET]: "register.errors.checkinNoActiveTicket",
   [RegistrationErrorCode.EVENT_NOT_PUBLISHED]: "register.errors.eventNotPublished",
 };
 
