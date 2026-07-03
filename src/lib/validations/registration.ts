@@ -1,13 +1,6 @@
 import { z } from "zod";
 import { peruPhoneRegex } from "./auth";
-
-const normalizePeruPhoneValue = (value: unknown) => {
-  if (typeof value !== "string") return value;
-  const digits = value.replace(/\D/g, "");
-  if (digits.startsWith("51") && digits.length === 11) return `+${digits}`;
-  if (digits.length === 9) return `+51${digits}`;
-  return value.trim();
-};
+import { normalizePeruPhoneValue } from "./phone";
 
 export const createRegistrationSchema = z.object({
   eventId: z.string().uuid(),

@@ -154,6 +154,19 @@ export function normalizePeruPhone(value: string): string {
   return value.trim();
 }
 
+/** Muestra solo los 9 dígitos locales en inputs con prefijo +51 fijo. */
+export function formatPeruPhoneInput(value?: string | null): string {
+  if (!value) return "";
+  const digits = value.replace(/\D/g, "");
+  if (digits.startsWith("51") && digits.length === 11) {
+    return digits.slice(2);
+  }
+  if (digits.length === 9) {
+    return digits;
+  }
+  return digits.slice(-9);
+}
+
 export function isPeruPhoneNineDigits(value: string): boolean {
   return /^\d{9}$/.test(value.replace(/\D/g, ""));
 }

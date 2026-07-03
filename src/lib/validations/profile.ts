@@ -1,11 +1,16 @@
 import { z } from "zod";
-import { peruPhoneRegex } from "./auth";
+import { peruPhoneNineDigitsRegex } from "./phone";
 
 export const updateProfileSchema = z.object({
   name: z.string().min(2).max(100),
   phone: z
     .union([
-      z.string().regex(peruPhoneRegex, "Phone must follow format +519XXXXXXXX"),
+      z
+        .string()
+        .regex(
+          peruPhoneNineDigitsRegex,
+          "El teléfono debe tener 9 dígitos después de +51 (ej. 987654321)",
+        ),
       z.literal(""),
     ])
     .optional()

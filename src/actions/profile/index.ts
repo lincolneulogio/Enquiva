@@ -7,6 +7,8 @@ import { updatePasswordSchema, updateProfileSchema } from "@/lib/validations";
 import { headers } from "next/headers";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { normalizePeruPhone } from "@/lib/utils";
+import { z } from "zod";
 
 function getDashboardBasePath(role?: string | null) {
     if (role === "organizer") return "/organizer";
@@ -18,7 +20,17 @@ export async function updateCurrentUserProfile(input: unknown) {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user) throw new Error("Unauthorized");
 
-    const data = updateProfileSchema.parse(input);
+    let data;
+    try {
+        data = updateProfileSchema.parse(input);
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            throw new Error(error.issues[0]?.message ?? "Datos de perfil inválidos");
+        }
+        throw error;
+    }
+
+    const phone = data.phone?.trim() ? normalizePeruPhone(data.phone) : null;
 
     // Obtener la imagen anterior del usuario para purgarla de UploadThing si se actualiza o borra
     const [existingUser] = await db
@@ -31,7 +43,7 @@ export async function updateCurrentUserProfile(input: unknown) {
         .update(users)
         .set({
             name: data.name.trim(),
-            phone: data.phone?.trim() || null,
+            phone,
             address: data.address?.trim() || null,
             bio: data.bio?.trim() || null,
             image: data.image?.trim() || null,

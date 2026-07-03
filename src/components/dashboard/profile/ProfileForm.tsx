@@ -10,7 +10,7 @@ import { updateProfileSchema, type UpdateProfileInput } from "@/lib/validations"
 import { Loader2, Mail, Shield, User, Phone, MapPin } from "lucide-react";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { getRoleLabel } from "@/lib/i18n/core";
-import { normalizePeruPhone } from "@/lib/utils";
+import { formatPeruPhoneInput } from "@/lib/utils";
 import { AvatarUploadCard } from "./AvatarUploadCard";
 
 interface ProfileFormProps {
@@ -41,7 +41,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
     resolver: zodResolver(updateProfileSchema),
     defaultValues: {
       name: user.name ?? "",
-      phone: user.phone ?? "",
+      phone: formatPeruPhoneInput(user.phone),
       address: user.address ?? "",
       bio: user.bio ?? "",
       image: user.image ?? "",
@@ -55,7 +55,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
       try {
         await updateCurrentUserProfile({
           ...data,
-          phone: data.phone?.trim() ? normalizePeruPhone(data.phone) : null,
+          phone: data.phone?.trim() || null,
           address: data.address?.trim() ? data.address.trim() : null,
           bio: data.bio?.trim() ? data.bio : null,
           image: data.image?.trim() ? data.image : null,
