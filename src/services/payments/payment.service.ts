@@ -18,7 +18,7 @@ import {
   PUSHER_CHANNELS,
   PUSHER_EVENTS,
 } from "@/lib/pusher/server";
-import { generateTicketForRegistration } from "@/lib/tickets";
+import { generateTicketForRegistration, buildTicketPublicUrl, resolveTicketQrDataUrl } from "@/lib/tickets";
 import { sendTicketEmailWithPdf } from "@/lib/mail";
 import { env } from "@/env";
 import { runBackground } from "@/lib/background";
@@ -340,12 +340,18 @@ export class PaymentService {
 
           if (attendee?.email) {
             try {
+              const ticketUrl =
+                ticket.signature != null
+                  ? buildTicketPublicUrl(ticket.code, ticket.signature)
+                  : `${env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "")}/ticket/${ticket.code}`;
+              const qrDataUrl = await resolveTicketQrDataUrl(ticket);
+
               await sendTicketEmailWithPdf({
                 email: attendee.email,
                 name: attendee.name,
                 eventTitle: event.title,
-                ticketUrl: `${env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "")}/ticket/${ticket.code}`,
-                qrDataUrl: ticket.qrCode,
+                ticketUrl,
+                qrDataUrl: qrDataUrl ?? undefined,
                 code: ticket.code,
               });
             } catch (err) {

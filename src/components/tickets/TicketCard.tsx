@@ -13,8 +13,6 @@ import { useState, useEffect } from "react";
 import { getPusherClient, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/client";
 import Swal from "sweetalert2";
 import { toast } from "sonner";
-import { DownloadTicketButton } from "./DownloadTicketButton";
-import { CalendarSyncButtons } from "./CalendarSyncButtons";
 import {
   Ticket as TicketIcon,
   Coins,
@@ -34,7 +32,9 @@ import {
   MessageSquare,
   Share2
 } from "lucide-react";
-
+import { DownloadTicketButton } from "./DownloadTicketButton";
+import { CalendarSyncButtons } from "./CalendarSyncButtons";
+import { buildTicketQrDataUrlClient } from "@/lib/tickets/qr-client";
 
 interface TicketCardProps {
   ticket?: Ticket | null;
@@ -95,7 +95,7 @@ export function TicketCard({
 }: TicketCardProps) {
   const { locale } = useLocale();
   const t = useTranslations();
-  const qr = ticket?.qrCode;
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(ticket?.qrCode ?? null);
   const hasTransport = Boolean(event.hasTransport);
   
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
@@ -108,6 +108,30 @@ export function TicketCard({
     code: string;
   } | null>(null);
 
+  const showGuestQr = async (guest: NonNullable<typeof guests>[number]) => {
+    if (!guest.ticket?.code) return;
+    const qrCode = await buildTicketQrDataUrlClient(
+      guest.ticket.code,
+      guest.ticket.signature,
+      guest.ticket.qrCode,
+    );
+    if (!qrCode) return;
+    setActiveGuestQr({
+      name: guest.user.name,
+      qrCode,
+      code: guest.ticket.code,
+    });
+  };
+
+  const guestTicketShareUrl = (code: string, signature?: string | null) => {
+    const appUrl =
+      (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "") ||
+      (typeof window !== "undefined" ? window.location.origin : "");
+    return signature
+      ? `${appUrl}/ticket/${code}?s=${signature}`
+      : `${appUrl}/ticket/${code}`;
+  };
+
   // --- PREMIUM REALTIME CHECK-IN TRACKER (PUSHER) ---
   const [primaryStatus, setPrimaryStatus] = useState(registration.status);
   const [guestsState, setGuestsState] = useState(guests || []);
@@ -119,6 +143,20 @@ export function TicketCard({
   useEffect(() => {
     setGuestsState(guests || []);
   }, [guests]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!ticket?.code) {
+      setQrDataUrl(null);
+      return;
+    }
+    buildTicketQrDataUrlClient(ticket.code, ticket.signature, ticket.qrCode).then((url) => {
+      if (!cancelled) setQrDataUrl(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [ticket?.code, ticket?.signature, ticket?.qrCode]);
 
   useEffect(() => {
     const pusher = getPusherClient();
@@ -181,20 +219,40 @@ export function TicketCard({
         format: [320, 520],
       });
 
-      const ticketsToGenerate = [
-        {
-          code: ticket?.code || "",
-          attendeeName: attendeeName || "",
-          qrCode: qr || "",
-          status: primaryStatus,
-        },
-        ...guestsState.map((g) => ({
-          code: g.ticket?.code || "",
-          attendeeName: g.user.name,
-          qrCode: g.ticket?.qrCode || "",
-          status: g.registration.status,
-        })),
-      ].filter((t) => t.code && t.qrCode);
+      const ticketsToGenerate = (
+        await Promise.all([
+          ticket?.code
+            ? buildTicketQrDataUrlClient(ticket.code, ticket.signature, ticket.qrCode).then((qrCode) =>
+                qrCode
+                  ? {
+                      code: ticket.code,
+                      attendeeName: attendeeName || "",
+                      qrCode,
+                      status: primaryStatus,
+                    }
+                  : null,
+              )
+            : Promise.resolve(null),
+          ...guestsState.map((g) =>
+            g.ticket?.code
+              ? buildTicketQrDataUrlClient(
+                  g.ticket.code,
+                  g.ticket.signature,
+                  g.ticket.qrCode,
+                ).then((qrCode) =>
+                  qrCode
+                    ? {
+                        code: g.ticket!.code,
+                        attendeeName: g.user.name,
+                        qrCode,
+                        status: g.registration.status,
+                      }
+                    : null,
+                )
+              : Promise.resolve(null),
+          ),
+        ])
+      ).filter((t): t is NonNullable<typeof t> => t != null);
 
       if (ticketsToGenerate.length === 0) {
         toast.error(
@@ -463,10 +521,10 @@ export function TicketCard({
               </h4>
 
               <div className="grid gap-4 rounded-2xl border border-dashed border-border bg-background/50 p-4">
-                {qr ? (
+                {qrDataUrl ? (
                   <div className="mx-auto w-36 relative group transition duration-300">
                     <Image
-                      src={qr}
+                      src={qrDataUrl}
                       alt={t("ticket.yourTicket")}
                       width={200}
                       height={200}
@@ -808,7 +866,7 @@ export function TicketCard({
                     eventLocation={event.location}
                     isVirtual={event.isVirtual}
                     attendeeName={attendeeName || null}
-                    qrCode={qr}
+                    qrCode={qrDataUrl}
                     registrationStatus={registration.status}
                     className="rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground hover:bg-secondary transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 select-none"
                   />
@@ -874,7 +932,9 @@ export function TicketCard({
 
               <div className="grid grid-cols-1 gap-3.5">
                 {guestsState.map((guest) => {
-                  const guestQr = guest.ticket?.qrCode;
+                  const guestHasQr = Boolean(
+                    guest.ticket?.code && (guest.ticket.signature || guest.ticket.qrCode),
+                  );
                   const isCheckedIn = guest.registration.status === "checked_in";
                   
                   return (
@@ -910,15 +970,11 @@ export function TicketCard({
 
                       {/* Acciones de Invitado */}
                       <div className="flex flex-wrap items-center gap-2 shrink-0">
-                        {paymentStatus === "approved" && guestQr ? (
+                        {paymentStatus === "approved" && guestHasQr ? (
                           <>
                             <button
                               type="button"
-                              onClick={() => setActiveGuestQr({
-                                name: guest.user.name,
-                                qrCode: guestQr,
-                                code: guest.ticket?.code || "",
-                              })}
+                              onClick={() => showGuestQr(guest)}
                               className="rounded-xl border border-border hover:bg-secondary text-foreground px-3.5 py-2 text-xs font-bold flex items-center justify-center gap-1.5 shadow-3xs transition duration-200 cursor-pointer select-none"
                             >
                               <Eye className="h-3.5 w-3.5 text-primary" />
@@ -928,8 +984,8 @@ export function TicketCard({
                             <a
                               href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
                                 locale === "en"
-                                  ? `Hi ${guest.user.name}! Here is your entry ticket for the event *${event.title}*: ${window.location.origin}/ticket/${guest.ticket?.code} . See you there!`
-                                  : `¡Hola ${guest.user.name}! Aquí tienes tu entrada para el evento *${event.title}*: ${window.location.origin}/ticket/${guest.ticket?.code} . ¡Nos vemos allá!`
+                                  ? `Hi ${guest.user.name}! Here is your entry ticket for the event *${event.title}*: ${guestTicketShareUrl(guest.ticket!.code, guest.ticket!.signature)} . See you there!`
+                                  : `¡Hola ${guest.user.name}! Aquí tienes tu entrada para el evento *${event.title}*: ${guestTicketShareUrl(guest.ticket!.code, guest.ticket!.signature)} . ¡Nos vemos allá!`
                               )}`}
                               target="_blank"
                               rel="noreferrer"
@@ -946,20 +1002,16 @@ export function TicketCard({
                               eventLocation={event.location}
                               isVirtual={event.isVirtual}
                               attendeeName={guest.user.name}
-                              qrCode={guestQr}
+                              ticketSignature={guest.ticket?.signature}
                               registrationStatus={guest.registration.status}
                               className="rounded-xl border border-border bg-background hover:bg-secondary text-foreground px-3.5 py-2 text-xs font-bold flex items-center justify-center gap-1.5 shadow-3xs transition duration-200 cursor-pointer select-none"
                             />
                           </>
-                        ) : !paymentStatus && guestQr ? (
+                        ) : !paymentStatus && guestHasQr ? (
                           <>
                             <button
                               type="button"
-                              onClick={() => setActiveGuestQr({
-                                name: guest.user.name,
-                                qrCode: guestQr,
-                                code: guest.ticket?.code || "",
-                              })}
+                              onClick={() => showGuestQr(guest)}
                               className="rounded-xl border border-border hover:bg-secondary text-foreground px-3.5 py-2 text-xs font-bold flex items-center justify-center gap-1.5 shadow-3xs transition duration-200 cursor-pointer select-none"
                             >
                               <Eye className="h-3.5 w-3.5 text-primary" />
@@ -969,8 +1021,8 @@ export function TicketCard({
                             <a
                               href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
                                 locale === "en"
-                                  ? `Hi ${guest.user.name}! Here is your entry ticket for the event *${event.title}*: ${window.location.origin}/ticket/${guest.ticket?.code} . See you there!`
-                                  : `¡Hola ${guest.user.name}! Aquí tienes tu entrada para el evento *${event.title}*: ${window.location.origin}/ticket/${guest.ticket?.code} . ¡Nos vemos allá!`
+                                  ? `Hi ${guest.user.name}! Here is your entry ticket for the event *${event.title}*: ${guestTicketShareUrl(guest.ticket!.code, guest.ticket!.signature)} . See you there!`
+                                  : `¡Hola ${guest.user.name}! Aquí tienes tu entrada para el evento *${event.title}*: ${guestTicketShareUrl(guest.ticket!.code, guest.ticket!.signature)} . ¡Nos vemos allá!`
                               )}`}
                               target="_blank"
                               rel="noreferrer"
@@ -987,7 +1039,7 @@ export function TicketCard({
                               eventLocation={event.location}
                               isVirtual={event.isVirtual}
                               attendeeName={guest.user.name}
-                              qrCode={guestQr}
+                              ticketSignature={guest.ticket?.signature}
                               registrationStatus={guest.registration.status}
                               className="rounded-xl border border-border bg-background hover:bg-secondary text-foreground px-3.5 py-2 text-xs font-bold flex items-center justify-center gap-1.5 shadow-3xs transition duration-200 cursor-pointer select-none"
                             />

@@ -7,10 +7,12 @@ import { getI18n } from "@/lib/i18n/server";
 import Link from "next/link";
 import { DownloadTicketButton } from "@/components/tickets/DownloadTicketButton";
 import { CalendarSyncButtons } from "@/components/tickets/CalendarSyncButtons";
+import { verifyTicketSignature } from "@/lib/tickets/signature";
+import { resolveTicketQrDataUrl } from "@/lib/tickets/qr";
 
 interface TicketPublicPageProps {
   params: Promise<{ code: string }>;
-  searchParams: Promise<{ from?: string }>;
+  searchParams: Promise<{ from?: string; s?: string }>;
 }
 
 export default async function TicketPublicPage({ params, searchParams }: TicketPublicPageProps) {
@@ -18,6 +20,7 @@ export default async function TicketPublicPage({ params, searchParams }: TicketP
   const { code } = await params;
   const query = await searchParams;
   const showAccountPrompt = query.from === "phone-signup";
+  const providedSignature = typeof query.s === "string" ? query.s.trim() : "";
 
   const [record] = await db
     .select({ ticket: tickets, registration: registrations, event: events, user: users })
@@ -29,6 +32,12 @@ export default async function TicketPublicPage({ params, searchParams }: TicketP
     .limit(1);
 
   if (!record) return notFound();
+
+  if (!providedSignature || !verifyTicketSignature(record.ticket, providedSignature)) {
+    return notFound();
+  }
+
+  const qrDataUrl = await resolveTicketQrDataUrl(record.ticket);
 
   const statusLabel =
     record.registration.status === "checked_in"
@@ -45,10 +54,12 @@ export default async function TicketPublicPage({ params, searchParams }: TicketP
 
         <div className="mt-6 space-y-2 text-sm text-muted-foreground">
           <p>
-            <span className="font-medium text-foreground">{locale === "en" ? "Attendee" : "Asistente"}:</span> {record.user.name}
+            <span className="font-medium text-foreground">{locale === "en" ? "Attendee" : "Asistente"}:</span>{" "}
+            {record.user.name}
           </p>
           <p>
-            <span className="font-medium text-foreground">{t("public.ticket.dateLabel")}:</span> {formatEventDate(record.event.date)}
+            <span className="font-medium text-foreground">{t("public.ticket.dateLabel")}:</span>{" "}
+            {formatEventDate(record.event.date)}
           </p>
           <p>
             <span className="font-medium text-foreground">{t("public.ticket.codeLabel")}:</span> {record.ticket.code}
@@ -58,11 +69,11 @@ export default async function TicketPublicPage({ params, searchParams }: TicketP
           </p>
         </div>
 
-        {record.ticket.qrCode && (
+        {qrDataUrl && (
           <div className="mt-8 flex flex-col items-center justify-center">
             <div className="rounded-3xl border border-primary/10 bg-white p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 hover:shadow-[0_12px_40px_rgba(75,26,181,0.08)]">
               <img
-                src={record.ticket.qrCode}
+                src={qrDataUrl}
                 alt="Código QR del Ticket"
                 className="h-48 w-48 rounded-xl object-contain"
               />
@@ -73,7 +84,7 @@ export default async function TicketPublicPage({ params, searchParams }: TicketP
           </div>
         )}
 
-        {record.ticket.qrCode && (
+        {qrDataUrl && (
           <div className="mt-6 flex flex-col items-center gap-6 border-t border-border/40 pt-6">
             <DownloadTicketButton
               ticketCode={record.ticket.code}
@@ -82,11 +93,11 @@ export default async function TicketPublicPage({ params, searchParams }: TicketP
               eventLocation={record.event.location}
               isVirtual={record.event.isVirtual}
               attendeeName={record.user.name}
-              qrCode={record.ticket.qrCode}
+              qrCode={qrDataUrl}
               registrationStatus={record.registration.status}
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.98] cursor-pointer"
             />
-            
+
             <div className="flex flex-col items-center gap-2">
               <span className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">
                 {locale === "en" ? "Add to Calendar" : "Sincronizar con tu Calendario"}

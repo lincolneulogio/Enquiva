@@ -15,6 +15,7 @@ export const RegistrationErrorCode = {
   CHECKIN_NOT_FOUND: "REGISTRATION_CHECKIN_NOT_FOUND",
   CHECKIN_PAYMENT_REQUIRED: "REGISTRATION_CHECKIN_PAYMENT_REQUIRED",
   CHECKIN_NO_ACTIVE_TICKET: "REGISTRATION_CHECKIN_NO_ACTIVE_TICKET",
+  CHECKIN_ALREADY_USED: "REGISTRATION_CHECKIN_ALREADY_USED",
   EVENT_NOT_PUBLISHED: "REGISTRATION_EVENT_NOT_PUBLISHED",
 } as const;
 
@@ -60,6 +61,7 @@ const ERROR_I18N_KEYS: Record<string, string> = {
   [RegistrationErrorCode.CHECKIN_NOT_FOUND]: "register.errors.checkinNotFound",
   [RegistrationErrorCode.CHECKIN_PAYMENT_REQUIRED]: "register.errors.checkinPaymentRequired",
   [RegistrationErrorCode.CHECKIN_NO_ACTIVE_TICKET]: "register.errors.checkinNoActiveTicket",
+  [RegistrationErrorCode.CHECKIN_ALREADY_USED]: "register.errors.checkinAlreadyUsed",
   [RegistrationErrorCode.EVENT_NOT_PUBLISHED]: "register.errors.eventNotPublished",
 };
 

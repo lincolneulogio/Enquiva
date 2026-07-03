@@ -5,6 +5,7 @@ import { Download } from "lucide-react";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { formatEventDate } from "@/lib/utils";
 import { toast } from "sonner";
+import { buildTicketQrDataUrlClient } from "@/lib/tickets/qr-client";
 
 interface DownloadTicketButtonProps {
   ticketCode: string;
@@ -14,6 +15,7 @@ interface DownloadTicketButtonProps {
   isVirtual?: boolean;
   attendeeName?: string | null;
   qrCode?: string | null;
+  ticketSignature?: string | null;
   registrationStatus?: string | null;
   className?: string;
 }
@@ -26,6 +28,7 @@ export function DownloadTicketButton({
   isVirtual = false,
   attendeeName,
   qrCode,
+  ticketSignature,
   registrationStatus,
   className,
 }: DownloadTicketButtonProps) {
@@ -34,7 +37,10 @@ export function DownloadTicketButton({
   const t = useTranslations();
 
   const handleDownload = async () => {
-    if (!qrCode) {
+    const resolvedQr =
+      qrCode ?? (await buildTicketQrDataUrlClient(ticketCode, ticketSignature, null));
+
+    if (!resolvedQr) {
       toast.error(
         locale === "en"
           ? "QR Code is not ready yet."
@@ -168,7 +174,7 @@ export function DownloadTicketButton({
       // Renderizar el QR Code
       const qrSize = 100;
       const qrX = (320 - qrSize) / 2;
-      doc.addImage(qrCode, "PNG", qrX, currentY, qrSize, qrSize);
+      doc.addImage(resolvedQr, "PNG", qrX, currentY, qrSize, qrSize);
       currentY += qrSize + 15;
 
       // Código de Ticket

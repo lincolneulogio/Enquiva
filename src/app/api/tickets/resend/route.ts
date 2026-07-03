@@ -4,6 +4,7 @@ import { tickets, registrations, users, events } from "@/lib/db/schema";
 import { auth } from "@/lib/auth";
 import { eq } from "drizzle-orm";
 import { sendTicketEmailWithPdf } from "@/lib/mail";
+import { buildTicketPublicUrl, resolveTicketQrDataUrl } from "@/lib/tickets";
 import { env } from "@/env";
 import { headers } from "next/headers";
 import { z } from "zod";
@@ -50,12 +51,18 @@ export async function POST(req: Request) {
     const [eventRecord] = await db.select({ id: events.id, title: events.title }).from(events).where(eq(events.id, registration.eventId)).limit(1);
 
     try {
+      const ticketUrl =
+        ticket.signature != null
+          ? buildTicketPublicUrl(ticket.code, ticket.signature)
+          : `${env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "")}/ticket/${ticket.code}`;
+      const qrDataUrl = await resolveTicketQrDataUrl(ticket);
+
       await sendTicketEmailWithPdf({
         email: attendee.email,
         name: attendee.name,
         eventTitle: eventRecord?.title ?? "Evento",
-        ticketUrl: `${env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "")}/ticket/${ticket.code}`,
-        qrDataUrl: ticket.qrCode,
+        ticketUrl,
+        qrDataUrl: qrDataUrl ?? undefined,
         code: ticket.code,
       });
     } catch (err) {

@@ -77,7 +77,8 @@ export const tickets = pgTable("tickets", {
     .notNull()
     .references(() => registrations.id, { onDelete: "cascade" }),
   code: text("code").notNull().unique(),
-  qrCode: text("qr_code").notNull(),
+  /** @deprecated Legacy — QR se genera on-demand vía resolveTicketQrDataUrl */
+  qrCode: text("qr_code"),
   signature: text("signature"),
   status: ticketStatusEnum("status").notNull().default("active"),
   issuedAt: timestamp("issued_at").notNull().defaultNow(),
