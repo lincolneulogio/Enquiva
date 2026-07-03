@@ -141,6 +141,7 @@ export const subscriptionPayments = pgTable(
     index("subscription_payments_user_idx").on(t.userId),
     index("subscription_payments_status_idx").on(t.status),
     index("subscription_payments_plan_idx").on(t.planId),
+    uniqueIndex("subscription_payments_gateway_charge_unique_idx").on(t.gatewayChargeId),
   ],
 );
 

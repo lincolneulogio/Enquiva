@@ -6,7 +6,6 @@ import { plans } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { createCulqiCharge, isCulqiConfigured } from "@/lib/culqi/client";
 import { SubscriptionPaymentService } from "@/lib/billing/subscription-payment.service";
-import { SubscriptionService } from "@/lib/billing/subscription.service";
 
 export async function POST(req: Request) {
   try {
@@ -65,32 +64,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Pago rechazado por Culqi" }, { status: 402 });
     }
 
-    const payment = await SubscriptionPaymentService.createCulqiPaymentRecord({
+    const result = await SubscriptionPaymentService.fulfillCulqiSubscriptionCharge({
       userId: session.user.id,
       planId: plan.id,
+      planName: plan.name,
       amount,
       chargeId: charge.id,
     });
 
-    await SubscriptionService.assignPlanToUser(session.user.id, plan.id, "super_admin");
-
-    const { subscriptions } = await import("@/lib/db/schema");
-    const [sub] = await db
-      .select({ id: subscriptions.id })
-      .from(subscriptions)
-      .where(eq(subscriptions.userId, session.user.id))
-      .limit(1);
-
-    await SubscriptionService.recordPlatformTransaction({
-      type: "subscription",
-      amount,
-      userId: session.user.id,
-      subscriptionId: sub?.id,
-      description: `Suscripción plan ${plan.name} (Culqi)`,
-      metadata: { chargeId: charge.id, subscriptionPaymentId: payment.id },
+    return NextResponse.json({
+      success: true,
+      chargeId: charge.id,
+      idempotent: result.idempotent,
+      subscriptionId: result.subscriptionId,
     });
-
-    return NextResponse.json({ success: true, chargeId: charge.id });
   } catch (error) {
     console.error("[Billing Culqi charge]", error);
     return NextResponse.json(

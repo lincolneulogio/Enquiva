@@ -1,11 +1,19 @@
-import { db } from "@/lib/db";
+import { db, type DBTransaction } from "@/lib/db";
 import {
   plans,
   subscriptionPayments,
-  subscriptions,
 } from "@/lib/db/schema";
 import { and, desc, eq } from "drizzle-orm";
 import { SubscriptionService } from "./subscription.service";
+
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === "23505"
+  );
+}
 
 export class SubscriptionPaymentService {
   static async getPendingForUser(userId: string) {
@@ -21,6 +29,111 @@ export class SubscriptionPaymentService {
       .limit(1);
 
     return row ?? null;
+  }
+
+  static async getByGatewayChargeId(chargeId: string) {
+    const [payment] = await db
+      .select()
+      .from(subscriptionPayments)
+      .where(eq(subscriptionPayments.gatewayChargeId, chargeId))
+      .limit(1);
+
+    return payment ?? null;
+  }
+
+  /**
+   * Persiste pago Culqi aprobado, activa el plan y registra ingreso de plataforma
+   * en una sola transacción. Idempotente por gatewayChargeId.
+   */
+  static async fulfillCulqiSubscriptionCharge(input: {
+    userId: string;
+    planId: string;
+    planName: string;
+    amount: number;
+    chargeId: string;
+  }) {
+    return db.transaction(async (tx) =>
+      this.fulfillCulqiSubscriptionChargeTx(tx, input),
+    );
+  }
+
+  private static async fulfillCulqiSubscriptionChargeTx(
+    tx: DBTransaction,
+    input: {
+      userId: string;
+      planId: string;
+      planName: string;
+      amount: number;
+      chargeId: string;
+    },
+  ) {
+    let payment = await this.findPaymentByChargeIdTx(tx, input.chargeId);
+    let idempotent = Boolean(payment);
+
+    if (payment && payment.userId !== input.userId) {
+      throw new Error("El cargo de Culqi ya está asociado a otro usuario");
+    }
+
+    if (!payment) {
+      try {
+        const [created] = await tx
+          .insert(subscriptionPayments)
+          .values({
+            userId: input.userId,
+            planId: input.planId,
+            amount: String(input.amount),
+            method: "culqi",
+            status: "approved",
+            gatewayProvider: "culqi",
+            gatewayChargeId: input.chargeId,
+            reference: input.chargeId,
+            verifiedAt: new Date(),
+            notes: "Aprobado automáticamente vía Culqi",
+          })
+          .returning();
+
+        payment = created;
+      } catch (error) {
+        if (!isUniqueViolation(error)) throw error;
+
+        payment = await this.findPaymentByChargeIdTx(tx, input.chargeId);
+        if (!payment) throw error;
+        idempotent = true;
+      }
+    }
+
+    const planId = payment.planId;
+    const subscriptionId = await SubscriptionService.assignPlanToUserTx(
+      tx,
+      input.userId,
+      planId,
+    );
+
+    await SubscriptionService.recordPlatformTransactionTx(tx, {
+      type: "subscription",
+      amount: input.amount,
+      userId: input.userId,
+      subscriptionId,
+      subscriptionPaymentId: payment.id,
+      description: `Suscripción plan ${input.planName} (Culqi)`,
+      metadata: { chargeId: input.chargeId, subscriptionPaymentId: payment.id },
+    });
+
+    return {
+      paymentId: payment.id,
+      subscriptionId,
+      idempotent,
+    };
+  }
+
+  private static async findPaymentByChargeIdTx(tx: DBTransaction, chargeId: string) {
+    const [payment] = await tx
+      .select()
+      .from(subscriptionPayments)
+      .where(eq(subscriptionPayments.gatewayChargeId, chargeId))
+      .limit(1);
+
+    return payment ?? null;
   }
 
   static async createManualPayment(input: {
@@ -58,72 +171,48 @@ export class SubscriptionPaymentService {
     return created;
   }
 
-  static async createCulqiPaymentRecord(input: {
-    userId: string;
-    planId: string;
-    amount: number;
-    chargeId: string;
-  }) {
-    const [created] = await db
-      .insert(subscriptionPayments)
-      .values({
-        userId: input.userId,
-        planId: input.planId,
-        amount: String(input.amount),
-        method: "culqi",
-        status: "approved",
-        gatewayProvider: "culqi",
-        gatewayChargeId: input.chargeId,
-        reference: input.chargeId,
-        verifiedAt: new Date(),
-        notes: "Aprobado automáticamente vía Culqi",
-      })
-      .returning();
-
-    return created;
-  }
-
   static async approvePayment(paymentId: string, adminUserId: string) {
-    const [payment] = await db
-      .select()
-      .from(subscriptionPayments)
-      .where(eq(subscriptionPayments.id, paymentId))
-      .limit(1);
+    return db.transaction(async (tx) => {
+      const [payment] = await tx
+        .select()
+        .from(subscriptionPayments)
+        .where(eq(subscriptionPayments.id, paymentId))
+        .limit(1);
 
-    if (!payment) throw new Error("Pago de suscripción no encontrado");
-    if (payment.status !== "pending") throw new Error("Este pago ya fue procesado");
+      if (!payment) throw new Error("Pago de suscripción no encontrado");
+      if (payment.status !== "pending") throw new Error("Este pago ya fue procesado");
 
-    const [plan] = await db.select().from(plans).where(eq(plans.id, payment.planId)).limit(1);
-    if (!plan) throw new Error("Plan no encontrado");
+      const [plan] = await tx.select().from(plans).where(eq(plans.id, payment.planId)).limit(1);
+      if (!plan) throw new Error("Plan no encontrado");
 
-    await db
-      .update(subscriptionPayments)
-      .set({
-        status: "approved",
-        verifiedBy: adminUserId,
-        verifiedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(subscriptionPayments.id, paymentId));
+      await tx
+        .update(subscriptionPayments)
+        .set({
+          status: "approved",
+          verifiedBy: adminUserId,
+          verifiedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(subscriptionPayments.id, paymentId));
 
-    await SubscriptionService.assignPlanToUser(payment.userId, payment.planId, "super_admin");
+      const subscriptionId = await SubscriptionService.assignPlanToUserTx(
+        tx,
+        payment.userId,
+        payment.planId,
+      );
 
-    const [sub] = await db
-      .select({ id: subscriptions.id })
-      .from(subscriptions)
-      .where(eq(subscriptions.userId, payment.userId))
-      .limit(1);
+      await SubscriptionService.recordPlatformTransactionTx(tx, {
+        type: "subscription",
+        amount: Number(payment.amount),
+        userId: payment.userId,
+        subscriptionId,
+        subscriptionPaymentId: payment.id,
+        description: `Suscripción plan ${plan.name}`,
+        metadata: { subscriptionPaymentId: payment.id, method: payment.method },
+      });
 
-    await SubscriptionService.recordPlatformTransaction({
-      type: "subscription",
-      amount: Number(payment.amount),
-      userId: payment.userId,
-      subscriptionId: sub?.id,
-      description: `Suscripción plan ${plan.name}`,
-      metadata: { subscriptionPaymentId: payment.id, method: payment.method },
+      return { success: true, payment };
     });
-
-    return { success: true, payment };
   }
 
   static async rejectPayment(paymentId: string, adminUserId: string, notes?: string) {

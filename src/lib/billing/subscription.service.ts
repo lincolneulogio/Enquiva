@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { db, type DBTransaction } from "@/lib/db";
 import {
   plans,
   subscriptions,
@@ -153,20 +153,24 @@ export class SubscriptionService {
   static async assignPlanToUser(userId: string, planId: string, actorRole: string) {
     if (!this.isPlatformStaff(actorRole)) throw new Error("Forbidden");
 
-    const [plan] = await db.select().from(plans).where(eq(plans.id, planId)).limit(1);
+    return db.transaction(async (tx) => this.assignPlanToUserTx(tx, userId, planId));
+  }
+
+  static async assignPlanToUserTx(tx: DBTransaction, userId: string, planId: string) {
+    const [plan] = await tx.select().from(plans).where(eq(plans.id, planId)).limit(1);
     if (!plan) throw new Error("Plan no encontrado");
 
     const periodEnd = new Date();
     periodEnd.setMonth(periodEnd.getMonth() + 1);
 
-    const [existing] = await db
+    const [existing] = await tx
       .select({ id: subscriptions.id })
       .from(subscriptions)
       .where(eq(subscriptions.userId, userId))
       .limit(1);
 
     if (existing) {
-      await db
+      await tx
         .update(subscriptions)
         .set({
           planId,
@@ -177,17 +181,22 @@ export class SubscriptionService {
           updatedAt: new Date(),
         })
         .where(eq(subscriptions.id, existing.id));
-    } else {
-      await db.insert(subscriptions).values({
+
+      return existing.id;
+    }
+
+    const [created] = await tx
+      .insert(subscriptions)
+      .values({
         userId,
         planId,
         status: "active",
         currentPeriodStart: new Date(),
         currentPeriodEnd: periodEnd,
-      });
-    }
+      })
+      .returning({ id: subscriptions.id });
 
-    return { success: true };
+    return created.id;
   }
 
   static async listAllPlans(): Promise<Plan[]> {
@@ -258,18 +267,52 @@ export class SubscriptionService {
     userId?: string;
     paymentId?: string;
     subscriptionId?: string;
+    subscriptionPaymentId?: string;
     description?: string;
     metadata?: Record<string, unknown>;
   }) {
-    await db.insert(platformTransactions).values({
-      type: input.type,
-      amount: String(input.amount),
-      currency: input.currency ?? "PEN",
-      userId: input.userId,
-      paymentId: input.paymentId,
-      subscriptionId: input.subscriptionId,
-      description: input.description,
-      metadata: input.metadata,
-    });
+    await db.transaction(async (tx) => this.recordPlatformTransactionTx(tx, input));
+  }
+
+  static async recordPlatformTransactionTx(
+    tx: DBTransaction,
+    input: {
+      type: "subscription" | "commission" | "adjustment";
+      amount: number;
+      currency?: string;
+      userId?: string;
+      paymentId?: string;
+      subscriptionId?: string;
+      subscriptionPaymentId?: string;
+      description?: string;
+      metadata?: Record<string, unknown>;
+    },
+  ) {
+    if (input.subscriptionPaymentId) {
+      const [existing] = await tx
+        .select({ id: platformTransactions.id })
+        .from(platformTransactions)
+        .where(eq(platformTransactions.subscriptionPaymentId, input.subscriptionPaymentId))
+        .limit(1);
+
+      if (existing) return existing.id;
+    }
+
+    const [created] = await tx
+      .insert(platformTransactions)
+      .values({
+        type: input.type,
+        amount: String(input.amount),
+        currency: input.currency ?? "PEN",
+        userId: input.userId,
+        paymentId: input.paymentId,
+        subscriptionId: input.subscriptionId,
+        subscriptionPaymentId: input.subscriptionPaymentId,
+        description: input.description,
+        metadata: input.metadata,
+      })
+      .returning({ id: platformTransactions.id });
+
+    return created.id;
   }
 }
