@@ -150,6 +150,20 @@ export class SubscriptionService {
     };
   }
 
+  static async getSubscriptionPlanForUserId(userId: string): Promise<ResolvedPlan> {
+    await this.ensureDefaultPlans();
+
+    const [existing] = await db
+      .select({ plan: plans })
+      .from(subscriptions)
+      .innerJoin(plans, eq(subscriptions.planId, plans.id))
+      .where(and(eq(subscriptions.userId, userId), eq(subscriptions.status, "active")))
+      .limit(1);
+
+    if (existing) return mapPlanRow(existing.plan);
+    return this.getFreePlan();
+  }
+
   static async assignPlanToUser(userId: string, planId: string, actorRole: string) {
     if (!this.isPlatformStaff(actorRole)) throw new Error("Forbidden");
 

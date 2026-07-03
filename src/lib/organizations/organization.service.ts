@@ -5,8 +5,10 @@ import {
   users,
   type Organization,
 } from "@/lib/db/schema";
-import { and, eq, inArray, asc } from "drizzle-orm";
+import { and, eq, inArray, asc, count } from "drizzle-orm";
 import { normalizeRole } from "@/lib/auth/rbac";
+import { SubscriptionService } from "@/lib/billing/subscription.service";
+import { PlanLimitError } from "@/lib/billing/enforce";
 
 function slugify(name: string) {
   return name
@@ -118,6 +120,20 @@ export class OrganizationService {
     const org = await this.getByInviteCode(input.inviteCode);
     if (!org) throw new Error("Código de entidad inválido o inactivo.");
 
+    const [existingMember] = await db
+      .select({ id: organizationMembers.id })
+      .from(organizationMembers)
+      .where(
+        and(
+          eq(organizationMembers.organizationId, org.id),
+          eq(organizationMembers.userId, input.userId),
+        ),
+      )
+      .limit(1);
+    if (existingMember) throw new Error("Ya perteneces a esta entidad.");
+
+    await this.assertCanAddOrganizerToOrg(org.id);
+
     await db.insert(organizationMembers).values({
       organizationId: org.id,
       userId: input.userId,
@@ -158,6 +174,25 @@ export class OrganizationService {
     }
     if (target.id === actorOrg.ownerId) {
       throw new Error("No puedes cambiar el rol del dueño de la entidad.");
+    }
+
+    const [memberRow] = await db
+      .select({ role: organizationMembers.role })
+      .from(organizationMembers)
+      .where(
+        and(
+          eq(organizationMembers.userId, input.targetUserId),
+          eq(organizationMembers.organizationId, actorOrg.id),
+        ),
+      )
+      .limit(1);
+
+    if (
+      input.newRole === "organizer" &&
+      memberRow?.role !== "organizer" &&
+      !isSuper
+    ) {
+      await this.assertCanAddOrganizerToOrg(actorOrg.id);
     }
 
     const globalRole = input.newRole === "organizer" ? "organizer" : "member";
@@ -211,6 +246,38 @@ export class OrganizationService {
         ),
       );
     return rows.map((r) => r.userId);
+  }
+
+  static async countOrganizerSlotsInOrg(organizationId: string) {
+    const [{ total }] = await db
+      .select({ total: count() })
+      .from(organizationMembers)
+      .where(
+        and(
+          eq(organizationMembers.organizationId, organizationId),
+          inArray(organizationMembers.role, ["owner", "organizer"]),
+        ),
+      );
+    return total ?? 0;
+  }
+
+  private static async assertCanAddOrganizerToOrg(organizationId: string) {
+    const [org] = await db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.id, organizationId))
+      .limit(1);
+    if (!org) throw new Error("Entidad no encontrada.");
+
+    const plan = await SubscriptionService.getSubscriptionPlanForUserId(org.ownerId);
+    if (plan.maxOrganizers == null) return;
+
+    const used = await this.countOrganizerSlotsInOrg(organizationId);
+    if (used >= plan.maxOrganizers) {
+      throw new PlanLimitError(
+        `El plan ${plan.name} de esta entidad permite hasta ${plan.maxOrganizers} organizador(es). Actualiza el plan en facturación.`,
+      );
+    }
   }
 
   static serializeSignupIntent(payload: SignupIntentPayload): string {
