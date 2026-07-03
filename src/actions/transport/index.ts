@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { TransportService } from "@/services/transport/transport.service";
 import { requirePlanFeature } from "@/lib/billing/enforce";
 import { z } from "zod";
+import { assertEventInAdminScope, assertRouteInAdminScope } from "@/lib/organizations/admin-scope";
 
 // ─── Auth Helpers ─────────────────────────────────────────────────────────────
 
@@ -57,7 +58,11 @@ const bookTransportSchema = z.object({
 // ─── Organizer: Gestión de rutas ──────────────────────────────────────────────
 
 export async function getRoutesByEvent(eventId: string) {
-    await requireAuth();
+    const user = await requireAuth();
+    const role = user.role ?? "member";
+    if (role === "organizer" || role === "admin" || role === "super_admin") {
+        await assertEventInAdminScope(eventId, user.id, user.role);
+    }
     return TransportService.getRoutesByEvent(eventId);
 }
 
@@ -90,8 +95,8 @@ export async function deleteRoute(routeId: string) {
 }
 
 export async function toggleRouteActive(routeId: string, isActive: boolean) {
-    await requireOrganizerOrHigher();
-    await TransportService.toggleRouteActive(routeId, isActive);
+    const user = await requireOrganizerOrHigher();
+    await TransportService.toggleRouteActive(routeId, isActive, user.id, user.role ?? "member");
     return { success: true };
 }
 
@@ -146,7 +151,7 @@ export async function getTransportBookingsForEvent(eventId: string) {
 
 export async function approveTransportPayment(paymentId: string) {
     const user = await requireAdminOrHigher();
-    await TransportService.approveTransportPayment(paymentId, user.id);
+    await TransportService.approveTransportPayment(paymentId, user.id, user.role ?? "member");
 
     revalidatePath("/admin/payments");
     revalidatePath("/organizer/transport");
@@ -155,7 +160,7 @@ export async function approveTransportPayment(paymentId: string) {
 
 export async function rejectTransportPayment(paymentId: string, reason?: string) {
     const user = await requireAdminOrHigher();
-    await TransportService.rejectTransportPayment(paymentId, user.id, reason);
+    await TransportService.rejectTransportPayment(paymentId, user.id, user.role ?? "member", reason);
 
     revalidatePath("/admin/payments");
     revalidatePath("/organizer/transport");
@@ -179,9 +184,7 @@ export async function getEventPassengerManifest(eventId: string) {
 
     if (!event) throw new Error("Event not found");
 
-    if (user.role === "organizer" && event.organizerId !== user.id) {
-        throw new Error("Unauthorized access to this event manifest");
-    }
+    await assertEventInAdminScope(eventId, user.id, user.role);
 
     const bookings = await db
         .select({
@@ -225,7 +228,8 @@ export async function createTransportStop(input: {
     latitude?: string | null;
     longitude?: string | null;
 }) {
-    await requireOrganizerOrHigher();
+    const user = await requireOrganizerOrHigher();
+    await assertRouteInAdminScope(input.routeId, user.id, user.role);
 
     if (!input.routeId || !input.name.trim()) {
         throw new Error("Route ID and Stop Name are required");
@@ -245,7 +249,16 @@ export async function createTransportStop(input: {
 }
 
 export async function deleteTransportStop(stopId: string) {
-    await requireOrganizerOrHigher();
+    const user = await requireOrganizerOrHigher();
+
+    const [stop] = await db
+        .select({ routeId: transportStops.routeId })
+        .from(transportStops)
+        .where(eq(transportStops.id, stopId))
+        .limit(1);
+
+    if (!stop) throw new Error("Parada no encontrada");
+    await assertRouteInAdminScope(stop.routeId, user.id, user.role);
 
     await db
         .delete(transportStops)

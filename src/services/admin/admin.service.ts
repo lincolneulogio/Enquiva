@@ -7,6 +7,7 @@ import {
     users,
 } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { assertTransportPaymentInAdminScope } from "@/lib/organizations/admin-scope";
 
 export class TransportAdminService {
   /**
@@ -44,7 +45,13 @@ export class TransportAdminService {
   /**
    * Aprueba el pago de transporte y confirma asientos (ACID).
    */
-  static async approveTransportPayment(paymentId: string, verifiedByUserId: string) {
+  static async approveTransportPayment(
+    paymentId: string,
+    verifiedByUserId: string,
+    verifierRole: string,
+  ) {
+    await assertTransportPaymentInAdminScope(paymentId, verifiedByUserId, verifierRole);
+
     const [payment] = await db
         .select({ id: payments.id, transportBookingId: payments.transportBookingId })
         .from(payments)
@@ -99,7 +106,14 @@ export class TransportAdminService {
   /**
    * Rechaza el pago de transporte y cancela reserva (ACID).
    */
-  static async rejectTransportPayment(paymentId: string, verifiedByUserId: string, reason?: string) {
+  static async rejectTransportPayment(
+    paymentId: string,
+    verifiedByUserId: string,
+    verifierRole: string,
+    reason?: string,
+  ) {
+    await assertTransportPaymentInAdminScope(paymentId, verifiedByUserId, verifierRole);
+
     const [payment] = await db
         .select({ id: payments.id, transportBookingId: payments.transportBookingId })
         .from(payments)

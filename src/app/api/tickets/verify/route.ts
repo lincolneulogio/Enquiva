@@ -7,6 +7,7 @@ import { env } from "@/env";
 import { ticketVerifyRatelimit } from "@/lib/redis";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
+import { assertCanManageEvent } from "@/lib/organizations/admin-scope";
 
 export async function POST(req: Request) {
   try {
@@ -51,9 +52,25 @@ export async function POST(req: Request) {
 
     const [eventRecord] = await db.select().from(events).where(eq(events.id, registration.eventId)).limit(1);
 
-    // 3. For organizers, enforce event ownership
-    if (role === "organizer" && eventRecord && eventRecord.organizerId !== session.user.id) {
-      return NextResponse.json({ success: false, error: "Forbidden: No puedes verificar tickets de un evento que no organizas" }, { status: 403 });
+    if (!eventRecord) {
+      return NextResponse.json({ success: false, error: "Event not found" }, { status: 404 });
+    }
+
+    try {
+      await assertCanManageEvent(
+        {
+          id: eventRecord.id,
+          organizerId: eventRecord.organizerId,
+          organizationId: eventRecord.organizationId,
+        },
+        session.user.id,
+        role,
+      );
+    } catch {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: No tienes permisos para verificar tickets de este evento" },
+        { status: 403 },
+      );
     }
 
     if (!providedSignature) {

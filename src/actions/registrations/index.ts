@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createRegistrationSchema, checkInSchema } from "@/lib/validations";
 import { RegistrationService } from "@/services/registrations/registration.service";
 import { registrationRatelimit } from "@/lib/redis";
+import { assertEventInAdminScope } from "@/lib/organizations/admin-scope";
 
 async function requireAuth() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -73,6 +74,7 @@ export async function checkInAttendee(input: unknown) {
   }
 
   const validated = checkInSchema.parse(input);
+  await assertEventInAdminScope(validated.eventId, user.id, user.role);
 
   return RegistrationService.checkInAttendee(user.id, validated);
 }
@@ -94,6 +96,8 @@ export async function getEventAttendees(eventId: string) {
   if (user.role !== "organizer" && user.role !== "super_admin" && user.role !== "admin") {
     throw new Error("Unauthorized");
   }
+
+  await assertEventInAdminScope(eventId, user.id, user.role);
 
   return RegistrationService.getEventAttendees(eventId);
 }
@@ -120,6 +124,8 @@ export async function registerOfflineAttendeeAction(input: {
   if (user.role !== "organizer" && user.role !== "super_admin" && user.role !== "admin") {
     throw new Error("Solo los organizadores o administradores pueden registrar asistentes manualmente.");
   }
+
+  await assertEventInAdminScope(input.eventId, user.id, user.role);
 
   const result = await RegistrationService.registerOfflineAttendee(
     user.id,
@@ -149,6 +155,8 @@ export async function searchPreRegisteredAttendeesAction(eventId: string, queryT
   if (!eventId) {
     return { success: true, attendees: [] };
   }
+
+  await assertEventInAdminScope(eventId, user.id, user.role);
 
   const normalizedQuery = `%${queryText.toLowerCase().trim()}%`;
 

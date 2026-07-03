@@ -9,6 +9,7 @@ import { headers } from "next/headers";
 import { getRoutesByEvent } from "@/actions/transport";
 import { TransportRoutesManager, PassengerManifest } from "@/components/dashboard";
 import { getI18n } from "@/lib/i18n/server";
+import { assertEventInAdminScope } from "@/lib/organizations/admin-scope";
 
 interface Props {
     params: Promise<{ eventId: string }>;
@@ -22,6 +23,12 @@ export default async function AdminEventTransportPage({ params }: Props) {
     }
 
     const { eventId } = await params;
+
+    try {
+        await assertEventInAdminScope(eventId, session.user.id, session.user.role);
+    } catch {
+        notFound();
+    }
 
     const [event] = await db
         .select({ id: events.id, title: events.title, organizerId: events.organizerId, hasTransport: events.hasTransport })

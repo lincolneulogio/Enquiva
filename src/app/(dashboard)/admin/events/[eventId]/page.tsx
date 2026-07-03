@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { events } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { EventForm } from "@/components/events/EventForm";
 import { getCategories } from "@/actions/events";
 import { getI18n } from "@/lib/i18n/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { assertEventInAdminScope } from "@/lib/organizations/admin-scope";
 
 interface AdminEditEventPageProps {
     params: Promise<{ eventId: string }>;
@@ -15,6 +18,15 @@ interface AdminEditEventPageProps {
 export default async function AdminEditEventPage({ params }: AdminEditEventPageProps) {
     const { t } = await getI18n();
     const { eventId } = await params;
+
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user) redirect("/login");
+
+    try {
+        await assertEventInAdminScope(eventId, session.user.id, session.user.role);
+    } catch {
+        notFound();
+    }
 
     const [event] = await db
         .select()

@@ -126,3 +126,146 @@ export async function getOrganizationIdForUser(userId: string): Promise<string |
 export function getOrganizationIdFromScope(scope: AdminScope): string | null {
   return scope.mode === "org" ? scope.organizationId : null;
 }
+
+export type EventScopeRecord = {
+  id: string;
+  organizerId: string;
+  organizationId: string | null;
+};
+
+export async function getEventScopeRecord(eventId: string): Promise<EventScopeRecord | null> {
+  const [event] = await db
+    .select({
+      id: events.id,
+      organizerId: events.organizerId,
+      organizationId: events.organizationId,
+    })
+    .from(events)
+    .where(eq(events.id, eventId))
+    .limit(1);
+  return event ?? null;
+}
+
+/** Valida que el usuario pueda gestionar un evento (organizer propio, admin de entidad o super_admin). */
+export async function assertCanManageEvent(
+  event: EventScopeRecord,
+  userId: string,
+  role: string | null | undefined,
+): Promise<void> {
+  const normalized = normalizeRole(role);
+  if (normalized === "super_admin") return;
+
+  if (normalized === "organizer") {
+    if (event.organizerId !== userId) {
+      throw new Error("No tienes permisos para gestionar este evento");
+    }
+    return;
+  }
+
+  if (normalized === "admin") {
+    const scope = await resolveAdminScopeForUser(userId, role);
+    if (scope.mode !== "org") {
+      throw new Error("No perteneces a una entidad. No puedes gestionar este evento.");
+    }
+    if (event.organizationId !== scope.organizationId) {
+      throw new Error("No autorizado para gestionar eventos de otra entidad");
+    }
+    return;
+  }
+
+  throw new Error("No autorizado para gestionar este evento");
+}
+
+export async function assertEventInAdminScope(
+  eventId: string,
+  userId: string,
+  role: string | null | undefined,
+): Promise<EventScopeRecord> {
+  const event = await getEventScopeRecord(eventId);
+  if (!event) throw new Error("Evento no encontrado");
+  await assertCanManageEvent(event, userId, role);
+  return event;
+}
+
+export async function assertPaymentInAdminScope(
+  paymentId: string,
+  userId: string,
+  role: string | null | undefined,
+): Promise<{ paymentId: string; eventId: string }> {
+  const [row] = await db
+    .select({
+      paymentId: payments.id,
+      eventId: events.id,
+      organizerId: events.organizerId,
+      organizationId: events.organizationId,
+    })
+    .from(payments)
+    .innerJoin(registrations, eq(payments.registrationId, registrations.id))
+    .innerJoin(events, eq(registrations.eventId, events.id))
+    .where(eq(payments.id, paymentId))
+    .limit(1);
+
+  if (!row) throw new Error("Pago no encontrado");
+
+  await assertCanManageEvent(
+    { id: row.eventId, organizerId: row.organizerId, organizationId: row.organizationId },
+    userId,
+    role,
+  );
+
+  return { paymentId: row.paymentId, eventId: row.eventId };
+}
+
+export async function assertRouteInAdminScope(
+  routeId: string,
+  userId: string,
+  role: string | null | undefined,
+): Promise<EventScopeRecord> {
+  const [row] = await db
+    .select({
+      eventId: transportRoutes.eventId,
+      organizerId: events.organizerId,
+      organizationId: events.organizationId,
+    })
+    .from(transportRoutes)
+    .innerJoin(events, eq(transportRoutes.eventId, events.id))
+    .where(eq(transportRoutes.id, routeId))
+    .limit(1);
+
+  if (!row) throw new Error("Ruta no encontrada");
+
+  const event: EventScopeRecord = {
+    id: row.eventId,
+    organizerId: row.organizerId,
+    organizationId: row.organizationId,
+  };
+  await assertCanManageEvent(event, userId, role);
+  return event;
+}
+
+export async function assertTransportPaymentInAdminScope(
+  paymentId: string,
+  userId: string,
+  role: string | null | undefined,
+): Promise<void> {
+  const [row] = await db
+    .select({
+      eventId: events.id,
+      organizerId: events.organizerId,
+      organizationId: events.organizationId,
+    })
+    .from(payments)
+    .innerJoin(transportBookings, eq(payments.transportBookingId, transportBookings.id))
+    .innerJoin(transportRoutes, eq(transportBookings.routeId, transportRoutes.id))
+    .innerJoin(events, eq(transportRoutes.eventId, events.id))
+    .where(eq(payments.id, paymentId))
+    .limit(1);
+
+  if (!row) throw new Error("Pago de transporte no encontrado");
+
+  await assertCanManageEvent(
+    { id: row.eventId, organizerId: row.organizerId, organizationId: row.organizationId },
+    userId,
+    role,
+  );
+}

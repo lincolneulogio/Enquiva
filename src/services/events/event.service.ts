@@ -12,6 +12,7 @@ import {
 } from "@/lib/redis";
 import { pusherServer, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/server";
 import { generateUniqueSlug } from "@/lib/utils";
+import { assertCanManageEvent } from "@/lib/organizations/admin-scope";
 import { eq, and, desc, ilike, count, sql, asc, inArray, isNull } from "drizzle-orm";
 import {
   createEventSchema,
@@ -113,9 +114,15 @@ export class EventService {
       .limit(1);
 
     if (!existing) throw new Error("Event not found");
-    if (existing.organizerId !== userId && userRole !== "super_admin" && userRole !== "admin") {
-      throw new Error("Not authorized to edit this event");
-    }
+    await assertCanManageEvent(
+      {
+        id: existing.id,
+        organizerId: existing.organizerId,
+        organizationId: existing.organizationId,
+      },
+      userId,
+      userRole,
+    );
 
     const oldCoverImage = existing.coverImage;
 
@@ -167,9 +174,15 @@ export class EventService {
       .limit(1);
 
     if (!existing) throw new Error("Event not found");
-    if (existing.organizerId !== userId && userRole !== "super_admin" && userRole !== "admin") {
-      throw new Error("Not authorized to delete this event");
-    }
+    await assertCanManageEvent(
+      {
+        id: existing.id,
+        organizerId: existing.organizerId,
+        organizationId: existing.organizationId,
+      },
+      userId,
+      userRole,
+    );
 
     const oldCoverImage = existing.coverImage;
 

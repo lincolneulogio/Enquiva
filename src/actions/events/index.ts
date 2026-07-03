@@ -17,6 +17,7 @@ import { eq, and, inArray, asc } from "drizzle-orm";
 import { transporter, sender } from "@/lib/mail/transporter";
 import { wrapInTemplate } from "@/lib/mail/templates";
 import { getSystemSettings } from "@/lib/settings";
+import { assertEventInAdminScope } from "@/lib/organizations/admin-scope";
 
 // ─── Auth Helpers ─────────────────────────────────────────────────────────────
 
@@ -118,9 +119,7 @@ export async function updateEvent(eventId: string, input: UpdateEventInput) {
     .limit(1);
 
   if (!existing) throw new Error("Event not found");
-  if (existing.organizerId !== user.id && user.role !== "super_admin" && user.role !== "admin") {
-    throw new Error("Not authorized to edit this event");
-  }
+  await assertEventInAdminScope(eventId, user.id, user.role);
 
   const planUserId = existing.organizerId;
   const planRole = existing.organizerId === user.id ? user.role : "organizer";
@@ -158,6 +157,7 @@ export async function updateEvent(eventId: string, input: UpdateEventInput) {
 
 export async function deleteEvent(eventId: string) {
   const user = await requireOrganizer();
+  await assertEventInAdminScope(eventId, user.id, user.role);
   
   const hdrs = await headers();
   const ipAddress = hdrs.get("x-forwarded-for") ?? hdrs.get("x-real-ip") ?? "unknown";
@@ -225,10 +225,7 @@ export async function sendBroadcastEmailAction(input: {
     throw new Error("Event not found");
   }
 
-  // If role is organizer, ensure they own the event
-  if (user.role === "organizer" && event.organizerId !== user.id) {
-    throw new Error("You do not have permission to send broadcasts for this event");
-  }
+  await assertEventInAdminScope(input.eventId, user.id, user.role);
 
   // 1. Resolve statuses
   let statuses: ("registered" | "waitlisted" | "checked_in" | "cancelled")[] = ["registered", "checked_in", "waitlisted"];

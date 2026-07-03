@@ -23,6 +23,7 @@ import { sendTicketEmailWithPdf } from "@/lib/mail";
 import { env } from "@/env";
 import { runBackground } from "@/lib/background";
 import { sendPushNotification } from "@/lib/notifications/push";
+import { assertCanManageEvent } from "@/lib/organizations/admin-scope";
 
 export class PaymentService {
   /**
@@ -184,10 +185,15 @@ export class PaymentService {
 
       if (!event) throw new Error("Evento no encontrado");
 
-      // Verificación de autorización de organizador
-      if (adminRole === "organizer" && event.organizerId !== adminUserId) {
-        throw new Error("No tienes permisos para gestionar pagos de este evento");
-      }
+      await assertCanManageEvent(
+        {
+          id: event.id,
+          organizerId: event.organizerId,
+          organizationId: event.organizationId,
+        },
+        adminUserId,
+        adminRole,
+      );
 
       // 1. Actualizar el pago
       const [updated] = await tx

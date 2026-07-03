@@ -26,6 +26,7 @@ import {
 import { generateTicketForRegistration } from "@/lib/tickets";
 import { runBackground } from "@/lib/background";
 import { assertCanRegisterAttendee } from "@/lib/billing/enforce";
+import { assertCanManageEvent } from "@/lib/organizations/admin-scope";
 
 export interface RegisterEventInput {
   eventId: string;
@@ -578,10 +579,15 @@ export class RegistrationService {
 
       if (!event) throw new Error("Evento no encontrado o no está publicado.");
 
-      // Verificación de autorización de organizador
-      if (organizerRole === "organizer" && event.organizerId !== organizerUserId) {
-        throw new Error("No tienes permisos para registrar asistentes en este evento.");
-      }
+      await assertCanManageEvent(
+        {
+          id: event.id,
+          organizerId: event.organizerId,
+          organizationId: event.organizationId,
+        },
+        organizerUserId,
+        organizerRole,
+      );
 
       // 2. Crear usuario "fantasma/invitado" para el asistente offline
       const offlineUserId = `offline_${crypto.randomUUID()}`;

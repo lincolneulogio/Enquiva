@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { transportRoutes, transportBookings, events } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
+import { assertCanManageEvent } from "@/lib/organizations/admin-scope";
 
 const createRouteSchema = z.object({
     eventId: z.string().uuid(),
@@ -50,17 +51,13 @@ export class RouteService {
     const data = createRouteSchema.parse(input);
 
     const [event] = await db
-        .select({ id: events.id, organizerId: events.organizerId })
+        .select({ id: events.id, organizerId: events.organizerId, organizationId: events.organizationId })
         .from(events)
         .where(eq(events.id, data.eventId))
         .limit(1);
 
     if (!event) throw new Error("Evento no encontrado");
-    if (
-        !["admin", "super_admin"].includes(userRole) &&
-        event.organizerId !== userId
-    )
-        throw new Error("No tienes permiso para gestionar este evento");
+    await assertCanManageEvent(event, userId, userRole);
 
     const [route] = await db
         .insert(transportRoutes)
@@ -97,16 +94,13 @@ export class RouteService {
     if (!existing) throw new Error("Ruta no encontrada");
 
     const [event] = await db
-        .select({ organizerId: events.organizerId })
+        .select({ id: events.id, organizerId: events.organizerId, organizationId: events.organizationId })
         .from(events)
         .where(eq(events.id, existing.eventId))
         .limit(1);
 
-    if (
-        !["admin", "super_admin"].includes(userRole) &&
-        event?.organizerId !== userId
-    )
-        throw new Error("Forbidden");
+    if (!event) throw new Error("Evento no encontrado");
+    await assertCanManageEvent(event, userId, userRole);
 
     await db
         .update(transportRoutes)
@@ -141,6 +135,15 @@ export class RouteService {
 
     if (!existing) throw new Error("Ruta no encontrada");
 
+    const [event] = await db
+        .select({ id: events.id, organizerId: events.organizerId, organizationId: events.organizationId })
+        .from(events)
+        .where(eq(events.id, existing.eventId))
+        .limit(1);
+
+    if (!event) throw new Error("Evento no encontrado");
+    await assertCanManageEvent(event, userId, userRole);
+
     const [{ count: bookingCount }] = await db
         .select({ count: sql<number>`count(*)` })
         .from(transportBookings)
@@ -161,7 +164,24 @@ export class RouteService {
   /**
    * Activa o desactiva una ruta.
    */
-  static async toggleRouteActive(routeId: string, isActive: boolean) {
+  static async toggleRouteActive(routeId: string, isActive: boolean, userId: string, userRole: string) {
+    const [existing] = await db
+        .select({ eventId: transportRoutes.eventId })
+        .from(transportRoutes)
+        .where(eq(transportRoutes.id, routeId))
+        .limit(1);
+
+    if (!existing) throw new Error("Ruta no encontrada");
+
+    const [event] = await db
+        .select({ id: events.id, organizerId: events.organizerId, organizationId: events.organizationId })
+        .from(events)
+        .where(eq(events.id, existing.eventId))
+        .limit(1);
+
+    if (!event) throw new Error("Evento no encontrado");
+    await assertCanManageEvent(event, userId, userRole);
+
     await db
         .update(transportRoutes)
         .set({ isActive, updatedAt: new Date() })
@@ -173,17 +193,13 @@ export class RouteService {
    */
   static async toggleEventTransport(eventId: string, hasTransport: boolean, userId: string, userRole: string) {
     const [event] = await db
-        .select({ id: events.id, organizerId: events.organizerId })
+        .select({ id: events.id, organizerId: events.organizerId, organizationId: events.organizationId })
         .from(events)
         .where(eq(events.id, eventId))
         .limit(1);
 
     if (!event) throw new Error("Evento no encontrado");
-    if (
-        !["admin", "super_admin"].includes(userRole) &&
-        event.organizerId !== userId
-    )
-        throw new Error("No tienes permiso para gestionar este evento");
+    await assertCanManageEvent(event, userId, userRole);
 
     await db
         .update(events)
