@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { plans, subscriptions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { createCulqiCharge, getPlatformCulqiCredentials, isPlatformCulqiConfigured } from "@/lib/culqi/client";
+import { getUserCulqiProfile, mergeSessionCulqiProfile } from "@/lib/culqi/customer-data";
 import { SubscriptionPaymentService } from "@/lib/billing/subscription-payment.service";
 import { SubscriptionAutoRenewService } from "@/lib/billing/subscription-auto-renew.service";
 
@@ -54,6 +55,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Este plan es gratuito" }, { status: 400 });
     }
 
+    const dbProfile = await getUserCulqiProfile(session.user.id);
+    const customer = mergeSessionCulqiProfile(session.user, dbProfile);
+
     const platformCulqi = getPlatformCulqiCredentials()!;
     let chargeSourceId = sourceId;
     let useRecurrent = false;
@@ -61,7 +65,7 @@ export async function POST(req: Request) {
     if (enableAutoRenew) {
       await SubscriptionAutoRenewService.prepareAutoRenewCard(
         session.user.id,
-        session.user.email,
+        customer,
         sourceId,
       );
       const [sub] = await db
@@ -83,9 +87,10 @@ export async function POST(req: Request) {
     const charge = await createCulqiCharge(
       {
         amount,
-        email: session.user.email,
+        email: customer.email,
         sourceId: chargeSourceId,
         recurrent: useRecurrent,
+        customer,
         description: `Suscripción ${plan.name} - EncuentroDeFe`,
         metadata: {
           userId: session.user.id,

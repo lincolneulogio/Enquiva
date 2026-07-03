@@ -135,7 +135,7 @@ export class SubscriptionRenewalService {
 
         if (shouldRetry && !attemptedToday) {
           const [user] = await db
-            .select({ email: users.email })
+            .select({ email: users.email, name: users.name, phone: users.phone })
             .from(users)
             .where(eq(users.id, subscription.userId))
             .limit(1);
@@ -144,7 +144,7 @@ export class SubscriptionRenewalService {
             autoRenewAttempts += 1;
             const ok = await SubscriptionAutoRenewService.tryAutoRenewForUser(
               subscription.userId,
-              user.email,
+              { name: user.name, email: user.email, phone: user.phone },
             );
 
             await db

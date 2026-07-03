@@ -253,14 +253,18 @@ export class SubscriptionService {
         if (shouldRetry && !attemptedToday) {
           const { users } = await import("@/lib/db/schema");
           const [user] = await db
-            .select({ email: users.email })
+            .select({ email: users.email, name: users.name, phone: users.phone })
             .from(users)
             .where(eq(users.id, userId))
             .limit(1);
 
           if (user?.email) {
             const { SubscriptionAutoRenewService } = await import("./subscription-auto-renew.service");
-            const renewed = await SubscriptionAutoRenewService.tryAutoRenewForUser(userId, user.email);
+            const renewed = await SubscriptionAutoRenewService.tryAutoRenewForUser(userId, {
+              name: user.name,
+              email: user.email,
+              phone: user.phone,
+            });
             await db
               .update(subscriptions)
               .set({ autoRenewLastAttemptAt: now, updatedAt: now })

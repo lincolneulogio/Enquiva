@@ -1,4 +1,8 @@
 import { env } from "@/env";
+import {
+  resolveCulqiCustomerData,
+  type CulqiUserProfile,
+} from "@/lib/culqi/customer-data";
 
 const CULQI_API = "https://api.culqi.com/v2";
 
@@ -45,7 +49,11 @@ type CulqiChargeInput = {
   description: string;
   metadata?: Record<string, string>;
   recurrent?: boolean;
+  customer?: CulqiUserProfile;
 };
+
+/** @deprecated Use customer profile via createCulqiCharge({ customer }). */
+export type CulqiAntifraudInput = CulqiUserProfile;
 
 /** Llaves Culqi de la plataforma (suscripciones SaaS → cuenta del super admin). */
 export function isPlatformCulqiConfigured() {
@@ -75,6 +83,25 @@ export async function createCulqiCharge(
   }
 
   const creds = credentials ?? { secretKey };
+  const customerProfile: CulqiUserProfile = input.customer ?? {
+    name: null,
+    email: input.email,
+    phone: null,
+  };
+  const customer = resolveCulqiCustomerData(customerProfile);
+
+  const body: Record<string, unknown> = {
+    amount: Math.round(input.amount * 100),
+    currency_code: input.currencyCode ?? "PEN",
+    email: input.email,
+    source_id: input.sourceId,
+    description: input.description,
+    metadata: input.metadata,
+    capture: true,
+    installments: 0,
+    antifraud_details: customer.antifraud,
+  };
+
   return culqiApiRequest<{
     id: string;
     amount: number;
@@ -83,30 +110,26 @@ export async function createCulqiCharge(
   }>("/charges", creds, {
     method: "POST",
     recurrent: input.recurrent,
-    body: JSON.stringify({
-      amount: Math.round(input.amount * 100),
-      currency_code: input.currencyCode ?? "PEN",
-      email: input.email,
-      source_id: input.sourceId,
-      description: input.description,
-      metadata: input.metadata,
-    }),
+    body: JSON.stringify(body),
   });
 }
 
 export async function createCulqiCustomer(
-  input: { email: string; firstName?: string; lastName?: string },
+  input: CulqiUserProfile,
   credentials?: CulqiCredentials,
 ) {
   const creds = credentials ?? getPlatformCulqiCredentials();
   if (!creds) throw new Error("Culqi no configurado");
 
+  const customer = resolveCulqiCustomerData(input);
+
   return culqiApiRequest<{ id: string }>("/customers", creds, {
     method: "POST",
     body: JSON.stringify({
       email: input.email,
-      first_name: input.firstName ?? "Organizador",
-      last_name: input.lastName ?? "EncuentroDeFe",
+      first_name: customer.firstName,
+      last_name: customer.lastName,
+      phone_number: customer.phone,
     }),
   });
 }

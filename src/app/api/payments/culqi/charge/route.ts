@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { payments, registrations, events } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { createCulqiCharge } from "@/lib/culqi/client";
+import { getUserCulqiProfile, mergeSessionCulqiProfile } from "@/lib/culqi/customer-data";
 import { getCulqiCredentialsForEvent } from "@/lib/culqi/capabilities";
 import { requirePlanFeature, getOrganizerPlanForEvent, getPlatformFee } from "@/lib/billing/enforce";
 import { PaymentService } from "@/services/payments/payment.service";
@@ -61,11 +62,15 @@ export async function POST(req: Request) {
     const amount = Number(payment.amount);
     const platformFee = organizerPlan ? getPlatformFee(amount, organizerPlan) : 0;
 
+    const dbProfile = await getUserCulqiProfile(session.user.id);
+    const customer = mergeSessionCulqiProfile(session.user, dbProfile);
+
     const charge = await createCulqiCharge(
       {
         amount,
-        email: session.user.email,
+        email: customer.email,
         sourceId,
+        customer,
         description: `Entrada: ${event.title}`,
         metadata: {
           paymentId: payment.id,

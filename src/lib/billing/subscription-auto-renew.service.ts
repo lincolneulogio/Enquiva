@@ -7,6 +7,7 @@ import {
   createCulqiCustomer,
   getPlatformCulqiCredentials,
 } from "@/lib/culqi/client";
+import type { CulqiUserProfile } from "@/lib/culqi/customer-data";
 import { SubscriptionPaymentService } from "./subscription-payment.service";
 
 export class SubscriptionAutoRenewService {
@@ -14,7 +15,7 @@ export class SubscriptionAutoRenewService {
     tx: DBTransaction,
     input: {
       userId: string;
-      email: string;
+      customer: CulqiUserProfile;
       tokenId: string;
       enableAutoRenew: boolean;
     },
@@ -31,7 +32,7 @@ export class SubscriptionAutoRenewService {
 
     let customerId = sub.culqiCustomerId;
     if (!customerId) {
-      const customer = await createCulqiCustomer({ email: input.email }, creds);
+      const customer = await createCulqiCustomer(input.customer, creds);
       customerId = customer.id;
     }
 
@@ -53,11 +54,11 @@ export class SubscriptionAutoRenewService {
       .where(eq(subscriptions.id, sub.id));
   }
 
-  static async prepareAutoRenewCard(userId: string, email: string, tokenId: string) {
+  static async prepareAutoRenewCard(userId: string, customer: CulqiUserProfile, tokenId: string) {
     return db.transaction(async (tx) => {
       await this.saveCardFromToken(tx, {
         userId,
-        email,
+        customer,
         tokenId,
         enableAutoRenew: true,
       });
@@ -84,7 +85,10 @@ export class SubscriptionAutoRenewService {
     return { success: true };
   }
 
-  static async tryAutoRenewForUser(userId: string, email: string): Promise<boolean> {
+  static async tryAutoRenewForUser(
+    userId: string,
+    customer: CulqiUserProfile,
+  ): Promise<boolean> {
     const [row] = await db
       .select({
         subscription: subscriptions,
@@ -110,10 +114,11 @@ export class SubscriptionAutoRenewService {
       const charge = await createCulqiCharge(
         {
           amount,
-          email,
+          email: customer.email,
           sourceId: subscription.culqiCardId,
-          description: `Renovación automática ${plan.name} - EncuentroDeFe`,
           recurrent: true,
+          customer,
+          description: `Renovación automática ${plan.name} - EncuentroDeFe`,
           metadata: {
             userId,
             planId: plan.id,
@@ -162,14 +167,18 @@ export class SubscriptionAutoRenewService {
       if (Number(plan.priceMonthly) <= 0 || plan.slug === "free") continue;
 
       const [user] = await db
-        .select({ email: users.email })
+        .select({ email: users.email, name: users.name, phone: users.phone })
         .from(users)
         .where(eq(users.id, subscription.userId))
         .limit(1);
 
       if (!user?.email) continue;
 
-      const ok = await this.tryAutoRenewForUser(subscription.userId, user.email);
+      const ok = await this.tryAutoRenewForUser(subscription.userId, {
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+      });
       if (ok) renewed += 1;
     }
 
