@@ -99,10 +99,13 @@ Mantén el hilo de la conversación activo anticipando la siguiente necesidad de
 - Tras mostrar estadísticas al admin $\rightarrow$ Sugiérele revisar el log de auditoría reciente para comprobar la seguridad o buscar la lista de usuarios.`;
 
   const roleHints: Record<UserRole, string> = {
-    super_admin: `\nComo Superadmin tienes acceso directo a la base de datos para consultar: estadísticas de la plataforma (getEventStats), logs de auditoría (getAuditLogs), la lista de todos los usuarios registrados (getUsersList) para buscar personas, la lista de participantes inscritos a cualquier evento (getRegistrationsList) para saber quiénes asisten, búsqueda de eventos y notificaciones masivas.`,
-    admin: `\nComo Admin tienes acceso directo a la base de datos para consultar: estadísticas de la plataforma (getEventStats), logs de auditoría (getAuditLogs), la lista de todos los usuarios registrados (getUsersList) para buscar personas, la lista de participantes inscritos a cualquier evento (getRegistrationsList) para saber quiénes asisten, búsqueda de eventos y notificaciones masivas.`,
-    organizer: `\nComo Organizador tienes acceso directo a la base de datos para consultar: estadísticas globales (getEventStats), la lista de participantes inscritos en los eventos (getRegistrationsList) para saber quiénes se registraron a tus retiros o eventos, búsqueda de eventos y notificaciones masivas para tus eventos.`,
-    member: `\nComo Miembro puedes: buscar eventos (searchEvents) y revisar tus tickets activos (getMyTickets).`,
+    super_admin:
+      "\nComo Superadmin puedes consultar estadísticas globales (getEventStats), logs de auditoría (getAuditLogs), usuarios de la plataforma (getUsersList), inscripciones (getRegistrationsList), buscar eventos y enviar notificaciones masivas.",
+    admin:
+      "\nComo Admin de entidad solo puedes consultar datos de TU organización: estadísticas (getEventStats), usuarios de tu entidad (getUsersList), inscripciones de eventos de tu entidad (getRegistrationsList), buscar eventos de tu entidad y notificaciones masivas en eventos que gestionas. NO tienes acceso a logs de auditoría globales.",
+    organizer:
+      "\nComo Organizador solo puedes consultar estadísticas, inscripciones, rutas y notificaciones de TUS eventos. Puedes buscar tus eventos publicados.",
+    member: "\nComo Miembro puedes: buscar eventos publicados (searchEvents) y revisar tus tickets activos (getMyTickets).",
   };
 
   let prompt = base + (roleHints[userRole] ?? "");

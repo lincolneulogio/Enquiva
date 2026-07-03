@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { users, rolePermissions } from "@/lib/db/schema";
+import { getFullEffectivePermissionMatrix } from "@/lib/auth/effective-permissions";
 import { eq, count, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
@@ -133,29 +134,7 @@ export async function getPermissionMatrix() {
         throw new Error("Forbidden");
     }
 
-    const matrix = getDefaultPermissionMatrix();
-
-    const overrides = await db
-        .select({
-            roleName: rolePermissions.roleName,
-            permission: rolePermissions.permission,
-            allowed: rolePermissions.allowed,
-        })
-        .from(rolePermissions);
-
-    for (const row of overrides) {
-        const role = normalizeRole(row.roleName);
-        const permission = row.permission as Permission;
-        if (role !== "super_admin" && PERMISSIONS.includes(permission)) {
-            matrix[role][permission] = row.allowed;
-        }
-    }
-
-    // Super Admin is always full access and not overridable
-    for (const permission of PERMISSIONS) {
-        matrix.super_admin[permission] = true;
-    }
-
+    const matrix = await getFullEffectivePermissionMatrix();
     return matrix;
 }
 

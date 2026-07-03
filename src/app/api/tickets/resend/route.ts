@@ -30,10 +30,17 @@ export async function POST(req: Request) {
     const [registration] = await db.select().from(registrations).where(eq(registrations.id, registrationId)).limit(1);
     if (!registration) return NextResponse.json({ success: false, error: "Registration not found" }, { status: 404 });
 
-    // 3. Authorize the action
+    // 3. Authorize: el dueño del ticket o staff con permiso sobre el evento
     const userId = session.user.id;
-    if (registration.userId !== userId && session.user.role !== "admin" && session.user.role !== "organizer" && session.user.role !== "super_admin") {
-      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    const role = session.user.role;
+
+    if (registration.userId !== userId) {
+      const { assertEventInAdminScope } = await import("@/lib/organizations/admin-scope");
+      try {
+        await assertEventInAdminScope(registration.eventId, userId, role);
+      } catch {
+        return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+      }
     }
 
     const [ticket] = await db.select().from(tickets).where(eq(tickets.registrationId, registrationId)).limit(1);

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { db } from "@/lib/db";
-import { PERMISSIONS, getDefaultPermissionMatrix, normalizeRole, type Permission } from "@/lib/auth/rbac";
+import { getEffectivePermissionsForRole } from "@/lib/auth/effective-permissions";
+import { normalizeRole } from "@/lib/auth/rbac";
 
 export async function GET(req: Request) {
     try {
@@ -30,29 +30,7 @@ export async function GET(req: Request) {
         }
 
         const role = normalizeRole(session.user.role);
-        const defaults = getDefaultPermissionMatrix();
-        
-        let userPermissions = Object.keys(defaults[role]).filter(p => defaults[role][p as Permission]);
-
-        // Obtenemos overrides de la DB
-        if (role !== "super_admin") {
-            const overrides = await db.query.rolePermissions.findMany({
-                where: (table, { eq }) => eq(table.roleName, role)
-            });
-            
-            for (const row of overrides) {
-                const p = row.permission as Permission;
-                if (PERMISSIONS.includes(p)) {
-                    if (row.allowed && !userPermissions.includes(p)) {
-                        userPermissions.push(p);
-                    } else if (!row.allowed && userPermissions.includes(p)) {
-                        userPermissions = userPermissions.filter(up => up !== p);
-                    }
-                }
-            }
-        } else {
-             userPermissions = [...PERMISSIONS];
-        }
+        const userPermissions = await getEffectivePermissionsForRole(role);
 
         return NextResponse.json({
             role: role,

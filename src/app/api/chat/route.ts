@@ -27,8 +27,8 @@ export async function POST(req: Request) {
     // 2. System prompt dinámico según rol
     const systemPrompt = buildSystemPrompt(userName, userRole);
 
-    // 3. Herramientas dinámicas según rol
-    const tools = buildTools(userRole, userId, userName);
+    // 3. Herramientas dinámicas según rol y alcance de entidad
+    const tools = await buildTools(userRole, userId, userName);
 
     // 4. Stream con cadena de fallback
     const convertedMessages = await convertToModelMessages(messages);

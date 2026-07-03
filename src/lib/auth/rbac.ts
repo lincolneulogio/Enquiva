@@ -109,6 +109,10 @@ export function normalizeRole(role: string | null | undefined): AppRole {
     return "member";
 }
 
+/**
+ * Comprueba permisos con defaults estáticos (cliente / código sync).
+ * En servidor, preferir `hasEffectivePermission` para respetar overrides en BD.
+ */
 export function hasPermission(role: string | null | undefined, permission: Permission) {
     const normalized = normalizeRole(role);
     return PERMISSIONS_BY_ROLE[normalized].includes(permission);
