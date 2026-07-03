@@ -9,7 +9,7 @@ import {
 } from "@/lib/db/schema";
 import { and, count, desc, eq, gt, gte, inArray, lt, ne, or, sql } from "drizzle-orm";
 import { DEFAULT_PLAN_DEFINITIONS, mapPlanRow, UNLIMITED_PLAN } from "./plans";
-import type { PlanUsage, ResolvedPlan, SubscriptionInfo } from "./types";
+import type { PlanUsage, PlanChangePreview, ResolvedPlan, SubscriptionInfo } from "./types";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { users } from "@/lib/db/schema";
 
@@ -324,6 +324,70 @@ export class SubscriptionService {
     return mapPlanRow(existing.plan);
   }
 
+  /** Vista previa para confirmar cambio de plan (organizador). */
+  static async getPlanChangePreview(
+    userId: string,
+    targetPlanSlug: string,
+  ): Promise<PlanChangePreview | null> {
+    await this.ensureDefaultPlans();
+
+    const [targetPlan] = await db
+      .select()
+      .from(plans)
+      .where(eq(plans.slug, targetPlanSlug))
+      .limit(1);
+    if (!targetPlan) return null;
+
+    const [row] = await db
+      .select({
+        subscription: subscriptions,
+        plan: plans,
+      })
+      .from(subscriptions)
+      .innerJoin(plans, eq(subscriptions.planId, plans.id))
+      .where(eq(subscriptions.userId, userId))
+      .limit(1);
+
+    const now = new Date();
+    const currentPlan = row?.plan ?? (await db.select().from(plans).where(eq(plans.slug, "free")).limit(1))[0];
+    if (!currentPlan) return null;
+
+    const daysRemaining = row
+      ? Math.max(
+          0,
+          Math.ceil(
+            (row.subscription.currentPeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+          ),
+        )
+      : 0;
+
+    const isActivePaid =
+      row &&
+      row.subscription.status === "active" &&
+      isPaidPlanRow(row.plan) &&
+      row.subscription.currentPeriodEnd > now;
+
+    const isDifferentPlan = currentPlan.slug !== targetPlanSlug;
+    const isDowngrade =
+      targetPlan.slug === "free" ||
+      Number(targetPlan.priceMonthly) < Number(currentPlan.priceMonthly);
+
+    const newPeriodEnd = addOneMonth(now);
+
+    return {
+      requiresConfirmation: Boolean(isActivePaid && isDifferentPlan && daysRemaining > 0),
+      currentPlanName: currentPlan.name,
+      targetPlanName: targetPlan.name,
+      daysRemaining,
+      newPeriodEnd: newPeriodEnd.toISOString(),
+      isDowngrade,
+    };
+  }
+
+  static async assignPlanFromOrganizerPayment(userId: string, planId: string) {
+    return db.transaction(async (tx) => this.assignPlanToUserTx(tx, userId, planId));
+  }
+
   static async assignPlanToUser(userId: string, planId: string, actorRole: string) {
     if (!this.isPlatformStaff(actorRole)) throw new Error("Forbidden");
 
@@ -347,8 +411,16 @@ export class SubscriptionService {
       existing.status === "active" &&
       existing.currentPeriodEnd > now;
 
-    const periodStart = stillActive ? existing.currentPeriodStart : now;
-    const periodEnd = stillActive ? addOneMonth(existing.currentPeriodEnd) : addOneMonth(now);
+    const isSamePlan = existing?.planId === planId;
+
+    // Mismo plan activo = renovación (extiende desde el vencimiento actual).
+    // Cambio de plan, alta nueva o reactivación = período nuevo desde hoy (+1 mes).
+    const periodStart =
+      existing && isSamePlan && stillActive ? existing.currentPeriodStart : now;
+    const periodEnd =
+      existing && isSamePlan && stillActive
+        ? addOneMonth(existing.currentPeriodEnd)
+        : addOneMonth(now);
 
     if (existing) {
       await tx

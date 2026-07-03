@@ -8,7 +8,9 @@ import { cn } from "@/lib/utils";
 import type { Plan, PaymentMethod, SubscriptionPayment } from "@/lib/db/schema";
 import type { SubscriptionInfo } from "@/lib/billing/types";
 import { PlanUpgradeCheckout } from "@/components/dashboard/organizer/PlanUpgradeCheckout";
+import { PlanChangeConfirmDialog } from "@/components/dashboard/organizer/PlanChangeConfirmDialog";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
+import type { PlanChangePreview } from "@/lib/billing/types";
 
 interface PendingPayment {
   payment: {
@@ -59,9 +61,41 @@ export function OrganizerBillingClient({
   const t = useTranslations();
   const { locale } = useLocale();
   const [isPending, startTransition] = useTransition();
-  const [checkoutPlan, setCheckoutPlan] = useState<Plan | null>(null);
+  const [checkoutPlan, setCheckoutPlan] = useState<{
+    plan: Plan;
+    newPeriodEnd: string | null;
+  } | null>(null);
+  const [planChangeConfirm, setPlanChangeConfirm] = useState<{
+    target: Plan;
+    preview: PlanChangePreview;
+  } | null>(null);
   const { plan, usage, billedPlan, renewalAlert, daysUntilRenewal } = subscription;
   const displayPlanName = billedPlan?.name ?? plan.name;
+
+  const proceedPlanChange = (target: Plan, confirmed: boolean) => {
+    startTransition(async () => {
+      try {
+        const res = await requestPlanUpgrade(target.slug, confirmed);
+        if (res.mode === "confirm" && res.preview) {
+          setPlanChangeConfirm({ target, preview: res.preview });
+          return;
+        }
+        if (res.mode === "assigned") {
+          setPlanChangeConfirm(null);
+          toast.success(t("billing.organizer.planUpdated"));
+          window.location.reload();
+        } else if (res.mode === "checkout") {
+          setPlanChangeConfirm(null);
+          setCheckoutPlan({
+            plan: target,
+            newPeriodEnd: res.preview?.newPeriodEnd ?? null,
+          });
+        }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : t("billing.organizer.planChangeFailed"));
+      }
+    });
+  };
 
   const onSelectPlan = (target: Plan) => {
     if (target.slug === plan.slug && !billedPlan) return;
@@ -69,20 +103,7 @@ export function OrganizerBillingClient({
       toast.info(t("billing.organizer.pendingExists"));
       return;
     }
-
-    startTransition(async () => {
-      try {
-        const res = await requestPlanUpgrade(target.slug);
-        if (res.mode === "assigned") {
-          toast.success(t("billing.organizer.planUpdated"));
-          window.location.reload();
-        } else if (res.mode === "checkout") {
-          setCheckoutPlan(target);
-        }
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : t("billing.organizer.planChangeFailed"));
-      }
-    });
+    proceedPlanChange(target, false);
   };
 
   const dateLocale = locale === "en" ? "en-US" : "es-PE";
@@ -295,9 +316,20 @@ export function OrganizerBillingClient({
         })}
       </div>
 
+      {planChangeConfirm && (
+        <PlanChangeConfirmDialog
+          targetPlan={planChangeConfirm.target}
+          preview={planChangeConfirm.preview}
+          isPending={isPending}
+          onCancel={() => setPlanChangeConfirm(null)}
+          onConfirm={() => proceedPlanChange(planChangeConfirm.target, true)}
+        />
+      )}
+
       {checkoutPlan && (
         <PlanUpgradeCheckout
-          plan={checkoutPlan}
+          plan={checkoutPlan.plan}
+          newPeriodEnd={checkoutPlan.newPeriodEnd}
           platformMethods={platformMethods}
           culqiPublicKey={culqiPublicKey}
           userEmail={userEmail}

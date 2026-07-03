@@ -80,7 +80,7 @@ export async function submitSubscriptionPayment(input: z.infer<typeof submitManu
 
   const amount = Number(plan.priceMonthly);
   if (amount <= 0) {
-    await SubscriptionService.assignPlanToUser(user.id, plan.id, user.role ?? "organizer");
+    await SubscriptionService.assignPlanFromOrganizerPayment(user.id, plan.id);
     revalidatePath("/organizer/billing");
     return { success: true, mode: "assigned" as const };
   }
@@ -105,21 +105,43 @@ export async function submitSubscriptionPayment(input: z.infer<typeof submitManu
   };
 }
 
-export async function requestPlanUpgrade(planSlug: string) {
+export async function requestPlanUpgrade(planSlug: string, confirmed = false) {
   const user = await requireOrganizerOrStaff();
 
   const plan = await SubscriptionService.getPlanBySlug(planSlug);
   if (!plan) throw new Error("Plan no encontrado");
 
+  const preview = await SubscriptionService.getPlanChangePreview(user.id, planSlug);
+
+  if (preview?.requiresConfirmation && !confirmed) {
+    return {
+      success: true,
+      mode: "confirm" as const,
+      preview,
+      planId: plan.id,
+      amount: Number(plan.priceMonthly),
+    };
+  }
+
   if (Number(plan.priceMonthly) <= 0) {
     const [planRow] = await db.select().from(plans).where(eq(plans.slug, planSlug)).limit(1);
     if (!planRow) throw new Error("Plan no encontrado");
-    await SubscriptionService.assignPlanToUser(user.id, planRow.id, user.role ?? "organizer");
+    await SubscriptionService.assignPlanFromOrganizerPayment(user.id, planRow.id);
     revalidatePath("/organizer/billing");
-    return { success: true, mode: "assigned" as const };
+    return {
+      success: true,
+      mode: "assigned" as const,
+      preview: preview ?? undefined,
+    };
   }
 
-  return { success: true, mode: "checkout" as const, planId: plan.id, amount: Number(plan.priceMonthly) };
+  return {
+    success: true,
+    mode: "checkout" as const,
+    planId: plan.id,
+    amount: Number(plan.priceMonthly),
+    preview: preview ?? undefined,
+  };
 }
 
 export async function getPendingSubscriptionPayments() {

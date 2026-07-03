@@ -30,6 +30,15 @@ export type PlanUsage = {
 
 export type SubscriptionRenewalAlert = "expiring_soon" | "past_due";
 
+export type PlanChangePreview = {
+  requiresConfirmation: boolean;
+  currentPlanName: string;
+  targetPlanName: string;
+  daysRemaining: number;
+  newPeriodEnd: string;
+  isDowngrade: boolean;
+};
+
 export type SubscriptionInfo = {
   id: string;
   status: string;

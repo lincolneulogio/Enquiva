@@ -16,11 +16,12 @@ import { cn } from "@/lib/utils";
 import { submitSubscriptionPayment } from "@/actions/billing";
 import { UploadDropzone } from "@/lib/uploadthing/components";
 import type { PaymentMethod, Plan } from "@/lib/db/schema";
-import { useTranslations } from "@/components/providers/LocaleProvider";
+import { useTranslations, useLocale } from "@/components/providers/LocaleProvider";
 import { loadCulqiCheckoutScript, openCulqiCheckout } from "@/lib/culqi/open-checkout";
 
 interface PlanUpgradeCheckoutProps {
   plan: Plan;
+  newPeriodEnd?: string | null;
   platformMethods: PaymentMethod[];
   culqiPublicKey: string | null;
   userEmail: string | null;
@@ -30,6 +31,7 @@ interface PlanUpgradeCheckoutProps {
 
 export function PlanUpgradeCheckout({
   plan,
+  newPeriodEnd,
   platformMethods,
   culqiPublicKey,
   userEmail,
@@ -41,6 +43,15 @@ export function PlanUpgradeCheckout({
   const manualMethods = platformMethods.filter((m) => m.type === "yape" || m.type === "plin");
   const culqiMethod = platformMethods.find((m) => m.type === "culqi");
   const showTabs = manualMethods.length > 0 && culqiMethod && culqiPublicKey;
+  const { locale } = useLocale();
+  const dateLocale = locale === "en" ? "en-US" : "es-PE";
+  const formattedNewExpiry = newPeriodEnd
+    ? new Date(newPeriodEnd).toLocaleDateString(dateLocale, {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : null;
 
   const [tab, setTab] = useState<"manual" | "card">(
     manualMethods.length > 0 ? "manual" : "card",
@@ -138,7 +149,12 @@ export function PlanUpgradeCheckout({
           <div>
             <h3 className="font-semibold text-foreground">{t("billing.planCheckout.title", { plan: plan.name })}</h3>
             <p className="text-sm text-muted-foreground">
-              {t("billing.planCheckout.subtitle", { amount: amount.toFixed(2) })}
+              {formattedNewExpiry
+                ? t("billing.planCheckout.subtitleWithExpiry", {
+                    amount: amount.toFixed(2),
+                    date: formattedNewExpiry,
+                  })
+                : t("billing.planCheckout.subtitle", { amount: amount.toFixed(2) })}
             </p>
           </div>
           <button
