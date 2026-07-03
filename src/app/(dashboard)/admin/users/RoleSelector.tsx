@@ -13,20 +13,26 @@ interface RoleSelectorProps {
     userId: string;
     currentRole: Role;
     currentUserId: string;
+    scopeMode?: "platform" | "org";
 }
 
-export function RoleSelector({ userId, currentRole, currentUserId }: RoleSelectorProps) {
+export function RoleSelector({
+    userId,
+    currentRole,
+    currentUserId,
+    scopeMode = "platform",
+}: RoleSelectorProps) {
     const { locale } = useLocale();
     const t = useTranslations();
     const [isPending, startTransition] = useTransition();
     const isSelf = userId === currentUserId;
+    const isOrgScope = scopeMode === "org";
 
     const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newRole = e.target.value as Role;
         if (newRole === currentRole) return;
 
         const selectEl = e.target;
-        // Revert visually to currentRole until confirmation is confirmed
         selectEl.value = currentRole;
 
         const confirmed = await confirmDeleteAction({
@@ -47,7 +53,6 @@ export function RoleSelector({ userId, currentRole, currentUserId }: RoleSelecto
                 toast.success(t("dashboard.admin.roleUpdatedTo", { role: getRoleLabel(newRole, locale) }));
             } catch {
                 toast.error(t("dashboard.admin.failedToUpdateRole"));
-                // Revert visual selection on error
                 selectEl.value = currentRole;
             }
         });
@@ -63,8 +68,12 @@ export function RoleSelector({ userId, currentRole, currentUserId }: RoleSelecto
         >
             <option value="member">{getRoleLabel("member", locale)}</option>
             <option value="organizer">{getRoleLabel("organizer", locale)}</option>
-            <option value="admin">{getRoleLabel("admin", locale)}</option>
-            <option value="super_admin">{getRoleLabel("super_admin", locale)}</option>
+            {!isOrgScope && (
+                <>
+                    <option value="admin">{getRoleLabel("admin", locale)}</option>
+                    <option value="super_admin">{getRoleLabel("super_admin", locale)}</option>
+                </>
+            )}
         </select>
     );
 }

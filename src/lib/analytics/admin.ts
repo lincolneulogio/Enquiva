@@ -8,6 +8,13 @@ import {
   transportBookings,
 } from "@/lib/db/schema";
 import { count, eq, sql, desc, and, gte } from "drizzle-orm";
+import {
+  registrationInOrgCondition,
+  paymentInOrgCondition,
+  transportRouteInOrgCondition,
+  transportBookingInOrgCondition,
+  andWithScope,
+} from "@/lib/organizations/admin-scope";
 
 export type AdminStatsRange = "30d" | "90d" | "12m" | "all";
 
@@ -66,10 +73,25 @@ function getMonthsForRange(range: AdminStatsRange) {
 
 export async function getAdminDashboardStats(options?: {
   range?: AdminStatsRange;
+  organizationId?: string | null;
 }) {
   const range = options?.range ?? "all";
+  const organizationId = options?.organizationId ?? null;
   const rangeStart = getRangeStartDate(range);
   const lastMonths = buildLastMonthsKeys(getMonthsForRange(range));
+
+  const eventOrgScope = organizationId ? eq(events.organizationId, organizationId) : undefined;
+  const userOrgScope = organizationId ? eq(users.organizationId, organizationId) : undefined;
+  const registrationOrgScope = organizationId
+    ? registrationInOrgCondition(organizationId)
+    : undefined;
+  const paymentOrgScope = organizationId ? paymentInOrgCondition(organizationId) : undefined;
+  const transportRouteOrgScope = organizationId
+    ? transportRouteInOrgCondition(organizationId)
+    : undefined;
+  const transportBookingOrgScope = organizationId
+    ? transportBookingInOrgCondition(organizationId)
+    : undefined;
 
   const eventMonthExpr = sql<string>`to_char(date_trunc('month', ${events.createdAt}), 'YYYY-MM')`;
   const regMonthExpr = sql<string>`to_char(date_trunc('month', ${registrations.registeredAt}), 'YYYY-MM')`;
@@ -81,30 +103,36 @@ export async function getAdminDashboardStats(options?: {
     : [];
   const userConditions = rangeStart ? [gte(users.createdAt, rangeStart)] : [];
 
-  const eventsWhere = eventConditions.length
-    ? and(...eventConditions)
-    : undefined;
-  const registrationsWhere = registrationConditions.length
-    ? and(...registrationConditions)
-    : undefined;
-  const usersWhere = userConditions.length ? and(...userConditions) : undefined;
+  const eventsWhere = andWithScope(eventConditions, eventOrgScope);
+  const registrationsWhere = andWithScope(registrationConditions, registrationOrgScope);
+  const usersWhere = andWithScope(userConditions, userOrgScope);
 
-  const publishedWhere = eventConditions.length
-    ? and(...eventConditions, eq(events.status, "published"))
-    : eq(events.status, "published");
-  const draftWhere = eventConditions.length
-    ? and(...eventConditions, eq(events.status, "draft"))
-    : eq(events.status, "draft");
-  const cancelledWhere = eventConditions.length
-    ? and(...eventConditions, eq(events.status, "cancelled"))
-    : eq(events.status, "cancelled");
+  const publishedWhere = andWithScope(
+    rangeStart ? [gte(events.createdAt, rangeStart)] : [],
+    eq(events.status, "published"),
+    eventOrgScope,
+  );
+  const draftWhere = andWithScope(
+    rangeStart ? [gte(events.createdAt, rangeStart)] : [],
+    eq(events.status, "draft"),
+    eventOrgScope,
+  );
+  const cancelledWhere = andWithScope(
+    rangeStart ? [gte(events.createdAt, rangeStart)] : [],
+    eq(events.status, "cancelled"),
+    eventOrgScope,
+  );
 
-  const membersWhere = userConditions.length
-    ? and(...userConditions, eq(users.role, "member"))
-    : eq(users.role, "member");
-  const organizersWhere = userConditions.length
-    ? and(...userConditions, eq(users.role, "organizer"))
-    : eq(users.role, "organizer");
+  const membersWhere = andWithScope(
+    rangeStart ? [gte(users.createdAt, rangeStart)] : [],
+    eq(users.role, "member"),
+    userOrgScope,
+  );
+  const organizersWhere = andWithScope(
+    rangeStart ? [gte(users.createdAt, rangeStart)] : [],
+    eq(users.role, "organizer"),
+    userOrgScope,
+  );
 
   const [
     totalUsers,
@@ -236,7 +264,12 @@ export async function getAdminDashboardStats(options?: {
     value: Number(item.value),
   }));
 
-  // Financial aggregates (payments with range filtering if set)
+  const revenueWhere = andWithScope(
+    [eq(payments.status, "approved")],
+    rangeStart ? gte(payments.createdAt, rangeStart) : undefined,
+    paymentOrgScope,
+  );
+
   const [revenueResult] = await db
     .select({
       totalRevenue: sql<string>`coalesce(sum(${payments.amount}), '0')`,
@@ -244,34 +277,30 @@ export async function getAdminDashboardStats(options?: {
       avgPayment: sql<string>`coalesce(avg(${payments.amount}), '0')`,
     })
     .from(payments)
-    .where(
-      and(
-        eq(payments.status, "approved"),
-        rangeStart ? gte(payments.createdAt, rangeStart) : undefined,
-      ),
-    );
+    .where(revenueWhere);
 
-  // True pending count across all times (so they know how many to validate)
+  const pendingWhere = andWithScope([eq(payments.status, "pending")], paymentOrgScope);
+
   const [truePendingResult] = await db
     .select({
       count: count(),
     })
     .from(payments)
-    .where(eq(payments.status, "pending"));
+    .where(pendingWhere);
 
-  // Approved payment methods stats
+  const paymentMethodsWhere = andWithScope(
+    [eq(payments.status, "approved")],
+    rangeStart ? gte(payments.createdAt, rangeStart) : undefined,
+    paymentOrgScope,
+  );
+
   const rawPaymentMethodsStats = await db
     .select({
       method: payments.method,
       value: count(),
     })
     .from(payments)
-    .where(
-      and(
-        eq(payments.status, "approved"),
-        rangeStart ? gte(payments.createdAt, rangeStart) : undefined,
-      ),
-    )
+    .where(paymentMethodsWhere)
     .groupBy(payments.method);
 
   const paymentMethodsStats = rawPaymentMethodsStats.map((item) => {
@@ -288,27 +317,31 @@ export async function getAdminDashboardStats(options?: {
     };
   });
 
-  // Transport metrics
+  const transportRoutesWhere = andWithScope(
+    rangeStart ? [gte(transportRoutes.createdAt, rangeStart)] : [],
+    transportRouteOrgScope,
+  );
+
   const [transportStats] = await db
     .select({
       totalCapacity: sql<number>`coalesce(sum(${transportRoutes.totalSeats}), 0)`,
     })
     .from(transportRoutes)
-    .where(rangeStart ? gte(transportRoutes.createdAt, rangeStart) : undefined);
+    .where(transportRoutesWhere);
+
+  const transportBookingsWhere = andWithScope(
+    [eq(transportBookings.status, "confirmed")],
+    rangeStart ? gte(transportBookings.bookedAt, rangeStart) : undefined,
+    transportBookingOrgScope,
+  );
 
   const [bookingStats] = await db
     .select({
       occupiedSeats: sql<number>`coalesce(sum(${transportBookings.seats}), 0)`,
     })
     .from(transportBookings)
-    .where(
-      and(
-        eq(transportBookings.status, "confirmed"),
-        rangeStart ? gte(transportBookings.bookedAt, rangeStart) : undefined,
-      ),
-    );
+    .where(transportBookingsWhere);
 
-  // Attendance and registrations breakdown
   const [attendanceStats] = await db
     .select({
       checkedInCount: sql<number>`count(case when ${registrations.status} = 'checked_in' then 1 end)`,
@@ -331,7 +364,6 @@ export async function getAdminDashboardStats(options?: {
     organizerCount: organizerCount[0]?.count ?? 0,
     monthlyActivity,
     categoryData,
-    // New premium metrics
     totalRevenue: Number(revenueResult?.totalRevenue ?? 0),
     pendingPaymentsCount: truePendingResult?.count ?? 0,
     avgPayment: Number(revenueResult?.avgPayment ?? 0),

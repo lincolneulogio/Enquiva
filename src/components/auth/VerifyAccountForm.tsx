@@ -49,8 +49,14 @@ export function VerifyAccountForm({ initialEmail }: { initialEmail?: string }) {
   const onSubmit = (data: VerifyAccountInput) => {
     startTransition(async () => {
       try {
-        await confirmVerificationCode(data);
-        toast.success(t("auth.accountVerified"));
+        const result = await confirmVerificationCode(data);
+        const messageKey =
+          result.accountType === "entity_admin"
+            ? "auth.accountVerifiedEntityAdmin"
+            : result.accountType === "organizer"
+              ? "auth.accountVerifiedOrganizer"
+              : "auth.accountVerified";
+        toast.success(t(messageKey));
         router.replace("/login");
       } catch (error) {
         const message = getAuthErrorMessage(error instanceof Error ? error.message : t("auth.unexpectedAuthError"), t);

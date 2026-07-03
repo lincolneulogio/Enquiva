@@ -5,11 +5,13 @@ import { env } from "@/env";
 import { PgTransaction } from "drizzle-orm/pg-core";
 import { ExtractTablesWithRelations } from "drizzle-orm";
 
-const globalForDb = globalThis as unknown as { client: postgres.Sql | undefined };
+const globalForDb = globalThis as unknown as {
+  client: postgres.Sql | undefined;
+  databaseUrl: string | undefined;
+};
 
-const client =
-  globalForDb.client ??
-  postgres(env.DATABASE_URL, {
+function createClient() {
+  return postgres(env.DATABASE_URL, {
     max: 10,
     idle_timeout: 30,
     max_lifetime: 300,
@@ -17,9 +19,19 @@ const client =
       application_name: "encuentrodefe",
     },
   });
+}
+
+const client =
+  globalForDb.databaseUrl === env.DATABASE_URL && globalForDb.client
+    ? globalForDb.client
+    : createClient();
 
 if (process.env.NODE_ENV !== "production") {
+  if (globalForDb.client && globalForDb.databaseUrl !== env.DATABASE_URL) {
+    void globalForDb.client.end({ timeout: 0 });
+  }
   globalForDb.client = client;
+  globalForDb.databaseUrl = env.DATABASE_URL;
 }
 
 export const db = drizzle(client, { schema });

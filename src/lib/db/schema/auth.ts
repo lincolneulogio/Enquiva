@@ -16,6 +16,7 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
   role: roleEnum("role").notNull().default("member"),
+  organizationId: uuid("organization_id"),
   bio: text("bio"),
   isActive: boolean("is_active").notNull().default(true),
   lastSeenAt: timestamp("last_seen_at"),

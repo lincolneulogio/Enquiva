@@ -12,6 +12,7 @@ import { ExportDataPanel } from "@/components/dashboard";
 import { getExportEventOptions } from "@/actions/exports";
 import { getCategories } from "@/actions/events";
 import { Suspense } from "react";
+import { resolveAdminScope, scopeEventCondition } from "@/lib/organizations/admin-scope";
 
 interface AdminEventsPageProps {
     searchParams: Promise<{
@@ -30,6 +31,8 @@ const EVENT_STATUS_VALUES = ["all", "published", "draft", "cancelled", "complete
 
 export default async function AdminEventsPage({ searchParams }: AdminEventsPageProps) {
     const { locale, t } = await getI18n();
+    const adminScope = await resolveAdminScope();
+    const orgEventFilter = scopeEventCondition(adminScope);
     const params = await searchParams;
     const requestedPage = Number(params.page ?? "1");
     const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
@@ -48,6 +51,9 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
 
     // Build filter conditions
     const conditions: SQL[] = [];
+    if (orgEventFilter) {
+        conditions.push(orgEventFilter);
+    }
     if (params.eventId) {
         conditions.push(eq(events.id, params.eventId));
     }

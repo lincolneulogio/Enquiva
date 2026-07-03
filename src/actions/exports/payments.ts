@@ -16,6 +16,7 @@ import {
     buildFileName,
     formatDateRangeLabel,
     getScopedEvent,
+    getAdminOrgEventFilter,
     normalizeFilterValue,
     parseFromDate,
     parseToDate,
@@ -40,6 +41,10 @@ export async function exportPaymentsData(
     }
     if (scope === "organizer" && user.role !== "super_admin") {
         conditions.push(eq(events.organizerId, user.id));
+    }
+    if (scope === "admin") {
+        const orgFilter = await getAdminOrgEventFilter(user);
+        if (orgFilter) conditions.push(orgFilter);
     }
     if (status) {
         conditions.push(eq(payments.status, status as "pending" | "approved" | "rejected"));

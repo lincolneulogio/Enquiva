@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { TransportService } from "@/services/transport/transport.service";
+import { requirePlanFeature } from "@/lib/billing/enforce";
 import { z } from "zod";
 
 // ─── Auth Helpers ─────────────────────────────────────────────────────────────
@@ -62,6 +63,7 @@ export async function getRoutesByEvent(eventId: string) {
 
 export async function createRoute(input: z.infer<typeof createRouteSchema>) {
     const user = await requireOrganizerOrHigher();
+    await requirePlanFeature(user.id, user.role, "transport");
     const route = await TransportService.createRoute(input, user.id, user.role ?? "member");
 
     revalidatePath(`/organizer/events/${input.eventId}`);
@@ -95,6 +97,9 @@ export async function toggleRouteActive(routeId: string, isActive: boolean) {
 
 export async function toggleEventTransport(eventId: string, hasTransport: boolean) {
     const user = await requireOrganizerOrHigher();
+    if (hasTransport) {
+        await requirePlanFeature(user.id, user.role, "transport");
+    }
     await TransportService.toggleEventTransport(eventId, hasTransport, user.id, user.role ?? "member");
 
     revalidatePath(`/organizer/transport`);

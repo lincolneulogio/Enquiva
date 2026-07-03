@@ -8,6 +8,7 @@ import {
     buildFileName,
     formatDateRangeLabel,
     getScopedEvent,
+    getAdminOrgEventFilter,
     normalizeFilterValue,
     parseFromDate,
     parseToDate,
@@ -29,6 +30,10 @@ export async function exportEventsData(
     const conditions = [];
     if (scope === "organizer" && user.role !== "super_admin") {
         conditions.push(eq(events.organizerId, user.id));
+    }
+    if (scope === "admin") {
+        const orgFilter = await getAdminOrgEventFilter(user);
+        if (orgFilter) conditions.push(orgFilter);
     }
     if (eventId) {
         conditions.push(eq(events.id, eventId));

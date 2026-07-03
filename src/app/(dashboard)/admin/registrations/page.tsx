@@ -11,6 +11,7 @@ import { ExportDataPanel } from "@/components/dashboard";
 import { getExportEventOptions } from "@/actions/exports";
 import { getCategories } from "@/actions/events";
 import { Suspense } from "react";
+import { resolveAdminScope, scopeEventCondition } from "@/lib/organizations/admin-scope";
 
 interface AdminRegistrationsPageProps {
   searchParams: Promise<{
@@ -48,8 +49,14 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
     label: value === "all" ? t("common.all") : registrationStatusLabel(value, locale),
   }));
 
+  const adminScope = await resolveAdminScope();
+  const orgEventFilter = scopeEventCondition(adminScope);
+
   // Build filter conditions
   const conditions: SQL[] = [];
+  if (orgEventFilter) {
+    conditions.push(orgEventFilter);
+  }
   if (params.eventId) {
     conditions.push(eq(events.id, params.eventId));
   }

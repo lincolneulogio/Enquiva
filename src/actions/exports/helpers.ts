@@ -4,6 +4,10 @@ import { db } from "@/lib/db";
 import { events } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import type { ExportScope, SessionUser } from "./types";
+import {
+  resolveAdminScopeForUser,
+  scopeEventConditionForOrgId,
+} from "@/lib/organizations/admin-scope";
 
 export async function requireUser() {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -41,7 +45,30 @@ export async function getScopedEvent(user: SessionUser, scope: ExportScope, even
         throw new Error("No autorizado para exportar este evento");
     }
 
+    if (scope === "admin" && user.role === "admin") {
+        const adminScope = await resolveAdminScopeForUser(user.id, user.role);
+        if (adminScope.mode === "org") {
+            const [eventOrg] = await db
+              .select({ organizationId: events.organizationId })
+              .from(events)
+              .where(eq(events.id, eventId))
+              .limit(1);
+            if (eventOrg?.organizationId !== adminScope.organizationId) {
+              throw new Error("No autorizado para exportar este evento");
+            }
+        }
+    }
+
     return event;
+}
+
+export async function getAdminOrgEventFilter(user: SessionUser) {
+    if (user.role !== "admin") return undefined;
+    const scope = await resolveAdminScopeForUser(user.id, user.role);
+    if (scope.mode === "org") {
+        return scopeEventConditionForOrgId(scope.organizationId);
+    }
+    return undefined;
 }
 
 export function buildFileName(parts: Array<string | null | undefined>) {

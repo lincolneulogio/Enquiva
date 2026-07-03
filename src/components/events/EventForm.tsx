@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createEventSchema, type CreateEventInput } from "@/lib/validations";
 import { createEvent, updateEvent } from "@/actions/events";
-import { getActivePaymentMethods, setEventPaymentMethods } from "@/actions/payment-methods";
+import { getPaymentMethodsForEventForm, setEventPaymentMethods } from "@/actions/payment-methods";
 import { UploadDropzone } from "@/lib/uploadthing/components";
 import { toast } from "sonner";
 import { Loader2, ImageIcon, MapPin, Video, Star, Bus, Smartphone, QrCode, Wallet } from "lucide-react";
@@ -14,9 +14,15 @@ import Image from "next/image";
 import type { Event } from "@/lib/db/schema";
 import type { FieldErrors } from "react-hook-form";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
-import { categoryLabel } from "@/lib/utils";
+import { categoryLabel, cn } from "@/lib/utils";
 import { getRoutesByEvent } from "@/actions/transport";
 import { TransportRoutesManager } from "@/components/dashboard";
+import { PlanUsageBanner } from "@/components/dashboard/organizer/PlanUsageBanner";
+import type { getOrganizerPlanSummary } from "@/lib/billing/enforce";
+import Link from "next/link";
+import { Lock } from "lucide-react";
+
+type PlanSummary = Awaited<ReturnType<typeof getOrganizerPlanSummary>>;
 
 interface CategoryOption {
     slug: string;
@@ -29,6 +35,7 @@ interface EventFormProps {
     redirectPath?: string;
     categories: CategoryOption[];
     canFeature?: boolean;
+    planSummary?: PlanSummary;
 }
 
 const EVENT_DRAFT_STORAGE_KEY = "EncuentroDeFe.eventDraft.create";
@@ -65,6 +72,7 @@ export function EventForm({
     redirectPath = "/organizer",
     categories,
     canFeature = false,
+    planSummary,
 }: EventFormProps) {
     const t = useTranslations();
     const { locale } = useLocale();
@@ -119,13 +127,19 @@ export function EventForm({
 
     const isVirtual = watch("isVirtual");
     const hasTransport = watch("hasTransport");
+    const canUseTransport = planSummary?.isUnlimited || planSummary?.features.transport || event?.hasTransport;
+    const canUseCulqi = planSummary?.isUnlimited || planSummary?.features.culqi;
+    const canCreateEvent = planSummary?.isUnlimited || planSummary?.canCreateEvent !== false;
+    const selectablePaymentMethods = allPaymentMethods.filter(
+        (pm) => pm.type !== "culqi" || canUseCulqi,
+    );
 
     useEffect(() => {
         (async () => {
-            const methods = await getActivePaymentMethods();
+            const methods = await getPaymentMethodsForEventForm(event?.organizerId);
             setAllPaymentMethods(methods);
         })();
-    }, []);
+    }, [event?.organizerId]);
 
     useEffect(() => {
         if (!event?.id || !hasTransport) return;
@@ -274,6 +288,20 @@ export function EventForm({
             data-gramm="false"
             data-gramm_editor="false"
         >
+            {planSummary && !planSummary.isUnlimited && (
+                <PlanUsageBanner summary={planSummary} showFeatures className="md:col-span-2 lg:col-span-3" />
+            )}
+
+            {!event && planSummary && !canCreateEvent && (
+                <div className="rounded-2xl border border-amber-200/60 bg-amber-50/50 p-4 text-sm text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-200 md:col-span-2 lg:col-span-3">
+                    Has alcanzado el límite de eventos activos de tu plan.{" "}
+                    <Link href="/organizer/billing" className="font-semibold underline">
+                        Mejora tu plan
+                    </Link>{" "}
+                    o archiva un borrador/publicado antes de crear otro.
+                </div>
+            )}
+
             <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-6 lg:col-span-2">
                     <div>
@@ -436,12 +464,12 @@ export function EventForm({
                         </p>
                     </div>
 
-                    {allPaymentMethods.length > 0 && !!watch("price") && Number(watch("price")) > 0 && (
+                    {selectablePaymentMethods.length > 0 && !!watch("price") && Number(watch("price")) > 0 && (
                         <div className="rounded-xl border border-border p-4 space-y-3">
                             <h3 className="text-sm font-semibold text-foreground">{t("events.form.paymentMethodsTitle")}</h3>
                             <p className="text-xs text-muted-foreground">{t("events.form.paymentMethodsHelp")}</p>
                             <div className="flex flex-wrap gap-2">
-                                {allPaymentMethods.map((pm) => {
+                                {selectablePaymentMethods.map((pm) => {
                                     const selected = selectedPaymentMethodIds.includes(pm.id);
                                     const IconMap: Record<string, React.ComponentType<{ className?: string }>> = { yape: Smartphone, plin: QrCode, cash: Wallet };
                                     const PmIcon = IconMap[pm.type] ?? Wallet;
@@ -593,19 +621,28 @@ export function EventForm({
                         </label>
                     )}
 
-                    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-4">
+                    <label
+                        className={cn(
+                            "flex items-start gap-3 rounded-xl border border-border p-4",
+                            canUseTransport ? "cursor-pointer" : "cursor-not-allowed opacity-70",
+                        )}
+                    >
                         <input
                             type="checkbox"
                             {...register("hasTransport")}
+                            disabled={!canUseTransport}
                             className="mt-0.5 rounded border-border"
                         />
                         <div>
                             <div className="flex items-center gap-1.5">
                                 <Bus className="h-3.5 w-3.5 text-blue-500" />
                                 <p className="text-sm font-medium text-foreground">{t("events.form.offerTransport")}</p>
+                                {!canUseTransport && <Lock className="h-3.5 w-3.5 text-muted-foreground" />}
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                {hasTransport
+                                {!canUseTransport
+                                    ? "Disponible en plan Pro. Mejora en /organizer/billing"
+                                    : hasTransport
                                     ? t("events.form.transportEnabledHelp")
                                     : t("events.form.transportDisabledHelp")}
                             </p>
@@ -614,7 +651,7 @@ export function EventForm({
 
                     <button
                         type="submit"
-                        disabled={isPending}
+                        disabled={isPending || (!event && !canCreateEvent)}
                         className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
                     >
                         {isPending ? (

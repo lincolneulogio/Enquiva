@@ -52,6 +52,8 @@ export async function createPayment(input: CreatePaymentInput) {
   // Revalidate relevant member dashboard paths on the server
   revalidatePath("/member/payments");
   revalidatePath(`/member/payments/new/${validated.registrationId}`);
+  revalidatePath("/organizer/payments");
+  revalidatePath("/admin/payments");
 
   return result;
 }
@@ -97,6 +99,9 @@ export async function updatePaymentStatus(input: UpdatePaymentStatusInput) {
   // Obtenemos los detalles de la inscripción vinculada para saber el slug
   const context = await PaymentService.getPaymentCheckoutContext(paymentUserIdOrSimulated(result.payment.userId), result.payment.registrationId);
   revalidatePath(`/events/${context.event.slug}`);
+  revalidatePath("/organizer/payments");
+  revalidatePath("/admin/payments");
+  revalidatePath("/member/payments");
 
   return result;
 }

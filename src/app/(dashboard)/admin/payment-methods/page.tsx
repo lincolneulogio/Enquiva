@@ -1,18 +1,26 @@
-import { getPaymentMethods } from "@/actions/payment-methods";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { getPaymentMethodsPageContext } from "@/actions/payment-methods";
 import { PaymentMethodsManager } from "@/components/payments/PaymentMethodsManager";
 import { getI18n } from "@/lib/i18n/server";
 
 export default async function AdminPaymentMethodsPage() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (session?.user?.role !== "super_admin") redirect("/admin");
+
   const { t } = await getI18n();
-  const methods = await getPaymentMethods();
+  const ctx = await getPaymentMethodsPageContext("platform");
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-semibold text-foreground">{t("dashboard.sidebar.admin.paymentMethods")}</h1>
-        <p className="mt-1 text-muted-foreground">Gestiona los medios de pago Yape, Plin y Efectivo.</p>
+        <h1 className="font-display text-2xl font-semibold text-foreground">
+          {t("payments.config.platformPageTitle")}
+        </h1>
+        <p className="mt-1 text-muted-foreground">{t("payments.config.platformPageIntro")}</p>
       </div>
-      <PaymentMethodsManager methods={methods} />
+      <PaymentMethodsManager scope="platform" {...ctx} />
     </div>
   );
 }

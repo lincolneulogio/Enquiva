@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { events, users } from "@/lib/db/schema";
-import { count, desc, eq, sql } from "drizzle-orm";
+import { count, desc, eq, sql, and, type SQL } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
@@ -11,6 +11,7 @@ import { formatEventDateShort, eventStatusLabel, statusColor } from "@/lib/utils
 import { getIntlLocale } from "@/lib/i18n/core";
 import { TablePagination } from "@/components/dashboard";
 import { ToggleEventTransportButton } from "@/components/dashboard";
+import { resolveAdminScope, scopeEventCondition } from "@/lib/organizations/admin-scope";
 
 interface AdminTransportPageProps {
     searchParams: Promise<{
@@ -32,17 +33,29 @@ export default async function AdminTransportOverviewPage({ searchParams }: Admin
     const requestedPage = Number(params.page ?? "1");
     const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
 
+    const adminScope = await resolveAdminScope();
+    const orgEventFilter = scopeEventCondition(adminScope);
+    const eventConditions: SQL[] = [];
+    if (orgEventFilter) eventConditions.push(orgEventFilter);
+    const eventsWhere = eventConditions.length ? and(...eventConditions) : undefined;
+
     // Get counts and stats for admin dashboard card summary
-    const [{ total }] = await db.select({ total: count() }).from(events);
+    const [{ total }] = await db.select({ total: count() }).from(events).where(eventsWhere);
     
     const [{ totalWithTransport }] = await db
         .select({ totalWithTransport: sql<number>`count(*)::int` })
         .from(events)
-        .where(eq(events.hasTransport, true));
+        .where(
+            eventsWhere
+                ? and(...eventConditions, eq(events.hasTransport, true))
+                : eq(events.hasTransport, true),
+        );
 
     const [{ totalRoutes }] = await db
         .select({ totalRoutes: sql<number>`count(*)::int` })
-        .from(sql`transport_routes`);
+        .from(sql`transport_routes tr`)
+        .innerJoin(events, sql`tr.event_id = ${events.id}`)
+        .where(eventsWhere);
 
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
     const safePage = Math.min(currentPage, totalPages);
@@ -73,6 +86,7 @@ export default async function AdminTransportOverviewPage({ searchParams }: Admin
         })
         .from(events)
         .innerJoin(users, eq(events.organizerId, users.id))
+        .where(eventsWhere)
         .orderBy(desc(events.createdAt))
         .limit(PAGE_SIZE)
         .offset(offset);

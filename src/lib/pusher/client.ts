@@ -1,11 +1,8 @@
 "use client";
 
 import PusherClient from "pusher-js";
+import { isPusherClientConfigured } from "./config";
 import { PUSHER_CHANNELS, PUSHER_EVENTS } from "./shared";
-
-function isPlaceholder(val: string) {
-    return val.startsWith("your-") || val.startsWith("replace-");
-}
 
 function createNoopChannel() {
     return { bind: function () { return this; }, unbind_all: function () {}, unbind: function () {} };
@@ -26,7 +23,7 @@ export function getPusherClient(): PusherClient {
         const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
         const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
 
-        if (!key || !cluster || isPlaceholder(key) || isPlaceholder(cluster)) {
+        if (!isPusherClientConfigured() || !key || !cluster) {
             pusherClientInstance = createNoopClient();
             return pusherClientInstance;
         }

@@ -22,6 +22,7 @@ import { getCategories } from "@/actions/events";
 import { categoryLabel } from "@/lib/utils";
 import { Suspense } from "react";
 import { PaymentNotesButton } from "@/components/payments/PaymentNotesButton";
+import { resolveAdminScope, scopeEventCondition } from "@/lib/organizations/admin-scope";
 
 function getPaymentDynamicCaption(
   notes: string | null,
@@ -133,8 +134,14 @@ export default async function AdminPaymentsPage({
       ? Math.floor(requestedPage)
       : 1;
 
+  const adminScope = await resolveAdminScope();
+  const orgEventFilter = scopeEventCondition(adminScope);
+
   // Build filter conditions
   const conditions: SQL[] = [];
+  if (orgEventFilter) {
+    conditions.push(orgEventFilter);
+  }
   if (params.eventId) {
     conditions.push(eq(events.id, params.eventId));
   }

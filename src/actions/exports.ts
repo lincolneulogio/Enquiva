@@ -13,10 +13,12 @@ import {
 import {
     requireUser,
     assertScopeAccess,
+    getAdminOrgEventFilter,
 } from "./exports/helpers";
 import { exportEventsData } from "./exports/events";
 import { exportRegistrationsData } from "./exports/registrations";
 import { exportPaymentsData } from "./exports/payments";
+import { requirePlanFeature } from "@/lib/billing/enforce";
 
 export type {
     ExportScope,
@@ -31,13 +33,15 @@ export async function getExportEventOptions(scope: ExportScope): Promise<ExportE
     const user = await requireUser();
     assertScopeAccess(user, scope);
 
+    const orgEventFilter = scope === "admin" ? await getAdminOrgEventFilter(user) : undefined;
+
     const rows = await db
         .select({ id: events.id, title: events.title })
         .from(events)
         .where(
             scope === "organizer" && user.role !== "super_admin"
                 ? eq(events.organizerId, user.id)
-                : undefined
+                : orgEventFilter ?? undefined
         )
         .orderBy(desc(events.date));
 
@@ -49,6 +53,7 @@ export async function getExportData(input: z.infer<typeof exportSchema>): Promis
     const validated = exportSchema.parse(input);
 
     assertScopeAccess(user, validated.scope);
+    await requirePlanFeature(user.id, user.role, "exports");
 
     switch (validated.resource) {
         case "events":

@@ -6,6 +6,7 @@ import { events } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { EventForm } from "@/components/events/EventForm";
 import { getCategories } from "@/actions/events";
+import { getMyPlanSummary } from "@/actions/billing";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { getI18n } from "@/lib/i18n/server";
@@ -34,6 +35,7 @@ export default async function OrganizerEditEventPage({ params }: OrganizerEditEv
     }
 
     const categories = await getCategories();
+    const planSummary = await getMyPlanSummary();
 
     return (
         <div className="space-y-6">
@@ -49,7 +51,7 @@ export default async function OrganizerEditEventPage({ params }: OrganizerEditEv
                 <p className="mt-1 text-muted-foreground">{t("dashboard.organizer.updateEventDetails", { title: event.title })}</p>
             </div>
 
-            <EventForm event={event} redirectPath="/organizer/events" categories={categories} canFeature={session.user.role === "super_admin"} />
+            <EventForm event={event} redirectPath="/organizer/events" categories={categories} canFeature={session.user.role === "super_admin"} planSummary={planSummary} />
 
             {event.hasTransport && (
                 <div className="rounded-2xl border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 px-5 py-4 flex items-center justify-between gap-4">

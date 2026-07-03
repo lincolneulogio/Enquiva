@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pusherServer } from "@/lib/pusher/server";
+import { isPusherServerConfigured } from "@/lib/pusher/config";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
 export async function POST(request: NextRequest) {
+  if (!isPusherServerConfigured()) {
+    return NextResponse.json({ error: "Pusher not configured" }, { status: 503 });
+  }
+
   const session = await auth.api.getSession({ headers: await headers() });
 
   if (!session?.user) {

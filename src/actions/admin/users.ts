@@ -14,6 +14,7 @@ import {
     type Permission,
 } from "@/lib/auth/rbac";
 import { LogService } from "@/lib/analytics/audit";
+import { OrganizationService } from "@/lib/organizations/organization.service";
 
 export async function requireSuperAdmin() {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -33,10 +34,30 @@ export async function updateUserRole(
     userId: string,
     role: "member" | "organizer" | "admin" | "super_admin"
 ) {
-    const currentUser = await requireSuperAdmin();
+    const currentUser = await requireAdminOrSuper();
+    const actorRole = normalizeRole(currentUser.role);
     const hdrs = await headers();
     const ipAddress = hdrs.get("x-forwarded-for") ?? hdrs.get("x-real-ip") ?? "unknown";
     const userAgent = hdrs.get("user-agent") ?? "unknown";
+
+    if (actorRole === "admin") {
+        if (role !== "organizer" && role !== "member") {
+            throw new Error("Solo puedes asignar roles de organizador o asistente dentro de tu entidad.");
+        }
+        await OrganizationService.promoteUserInOrg({
+            actorId: currentUser.id,
+            actorRole: currentUser.role,
+            targetUserId: userId,
+            newRole: role,
+        });
+        revalidatePath("/admin/users");
+        revalidatePath("/admin/team");
+        return { success: true };
+    }
+
+    if (actorRole !== "super_admin") {
+        throw new Error("Forbidden");
+    }
 
     await db.update(users).set({ role }).where(eq(users.id, userId));
 

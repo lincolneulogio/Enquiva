@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { events, registrations, categories } from "@/lib/db/schema";
+import { events, registrations, categories, users } from "@/lib/db/schema";
 import type { Category } from "@/lib/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
 import {
@@ -12,7 +12,7 @@ import {
 } from "@/lib/redis";
 import { pusherServer, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/server";
 import { generateUniqueSlug } from "@/lib/utils";
-import { eq, and, desc, ilike, count, sql, asc, inArray } from "drizzle-orm";
+import { eq, and, desc, ilike, count, sql, asc, inArray, isNull } from "drizzle-orm";
 import {
   createEventSchema,
   updateEventSchema,
@@ -48,13 +48,22 @@ export class EventService {
   /**
    * Obtiene la lista de categorías de eventos activas.
    */
-  static async getCategories(): Promise<Pick<Category, "slug" | "label" | "colorClass">[]> {
+  static async getCategories(organizationId?: string | null): Promise<Pick<Category, "slug" | "label" | "colorClass">[]> {
     try {
-      return await db
+      const conditions = [eq(categories.isActive, true)];
+      if (organizationId) {
+        conditions.push(eq(categories.organizationId, organizationId));
+      } else {
+        conditions.push(isNull(categories.organizationId));
+      }
+      const rows = await db
         .select({ slug: categories.slug, label: categories.label, colorClass: categories.colorClass })
         .from(categories)
-        .where(eq(categories.isActive, true))
+        .where(and(...conditions))
         .orderBy(asc(categories.sortOrder));
+      if (rows.length > 0) return rows;
+      if (organizationId) return [];
+      return FALLBACK_CATEGORIES;
     } catch (error) {
       console.error("Failed to load categories. Using fallback categories.", error);
       return FALLBACK_CATEGORIES;
@@ -68,12 +77,19 @@ export class EventService {
     const validated = createEventSchema.parse(input);
     const slug = generateUniqueSlug(validated.title);
 
+    const [organizer] = await db
+      .select({ organizationId: users.organizationId })
+      .from(users)
+      .where(eq(users.id, organizerId))
+      .limit(1);
+
     const [event] = await db
       .insert(events)
       .values({
         ...validated,
         price: validated.price != null ? String(validated.price) : null,
         organizerId,
+        organizationId: organizer?.organizationId ?? null,
         slug,
         date: new Date(validated.date),
         endDate: validated.endDate ? new Date(validated.endDate) : null,

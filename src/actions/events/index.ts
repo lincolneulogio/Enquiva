@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { EventService } from "@/services/events/event.service";
+import { assertCanCreateEvent, assertCanSendBroadcast, assertEventPayloadWithinPlan } from "@/lib/billing/enforce";
 import type { Category } from "@/lib/db/schema";
 import {
   type CreateEventInput,
@@ -11,8 +12,8 @@ import {
 } from "@/lib/validations";
 import { LogService } from "@/lib/analytics/audit";
 import { db } from "@/lib/db";
-import { registrations, users, events, broadcastLogs } from "@/lib/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { registrations, users, events, broadcastLogs, categories } from "@/lib/db/schema";
+import { eq, and, inArray, asc } from "drizzle-orm";
 import { transporter, sender } from "@/lib/mail/transporter";
 import { wrapInTemplate } from "@/lib/mail/templates";
 import { getSystemSettings } from "@/lib/settings";
@@ -36,13 +37,48 @@ async function requireOrganizer() {
 // ─── Categories ───────────────────────────────────────────────────────────────
 
 export async function getCategories(): Promise<Pick<Category, "slug" | "label" | "colorClass">[]> {
-  return EventService.getCategories();
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (session?.user) {
+    const { resolveAdminScopeForUser, getOrganizationIdForUser } = await import(
+      "@/lib/organizations/admin-scope"
+    );
+    const { normalizeRole } = await import("@/lib/auth/rbac");
+    const role = normalizeRole(session.user.role);
+
+    if (role === "admin") {
+      const scope = await resolveAdminScopeForUser(session.user.id, session.user.role);
+      if (scope.mode === "org") return EventService.getCategories(scope.organizationId);
+      return [];
+    }
+
+    if (role === "organizer") {
+      const orgId = await getOrganizationIdForUser(session.user.id);
+      if (orgId) return EventService.getCategories(orgId);
+      return EventService.getCategories(null);
+    }
+
+    if (role === "super_admin") {
+      const rows = await db
+        .select({ slug: categories.slug, label: categories.label, colorClass: categories.colorClass })
+        .from(categories)
+        .where(eq(categories.isActive, true))
+        .orderBy(asc(categories.sortOrder));
+      if (rows.length > 0) return rows;
+      return EventService.getCategories(null);
+    }
+  }
+  return EventService.getCategories(null);
 }
 
 // ─── Create Event ─────────────────────────────────────────────────────────────
 
 export async function createEvent(input: CreateEventInput) {
   const user = await requireOrganizer();
+  await assertCanCreateEvent(user.id, user.role);
+  await assertEventPayloadWithinPlan(user.id, user.role, {
+    hasTransport: input.hasTransport,
+    status: input.status,
+  });
   const event = await EventService.createEvent(input, user.id);
 
   const hdrs = await headers();
@@ -70,6 +106,32 @@ export async function createEvent(input: CreateEventInput) {
 
 export async function updateEvent(eventId: string, input: UpdateEventInput) {
   const user = await requireOrganizer();
+
+  const [existing] = await db
+    .select({
+      status: events.status,
+      hasTransport: events.hasTransport,
+      organizerId: events.organizerId,
+    })
+    .from(events)
+    .where(eq(events.id, eventId))
+    .limit(1);
+
+  if (!existing) throw new Error("Event not found");
+  if (existing.organizerId !== user.id && user.role !== "super_admin" && user.role !== "admin") {
+    throw new Error("Not authorized to edit this event");
+  }
+
+  const planUserId = existing.organizerId;
+  const planRole = existing.organizerId === user.id ? user.role : "organizer";
+
+  await assertEventPayloadWithinPlan(
+    planUserId,
+    planRole,
+    { hasTransport: input.hasTransport, status: input.status },
+    existing,
+  );
+
   const event = await EventService.updateEvent(eventId, input, user.id, user.role ?? "member");
 
   const hdrs = await headers();
@@ -151,6 +213,8 @@ export async function sendBroadcastEmailAction(input: {
   if (!input.eventId || !input.subject || !input.message) {
     throw new Error("Missing required fields");
   }
+
+  await assertCanSendBroadcast(user.id, user.role);
 
   // Verify event existence and organizer permission
   const event = await db.query.events.findFirst({

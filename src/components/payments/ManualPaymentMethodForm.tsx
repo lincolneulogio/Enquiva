@@ -11,7 +11,7 @@ import Image from "next/image";
 
 interface EventMethod {
   id: string;
-  type: "yape" | "plin" | "cash";
+  type: "yape" | "plin" | "cash" | "culqi";
   label: string;
   qrCodeUrl?: string | null;
   phone?: string | null;

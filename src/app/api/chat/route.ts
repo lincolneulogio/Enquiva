@@ -6,6 +6,7 @@ import { normalizeRole } from "@/lib/auth/rbac";
 import { buildSystemPrompt } from "./prompts";
 import { buildTools } from "./tools";
 import { streamWithFallback } from "./providers";
+import { requirePlanFeature } from "@/lib/billing/enforce";
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
@@ -20,6 +21,8 @@ export async function POST(req: Request) {
     const userRole = normalizeRole(session.user.role ?? "member");
     const userName = session.user.name ?? "Usuario";
     const userId = session.user.id;
+
+    await requirePlanFeature(userId, userRole, "ai");
 
     // 2. System prompt dinámico según rol
     const systemPrompt = buildSystemPrompt(userName, userRole);
@@ -36,11 +39,11 @@ export async function POST(req: Request) {
       tools,
     );
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in Chat API Route:", error);
-    return NextResponse.json(
-      { error: "Error interno del servidor al procesar la conversación." },
-      { status: 500 },
-    );
+    const message =
+      error instanceof Error ? error.message : "Error interno del servidor al procesar la conversación.";
+    const status = message.includes("GEMINI_API_KEY") || message.includes("OPENROUTER_API_KEY") ? 503 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }

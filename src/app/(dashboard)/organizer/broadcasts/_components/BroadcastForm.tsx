@@ -12,9 +12,10 @@ interface EventItem {
 
 interface BroadcastFormProps {
   events: EventItem[];
+  disabled?: boolean;
 }
 
-export function BroadcastForm({ events }: BroadcastFormProps) {
+export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) {
   const router = useRouter();
   const [eventId, setEventId] = useState("");
   const [recipientStatus, setRecipientStatus] = useState<"all" | "registered" | "checked_in" | "waitlisted">("all");
@@ -98,7 +99,7 @@ export function BroadcastForm({ events }: BroadcastFormProps) {
             id="eventId"
             value={eventId}
             onChange={(e) => setEventId(e.target.value)}
-            disabled={isPending}
+            disabled={disabled || isPending}
             className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
             required
           >
@@ -120,7 +121,7 @@ export function BroadcastForm({ events }: BroadcastFormProps) {
             id="recipientStatus"
             value={recipientStatus}
             onChange={(e) => setRecipientStatus(e.target.value as any)}
-            disabled={isPending}
+            disabled={disabled || isPending}
             className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
             required
           >
@@ -143,7 +144,7 @@ export function BroadcastForm({ events }: BroadcastFormProps) {
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           placeholder="Ej: Información importante sobre el punto de encuentro y transporte"
-          disabled={isPending}
+          disabled={disabled || isPending}
           className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
           required
         />
@@ -160,7 +161,7 @@ export function BroadcastForm({ events }: BroadcastFormProps) {
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Escribe el cuerpo del mensaje aquí. Se enviará con el diseño premium de EncuentroDeFe."
           rows={8}
-          disabled={isPending}
+          disabled={disabled || isPending}
           className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 font-sans"
           required
         />
@@ -172,7 +173,7 @@ export function BroadcastForm({ events }: BroadcastFormProps) {
       {/* Submit Button */}
       <button
         type="submit"
-        disabled={isPending}
+        disabled={disabled || isPending}
         className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-70 sm:w-auto"
       >
         {isPending ? (

@@ -14,6 +14,9 @@ import { getCategories } from "@/actions/events";
 import { categoryLabel } from "@/lib/utils";
 import { getPaymentStatusLabel } from "@/lib/i18n/core";
 import { PaymentNotesButton } from "@/components/payments/PaymentNotesButton";
+import { PaymentStatusSelect } from "@/components/payments/PaymentStatusSelect";
+import { getPaymentMethodLabel } from "@/lib/payments/labels";
+import { Clock } from "lucide-react";
 
 function getPaymentDynamicCaption(
   notes: string | null,
@@ -134,6 +137,14 @@ export default async function OrganizerPaymentsPage({ searchParams }: PageProps)
     .innerJoin(users, eq(paymentsTable.userId, users.id))
     .where(whereClause);
 
+  const pendingConditions = [...conditions, eq(paymentsTable.status, "pending")];
+  const [{ pendingCount }] = await db
+    .select({ pendingCount: count() })
+    .from(paymentsTable)
+    .innerJoin(registrations, eq(paymentsTable.registrationId, registrations.id))
+    .innerJoin(events, eq(registrations.eventId, events.id))
+    .where(and(...pendingConditions));
+
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
   const offset = (safePage - 1) * PAGE_SIZE;
@@ -167,6 +178,20 @@ export default async function OrganizerPaymentsPage({ searchParams }: PageProps)
         </p>
       </div>
 
+      {pendingCount > 0 && (
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200/60 bg-amber-50/50 p-4 dark:border-amber-900/30 dark:bg-amber-950/20">
+          <Clock className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+          <div>
+            <p className="font-medium text-foreground">
+              {t("payments.organizer.pendingBanner", { count: pendingCount })}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("payments.organizer.pendingHelp")}
+            </p>
+          </div>
+        </div>
+      )}
+
       <Suspense>
         <ExportDataPanel
           resource="payments"
@@ -181,21 +206,23 @@ export default async function OrganizerPaymentsPage({ searchParams }: PageProps)
         <div className="rounded-3xl border border-dashed border-border bg-card p-12 text-center">
           <p className="text-lg font-semibold text-foreground">{t("dashboard.member.noPaymentsYet")}</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Cuando los asistentes reserven transporte aparecerán aquí.
+            {t("payments.organizer.emptyHelp")}
           </p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
           <div className="overflow-x-auto">
             <p className="px-3 pt-2 text-[11px] text-muted-foreground sm:hidden">↔ Scroll</p>
-            <table className="w-full min-w-[760px] text-sm">
+            <table className="w-full min-w-[920px] text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/50">
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.event")}</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.attendee")}</th>
                   <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t("common.amount")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.method")}</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.status")}</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.receipt")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.update")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -220,15 +247,25 @@ export default async function OrganizerPaymentsPage({ searchParams }: PageProps)
                         </div>
                       )}
                     </td>
+                    <td className="px-4 py-4 text-sm text-muted-foreground">
+                      {getPaymentMethodLabel(payment.method, locale)}
+                      {payment.gatewayProvider === "culqi" && payment.status === "approved" && (
+                        <span className="mt-0.5 block text-[10px] text-violet-600 dark:text-violet-400">
+                          {t("payments.organizer.autoApproved")}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-4">
                       <PaymentStatusBadge status={payment.status} />
                     </td>
                     <td className="px-4 py-4">
-                      <div className="flex flex-col gap-1 items-start">
+                      <div className="flex flex-col items-start gap-1">
                         {payment.receiptUrl ? (
                           <a href={payment.receiptUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-primary hover:underline">
                             {t("common.viewReceipt")}
                           </a>
+                        ) : payment.method === "culqi" ? (
+                          <span className="text-xs text-muted-foreground">{t("payments.organizer.noReceiptNeeded")}</span>
                         ) : (
                           <span className="text-xs text-muted-foreground">{t("common.awaitingReceipt")}</span>
                         )}
@@ -243,6 +280,13 @@ export default async function OrganizerPaymentsPage({ searchParams }: PageProps)
                           />
                         )}
                       </div>
+                    </td>
+                    <td className="px-4 py-4 min-w-[140px]">
+                      {payment.method === "culqi" && payment.status === "approved" ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        <PaymentStatusSelect paymentId={payment.id} currentStatus={payment.status} />
+                      )}
                     </td>
                   </tr>
                 ))}

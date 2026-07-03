@@ -20,6 +20,7 @@ export const paymentMethodTypeEnum = pgEnum("payment_method_type", [
   "yape",
   "plin",
   "cash",
+  "culqi",
 ]);
 
 export const transportRoutes = pgTable(
@@ -88,6 +89,10 @@ export const payments = pgTable("payments", {
   notes: text("notes"),
   verifiedBy: text("verified_by").references(() => users.id),
   verifiedAt: timestamp("verified_at"),
+  gatewayProvider: text("gateway_provider"),
+  gatewayChargeId: text("gateway_charge_id"),
+  gatewayStatus: text("gateway_status"),
+  platformFee: numeric("platform_fee", { precision: 12, scale: 2 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (t) => [
@@ -97,6 +102,8 @@ export const payments = pgTable("payments", {
 
 export const paymentMethods = pgTable("payment_methods", {
   id: uuid("id").primaryKey().defaultRandom(),
+  /** null = medios de la plataforma (cobro de licencias/planes SaaS) */
+  organizerId: text("organizer_id").references(() => users.id, { onDelete: "cascade" }),
   type: paymentMethodTypeEnum("type").notNull(),
   label: text("label").notNull(),
   qrCodeUrl: text("qr_code_url"),
@@ -105,7 +112,9 @@ export const paymentMethods = pgTable("payment_methods", {
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (t) => [
+  index("payment_methods_organizer_idx").on(t.organizerId),
+]);
 
 export const transportStops = pgTable(
   "transport_stops",

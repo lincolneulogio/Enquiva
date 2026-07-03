@@ -1,4 +1,6 @@
 import { getCategories, getOrganizerEvents } from "@/actions/events";
+import { getMyPlanSummary } from "@/actions/billing";
+import { PlanUsageBanner } from "@/components/dashboard/organizer/PlanUsageBanner";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -12,6 +14,7 @@ export default async function OrganizerDashboardPage() {
   const session = await auth.api.getSession({ headers: await headers() });
   const organizerEvents = await getOrganizerEvents();
   const categories = await getCategories();
+  const planSummary = await getMyPlanSummary();
   const categoryMap = Object.fromEntries(categories.map((category) => [category.slug, category.label]));
 
   const totalAttendees = organizerEvents.reduce(
@@ -36,14 +39,26 @@ export default async function OrganizerDashboardPage() {
             {t("dashboard.organizer.manageEvents")}
           </p>
         </div>
-        <Link
-          href="/organizer/events/new"
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 sm:w-auto"
-        >
-          <Plus className="h-4 w-4" />
-          {t("common.newEvent")}
-        </Link>
+        {planSummary.canCreateEvent ? (
+          <Link
+            href="/organizer/events/new"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 sm:w-auto"
+          >
+            <Plus className="h-4 w-4" />
+            {t("common.newEvent")}
+          </Link>
+        ) : (
+          <Link
+            href="/organizer/billing"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-5 py-2.5 text-sm font-medium text-amber-900 transition-colors hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200 sm:w-auto"
+          >
+            <Plus className="h-4 w-4" />
+            Mejorar plan para crear más
+          </Link>
+        )}
       </div>
+
+      <PlanUsageBanner summary={planSummary} showFeatures />
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">

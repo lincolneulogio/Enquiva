@@ -2,15 +2,20 @@
 
 import { useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
-import { createPaymentMethod, updatePaymentMethod, deletePaymentMethod } from "@/actions/payment-methods";
-import { Loader2, Plus, Trash2, QrCode, Smartphone, Wallet, Upload, X } from "lucide-react";
+import { createPaymentMethod, updatePaymentMethod, deletePaymentMethod, type PaymentMethodScope } from "@/actions/payment-methods";
+import { Loader2, Plus, Trash2, QrCode, Smartphone, Wallet, Upload, X, CreditCard, Crown, Info } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import Image from "next/image";
+import { cn } from "@/lib/utils";
 import type { PaymentMethod } from "@/lib/db/schema";
 
-const TYPE_ICONS = { yape: Smartphone, plin: QrCode, cash: Wallet };
-const TYPE_LABELS = { yape: "Yape", plin: "Plin", cash: "Efectivo" };
+const TYPE_ICONS = { yape: Smartphone, plin: QrCode, cash: Wallet, culqi: CreditCard };
+const TYPE_LABELS = { yape: "Yape", plin: "Plin", cash: "Efectivo", culqi: "Tarjeta (Culqi)" };
+
+const ORGANIZER_MANUAL_TYPES = ["yape", "plin", "cash"] as const;
+const PLATFORM_ONLINE_TYPES = ["yape", "plin"] as const;
 
 function UploadQRDropzone({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -37,9 +42,10 @@ function UploadQRDropzone({ value, onChange }: { value: string | null; onChange:
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
         onClick={() => inputRef.current?.click()}
-        className={`relative flex cursor-pointer items-center justify-center rounded-xl border-2 border-dashed p-4 transition-colors ${
-          dragging ? "border-primary bg-primary/5" : "border-border bg-background hover:border-primary/50"
-        }`}
+        className={cn(
+          "relative flex cursor-pointer items-center justify-center rounded-xl border-2 border-dashed p-4 transition-colors",
+          dragging ? "border-primary bg-primary/5" : "border-border bg-background hover:border-primary/50",
+        )}
       >
         {value ? (
           <div className="relative">
@@ -71,22 +77,47 @@ function UploadQRDropzone({ value, onChange }: { value: string | null; onChange:
 }
 
 interface Props {
+  scope: PaymentMethodScope;
   methods: PaymentMethod[];
+  canUseCulqi: boolean;
+  culqiConfigured: boolean;
+  hasCulqiMethod: boolean;
+  role: string;
+  isStaff: boolean;
 }
 
-export function PaymentMethodsManager({ methods }: Props) {
+export function PaymentMethodsManager({
+  scope,
+  methods,
+  canUseCulqi,
+  culqiConfigured,
+  hasCulqiMethod,
+  role,
+  isStaff,
+}: Props) {
   const t = useTranslations();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Form state
-  const [type, setType] = useState<"yape" | "plin" | "cash">("yape");
+  const [type, setType] = useState<"yape" | "plin" | "cash" | "culqi">("yape");
   const [label, setLabel] = useState("");
   const [holderName, setHolderName] = useState("");
   const [phone, setPhone] = useState("");
   const [qrPreview, setQrPreview] = useState<string | null>(null);
+
+  const isPlatform = scope === "platform";
+  const isCulqiType = type === "culqi";
+  const availableTypes = isPlatform
+    ? [
+        ...PLATFORM_ONLINE_TYPES,
+        ...(canUseCulqi && !hasCulqiMethod ? (["culqi"] as const) : []),
+      ]
+    : [
+        ...ORGANIZER_MANUAL_TYPES,
+        ...(canUseCulqi && !hasCulqiMethod ? (["culqi"] as const) : []),
+      ];
 
   const resetForm = () => {
     setType("yape");
@@ -108,6 +139,8 @@ export function PaymentMethodsManager({ methods }: Props) {
     setShowForm(true);
   };
 
+  const visibleMethods = isPlatform ? methods.filter((m) => m.type !== "cash") : methods;
+
   const submit = () => {
     if (!label.trim() || !holderName.trim()) {
       toast.error("Completa todos los campos obligatorios");
@@ -120,15 +153,15 @@ export function PaymentMethodsManager({ methods }: Props) {
           type,
           label: label.trim(),
           holderName: holderName.trim(),
-          phone: phone.trim() || null,
-          qrCodeUrl: qrPreview,
+          phone: isCulqiType || type === "cash" ? null : phone.trim() || null,
+          qrCodeUrl: isCulqiType || type === "cash" ? null : qrPreview,
         };
 
         if (editingId) {
-          await updatePaymentMethod(editingId, data);
+          await updatePaymentMethod(scope, editingId, data);
           toast.success("Medio de pago actualizado");
         } else {
-          await createPaymentMethod(data);
+          await createPaymentMethod(scope, data);
           toast.success("Medio de pago creado");
         }
 
@@ -143,7 +176,7 @@ export function PaymentMethodsManager({ methods }: Props) {
   const remove = (id: string) => {
     startTransition(async () => {
       try {
-        await deletePaymentMethod(id);
+        await deletePaymentMethod(scope, id);
         toast.success("Medio de pago eliminado");
         router.refresh();
       } catch (err) {
@@ -152,75 +185,143 @@ export function PaymentMethodsManager({ methods }: Props) {
     });
   };
 
+  const selectType = (next: typeof type) => {
+    setType(next);
+    if (next === "culqi") {
+      setLabel((prev) => prev || "Tarjeta de crédito/débito");
+      setPhone("");
+      setQrPreview(null);
+    } else if (next === "cash") {
+      setQrPreview(null);
+      setPhone("");
+    }
+  };
+
   return (
     <div className="space-y-6">
+      <div className="rounded-2xl border border-border bg-muted/20 p-4 dark:bg-muted/10">
+        <div className="flex gap-3">
+          <Info className="h-5 w-5 shrink-0 text-primary" />
+          <div className="text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">
+              {isPlatform ? t("payments.config.platformTitle") : t("payments.config.title")}
+            </p>
+            <p className="mt-1">
+              {isPlatform ? t("payments.config.platformDescription") : t("payments.config.description")}
+            </p>
+            {!isPlatform && role === "organizer" && !canUseCulqi && (
+              <p className="mt-2 flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
+                <Crown className="h-3.5 w-3.5" />
+                {t("payments.config.culqiUpgrade")}
+                <Link href="/organizer/billing" className="font-semibold underline">
+                  {t("payments.config.viewPlans")}
+                </Link>
+              </p>
+            )}
+            {canUseCulqi && !culqiConfigured && isPlatform && (
+              <p className="mt-2 text-amber-700 dark:text-amber-400">
+                {t("payments.config.culqiEnvMissing")}
+              </p>
+            )}
+            {canUseCulqi && !culqiConfigured && isStaff && !isPlatform && (
+              <p className="mt-2 text-amber-700 dark:text-amber-400">
+                {t("payments.config.culqiEnvMissing")}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
       {!showForm ? (
         <button
           onClick={() => setShowForm(true)}
-          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" />
-          Nuevo medio de pago
+          {t("payments.config.addMethod")}
         </button>
       ) : (
-        <div className="max-w-2xl rounded-2xl border border-border bg-card p-6 space-y-5 shadow-sm">
+        <div className="max-w-2xl space-y-5 rounded-2xl border border-border bg-card p-6 shadow-sm">
           <h3 className="font-semibold text-foreground">
-            {editingId ? "Editar medio de pago" : "Nuevo medio de pago"}
+            {editingId ? t("payments.config.editMethod") : t("payments.config.newMethod")}
           </h3>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Tipo</label>
-            <div className="flex gap-2">
-              {(["yape", "plin", "cash"] as const).map((t) => {
-                const Icon = TYPE_ICONS[t];
-                const isActive = type === t;
+            <label className="mb-1.5 block text-sm font-medium text-foreground">{t("payments.config.type")}</label>
+            <div className="flex flex-wrap gap-2">
+              {(editingId ? [type] : availableTypes).map((tKey) => {
+                const Icon = TYPE_ICONS[tKey];
+                const isActive = type === tKey;
                 return (
                   <button
-                    key={t}
+                    key={tKey}
                     type="button"
-                    onClick={() => { setType(t); setQrPreview(null); }}
-                    className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
-                      isActive ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-foreground hover:bg-muted"
-                    }`}
+                    onClick={() => !editingId && selectType(tKey)}
+                    disabled={!!editingId}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-medium transition-colors",
+                      isActive
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-background text-foreground hover:bg-muted",
+                    )}
                   >
                     <Icon className="h-4 w-4" />
-                    {TYPE_LABELS[t]}
+                    {TYPE_LABELS[tKey]}
                   </button>
                 );
               })}
             </div>
           </div>
 
+          {isCulqiType && (
+            <div className="rounded-xl border border-violet-200/60 bg-violet-50/50 p-4 text-sm text-violet-900 dark:border-violet-900/30 dark:bg-violet-950/20 dark:text-violet-200">
+              {isPlatform ? t("payments.config.platformCulqiHelp") : t("payments.config.culqiHelp")}
+            </div>
+          )}
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-foreground">
-                Nombre del método *
+                {t("payments.config.label")} *
               </label>
-              <input type="text" value={label} onChange={(e) => setLabel(e.target.value)}
-                placeholder={type === "yape" ? "Ej: Yape de Juan" : type === "plin" ? "Ej: Plin de María" : "Ej: Pago en efectivo"}
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
+              <input
+                type="text"
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                placeholder={isCulqiType ? "Tarjeta de crédito/débito" : type === "yape" ? "Ej: Yape de Juan" : type === "plin" ? "Ej: Plin de María" : "Ej: Pago en efectivo"}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-foreground">
-                {type === "cash" ? "Responsable de cobrar" : "Titular"} *
+                {isCulqiType ? t("payments.config.ministryName") : type === "cash" ? t("payments.config.cashReceiver") : t("payments.config.holder")} *
               </label>
-              <input type="text" value={holderName} onChange={(e) => setHolderName(e.target.value)}
-                placeholder={type === "cash" ? "Nombre de quien recibe el pago" : "Nombre del dueño de la cuenta"}
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
+              <input
+                type="text"
+                value={holderName}
+                onChange={(e) => setHolderName(e.target.value)}
+                placeholder={isCulqiType ? "Nombre del ministerio o iglesia" : type === "cash" ? "Quien recibe en puerta" : "Titular de la cuenta"}
+                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              />
             </div>
-            {type !== "cash" && (
+            {!isCulqiType && type !== "cash" && (
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-foreground">
-                  Número {type === "yape" ? "Yape" : "Plin"}
+                  {type === "yape" ? "Número Yape" : "Número Plin"}
                 </label>
-                <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Celular asociado, ej: +51 999 999 999"
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
+                <input
+                  type="text"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Celular, ej: +51 999 999 999"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
               </div>
             )}
-            {type !== "cash" && (
+            {!isCulqiType && type !== "cash" && (
               <div className="sm:col-span-2">
                 <label className="mb-1.5 block text-sm font-semibold text-foreground">
-                  Imagen del código QR de {type === "yape" ? "Yape" : "Plin"}
+                  QR de {type === "yape" ? "Yape" : "Plin"}
                 </label>
                 <UploadQRDropzone value={qrPreview} onChange={setQrPreview} />
               </div>
@@ -228,38 +329,63 @@ export function PaymentMethodsManager({ methods }: Props) {
           </div>
 
           <div className="flex gap-2">
-            <button onClick={submit} disabled={isPending} className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50">
+            <button
+              onClick={submit}
+              disabled={isPending}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
               {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              {editingId ? "Guardar cambios" : "Crear"}
+              {editingId ? t("payments.config.saveChanges") : t("payments.config.createMethod")}
             </button>
-            <button onClick={resetForm} className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors">
-              Cancelar
+            <button
+              onClick={resetForm}
+              className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            >
+              {t("common.cancel")}
             </button>
           </div>
         </div>
       )}
 
       <div className="max-w-2xl space-y-3">
-        {methods.length === 0 && (
-          <p className="text-sm text-muted-foreground">No hay medios de pago registrados.</p>
+        {visibleMethods.length === 0 && (
+          <p className="text-sm text-muted-foreground">{t("payments.config.empty")}</p>
         )}
-        {methods.map((m) => {
+        {visibleMethods.map((m) => {
           const Icon = TYPE_ICONS[m.type];
           return (
             <div key={m.id} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
               <div className="rounded-lg bg-primary/10 p-2.5">
                 <Icon className="h-5 w-5 text-primary" />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">{m.label}</p>
-                <p className="text-xs text-muted-foreground">{TYPE_LABELS[m.type]} · {m.holderName}</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-medium text-foreground">{m.label}</p>
+                  {m.type === "culqi" && (
+                    <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold uppercase text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+                      Instantáneo
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {TYPE_LABELS[m.type]} · {m.holderName}
+                  {m.phone ? ` · ${m.phone}` : ""}
+                </p>
               </div>
               {m.qrCodeUrl && (
-                <Image src={m.qrCodeUrl} alt="QR" width={48} height={48} className="rounded border shrink-0" />
+                <Image src={m.qrCodeUrl} alt="QR" width={48} height={48} className="shrink-0 rounded border" />
               )}
-              <div className="flex gap-1 shrink-0">
-                <button onClick={() => edit(m)} className="rounded-lg border border-border px-3 py-1 text-xs font-medium text-foreground hover:bg-muted transition-colors">Editar</button>
-                <button onClick={() => remove(m.id)} className="rounded-lg border border-destructive/30 px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors">
+              <div className="flex shrink-0 gap-1">
+                <button
+                  onClick={() => edit(m)}
+                  className="rounded-lg border border-border px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                >
+                  {t("common.edit")}
+                </button>
+                <button
+                  onClick={() => remove(m.id)}
+                  className="rounded-lg border border-destructive/30 px-3 py-1 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"
+                >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>

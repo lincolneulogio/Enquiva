@@ -8,6 +8,7 @@ import {
     buildFileName,
     formatDateRangeLabel,
     getScopedEvent,
+    getAdminOrgEventFilter,
     normalizeFilterValue,
     parseFromDate,
     parseToDate,
@@ -32,6 +33,10 @@ export async function exportRegistrationsData(
     }
     if (scope === "organizer" && user.role !== "super_admin") {
         conditions.push(eq(events.organizerId, user.id));
+    }
+    if (scope === "admin") {
+        const orgFilter = await getAdminOrgEventFilter(user);
+        if (orgFilter) conditions.push(orgFilter);
     }
     if (status) {
         conditions.push(eq(registrations.status, status as "registered" | "checked_in" | "waitlisted" | "cancelled"));

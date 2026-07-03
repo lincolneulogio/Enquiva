@@ -4,6 +4,7 @@ import { getAdminDashboardStats, type AdminStatsRange } from "@/lib/analytics/ad
 import { Users, CalendarDays, Ticket } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
+import { resolveAdminScope, getOrganizationIdFromScope } from "@/lib/organizations/admin-scope";
 
 const RANGE_OPTIONS: { value: AdminStatsRange; labelKey: string }[] = [
     { value: "30d", labelKey: "dashboard.admin.last30Days" },
@@ -27,7 +28,11 @@ export default async function AdminAnalyticsPage({ searchParams }: AdminAnalytic
     const { locale, t } = await getI18n();
     const { range: rawRange } = await searchParams;
     const selectedRange = normalizeRange(rawRange);
-    const stats = await getAdminDashboardStats({ range: selectedRange });
+    const adminScope = await resolveAdminScope();
+    const stats = await getAdminDashboardStats({
+        range: selectedRange,
+        organizationId: getOrganizationIdFromScope(adminScope),
+    });
 
     const eventStats = [
         { label: t("eventStatus.published"), value: stats.publishedEvents, color: "bg-green-500" },

@@ -29,8 +29,12 @@ export async function POST(req: Request) {
 
     const hdrs = await headers();
     const ip = hdrs.get("x-forwarded-for") ?? hdrs.get("x-real-ip") ?? "unknown";
-    const { success } = await ticketVerifyRatelimit.limit(ip);
-    if (!success) return NextResponse.json({ success: false, error: "Too many requests" }, { status: 429 });
+    try {
+      const { success } = await ticketVerifyRatelimit.limit(ip);
+      if (!success) return NextResponse.json({ success: false, error: "Too many requests" }, { status: 429 });
+    } catch (error) {
+      console.error("Ticket verify rate limit unavailable, continuing without enforcement", error);
+    }
 
     const [ticket] = await db.select().from(tickets).where(eq(tickets.code, code)).limit(1);
     if (!ticket) return NextResponse.json({ success: false, error: "Ticket not found" }, { status: 404 });

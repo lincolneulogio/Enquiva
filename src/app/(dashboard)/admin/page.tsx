@@ -3,10 +3,14 @@ import { Users, CalendarDays, BadgeCheck, Ticket } from "lucide-react";
 import { getAdminDashboardStats } from "@/lib/analytics/admin";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
+import { resolveAdminScope, getOrganizationIdFromScope } from "@/lib/organizations/admin-scope";
 
 export default async function AdminDashboardPage() {
   const { locale, t } = await getI18n();
-  const stats = await getAdminDashboardStats();
+  const adminScope = await resolveAdminScope();
+  const stats = await getAdminDashboardStats({
+    organizationId: getOrganizationIdFromScope(adminScope),
+  });
 
   return (
     <div className="space-y-6 sm:space-y-8">

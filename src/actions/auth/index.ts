@@ -17,6 +17,52 @@ const verificationCodeSchema = z.object({
     code: z.string().trim().regex(/^\d{6}$/),
 });
 
+import { OrganizationService, type SignupIntentPayload } from "@/lib/organizations/organization.service";
+
+const signupIntentPayloadSchema = z.discriminatedUnion("type", [
+    z.object({ type: z.literal("member") }),
+    z.object({
+        type: z.literal("organizer"),
+        inviteCode: z.string().trim().max(20).optional(),
+    }),
+    z.object({
+        type: z.literal("entity_admin"),
+        orgName: z.string().trim().min(2).max(120),
+    }),
+]);
+
+function signupIntentIdentifier(email: string) {
+    return `signup-intent:${email.toLowerCase()}`;
+}
+
+async function storeSignupIntent(email: string, payload: SignupIntentPayload) {
+    const identifier = signupIntentIdentifier(email);
+    await db.delete(verifications).where(eq(verifications.identifier, identifier));
+    await db.insert(verifications).values({
+        id: randomUUID(),
+        identifier,
+        value: OrganizationService.serializeSignupIntent(payload),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    });
+}
+
+async function consumeSignupIntent(email: string): Promise<SignupIntentPayload> {
+    const identifier = signupIntentIdentifier(email);
+    const [row] = await db
+        .select()
+        .from(verifications)
+        .where(eq(verifications.identifier, identifier))
+        .limit(1);
+
+    if (!row || row.expiresAt < new Date()) {
+        await db.delete(verifications).where(eq(verifications.identifier, identifier));
+        return { type: "member" };
+    }
+
+    await db.delete(verifications).where(eq(verifications.identifier, identifier));
+    return OrganizationService.parseSignupIntent(row.value);
+}
+
 const passwordResetSchema = z.object({
     email: z.string().trim().toLowerCase().email(),
 });
@@ -58,7 +104,10 @@ export async function checkAuthIdentityByEmail(input: { email: string }) {
     return { exists: Boolean(user) };
 }
 
-export async function sendVerificationCode(input: { email: string }) {
+export async function sendVerificationCode(input: {
+    email: string;
+    signupPayload?: SignupIntentPayload;
+}) {
     const validated = authIdentitySchema.parse(input);
 
     const [user] = await db
@@ -73,6 +122,24 @@ export async function sendVerificationCode(input: { email: string }) {
 
     if (user.emailVerified) {
         throw new Error("Esta cuenta ya está verificada.");
+    }
+
+    if (input.signupPayload) {
+        const payload = signupIntentPayloadSchema.parse(input.signupPayload);
+        if (payload.type === "organizer" && payload.inviteCode) {
+            const org = await OrganizationService.getByInviteCode(payload.inviteCode);
+            if (!org) throw new Error("Código de entidad inválido. Pide el código a tu administrador.");
+        }
+        await storeSignupIntent(validated.email, payload);
+    } else {
+        const [existingIntent] = await db
+            .select({ value: verifications.value })
+            .from(verifications)
+            .where(eq(verifications.identifier, signupIntentIdentifier(validated.email)))
+            .limit(1);
+        if (!existingIntent) {
+            await storeSignupIntent(validated.email, { type: "member" });
+        }
     }
 
     await issueVerificationCode(validated.email, user.name);
@@ -93,6 +160,8 @@ export async function confirmVerificationCode(input: { email: string; code: stri
         throw new Error("Código de confirmación inválido o vencido.");
     }
 
+    const signupIntent = await consumeSignupIntent(validated.email);
+
     await db.transaction(async (trx) => {
         await trx
             .update(users)
@@ -102,7 +171,43 @@ export async function confirmVerificationCode(input: { email: string; code: stri
         await trx.delete(verifications).where(eq(verifications.identifier, identifier));
     });
 
-    return { verified: true };
+    const [user] = await db
+        .select({ id: users.id, role: users.role })
+        .from(users)
+        .where(eq(users.email, validated.email))
+        .limit(1);
+
+    if (user && user.role === "member") {
+        if (signupIntent.type === "entity_admin") {
+            await OrganizationService.createOrganizationForAdmin({
+                name: signupIntent.orgName,
+                ownerUserId: user.id,
+            });
+        } else if (signupIntent.type === "organizer") {
+            if (signupIntent.inviteCode?.trim()) {
+                await OrganizationService.joinOrganizationAsOrganizer({
+                    userId: user.id,
+                    inviteCode: signupIntent.inviteCode,
+                });
+            } else {
+                await db
+                    .update(users)
+                    .set({ role: "organizer", updatedAt: new Date() })
+                    .where(eq(users.id, user.id));
+                const { SubscriptionService } = await import("@/lib/billing/subscription.service");
+                await SubscriptionService.getOrCreateSubscription(user.id, "organizer");
+            }
+        }
+    }
+
+    const accountType =
+        signupIntent.type === "entity_admin"
+            ? "entity_admin"
+            : signupIntent.type === "organizer"
+              ? "organizer"
+              : "member";
+
+    return { verified: true, accountType };
 }
 
 export async function resendVerificationCode(input: { email: string }) {

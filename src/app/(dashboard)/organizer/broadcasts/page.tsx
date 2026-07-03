@@ -8,6 +8,8 @@ import { getOrganizerEvents } from "@/actions/events";
 import { BroadcastForm } from "./_components/BroadcastForm";
 import { Megaphone, History, Calendar, Mail } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
+import { getMyPlanSummary } from "@/actions/billing";
+import { PlanUsageBanner } from "@/components/dashboard/organizer/PlanUsageBanner";
 
 export const metadata = {
   title: "Centro de Comunicados Masivos - EncuentroDeFe",
@@ -53,6 +55,8 @@ export default async function OrganizerBroadcastPage() {
     .orderBy(desc(broadcastLogs.createdAt))
     .limit(10);
 
+  const planSummary = await getMyPlanSummary();
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -66,6 +70,18 @@ export default async function OrganizerBroadcastPage() {
         </p>
       </div>
 
+      <PlanUsageBanner summary={planSummary} />
+
+      {!planSummary.canSendBroadcast && !planSummary.isUnlimited && (
+        <div className="rounded-2xl border border-amber-200/60 bg-amber-50/50 p-4 text-sm text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-200">
+          Tu plan {planSummary.plan.name} no incluye comunicados masivos. Mejora a Pro en{" "}
+          <a href="/organizer/billing" className="font-semibold underline">
+            Mi plan
+          </a>
+          .
+        </div>
+      )}
+
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Form Column */}
         <div className="lg:col-span-2 space-y-6">
@@ -74,7 +90,7 @@ export default async function OrganizerBroadcastPage() {
               <Mail className="h-5 w-5 text-primary" />
               Redactar Comunicado Masivo
             </h2>
-            <BroadcastForm events={eventsForSelect} />
+            <BroadcastForm events={eventsForSelect} disabled={!planSummary.canSendBroadcast && !planSummary.isUnlimited} />
           </div>
         </div>
 

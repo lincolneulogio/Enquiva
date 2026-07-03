@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { ArrowLeft, Bus, Ticket, CreditCard, Calendar, MapPin } from "lucide-react";
 import { getPaymentCheckoutContext } from "@/actions/payments";
-import { getEventPaymentMethods, getActivePaymentMethods } from "@/actions/payment-methods";
+import { getEventPaymentMethods, getActivePaymentMethodsForOrganizer } from "@/actions/payment-methods";
 import { getI18n } from "@/lib/i18n/server";
-import { ManualPaymentMethodForm } from "@/components/payments/ManualPaymentMethodForm";
+import { PaymentCheckoutForm } from "@/components/payments/PaymentCheckoutForm";
 import { notFound, redirect } from "next/navigation";
+import { env } from "@/env";
+import { isCulqiEnabledForEvent } from "@/lib/culqi/capabilities";
 import { db } from "@/lib/db";
 import { transportBookings, transportRoutes, users, registrations } from "@/lib/db/schema";
 import { eq, inArray } from "drizzle-orm";
@@ -85,20 +87,27 @@ export default async function MemberPaymentCheckoutPage({ params }: Props) {
   }
 
   const isAlreadyPaid = payment && payment.status === "approved";
+  const hasSubmittedManual =
+    payment?.status === "pending" &&
+    payment.method &&
+    payment.method !== "manual" &&
+    payment.method !== "culqi";
   let eventMethods = await getEventPaymentMethods(event.id);
 
   // Fallback: If no event-specific payment methods are configured but there is an amount to pay (e.g. paid transport for free event)
   if (eventMethods.length === 0 && paymentAmount > 0) {
     try {
-      eventMethods = await getActivePaymentMethods();
+      eventMethods = await getActivePaymentMethodsForOrganizer(event.organizerId);
     } catch (err) {
-      console.error("Failed to load active fallback payment methods:", err);
+      console.error("Failed to load organizer payment methods:", err);
     }
   }
 
   // Dynamic breakdown prices
   const eventPrice = Number(event.price);
   const transportPrice = transportDetails ? Number(transportDetails.pricePerSeat) * transportDetails.seats : 0;
+  const culqiAvailable = await isCulqiEnabledForEvent(event.id);
+  const culqiPublicKey = env.NEXT_PUBLIC_CULQI_PUBLIC_KEY ?? null;
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
@@ -206,23 +215,26 @@ export default async function MemberPaymentCheckoutPage({ params }: Props) {
       </div>
 
       {isAlreadyPaid ? (
-        <div className="rounded-2xl border border-green-200 bg-green-50 p-5 text-green-800">
+        <div className="rounded-2xl border border-green-200 bg-green-50 p-5 text-green-800 dark:border-green-900/30 dark:bg-green-950/20 dark:text-green-300">
           <p className="font-medium">{t("payments.checkout.alreadyPaid")}</p>
         </div>
-      ) : payment?.status === "pending" && payment.method && payment.method !== "manual" ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-800">
+      ) : hasSubmittedManual ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-800 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
           <p className="font-medium">{t("payments.checkout.paymentSubmitted")}</p>
         </div>
-      ) : (
-        <ManualPaymentMethodForm
+      ) : payment ? (
+        <PaymentCheckoutForm
           registrationId={registration.id}
+          paymentId={payment.id}
           eventTitle={event.title}
           eventSlug={event.slug}
           defaultAmount={paymentAmount}
-          existingMethod={payment?.method ?? null}
+          existingMethod={payment.method ?? null}
           eventMethods={eventMethods}
+          culqiPublicKey={culqiPublicKey}
+          culqiAvailable={culqiAvailable}
         />
-      )}
+      ) : null}
     </div>
   );
 }

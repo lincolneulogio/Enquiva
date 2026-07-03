@@ -25,6 +25,7 @@ import {
 } from "@/lib/redis";
 import { generateTicketForRegistration } from "@/lib/tickets";
 import { runBackground } from "@/lib/background";
+import { assertCanRegisterAttendee } from "@/lib/billing/enforce";
 
 export interface RegisterEventInput {
   eventId: string;
@@ -59,6 +60,8 @@ export class RegistrationService {
         .limit(1);
 
       if (!event) throw new Error("REGISTRATION_UNAVAILABLE");
+
+      await assertCanRegisterAttendee(event.organizerId, eventId, "organizer");
 
       // Validar fecha del evento
       const eventDate = new Date(event.date);

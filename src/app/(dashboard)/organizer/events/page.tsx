@@ -13,6 +13,8 @@ import { Suspense } from "react";
 import { getCategories } from "@/actions/events";
 import { TablePagination } from "@/components/dashboard";
 import { getExportEventOptions } from "@/actions/exports";
+import { getMyPlanSummary } from "@/actions/billing";
+import { PlanUsageBanner } from "@/components/dashboard/organizer/PlanUsageBanner";
 
 const PAGE_SIZE = 10;
 
@@ -110,6 +112,8 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
         label: t(filter.labelKey),
     }));
 
+    const planSummary = await getMyPlanSummary();
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -122,14 +126,25 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                         })}
                     </p>
                 </div>
-                <Link
-                    href="/organizer/events/new"
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 sm:w-auto"
-                >
-                    <Plus className="h-4 w-4" />
-                    {t("common.newEvent")}
-                </Link>
+                {planSummary.canCreateEvent ? (
+                    <Link
+                        href="/organizer/events/new"
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 sm:w-auto"
+                    >
+                        <Plus className="h-4 w-4" />
+                        {t("common.newEvent")}
+                    </Link>
+                ) : (
+                    <Link
+                        href="/organizer/billing"
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200 sm:w-auto"
+                    >
+                        {t("common.newEvent")} — Plan límite
+                    </Link>
+                )}
             </div>
+
+            <PlanUsageBanner summary={planSummary} />
 
             <div className="flex flex-wrap items-center gap-2">
                 {STATUS_FILTERS.map((filter) => {

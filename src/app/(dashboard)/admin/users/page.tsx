@@ -10,6 +10,7 @@ import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale, getRoleLabel } from "@/lib/i18n/core";
 import { TablePagination } from "@/components/dashboard";
 import { ROLE_BADGE_STYLES, normalizeRole } from "@/lib/auth/rbac";
+import { OrganizationService } from "@/lib/organizations/organization.service";
 import Link from "next/link";
 
 interface AdminUsersPageProps {
@@ -33,6 +34,12 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
     const { locale, t } = await getI18n();
     const session = await auth.api.getSession({ headers: await headers() });
     const currentUserId = session!.user.id;
+    const currentRole = normalizeRole(session!.user.role);
+    const org =
+        currentRole === "admin"
+            ? await OrganizationService.getOrganizationForUser(currentUserId)
+            : null;
+    const isOrgScopedAdmin = currentRole === "admin" && !!org;
     const params = await searchParams;
     const requestedPage = Number(params.page ?? "1");
     const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
@@ -41,6 +48,9 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
 
     // Build filter conditions
     const conditions = [];
+    if (isOrgScopedAdmin && org) {
+        conditions.push(eq(users.organizationId, org.id));
+    }
     if (searchQuery) {
         conditions.push(
             or(
@@ -247,6 +257,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                                 userId={user.id}
                                                 currentRole={(user.role ?? "member") as "member" | "organizer" | "admin" | "super_admin"}
                                                 currentUserId={currentUserId}
+                                                scopeMode={isOrgScopedAdmin ? "org" : "platform"}
                                             />
                                         </div>
                                         <div className="self-end pb-0.5">
@@ -346,10 +357,13 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                                     userId={user.id}
                                                     currentRole={(user.role ?? "member") as "member" | "organizer" | "admin" | "super_admin"}
                                                     currentUserId={currentUserId}
+                                                    scopeMode={isOrgScopedAdmin ? "org" : "platform"}
                                                 />
                                             </td>
                                             <td className="px-4 py-3.5">
-                                                <DeleteUserButton userId={user.id} isSelf={user.id === currentUserId} />
+                                                {!isOrgScopedAdmin && (
+                                                    <DeleteUserButton userId={user.id} isSelf={user.id === currentUserId} />
+                                                )}
                                             </td>
                                         </tr>
                                     );

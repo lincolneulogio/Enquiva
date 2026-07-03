@@ -23,11 +23,12 @@ import {
   QrCode,
   Wallet,
   Megaphone,
+  Crown,
 } from "lucide-react";
 import { signOut } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { normalizeRole, type AppRole } from "@/lib/auth/rbac";
+import { normalizeRole } from "@/lib/auth/rbac";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 
 interface NavItem {
@@ -41,7 +42,11 @@ interface NavSection {
   items: NavItem[];
 }
 
-const organizerSections: NavSection[] = [
+const compactSections = (sections: NavSection[]): NavSection[] =>
+  sections.filter((section) => section.items.length > 0);
+
+const organizerSections = (options?: { showBroadcasts?: boolean }): NavSection[] =>
+  compactSections([
   {
     titleKey: "dashboard.sidebar.groups.core",
     items: [
@@ -54,7 +59,9 @@ const organizerSections: NavSection[] = [
     items: [
       { labelKey: "dashboard.sidebar.organizer.myEvents", href: "/organizer/events", icon: Calendar },
       { labelKey: "dashboard.sidebar.organizer.attendees", href: "/organizer/attendees", icon: Users },
-      { labelKey: "dashboard.sidebar.organizer.broadcasts", href: "/organizer/broadcasts", icon: Megaphone },
+      ...(options?.showBroadcasts
+        ? [{ labelKey: "dashboard.sidebar.organizer.broadcasts", href: "/organizer/broadcasts", icon: Megaphone }]
+        : []),
     ]
   },
   {
@@ -62,6 +69,7 @@ const organizerSections: NavSection[] = [
     items: [
       { labelKey: "dashboard.sidebar.organizer.payments", href: "/organizer/payments", icon: CreditCard },
       { labelKey: "dashboard.sidebar.organizer.paymentMethods", href: "/organizer/payment-methods", icon: Wallet },
+      { labelKey: "dashboard.sidebar.organizer.billing", href: "/organizer/billing", icon: Crown },
       { labelKey: "dashboard.sidebar.organizer.transport", href: "/organizer/transport", icon: Bus },
     ]
   },
@@ -77,10 +85,19 @@ const organizerSections: NavSection[] = [
       { labelKey: "dashboard.sidebar.organizer.profile", href: "/organizer/profile", icon: User },
       { labelKey: "dashboard.sidebar.organizer.settings", href: "/organizer/settings", icon: Settings },
     ]
-  }
-];
+  },
+]);
 
-const adminSections = (isSuperAdmin: boolean): NavSection[] => [
+type AdminNavOptions = {
+  variant: "super_admin" | "entity_admin";
+  showEntityTeam?: boolean;
+};
+
+const adminSections = (options: AdminNavOptions): NavSection[] => {
+  const isSuperAdmin = options.variant === "super_admin";
+  const isEntityAdmin = options.variant === "entity_admin";
+
+  return compactSections([
   {
     titleKey: "dashboard.sidebar.groups.core",
     items: [
@@ -92,39 +109,63 @@ const adminSections = (isSuperAdmin: boolean): NavSection[] => [
   {
     titleKey: "dashboard.sidebar.groups.management",
     items: [
-      { labelKey: "dashboard.sidebar.admin.allEvents", href: "/admin/events", icon: Calendar },
+      {
+        labelKey: isEntityAdmin
+          ? "dashboard.sidebar.admin.entityEvents"
+          : "dashboard.sidebar.admin.allEvents",
+        href: "/admin/events",
+        icon: Calendar,
+      },
       { labelKey: "dashboard.sidebar.admin.categories", href: "/admin/categories", icon: ClipboardList },
       { labelKey: "dashboard.sidebar.admin.users", href: "/admin/users", icon: UserCog },
-      ...(isSuperAdmin ? [{ labelKey: "dashboard.sidebar.admin.roles", href: "/admin/roles", icon: Shield }] : []),
+      ...(options.showEntityTeam
+        ? [{ labelKey: "dashboard.sidebar.admin.myEntity", href: "/admin/team", icon: Users }]
+        : []),
+      ...(isSuperAdmin
+        ? [{ labelKey: "dashboard.sidebar.admin.roles", href: "/admin/roles", icon: Shield }]
+        : []),
       { labelKey: "dashboard.sidebar.admin.registrations", href: "/admin/registrations", icon: ClipboardList },
-    ]
+    ],
   },
   {
     titleKey: "dashboard.sidebar.groups.finances",
     items: [
       { labelKey: "dashboard.sidebar.admin.payments", href: "/admin/payments", icon: CreditCard },
-      { labelKey: "dashboard.sidebar.admin.paymentMethods", href: "/admin/payment-methods", icon: Wallet },
+      ...(isSuperAdmin
+        ? [{ labelKey: "dashboard.sidebar.admin.platformPayments", href: "/admin/payment-methods", icon: Wallet }]
+        : []),
       { labelKey: "dashboard.sidebar.admin.transport", href: "/admin/transport", icon: Bus },
+      ...(isSuperAdmin
+        ? [
+            { labelKey: "dashboard.sidebar.admin.plans", href: "/admin/plans", icon: Crown },
+            { labelKey: "dashboard.sidebar.admin.platformBilling", href: "/admin/billing", icon: BarChart3 },
+          ]
+        : []),
     ]
   },
   {
     titleKey: "dashboard.sidebar.groups.tools",
     items: [
       { labelKey: "dashboard.sidebar.admin.scan", href: "/admin/scan", icon: QrCode },
-      { labelKey: "dashboard.sidebar.admin.audit", href: "/admin/audit", icon: Shield },
-      { labelKey: "dashboard.sidebar.admin.permissions", href: "/admin/permissions", icon: KeyRound },
-    ]
+      ...(isSuperAdmin
+        ? [
+            { labelKey: "dashboard.sidebar.admin.audit", href: "/admin/audit", icon: Shield },
+            { labelKey: "dashboard.sidebar.admin.permissions", href: "/admin/permissions", icon: KeyRound },
+          ]
+        : []),
+    ],
   },
   {
     titleKey: "dashboard.sidebar.groups.account",
     items: [
       { labelKey: "dashboard.sidebar.admin.profile", href: "/admin/profile", icon: User },
       { labelKey: "dashboard.sidebar.admin.settings", href: "/admin/settings", icon: Settings },
-    ]
-  }
-];
+    ],
+  },
+  ]);
+};
 
-const memberSections: NavSection[] = [
+const memberSections: NavSection[] = compactSections([
   {
     titleKey: "dashboard.sidebar.groups.core",
     items: [
@@ -145,9 +186,9 @@ const memberSections: NavSection[] = [
     titleKey: "dashboard.sidebar.groups.account",
     items: [
       { labelKey: "dashboard.sidebar.member.profile", href: "/member/profile", icon: User },
-    ]
-  }
-];
+    ],
+  },
+]);
 
 interface DashboardSidebarProps {
   role: string;
@@ -158,21 +199,34 @@ interface DashboardSidebarProps {
     image?: string | null;
     role?: string | null;
   };
+  /** Solo organizador: oculta ítems según plan (p. ej. Comunicados en Free) */
+  organizerNav?: {
+    showBroadcasts: boolean;
+  };
+  /** Solo panel admin: diferencia super_admin vs admin de entidad */
+  adminNav?: AdminNavOptions;
 }
 
-export function DashboardSidebar({ role, user }: DashboardSidebarProps) {
+export function DashboardSidebar({ role, user, organizerNav, adminNav }: DashboardSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const t = useTranslations();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const normalizedRole = normalizeRole(role);
-  const sections = normalizedRole === "super_admin"
-    ? adminSections(true)
-    : normalizedRole === "admin"
-    ? adminSections(false)
-    : normalizedRole === "organizer"
-    ? organizerSections
-    : memberSections;
+  const sections =
+    normalizedRole === "super_admin"
+      ? adminSections({
+          variant: "super_admin",
+          showEntityTeam: adminNav?.showEntityTeam ?? false,
+        })
+      : normalizedRole === "admin"
+        ? adminSections({
+            variant: "entity_admin",
+            showEntityTeam: adminNav?.showEntityTeam ?? true,
+          })
+        : normalizedRole === "organizer"
+          ? organizerSections(organizerNav)
+          : memberSections;
 
   useEffect(() => {
     const openSidebar = () => setIsMobileOpen(true);
