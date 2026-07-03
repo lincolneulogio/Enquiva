@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Send, AlertCircle, CheckCircle2 } from "lucide-react";
-import { sendBroadcastEmailAction } from "@/actions/events";
+import { Send, AlertCircle, CheckCircle2, Mail, Bell, Smartphone } from "lucide-react";
+import { sendBroadcastAction } from "@/actions/events";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+import type { MassCommunicationChannels } from "@/lib/notifications/mass-communication";
 
 interface EventItem {
   id: string;
@@ -16,6 +17,13 @@ interface BroadcastFormProps {
   disabled?: boolean;
 }
 
+const DEFAULT_CHANNELS: MassCommunicationChannels = {
+  email: true,
+  inApp: true,
+  push: true,
+  pusher: true,
+};
+
 export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) {
   const t = useTranslations();
   const router = useRouter();
@@ -23,8 +31,19 @@ export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) 
   const [recipientStatus, setRecipientStatus] = useState<"all" | "registered" | "checked_in" | "waitlisted">("all");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [channels, setChannels] = useState<MassCommunicationChannels>(DEFAULT_CHANNELS);
   const [isPending, setIsPending] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const toggleChannel = (key: keyof MassCommunicationChannels) => {
+    setChannels((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      if (!next.email && !next.inApp && !next.push) {
+        return prev;
+      }
+      return next;
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,19 +56,19 @@ export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) 
     setStatus(null);
 
     try {
-      const res = await sendBroadcastEmailAction({
+      const res = await sendBroadcastAction({
         eventId,
         subject,
         message,
         recipientStatus,
+        channels,
       });
 
       if (res.success) {
         setStatus({
           type: "success",
-          text: t("dashboard.organizer.broadcastFormSuccessMessage", {
-            success: res.successCount ?? 0,
-            failed: res.failureCount ?? 0,
+          text: t("dashboard.organizer.broadcastFormQueuedMessage", {
+            count: res.recipientCount,
           }),
         });
         setSubject("");
@@ -58,7 +77,10 @@ export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) 
       } else {
         setStatus({
           type: "error",
-          text: res.error || t("dashboard.organizer.broadcastFormSendError"),
+          text:
+            res.error === "NO_RECIPIENTS"
+              ? t("dashboard.organizer.broadcastFormNoRecipients")
+              : t("dashboard.organizer.broadcastFormSendError"),
         });
       }
     } catch (error) {
@@ -144,6 +166,34 @@ export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) 
       </div>
 
       <div className="space-y-2">
+        <p className="text-sm font-semibold text-foreground">{t("dashboard.organizer.broadcastFormChannels")}</p>
+        <div className="flex flex-wrap gap-2">
+          <ChannelToggle
+            active={channels.email}
+            onClick={() => toggleChannel("email")}
+            icon={Mail}
+            label={t("dashboard.organizer.broadcastChannelEmail")}
+            disabled={disabled || isPending}
+          />
+          <ChannelToggle
+            active={channels.inApp}
+            onClick={() => toggleChannel("inApp")}
+            icon={Bell}
+            label={t("dashboard.organizer.broadcastChannelInApp")}
+            disabled={disabled || isPending}
+          />
+          <ChannelToggle
+            active={channels.push}
+            onClick={() => toggleChannel("push")}
+            icon={Smartphone}
+            label={t("dashboard.organizer.broadcastChannelPush")}
+            disabled={disabled || isPending}
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">{t("dashboard.organizer.broadcastFormChannelsNote")}</p>
+      </div>
+
+      <div className="space-y-2">
         <label htmlFor="subject" className="text-sm font-semibold text-foreground">
           {t("dashboard.organizer.broadcastFormSubject")} <span className="text-destructive">*</span>
         </label>
@@ -196,5 +246,35 @@ export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) 
         )}
       </button>
     </form>
+  );
+}
+
+function ChannelToggle({
+  active,
+  onClick,
+  icon: Icon,
+  label,
+  disabled,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+        active
+          ? "border-primary bg-primary/10 text-primary"
+          : "border-border bg-muted/40 text-muted-foreground"
+      }`}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+    </button>
   );
 }

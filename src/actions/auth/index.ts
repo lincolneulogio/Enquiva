@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { env } from "@/env";
 import { users, verifications } from "@/lib/db/schema";
 import { sendPasswordChangedEmail, sendVerificationCodeEmail } from "@/lib/mail";
+import { getLocale } from "@/lib/i18n/server";
 
 const authIdentitySchema = z.object({
     email: z.string().trim().toLowerCase().email(),
@@ -89,7 +90,8 @@ async function issueVerificationCode(email: string, name?: string | null) {
         expiresAt: new Date(Date.now() + 15 * 60 * 1000),
     });
 
-    await sendVerificationCodeEmail({ email, name, code });
+    const locale = await getLocale();
+    await sendVerificationCodeEmail({ email, name, code, locale });
 }
 
 export async function checkAuthIdentityByEmail(input: { email: string }) {

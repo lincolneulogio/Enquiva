@@ -1,8 +1,26 @@
-export function wrapInTemplate(title: string, greeting: string, bodyHtml: string, footerNote?: string, orgName?: string) {
+import {
+  broadcastFooterNote,
+  copyrightFooter,
+  customNotificationFooter,
+  defaultFooterNote,
+  mailGreeting,
+  type MailLocale,
+} from "./locale-strings";
+
+export function wrapInTemplate(
+  title: string,
+  greeting: string,
+  bodyHtml: string,
+  footerNote?: string,
+  orgName?: string,
+  locale: MailLocale = "es",
+) {
   const finalOrgName = orgName ?? "EncuentroDeFe";
+  const resolvedFooter = footerNote ?? defaultFooterNote(locale);
+  const copyright = copyrightFooter(locale, finalOrgName);
   return `
     <!DOCTYPE html>
-    <html lang="es">
+    <html lang="${locale}">
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -64,10 +82,10 @@ export function wrapInTemplate(title: string, greeting: string, bodyHtml: string
                 <td style="padding: 0 36px 36px 36px; background-color: #ffffff;">
                   <div style="border-top: 1px solid #f1f5f9; padding-top: 24px;">
                     <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.6; text-align: center; font-family: 'Outfit', sans-serif;">
-                      ${footerNote ?? "Este es un correo automático. Por favor no respondas a este mensaje."}
+                      ${resolvedFooter}
                     </p>
                     <p style="margin: 16px 0 0 0; font-size: 11px; color: #94a3b8; text-align: center; font-family: 'Outfit', sans-serif; letter-spacing: 0.5px; text-transform: uppercase;">
-                      &copy; ${new Date().getFullYear()} ${finalOrgName}. Todos los derechos reservados.
+                      ${copyright}
                     </p>
                   </div>
                 </td>
@@ -82,9 +100,36 @@ export function wrapInTemplate(title: string, greeting: string, bodyHtml: string
   `;
 }
 
-export function getVerificationCodeTemplate(code: string, greeting: string, orgName?: string) {
-  const title = "Verifica tu cuenta";
-  const bodyHtml = `
+export function getVerificationCodeTemplate(
+  code: string,
+  greeting: string,
+  orgName?: string,
+  locale: MailLocale = "es",
+) {
+  const title = locale === "en" ? "Verify your account" : "Verifica tu cuenta";
+  const bodyHtml =
+    locale === "en"
+      ? `
+    <p style="margin: 0 0 20px 0; font-size: 15px; color: #475569; line-height: 1.6; font-family: 'Outfit', sans-serif;">
+      You requested a verification code to confirm your email. Enter this 6-digit code in the app:
+    </p>
+    <div style="text-align: center; margin: 36px 0;">
+      <div style="font-size: 38px; letter-spacing: 8px; font-weight: 800; padding: 22px 32px; background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%); border: 2px dashed rgba(75, 26, 181, 0.2); border-radius: 20px; display: inline-block; color: #4b1ab5; font-family: monospace; box-shadow: 0 8px 20px -6px rgba(75, 26, 181, 0.15);">
+        ${code}
+      </div>
+    </div>
+    <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 16px; padding: 16px; margin-top: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.01);">
+      <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td style="vertical-align: top; width: 24px; font-size: 16px;">⏱</td>
+          <td style="padding-left: 8px; font-size: 13px; color: #166534; line-height: 1.5; font-weight: 600; font-family: 'Outfit', sans-serif;">
+            This code expires in 15 minutes for security. Do not share it with anyone.
+          </td>
+        </tr>
+      </table>
+    </div>
+  `
+      : `
     <p style="margin: 0 0 20px 0; font-size: 15px; color: #475569; line-height: 1.6; font-family: 'Outfit', sans-serif;">
       Has solicitado un código de verificación para confirmar tu correo electrónico. Por favor, ingresa el siguiente código de 6 dígitos en la aplicación:
     </p>
@@ -104,12 +149,21 @@ export function getVerificationCodeTemplate(code: string, greeting: string, orgN
       </table>
     </div>
   `;
-  const footerNote = "Si no has solicitado este registro, puedes ignorar este correo de forma segura.";
+  const footerNote =
+    locale === "en"
+      ? "If you did not request this registration, you can safely ignore this email."
+      : "Si no has solicitado este registro, puedes ignorar este correo de forma segura.";
 
   return {
-    subject: `Confirma tu cuenta con tu código de verificación`,
-    text: `${greeting}\n\nTu código de confirmación es: ${code}\n\nEste código expira en 15 minutos. Si no lo solicitaste, ignora este mensaje.`,
-    html: wrapInTemplate(title, greeting, bodyHtml, footerNote, orgName),
+    subject:
+      locale === "en"
+        ? "Confirm your account with your verification code"
+        : "Confirma tu cuenta con tu código de verificación",
+    text:
+      locale === "en"
+        ? `${greeting}\n\nYour confirmation code is: ${code}\n\nThis code expires in 15 minutes. If you did not request it, ignore this message.`
+        : `${greeting}\n\nTu código de confirmación es: ${code}\n\nEste código expira en 15 minutos. Si no lo solicitaste, ignora este mensaje.`,
+    html: wrapInTemplate(title, greeting, bodyHtml, footerNote, orgName, locale),
   };
 }
 
@@ -289,5 +343,54 @@ export function getSubscriptionRenewalReminderTemplate(opts: {
     subject: `${opts.planName} vence en ${opts.daysRemaining} día(s) — EncuentroDeFe`,
     text: `${opts.greeting}\n\nTu plan ${opts.planName} vence el ${opts.renewalDate} (${opts.daysRemaining} días).\n\nRenueva aquí: ${opts.billingUrl}`,
     html: wrapInTemplate(title, opts.greeting, bodyHtml, undefined, opts.orgName),
+  };
+}
+
+export function getBroadcastEmailTemplate(opts: {
+  subject: string;
+  message: string;
+  eventTitle: string;
+  greeting: string;
+  orgName?: string;
+  locale?: MailLocale;
+}) {
+  const locale = opts.locale ?? "es";
+  const bodyHtml = `
+    <div style="font-size: 15px; color: #475569; line-height: 1.6; font-family: 'Outfit', sans-serif; white-space: pre-wrap;">
+      ${opts.message}
+    </div>
+  `;
+  const footerNote = broadcastFooterNote(locale, opts.eventTitle);
+  const emailSubject =
+    locale === "en"
+      ? `[${opts.eventTitle}] ${opts.subject}`
+      : `[${opts.eventTitle}] ${opts.subject}`;
+
+  return {
+    subject: emailSubject,
+    text: `${opts.greeting}\n\n${opts.message}\n\n---\n${footerNote}`,
+    html: wrapInTemplate(opts.subject, opts.greeting, bodyHtml, footerNote, opts.orgName, locale),
+  };
+}
+
+export function getCustomNotificationEmailTemplate(opts: {
+  subject: string;
+  body: string;
+  greeting: string;
+  orgName?: string;
+  locale?: MailLocale;
+}) {
+  const locale = opts.locale ?? "es";
+  const bodyHtml = `
+    <p style="font-size: 14px; white-space: pre-line; color: #475569; line-height: 1.6; font-family: 'Outfit', sans-serif;">
+      ${opts.body}
+    </p>
+  `;
+  const footerNote = customNotificationFooter(locale, opts.orgName ?? "EncuentroDeFe");
+
+  return {
+    subject: opts.subject,
+    text: `${opts.greeting}\n\n${opts.body}`,
+    html: wrapInTemplate(opts.subject, opts.greeting, bodyHtml, footerNote, opts.orgName, locale),
   };
 }

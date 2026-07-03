@@ -12,13 +12,14 @@ import {
 } from "@/lib/validations";
 import { LogService } from "@/lib/analytics/audit";
 import { db } from "@/lib/db";
-import { registrations, users, events, broadcastLogs, categories } from "@/lib/db/schema";
-import { eq, and, inArray, asc } from "drizzle-orm";
-import { transporter, sender } from "@/lib/mail/transporter";
-import { wrapInTemplate } from "@/lib/mail/templates";
-import { getSystemSettings } from "@/lib/settings";
-import { assertEventInAdminScope } from "@/lib/organizations/admin-scope";
+import { events, broadcastLogs, categories } from "@/lib/db/schema";
+import { eq, and, asc, desc } from "drizzle-orm";
+import { assertEventInAdminScope, resolveAdminScope, scopeEventCondition } from "@/lib/organizations/admin-scope";
 import { requireAuth, requireOrganizer } from "@/lib/auth/guards";
+import { normalizeRole } from "@/lib/auth/rbac";
+import { enqueueBroadcastJob } from "@/lib/notifications/broadcast-queue";
+import { DEFAULT_MASS_CHANNELS, type MassCommunicationChannels } from "@/lib/notifications/mass-communication";
+import { getLocale } from "@/lib/i18n/server";
 
 // ─── Categories ───────────────────────────────────────────────────────────────
 
@@ -185,23 +186,45 @@ export async function getOrganizerEvents() {
   return EventService.getOrganizerEvents(user.id);
 }
 
-// ─── Send Broadcast Email ──────────────────────────────────────────────────
+export async function getBroadcastEvents(): Promise<{ id: string; title: string }[]> {
+  const user = await requireOrganizer();
+  const role = normalizeRole(user.role);
 
-export async function sendBroadcastEmailAction(input: {
+  if (role === "organizer") {
+    const rows = await EventService.getOrganizerEvents(user.id);
+    return rows.map(({ event }) => ({ id: event.id, title: event.title }));
+  }
+
+  const adminScope = await resolveAdminScope();
+  const orgFilter = scopeEventCondition(adminScope);
+
+  const rows = await db
+    .select({ id: events.id, title: events.title })
+    .from(events)
+    .where(orgFilter ?? undefined)
+    .orderBy(desc(events.date))
+    .limit(200);
+
+  return rows;
+}
+
+// ─── Send Broadcast (multi-channel, queued) ─────────────────────────────────
+
+export async function sendBroadcastAction(input: {
   eventId: string;
   subject: string;
   message: string;
   recipientStatus: "all" | "registered" | "checked_in" | "waitlisted";
+  channels?: Partial<MassCommunicationChannels>;
 }) {
   const user = await requireOrganizer();
-  
+
   if (!input.eventId || !input.subject || !input.message) {
     throw new Error("Missing required fields");
   }
 
   await assertCanSendBroadcast(user.id, user.role);
 
-  // Verify event existence and organizer permission
   const event = await db.query.events.findFirst({
     where: eq(events.id, input.eventId),
   });
@@ -212,110 +235,74 @@ export async function sendBroadcastEmailAction(input: {
 
   await assertEventInAdminScope(input.eventId, user.id, user.role);
 
-  // 1. Resolve statuses
-  let statuses: ("registered" | "waitlisted" | "checked_in" | "cancelled")[] = ["registered", "checked_in", "waitlisted"];
-  if (input.recipientStatus === "registered") {
-    statuses = ["registered"];
-  } else if (input.recipientStatus === "checked_in") {
-    statuses = ["checked_in"];
-  } else if (input.recipientStatus === "waitlisted") {
-    statuses = ["waitlisted"];
-  } else if (input.recipientStatus === "all") {
-    statuses = ["registered", "checked_in"];
-  }
+  const locale = await getLocale();
+  const hdrs = await headers();
+  const channels: MassCommunicationChannels = {
+    ...DEFAULT_MASS_CHANNELS,
+    ...input.channels,
+  };
 
-  // 2. Query attendees
-  const attendees = await db
-    .select({
-      email: users.email,
-      name: users.name,
-    })
-    .from(registrations)
-    .innerJoin(users, eq(registrations.userId, users.id))
-    .where(
-      and(
-        eq(registrations.eventId, input.eventId),
-        inArray(registrations.status, statuses)
-      )
-    );
-
-  const recipients = attendees.filter((a) => !!a.email);
-
-  if (recipients.length === 0) {
-    return { success: false, error: "No se encontraron destinatarios con el filtro seleccionado." };
-  }
-
-  // 3. System settings
-  const { organizationName } = await getSystemSettings();
-
-  // 4. Send emails
-  let successCount = 0;
-  let failureCount = 0;
-
-  const mailFrom = sender();
-
-  for (const recipient of recipients) {
-    try {
-      const greeting = recipient.name ? `Hola ${recipient.name},` : "Hola,";
-      const bodyHtml = `
-        <div style="font-size: 15px; color: #475569; line-height: 1.6; font-family: 'Outfit', sans-serif; white-space: pre-wrap;">
-          ${input.message}
-        </div>
-      `;
-      const html = wrapInTemplate(
-        input.subject,
-        greeting,
-        bodyHtml,
-        `Recibes este correo porque estás inscrito en el evento "${event.title}".`,
-        organizationName
-      );
-
-      await transporter.sendMail({
-        from: mailFrom,
-        to: recipient.email!,
-        subject: `[${event.title}] ${input.subject}`,
-        text: `${greeting}\n\n${input.message}\n\n---\nRecibes este correo porque estás inscrito en el evento "${event.title}".`,
-        html,
-      });
-
-      successCount++;
-    } catch (err) {
-      console.error(`Failed to send broadcast email to ${recipient.email}:`, err);
-      failureCount++;
-    }
-  }
-
-  // 5. Log in broadcastLogs
-  await db.insert(broadcastLogs).values({
-    eventId: event.id,
+  const result = await enqueueBroadcastJob({
+    eventId: input.eventId,
     senderId: user.id,
+    senderName: user.name ?? user.email,
     subject: input.subject,
     message: input.message,
-    recipientCount: `${successCount} enviados, ${failureCount} fallidos`,
+    recipientStatus: input.recipientStatus,
+    channels,
+    locale,
+    ipAddress: hdrs.get("x-forwarded-for") ?? hdrs.get("x-real-ip") ?? "unknown",
+    userAgent: hdrs.get("user-agent") ?? "unknown",
   });
 
-  // 6. Security Log
-  const hdrs = await headers();
-  const ipAddress = hdrs.get("x-forwarded-for") ?? hdrs.get("x-real-ip") ?? "unknown";
-  const userAgent = hdrs.get("user-agent") ?? "unknown";
+  if (!result.success) {
+    return {
+      success: false as const,
+      error:
+        result.error === "NO_RECIPIENTS"
+          ? "NO_RECIPIENTS"
+          : "Failed to queue broadcast",
+    };
+  }
 
-  await LogService.log({
-    actorId: user.id,
-    actorName: user.name ?? user.email,
-    action: "broadcast.send",
-    entityType: "event",
-    entityId: event.id,
-    details: `Broadcast enviado para "${event.title}": ${successCount} correos exitosos. Filtro: ${input.recipientStatus}`,
-    ipAddress,
-    userAgent,
+  revalidatePath("/organizer/broadcasts");
+  revalidatePath("/admin/broadcasts");
+
+  return {
+    success: true as const,
+    queued: true as const,
+    jobId: result.jobId,
+    recipientCount: result.recipientCount,
+  };
+}
+
+/** @deprecated Use sendBroadcastAction */
+export async function sendBroadcastEmailAction(input: {
+  eventId: string;
+  subject: string;
+  message: string;
+  recipientStatus: "all" | "registered" | "checked_in" | "waitlisted";
+}) {
+  const result = await sendBroadcastAction({
+    ...input,
+    channels: { email: true, inApp: false, push: false, pusher: false },
   });
 
-  revalidatePath("/(dashboard)/organizer");
+  if (!result.success) {
+    return {
+      success: false,
+      error:
+        result.error === "NO_RECIPIENTS"
+          ? "No se encontraron destinatarios con el filtro seleccionado."
+          : "No se pudo encolar el comunicado.",
+    };
+  }
 
   return {
     success: true,
-    recipientsCount: recipients.length,
-    successCount,
-    failureCount,
+    queued: true,
+    recipientsCount: result.recipientCount,
+    successCount: result.recipientCount,
+    failureCount: 0,
   };
 }

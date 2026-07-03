@@ -185,6 +185,9 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
         ? [{ labelKey: "dashboard.sidebar.admin.roles", href: "/admin/roles", icon: Shield }]
         : []),
       { labelKey: "dashboard.sidebar.admin.registrations", href: "/admin/registrations", icon: ClipboardList },
+      ...(isEntityAdmin || isSuperAdmin
+        ? [{ labelKey: "dashboard.sidebar.admin.broadcasts", href: "/admin/broadcasts", icon: Megaphone }]
+        : []),
     ],
   },
   {

@@ -5,8 +5,11 @@ import {
   getPasswordChangedTemplate,
   getPasswordResetTemplate,
   getTicketTemplate,
+  getBroadcastEmailTemplate,
+  getCustomNotificationEmailTemplate,
 } from "./templates";
 import { getSystemSettings } from "@/lib/settings";
+import { mailGreeting, type MailLocale } from "./locale-strings";
 
 async function safeSendMail(options: Parameters<typeof transporter.sendMail>[0]) {
   try {
@@ -21,10 +24,17 @@ export async function sendVerificationCodeEmail(input: {
   email: string;
   name?: string | null;
   code: string;
+  locale?: MailLocale;
 }) {
   const { organizationName } = await getSystemSettings();
-  const greeting = input.name ? `Hola ${input.name},` : "Hola,";
-  const { subject, text, html } = getVerificationCodeTemplate(input.code, greeting, organizationName);
+  const locale = input.locale ?? "es";
+  const greeting = mailGreeting(locale, input.name);
+  const { subject, text, html } = getVerificationCodeTemplate(
+    input.code,
+    greeting,
+    organizationName,
+    locale,
+  );
 
   await safeSendMail({
     from: sender(),
@@ -163,25 +173,53 @@ export async function sendCustomNotificationEmail(input: {
   name?: string | null;
   subject: string;
   body: string;
+  locale?: MailLocale;
 }) {
   const { organizationName } = await getSystemSettings();
-  const greeting = input.name ? `Hola ${input.name},` : "Hola,";
-  
-  const html = `
-    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-      <h2 style="color: #0284c7; margin-bottom: 20px;">${input.subject}</h2>
-      <p style="font-size: 16px;">${greeting}</p>
-      <p style="font-size: 14px; white-space: pre-line;">${input.body}</p>
-      <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-      <p style="font-size: 12px; color: #777;">Este es un mensaje automático de la comunidad <strong>${organizationName}</strong>.</p>
-    </div>
-  `;
+  const locale = input.locale ?? "es";
+  const greeting = mailGreeting(locale, input.name);
+  const { subject, text, html } = getCustomNotificationEmailTemplate({
+    subject: input.subject,
+    body: input.body,
+    greeting,
+    orgName: organizationName,
+    locale,
+  });
 
   await safeSendMail({
     from: sender(),
     to: input.email,
+    subject,
+    text,
+    html,
+  });
+}
+
+export async function sendBroadcastEmail(input: {
+  email: string;
+  name?: string | null;
+  subject: string;
+  message: string;
+  eventTitle: string;
+  locale?: MailLocale;
+}) {
+  const { organizationName } = await getSystemSettings();
+  const locale = input.locale ?? "es";
+  const greeting = mailGreeting(locale, input.name);
+  const { subject, text, html } = getBroadcastEmailTemplate({
     subject: input.subject,
-    text: `${greeting}\n\n${input.body}\n\nEste es un mensaje de la comunidad ${organizationName}.`,
+    message: input.message,
+    eventTitle: input.eventTitle,
+    greeting,
+    orgName: organizationName,
+    locale,
+  });
+
+  await safeSendMail({
+    from: sender(),
+    to: input.email,
+    subject,
+    text,
     html,
   });
 }

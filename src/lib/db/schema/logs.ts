@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid, index, pgEnum, integer, jsonb } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
 
@@ -18,6 +18,13 @@ export const activityLogs = pgTable("activity_logs", {
   index("activity_logs_action_idx").on(t.action),
 ]);
 
+export const broadcastJobStatusEnum = pgEnum("broadcast_job_status", [
+  "pending",
+  "processing",
+  "completed",
+  "failed",
+]);
+
 export const broadcastLogs = pgTable("broadcast_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
   eventId: uuid("event_id").notNull(),
@@ -29,6 +36,43 @@ export const broadcastLogs = pgTable("broadcast_logs", {
 }, (t) => [
   index("broadcast_logs_event_idx").on(t.eventId),
 ]);
+
+export const broadcastJobs = pgTable(
+  "broadcast_jobs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventId: uuid("event_id").notNull(),
+    senderId: text("sender_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    subject: text("subject").notNull(),
+    message: text("message").notNull(),
+    recipientStatus: text("recipient_status").notNull(),
+    channels: jsonb("channels").notNull().$type<{
+      email: boolean;
+      inApp: boolean;
+      push: boolean;
+      pusher: boolean;
+    }>(),
+    locale: text("locale").notNull().default("es"),
+    status: broadcastJobStatusEnum("status").notNull().default("pending"),
+    totalRecipients: integer("total_recipients").notNull().default(0),
+    successCount: integer("success_count").notNull().default(0),
+    failureCount: integer("failure_count").notNull().default(0),
+    errorMessage: text("error_message"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    startedAt: timestamp("started_at"),
+    completedAt: timestamp("completed_at"),
+  },
+  (t) => [
+    index("broadcast_jobs_status_idx").on(t.status),
+    index("broadcast_jobs_sender_idx").on(t.senderId),
+  ],
+);
+
+export const broadcastJobsRelations = relations(broadcastJobs, ({ one }) => ({
+  sender: one(users, { fields: [broadcastJobs.senderId], references: [users.id] }),
+}));
 
 export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
   actor: one(users, { fields: [activityLogs.actorId], references: [users.id] }),
