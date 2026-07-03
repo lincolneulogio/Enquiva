@@ -347,7 +347,7 @@ export function SettingsTabs({
 
                             <div className="space-y-1.5">
                                 <label className="text-xs font-semibold text-foreground">
-                                    {locale === "en" ? "Entity / church name" : "Nombre de la entidad / iglesia"}
+                                    {locale === "en" ? "Entity name" : "Nombre de la entidad"}
                                 </label>
                                 <input
                                     type="text"

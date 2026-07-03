@@ -234,7 +234,7 @@ export async function createPaymentMethod(
       const publicKey = input.culqiPublicKey?.trim();
       const secretKey = input.culqiSecretKey?.trim();
       if (!publicKey || !secretKey) {
-        throw new Error("Ingresa tu llave pública y secreta de Culqi (cuenta de tu ministerio/iglesia).");
+        throw new Error("Ingresa tu llave pública y secreta de Culqi (cuenta de comercio de tu entidad).");
       }
     }
   }

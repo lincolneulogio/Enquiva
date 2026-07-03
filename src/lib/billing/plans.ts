@@ -38,7 +38,7 @@ export const DEFAULT_PLAN_DEFINITIONS: Array<{
   {
     slug: "pro",
     name: "Pro",
-    description: "Para iglesias y ministerios con eventos regulares.",
+    description: "Para entidades con eventos regulares: colegios, universidades, empresas y organizaciones.",
     priceMonthly: "49",
     maxActiveEvents: 10,
     maxAttendeesPerEvent: 1000,

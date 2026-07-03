@@ -371,19 +371,42 @@ export function PaymentMethodsManager({
                 type="text"
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
-                placeholder={isCulqiType ? "Tarjeta de crédito/débito" : type === "yape" ? "Ej: Yape de Juan" : type === "plin" ? "Ej: Plin de María" : "Ej: Pago en efectivo"}
+                placeholder={
+                  isCulqiType
+                    ? t("payments.config.labelPlaceholderCulqi")
+                    : type === "yape"
+                      ? t("payments.config.labelPlaceholderYape")
+                      : type === "plin"
+                        ? t("payments.config.labelPlaceholderPlin")
+                        : t("payments.config.labelPlaceholderCash")
+                }
                 className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-foreground">
-                {isCulqiType ? t("payments.config.ministryName") : type === "cash" ? t("payments.config.cashReceiver") : t("payments.config.holder")} *
+                {isCulqiType
+                  ? isPlatform
+                    ? t("payments.config.platformEntityName")
+                    : t("payments.config.entityName")
+                  : type === "cash"
+                    ? t("payments.config.cashReceiver")
+                    : t("payments.config.holder")}{" "}
+                *
               </label>
               <input
                 type="text"
                 value={holderName}
                 onChange={(e) => setHolderName(e.target.value)}
-                placeholder={isCulqiType ? "Nombre del ministerio o iglesia" : type === "cash" ? "Quien recibe en puerta" : "Titular de la cuenta"}
+                placeholder={
+                  isCulqiType
+                    ? isPlatform
+                      ? t("payments.config.platformEntityNamePlaceholder")
+                      : t("payments.config.entityNamePlaceholder")
+                    : type === "cash"
+                      ? t("payments.config.cashReceiverPlaceholder")
+                      : t("payments.config.holderPlaceholder")
+                }
                 className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
