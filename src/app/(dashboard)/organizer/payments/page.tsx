@@ -18,7 +18,8 @@ import { PaymentStatusSelect } from "@/components/payments/PaymentStatusSelect";
 import { getPaymentMethodLabel } from "@/lib/payments/labels";
 import { getMyPlanSummary } from "@/actions/billing";
 import { planIncludesFeature } from "@/lib/billing/enforce";
-import { Clock } from "lucide-react";
+import { Clock, CreditCard } from "lucide-react";
+import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
 
 function getPaymentDynamicCaption(
   notes: string | null,
@@ -209,12 +210,12 @@ export default async function OrganizerPaymentsPage({ searchParams }: PageProps)
       ) : null}
 
       {payments.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-border bg-card p-12 text-center">
-          <p className="text-lg font-semibold text-foreground">{t("dashboard.member.noPaymentsYet")}</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("payments.organizer.emptyHelp")}
-          </p>
-        </div>
+        <EmptyStateCard
+          icon={CreditCard}
+          title={t("payments.organizer.emptyTitle")}
+          description={t("payments.organizer.emptyDescription")}
+          action={{ label: t("payments.organizer.emptyCta"), href: "/organizer/events" }}
+        />
       ) : (
         <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
           <div className="overflow-x-auto">

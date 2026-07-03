@@ -88,30 +88,6 @@ export const subscriptions = pgTable(
   ],
 );
 
-export const platformTransactions = pgTable(
-  "platform_transactions",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    type: platformTransactionTypeEnum("type").notNull(),
-    amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
-    currency: text("currency").notNull().default("PEN"),
-    userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
-    paymentId: uuid("payment_id").references(() => payments.id, { onDelete: "set null" }),
-    subscriptionId: uuid("subscription_id").references(() => subscriptions.id, {
-      onDelete: "set null",
-    }),
-    subscriptionPaymentId: uuid("subscription_payment_id"),
-    description: text("description"),
-    metadata: jsonb("metadata"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-  },
-  (t) => [
-    index("platform_transactions_type_idx").on(t.type),
-    index("platform_transactions_user_idx").on(t.userId),
-    index("platform_transactions_created_idx").on(t.createdAt),
-  ],
-);
-
 export const subscriptionPayments = pgTable(
   "subscription_payments",
   {
@@ -145,8 +121,53 @@ export const subscriptionPayments = pgTable(
   ],
 );
 
+export const platformTransactions = pgTable(
+  "platform_transactions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    type: platformTransactionTypeEnum("type").notNull(),
+    amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+    currency: text("currency").notNull().default("PEN"),
+    userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+    paymentId: uuid("payment_id").references(() => payments.id, { onDelete: "set null" }),
+    subscriptionId: uuid("subscription_id").references(() => subscriptions.id, {
+      onDelete: "set null",
+    }),
+    subscriptionPaymentId: uuid("subscription_payment_id").references(() => subscriptionPayments.id, {
+      onDelete: "set null",
+    }),
+    description: text("description"),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("platform_transactions_type_idx").on(t.type),
+    index("platform_transactions_user_idx").on(t.userId),
+    index("platform_transactions_created_idx").on(t.createdAt),
+    index("platform_transactions_subscription_payment_idx").on(t.subscriptionPaymentId),
+  ],
+);
+
 export const plansRelations = relations(plans, ({ many }) => ({
   subscriptions: many(subscriptions),
+  subscriptionPayments: many(subscriptionPayments),
+}));
+
+export const subscriptionPaymentsRelations = relations(subscriptionPayments, ({ one, many }) => ({
+  user: one(users, { fields: [subscriptionPayments.userId], references: [users.id] }),
+  plan: one(plans, { fields: [subscriptionPayments.planId], references: [plans.id] }),
+  ledgerEntries: many(platformTransactions),
+}));
+
+export const platformTransactionsRelations = relations(platformTransactions, ({ one }) => ({
+  subscriptionPayment: one(subscriptionPayments, {
+    fields: [platformTransactions.subscriptionPaymentId],
+    references: [subscriptionPayments.id],
+  }),
+  subscription: one(subscriptions, {
+    fields: [platformTransactions.subscriptionId],
+    references: [subscriptions.id],
+  }),
 }));
 
 export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({

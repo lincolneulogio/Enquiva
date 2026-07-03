@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { signOut } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
+import { isNavItemActive } from "@/lib/navigation/is-nav-active";
 import Image from "next/image";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { useTranslations } from "@/components/providers/LocaleProvider";
@@ -341,7 +342,7 @@ export function DashboardSidebar({ role, user, organizerNav, adminNav }: Dashboa
                 </h3>
               )}
               {section.items.map(({ labelKey, href, icon: Icon }) => {
-                const isActive = pathname === href;
+                const isActive = isNavItemActive(pathname, href);
                 return (
                   <Link
                     key={`mobile-${href}`}
@@ -414,7 +415,7 @@ export function DashboardSidebar({ role, user, organizerNav, adminNav }: Dashboa
                 </h3>
               )}
               {section.items.map(({ labelKey, href, icon: Icon }) => {
-                const isActive = pathname === href;
+                const isActive = isNavItemActive(pathname, href);
                 return (
                   <Link
                     key={href}

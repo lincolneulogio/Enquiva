@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import Link from "next/link";
+import { translateRegistrationError } from "@/lib/errors/registration";
 import { confirmDeleteAction } from "@/lib/ui/confirm";
 
 interface RegisterButtonProps {
@@ -140,31 +141,7 @@ export function RegisterButton({
     };
   }, [isModalOpen]);
 
-  const mapRegistrationError = (message: string) => {
-    const normalized = message.toLowerCase();
-
-    if (normalized.includes("registration_closed_event_full") || normalized.includes("full")) {
-      return t("register.eventFull");
-    }
-
-    if (
-      normalized.includes("registration_closed_event_expired") ||
-      normalized.includes("expired") ||
-      normalized.includes("already passed")
-    ) {
-      return t("register.eventExpired");
-    }
-
-    if (normalized.includes("registration_unavailable") || normalized.includes("not found")) {
-      return t("register.registrationUnavailable");
-    }
-
-    if (normalized.includes("already registered")) {
-      return t("register.youreRegistered");
-    }
-
-    return message;
-  };
+  const mapRegistrationError = (message: string) => translateRegistrationError(t, message);
 
   const activeRoute = transportRoutes.find((r) => r.id === selectedRouteId);
   const transportPricePerSeat = activeRoute ? Number(activeRoute.pricePerSeat) : 0;

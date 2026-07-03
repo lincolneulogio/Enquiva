@@ -23,6 +23,7 @@
     "db:migrate:payment-methods": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-payment-methods-scope.ts",
     "db:migrate:categories-org": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-categories-organization.ts",
     "db:migrate:subscription-payment-idempotency": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-subscription-payment-idempotency.ts",
+    "db:migrate:platform-transaction-fk": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-platform-transaction-subscription-payment-fk.ts",
     "jobs:subscriptions": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/process-subscription-lifecycle.ts",
     "db:sync:event-categories": "npx tsx --env-file=.env --tsconfig tsconfig.json ./scripts/sync-event-categories.ts",
     "db:add-indexes": "node --env-file=.env ./scripts/add-unique-indexes.mjs",

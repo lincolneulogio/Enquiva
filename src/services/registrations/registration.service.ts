@@ -27,6 +27,7 @@ import { generateTicketForRegistration } from "@/lib/tickets";
 import { runBackground } from "@/lib/background";
 import { assertCanRegisterAttendee } from "@/lib/billing/enforce";
 import { assertCanManageEvent } from "@/lib/organizations/admin-scope";
+import { RegistrationErrorCode, registrationError } from "@/lib/errors/registration";
 
 export interface RegisterEventInput {
   eventId: string;
@@ -60,14 +61,14 @@ export class RegistrationService {
         .where(and(eq(events.id, eventId), eq(events.status, "published")))
         .limit(1);
 
-      if (!event) throw new Error("REGISTRATION_UNAVAILABLE");
+      if (!event) throw registrationError(RegistrationErrorCode.UNAVAILABLE);
 
       await assertCanRegisterAttendee(event.organizerId, eventId, "organizer");
 
       // Validar fecha del evento
       const eventDate = new Date(event.date);
       if (eventDate.getTime() <= Date.now()) {
-        throw new Error("REGISTRATION_CLOSED_EVENT_EXPIRED");
+        throw registrationError(RegistrationErrorCode.CLOSED_EVENT_EXPIRED);
       }
 
       const attendee = {
@@ -88,9 +89,9 @@ export class RegistrationService {
 
       if (existing) {
         if (existing.status === "cancelled") {
-          throw new Error("Tu inscripción fue cancelada. Por favor, contacta al administrador del evento para reactivar tu cupo.");
+          throw registrationError(RegistrationErrorCode.CANCELLED);
         }
-        throw new Error("You are already registered for this event");
+        throw registrationError(RegistrationErrorCode.ALREADY_REGISTERED);
       }
 
       // 3. Validar capacidad del evento (incluyendo los invitados)
@@ -108,7 +109,7 @@ export class RegistrationService {
           );
 
         if (currentCount + totalNewRegistrations > event.capacity) {
-          throw new Error("REGISTRATION_CLOSED_EVENT_FULL");
+          throw registrationError(RegistrationErrorCode.CLOSED_EVENT_FULL);
         }
       }
 
@@ -184,7 +185,7 @@ export class RegistrationService {
           .where(and(eq(transportRoutes.id, input.routeId), eq(transportRoutes.isActive, true)))
           .limit(1);
 
-        if (!route) throw new Error("La ruta de transporte seleccionada no está disponible.");
+        if (!route) throw registrationError(RegistrationErrorCode.TRANSPORT_ROUTE_UNAVAILABLE);
 
         // Comprobar disponibilidad de asientos
         const [{ bookedCount }] = await tx
@@ -201,7 +202,10 @@ export class RegistrationService {
 
         const available = route.totalSeats - Number(bookedCount);
         if (seats > available) {
-          throw new Error(`Solo quedan ${available} asientos disponibles en la ruta "${route.name}".`);
+          throw registrationError(RegistrationErrorCode.TRANSPORT_SEATS_INSUFFICIENT, {
+            available: String(available),
+            routeName: route.name,
+          });
         }
 
         transportPrice = Number(route.pricePerSeat) * seats;
@@ -399,14 +403,14 @@ export class RegistrationService {
 
       if (account && account.password) {
         if (!password) {
-          throw new Error("Se requiere ingresar la contraseña para cancelar la inscripción.");
+          throw registrationError(RegistrationErrorCode.PASSWORD_REQUIRED);
         }
         const isPasswordValid = await verifyPassword({
           hash: account.password,
           password: password,
         });
         if (!isPasswordValid) {
-          throw new Error("Contraseña incorrecta. No se pudo cancelar la inscripción.");
+          throw registrationError(RegistrationErrorCode.PASSWORD_INVALID);
         }
       }
 
@@ -419,7 +423,7 @@ export class RegistrationService {
         )
         .limit(1);
 
-      if (!reg) throw new Error("Inscripción no encontrada");
+      if (!reg) throw registrationError(RegistrationErrorCode.NOT_FOUND);
 
       // 3. Cancelar la inscripción y el ticket transaccionalmente
       await tx
@@ -486,7 +490,7 @@ export class RegistrationService {
         )
         .returning();
 
-      if (!reg) throw new Error("Inscripción no encontrada o ya tiene check-in");
+      if (!reg) throw registrationError(RegistrationErrorCode.CHECKIN_NOT_FOUND);
 
       await tx
         .update(tickets)
@@ -577,7 +581,7 @@ export class RegistrationService {
         .where(and(eq(events.id, eventId), eq(events.status, "published")))
         .limit(1);
 
-      if (!event) throw new Error("Evento no encontrado o no está publicado.");
+      if (!event) throw registrationError(RegistrationErrorCode.EVENT_NOT_PUBLISHED);
 
       await assertCanManageEvent(
         {

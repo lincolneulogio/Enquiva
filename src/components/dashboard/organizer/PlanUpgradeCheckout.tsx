@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { submitSubscriptionPayment } from "@/actions/billing";
 import { UploadDropzone } from "@/lib/uploadthing/components";
 import type { PaymentMethod, Plan } from "@/lib/db/schema";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 
 const CULQI_SCRIPT = "https://js.culqi.com/checkout-js";
 
@@ -47,6 +48,7 @@ export function PlanUpgradeCheckout({
   onClose,
   onSuccess,
 }: PlanUpgradeCheckoutProps) {
+  const t = useTranslations();
   const amount = Number(plan.priceMonthly);
   const manualMethods = platformMethods.filter((m) => m.type === "yape" || m.type === "plin");
   const culqiMethod = platformMethods.find((m) => m.type === "culqi");
@@ -70,16 +72,16 @@ export function PlanUpgradeCheckout({
     if (!culqiPublicKey) return;
     loadCulqiScript()
       .then(() => setScriptReady(true))
-      .catch(() => toast.error("No se pudo cargar Culqi"));
+      .catch(() => toast.error(t("billing.planCheckout.culqiLoadFailed")));
   }, [culqiPublicKey]);
 
   const submitManual = async () => {
     if (!receiptUrl) {
-      toast.error("Sube tu comprobante de pago");
+      toast.error(t("billing.planCheckout.uploadReceiptRequired"));
       return;
     }
     if (!currentMethod) {
-      toast.error("Selecciona un método de pago");
+      toast.error(t("billing.planCheckout.selectMethod"));
       return;
     }
 
@@ -93,13 +95,13 @@ export function PlanUpgradeCheckout({
         receiptFileName: receiptFileName ?? undefined,
       });
       if (res.mode === "assigned") {
-        toast.success("Plan activado");
+        toast.success(t("billing.planCheckout.planActivated"));
       } else {
-        toast.success(res.message ?? "Pago enviado para revisión");
+        toast.success(res.message ?? t("billing.planCheckout.paymentSubmitted"));
       }
       onSuccess();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Error al enviar pago");
+      toast.error(e instanceof Error ? e.message : t("billing.planCheckout.submitFailed"));
     } finally {
       setIsSaving(false);
     }
@@ -113,16 +115,16 @@ export function PlanUpgradeCheckout({
         body: JSON.stringify({ planId: plan.id, sourceId }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Error al procesar pago");
-      toast.success("¡Plan activado! Tu suscripción ya está disponible.");
+      if (!response.ok) throw new Error(data.error ?? t("billing.planCheckout.culqiProcessFailed"));
+      toast.success(t("billing.planCheckout.culqiSuccess"));
       onSuccess();
     },
-    [plan.id, onSuccess],
+    [plan.id, onSuccess, t],
   );
 
   const openCulqi = async () => {
     if (!culqiPublicKey || !scriptReady || !window.CulqiCheckout) {
-      toast.error("Culqi no disponible");
+      toast.error(t("billing.planCheckout.culqiUnavailable"));
       return;
     }
 
@@ -133,7 +135,7 @@ export function PlanUpgradeCheckout({
           setIsSaving(true);
           await processCulqiCharge(window.Culqi.token.id);
         } catch (e) {
-          toast.error(e instanceof Error ? e.message : "Error al pagar");
+          toast.error(e instanceof Error ? e.message : t("billing.planCheckout.culqiPayFailed"));
         } finally {
           setIsSaving(false);
         }
@@ -143,7 +145,7 @@ export function PlanUpgradeCheckout({
         toast.error(
           window.Culqi.error.user_message ??
             window.Culqi.error.merchant_message ??
-            "Pago rechazado",
+            t("billing.planCheckout.culqiRejected"),
         );
         setIsSaving(false);
       }
@@ -169,9 +171,9 @@ export function PlanUpgradeCheckout({
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-card shadow-xl">
         <div className="sticky top-0 flex items-center justify-between border-b border-border bg-card px-5 py-4">
           <div>
-            <h3 className="font-semibold text-foreground">Pagar plan {plan.name}</h3>
+            <h3 className="font-semibold text-foreground">{t("billing.planCheckout.title", { plan: plan.name })}</h3>
             <p className="text-sm text-muted-foreground">
-              S/ {amount.toFixed(2)}/mes · licencia EncuentroDeFe
+              {t("billing.planCheckout.subtitle", { amount: amount.toFixed(2) })}
             </p>
           </div>
           <button
@@ -195,7 +197,7 @@ export function PlanUpgradeCheckout({
                 )}
               >
                 <Smartphone className="h-4 w-4" />
-                Yape / Plin
+                {t("billing.planCheckout.tabManual")}
               </button>
               <button
                 type="button"
@@ -206,7 +208,7 @@ export function PlanUpgradeCheckout({
                 )}
               >
                 <CreditCard className="h-4 w-4" />
-                Tarjeta
+                {t("billing.planCheckout.tabCard")}
               </button>
             </div>
           )}
@@ -234,7 +236,7 @@ export function PlanUpgradeCheckout({
               {currentMethod && (
                 <div className="rounded-xl border border-border bg-muted/20 p-4 text-sm space-y-3">
                   <p>
-                    Titular: <strong>{currentMethod.holderName}</strong>
+                    {t("billing.planCheckout.holder")}: <strong>{currentMethod.holderName}</strong>
                   </p>
                   {currentMethod.phone && (
                     <div className="flex items-center justify-between gap-2">
@@ -243,12 +245,12 @@ export function PlanUpgradeCheckout({
                         type="button"
                         onClick={() => {
                           navigator.clipboard.writeText(currentMethod.phone!);
-                          toast.success("Número copiado");
+                          toast.success(t("billing.planCheckout.numberCopied"));
                         }}
                         className="inline-flex items-center gap-1 rounded-lg bg-primary px-2 py-1 text-xs text-primary-foreground"
                       >
                         <Copy className="h-3 w-3" />
-                        Copiar
+                        {t("billing.planCheckout.copy")}
                       </button>
                     </div>
                   )}
@@ -265,7 +267,7 @@ export function PlanUpgradeCheckout({
               )}
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium">Comprobante *</label>
+                <label className="mb-1.5 block text-sm font-medium">{t("billing.planCheckout.receiptLabel")}</label>
                 {receiptUrl ? (
                   <div className="relative inline-block">
                     <Image src={receiptUrl} alt="Comprobante" width={200} height={140} className="rounded-lg border" />
@@ -277,7 +279,7 @@ export function PlanUpgradeCheckout({
                       }}
                       className="absolute right-1 top-1 rounded bg-destructive px-2 py-0.5 text-xs text-white"
                     >
-                      Quitar
+                      {t("billing.planCheckout.remove")}
                     </button>
                   </div>
                 ) : (
@@ -303,7 +305,7 @@ export function PlanUpgradeCheckout({
                 type="text"
                 value={reference}
                 onChange={(e) => setReference(e.target.value)}
-                placeholder="Nro. de operación (opcional)"
+                placeholder={t("billing.planCheckout.referencePlaceholder")}
                 className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm"
               />
 
@@ -316,7 +318,7 @@ export function PlanUpgradeCheckout({
                 {isSaving || isUploading ? (
                   <Loader2 className="mx-auto h-4 w-4 animate-spin" />
                 ) : (
-                  `Enviar comprobante · S/ ${amount.toFixed(2)}`
+                  t("billing.planCheckout.submitReceipt", { amount: amount.toFixed(2) })
                 )}
               </button>
             </div>
@@ -326,7 +328,7 @@ export function PlanUpgradeCheckout({
             <div className="rounded-xl border border-violet-200/60 bg-violet-50/40 p-5 dark:border-violet-900/30 dark:bg-violet-950/10">
               <div className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
                 <ShieldCheck className="h-4 w-4" />
-                Activación instantánea al confirmar el pago
+                {t("billing.planCheckout.instantActivation")}
               </div>
               <button
                 type="button"
@@ -337,7 +339,7 @@ export function PlanUpgradeCheckout({
                 {isSaving || !scriptReady ? (
                   <Loader2 className="mx-auto h-4 w-4 animate-spin" />
                 ) : (
-                  `Pagar S/ ${amount.toFixed(2)} con tarjeta`
+                  t("billing.planCheckout.payCard", { amount: amount.toFixed(2) })
                 )}
               </button>
             </div>
@@ -345,15 +347,9 @@ export function PlanUpgradeCheckout({
 
           {manualMethods.length === 0 && !(culqiMethod && culqiPublicKey) && (
             <div className="rounded-xl border border-dashed border-border bg-muted/30 p-4 text-center text-sm text-muted-foreground space-y-2">
-              <p className="font-medium text-foreground">Aún no hay medios de pago para licencias</p>
-              <p>
-                El <strong>super administrador</strong> debe configurar Yape, Plin o tarjeta (Culqi) en{" "}
-                <span className="font-mono text-xs">/admin/payment-methods</span>.
-              </p>
-              <p className="text-xs">
-                El rol <strong>administrador</strong> no gestiona estos cobros — solo el super administrador.
-                Los organizadores pagan aquí; los usuarios (miembros) no intervienen en este flujo.
-              </p>
+              <p className="font-medium text-foreground">{t("billing.planCheckout.noMethodsTitle")}</p>
+              <p>{t("billing.planCheckout.noMethodsHelp")}</p>
+              <p className="text-xs">{t("billing.planCheckout.noMethodsRoles")}</p>
             </div>
           )}
         </div>

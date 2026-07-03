@@ -1,6 +1,9 @@
+"use client";
+
 import type { PlatformTransaction } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
-import { DollarSign, Receipt, Crown, Gift } from "lucide-react";
+import { DollarSign, Receipt, Crown, Gift, Link2 } from "lucide-react";
+import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 
 interface AdminRevenuePanelProps {
   paidOrganizerSubscriptions: number;
@@ -9,65 +12,67 @@ interface AdminRevenuePanelProps {
   recent: PlatformTransaction[];
 }
 
-const typeLabels: Record<string, string> = {
-  subscription: "Suscripciones",
-  commission: "Comisiones",
-  adjustment: "Ajustes",
-};
-
 export function AdminRevenuePanel({
   paidOrganizerSubscriptions,
   freeOrganizerSubscriptions,
   totals,
   recent,
 }: AdminRevenuePanelProps) {
+  const t = useTranslations();
+  const { locale } = useLocale();
   const totalRevenue = totals.reduce((acc, row) => acc + Number(row.total ?? 0), 0);
   const totalOrganizers = paidOrganizerSubscriptions + freeOrganizerSubscriptions;
+  const dateLocale = locale === "en" ? "en-US" : "es-PE";
+
+  const typeLabels: Record<string, string> = {
+    subscription: t("billing.revenue.typeSubscription"),
+    commission: t("billing.revenue.typeCommission"),
+    adjustment: t("billing.revenue.typeAdjustment"),
+  };
 
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          title="Organizadores con plan de pago"
+          title={t("billing.revenue.paidOrganizersTitle")}
           value={String(paidOrganizerSubscriptions)}
-          subtitle="Pro, Enterprise u otro plan con cuota mensual"
+          subtitle={t("billing.revenue.paidOrganizersSubtitle")}
           icon={Crown}
           accent="text-amber-600 dark:text-amber-400"
           accentBg="bg-amber-500/10 dark:bg-amber-500/15"
         />
         <StatCard
-          title="Organizadores Free"
+          title={t("billing.revenue.freeOrganizersTitle")}
           value={String(freeOrganizerSubscriptions)}
-          subtitle="Plan gratuito activo"
+          subtitle={t("billing.revenue.freeOrganizersSubtitle")}
           icon={Gift}
           accent="text-sky-600 dark:text-sky-400"
           accentBg="bg-sky-500/10 dark:bg-sky-500/15"
         />
         <StatCard
-          title="Ingresos plataforma"
+          title={t("billing.revenue.platformRevenueTitle")}
           value={`S/ ${totalRevenue.toFixed(2)}`}
-          subtitle={`${totalOrganizers} organizador${totalOrganizers === 1 ? "" : "es"} con suscripción`}
+          subtitle={t("billing.revenue.platformRevenueSubtitle", { count: totalOrganizers })}
           icon={DollarSign}
           accent="text-emerald-600 dark:text-emerald-400"
           accentBg="bg-emerald-500/10 dark:bg-emerald-500/15"
         />
         <StatCard
-          title="Movimientos recientes"
+          title={t("billing.revenue.recentMovementsTitle")}
           value={String(recent.length)}
-          subtitle="Últimos registros en el libro de ingresos"
+          subtitle={t("billing.revenue.recentMovementsSubtitle")}
           icon={Receipt}
           accent="text-violet-600 dark:text-violet-400"
           accentBg="bg-violet-500/10 dark:bg-violet-500/15"
         />
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        Solo cuentan organizadores con suscripción en base de datos. Super admin y admin de entidad tienen acceso
-        ilimitado de plataforma y no se incluyen en estos totales.
-      </p>
+      <p className="text-xs text-muted-foreground">{t("billing.revenue.footnote")}</p>
 
       <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <h2 className="mb-4 border-b border-border/50 pb-3 text-lg font-semibold text-foreground">Desglose por tipo</h2>
+        <h2 className="mb-4 border-b border-border/50 pb-3 text-lg font-semibold text-foreground">
+          {t("billing.revenue.breakdownTitle")}
+        </h2>
         <div className="space-y-2">
           {totals.map((row) => (
             <div
@@ -82,14 +87,16 @@ export function AdminRevenuePanel({
           ))}
           {totals.length === 0 && (
             <p className="rounded-lg border border-dashed border-border bg-muted/10 px-4 py-6 text-center text-sm text-muted-foreground">
-              Sin ingresos registrados aún.
+              {t("billing.revenue.noRevenue")}
             </p>
           )}
         </div>
       </div>
 
       <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <h2 className="mb-4 border-b border-border/50 pb-3 text-lg font-semibold text-foreground">Movimientos recientes</h2>
+        <h2 className="mb-4 border-b border-border/50 pb-3 text-lg font-semibold text-foreground">
+          {t("billing.revenue.movementsTitle")}
+        </h2>
         <div className="space-y-2">
           {recent.map((tx) => (
             <div
@@ -99,18 +106,25 @@ export function AdminRevenuePanel({
               <div>
                 <p className="font-medium capitalize text-foreground">{typeLabels[tx.type] ?? tx.type}</p>
                 <p className="text-muted-foreground">{tx.description ?? "—"}</p>
+                {tx.subscriptionPaymentId ? (
+                  <p className="mt-1 inline-flex items-center gap-1 text-xs text-primary">
+                    <Link2 className="h-3 w-3" />
+                    {t("billing.revenue.linkedPayment")}:{" "}
+                    <span className="font-mono">{tx.subscriptionPaymentId.slice(0, 8)}…</span>
+                  </p>
+                ) : null}
               </div>
               <div className="text-right">
                 <p className="font-semibold text-foreground">S/ {Number(tx.amount).toFixed(2)}</p>
                 <p className="text-xs text-muted-foreground">
-                  {new Date(tx.createdAt).toLocaleString("es-PE")}
+                  {new Date(tx.createdAt).toLocaleString(dateLocale)}
                 </p>
               </div>
             </div>
           ))}
           {recent.length === 0 && (
             <p className="rounded-lg border border-dashed border-border bg-muted/10 px-4 py-6 text-center text-sm text-muted-foreground">
-              No hay movimientos.
+              {t("billing.revenue.noMovements")}
             </p>
           )}
         </div>

@@ -334,13 +334,21 @@ export class SubscriptionService {
     const [plan] = await tx.select().from(plans).where(eq(plans.id, planId)).limit(1);
     if (!plan) throw new Error("Plan no encontrado");
 
-    const periodEnd = addOneMonth();
+    const now = new Date();
 
     const [existing] = await tx
-      .select({ id: subscriptions.id })
+      .select()
       .from(subscriptions)
       .where(eq(subscriptions.userId, userId))
       .limit(1);
+
+    const stillActive =
+      existing &&
+      existing.status === "active" &&
+      existing.currentPeriodEnd > now;
+
+    const periodStart = stillActive ? existing.currentPeriodStart : now;
+    const periodEnd = stillActive ? addOneMonth(existing.currentPeriodEnd) : addOneMonth(now);
 
     if (existing) {
       await tx
@@ -348,10 +356,10 @@ export class SubscriptionService {
         .set({
           planId,
           status: "active",
-          currentPeriodStart: new Date(),
+          currentPeriodStart: periodStart,
           currentPeriodEnd: periodEnd,
           cancelledAt: null,
-          updatedAt: new Date(),
+          updatedAt: now,
         })
         .where(eq(subscriptions.id, existing.id));
 
@@ -364,7 +372,7 @@ export class SubscriptionService {
         userId,
         planId,
         status: "active",
-        currentPeriodStart: new Date(),
+        currentPeriodStart: periodStart,
         currentPeriodEnd: periodEnd,
       })
       .returning({ id: subscriptions.id });

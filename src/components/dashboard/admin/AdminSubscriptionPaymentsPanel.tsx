@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { approveSubscriptionPayment, rejectSubscriptionPayment } from "@/actions/billing";
 import { formatCurrency } from "@/lib/utils";
-import { Check, X, ExternalLink } from "lucide-react";
+import { Check, X, ExternalLink, Inbox } from "lucide-react";
+import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
+import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
 
 interface PendingRow {
   payment: {
@@ -29,17 +31,20 @@ interface AdminSubscriptionPaymentsPanelProps {
 
 export function AdminSubscriptionPaymentsPanel({ pending }: AdminSubscriptionPaymentsPanelProps) {
   const router = useRouter();
+  const t = useTranslations();
+  const { locale } = useLocale();
   const [isPending, startTransition] = useTransition();
+  const dateLocale = locale === "en" ? "en-US" : "es-PE";
 
   const act = (paymentId: string, action: "approve" | "reject") => {
     startTransition(async () => {
       try {
         if (action === "approve") {
           await approveSubscriptionPayment(paymentId);
-          toast.success("Plan activado para el organizador");
+          toast.success(t("billing.subscriptionPayments.approvedToast"));
         } else {
           await rejectSubscriptionPayment(paymentId, "Comprobante rechazado");
-          toast.success("Pago rechazado");
+          toast.success(t("billing.subscriptionPayments.rejectedToast"));
         }
         router.refresh();
       } catch (e) {
@@ -51,7 +56,7 @@ export function AdminSubscriptionPaymentsPanel({ pending }: AdminSubscriptionPay
   return (
     <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
       <h2 className="mb-4 border-b border-border/50 pb-3 text-lg font-semibold text-foreground">
-        Pagos de suscripción pendientes
+        {t("billing.subscriptionPayments.title")}
         {pending.length > 0 && (
           <span className="ml-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-bold text-amber-700 dark:text-amber-400">
             {pending.length}
@@ -60,7 +65,11 @@ export function AdminSubscriptionPaymentsPanel({ pending }: AdminSubscriptionPay
       </h2>
 
       {pending.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No hay pagos de planes pendientes de revisión.</p>
+        <EmptyStateCard
+          icon={Inbox}
+          title={t("billing.subscriptionPayments.emptyTitle")}
+          description={t("billing.subscriptionPayments.emptyDescription")}
+        />
       ) : (
         <div className="space-y-3">
           {pending.map(({ payment, plan, userName, userEmail }) => (
@@ -70,16 +79,17 @@ export function AdminSubscriptionPaymentsPanel({ pending }: AdminSubscriptionPay
             >
               <div>
                 <p className="font-medium text-foreground">
-                  {userName ?? "Organizador"} → Plan {plan.name}
+                  {userName ?? t("billing.subscriptionPayments.organizerFallback")} →{" "}
+                  {t("billing.subscriptionPayments.planUpgrade", { plan: plan.name })}
                 </p>
                 <p className="text-xs text-muted-foreground">{userEmail}</p>
                 <p className="mt-1 text-sm">
-                  {formatCurrency(Number(payment.amount), payment.currency, "es")} ·{" "}
+                  {formatCurrency(Number(payment.amount), payment.currency, locale)} ·{" "}
                   <span className="uppercase">{payment.method}</span>
                   {payment.reference && ` · Ref: ${payment.reference}`}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {new Date(payment.createdAt).toLocaleString("es-PE")}
+                  {new Date(payment.createdAt).toLocaleString(dateLocale)}
                 </p>
                 {payment.receiptUrl && (
                   <a
@@ -88,7 +98,7 @@ export function AdminSubscriptionPaymentsPanel({ pending }: AdminSubscriptionPay
                     rel="noreferrer"
                     className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                   >
-                    Ver comprobante
+                    {t("billing.subscriptionPayments.viewReceipt")}
                     <ExternalLink className="h-3 w-3" />
                   </a>
                 )}
@@ -101,7 +111,7 @@ export function AdminSubscriptionPaymentsPanel({ pending }: AdminSubscriptionPay
                   className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
                 >
                   <Check className="h-4 w-4" />
-                  Aprobar
+                  {t("billing.subscriptionPayments.approve")}
                 </button>
                 <button
                   type="button"
@@ -110,7 +120,7 @@ export function AdminSubscriptionPaymentsPanel({ pending }: AdminSubscriptionPay
                   className="inline-flex items-center gap-1.5 rounded-xl border border-destructive/40 px-3 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
                 >
                   <X className="h-4 w-4" />
-                  Rechazar
+                  {t("billing.subscriptionPayments.reject")}
                 </button>
               </div>
             </div>
