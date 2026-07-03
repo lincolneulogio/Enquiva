@@ -6,6 +6,7 @@ export type CulqiUserProfile = {
   name?: string | null;
   email: string;
   phone?: string | null;
+  address?: string | null;
 };
 
 export function parseFullName(fullName: string) {
@@ -34,17 +35,32 @@ export function formatCulqiPhone(phone?: string | null): string {
   return "";
 }
 
+const CULQI_DEFAULT_ADDRESS = "Av. Javier Prado 150, Lima, Perú";
+
 export function buildCulqiAddress(profile: CulqiUserProfile): string {
+  const savedAddress = (profile.address ?? "").trim();
+  if (savedAddress.length >= 6 && savedAddress.length <= 100) {
+    return savedAddress;
+  }
+
   const displayName = (profile.name ?? "").trim() || profile.email.split("@")[0] || "Cliente";
   const phone = formatCulqiPhone(profile.phone);
 
+  let line: string;
   if (phone) {
-    const line = `${displayName}, tel. ${phone}, Lima, Perú`;
-    if (line.length >= 6 && line.length <= 100) return line;
+    line = `${displayName}, tel. ${phone}, Lima, Perú`;
+  } else {
+    line = `${displayName}, Lima, Perú`;
   }
 
-  const fallback = `${displayName}, Lima, Perú`;
-  return fallback.length <= 100 ? fallback : fallback.slice(0, 100);
+  if (line.length > 100) {
+    line = line.slice(0, 100).trimEnd();
+  }
+  if (line.length >= 6) {
+    return line;
+  }
+
+  return CULQI_DEFAULT_ADDRESS;
 }
 
 export function resolveCulqiCustomerData(profile: CulqiUserProfile) {
@@ -74,6 +90,7 @@ export async function getUserCulqiProfile(userId: string): Promise<CulqiUserProf
       name: users.name,
       email: users.email,
       phone: users.phone,
+      address: users.address,
     })
     .from(users)
     .where(eq(users.id, userId))
@@ -87,6 +104,7 @@ export async function getUserCulqiProfile(userId: string): Promise<CulqiUserProf
     name: user.name,
     email: user.email,
     phone: user.phone,
+    address: user.address,
   };
 }
 
@@ -98,5 +116,6 @@ export function mergeSessionCulqiProfile(
     name: dbProfile.name ?? sessionUser.name ?? null,
     email: dbProfile.email || sessionUser.email || "",
     phone: dbProfile.phone,
+    address: dbProfile.address,
   };
 }

@@ -10,6 +10,17 @@ export const updateProfileSchema = z.object({
     ])
     .optional()
     .nullable(),
+  address: z
+    .union([
+      z
+        .string()
+        .trim()
+        .min(6, "Address must be at least 6 characters")
+        .max(100, "Address must be at most 100 characters"),
+      z.literal(""),
+    ])
+    .optional()
+    .nullable(),
   bio: z.string().max(500).optional().nullable(),
   image: z
     .union([z.string().url("Invalid URL"), z.literal("")])

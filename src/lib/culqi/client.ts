@@ -87,6 +87,7 @@ export async function createCulqiCharge(
     name: null,
     email: input.email,
     phone: null,
+    address: null,
   };
   const customer = resolveCulqiCustomerData(customerProfile);
 
@@ -129,7 +130,10 @@ export async function createCulqiCustomer(
       email: input.email,
       first_name: customer.firstName,
       last_name: customer.lastName,
-      phone_number: customer.phone,
+      phone_number: Number(customer.phone) || 999999999,
+      address: customer.antifraud.address,
+      address_city: customer.antifraud.address_city,
+      country_code: customer.antifraud.country_code,
     }),
   });
 }

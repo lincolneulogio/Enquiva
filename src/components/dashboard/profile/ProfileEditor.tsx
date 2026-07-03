@@ -13,6 +13,7 @@ interface ProfileEditorProps {
     email: string;
     role: string;
     phone: string | null;
+    address: string | null;
     bio: string | null;
     image: string | null;
   };

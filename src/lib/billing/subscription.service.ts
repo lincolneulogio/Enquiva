@@ -253,7 +253,7 @@ export class SubscriptionService {
         if (shouldRetry && !attemptedToday) {
           const { users } = await import("@/lib/db/schema");
           const [user] = await db
-            .select({ email: users.email, name: users.name, phone: users.phone })
+            .select({ email: users.email, name: users.name, phone: users.phone, address: users.address })
             .from(users)
             .where(eq(users.id, userId))
             .limit(1);
@@ -264,6 +264,7 @@ export class SubscriptionService {
               name: user.name,
               email: user.email,
               phone: user.phone,
+              address: user.address,
             });
             await db
               .update(subscriptions)

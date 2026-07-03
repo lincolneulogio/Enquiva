@@ -32,6 +32,7 @@ export async function updateCurrentUserProfile(input: unknown) {
         .set({
             name: data.name.trim(),
             phone: data.phone?.trim() || null,
+            address: data.address?.trim() || null,
             bio: data.bio?.trim() || null,
             image: data.image?.trim() || null,
             updatedAt: new Date(),

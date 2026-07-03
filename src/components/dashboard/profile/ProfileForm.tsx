@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { updateCurrentUserProfile } from "@/actions/profile";
 import { updateProfileSchema, type UpdateProfileInput } from "@/lib/validations";
-import { Loader2, Mail, Shield, User, Phone } from "lucide-react";
+import { Loader2, Mail, Shield, User, Phone, MapPin } from "lucide-react";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { getRoleLabel } from "@/lib/i18n/core";
 import { normalizePeruPhone } from "@/lib/utils";
@@ -19,6 +19,7 @@ interface ProfileFormProps {
     email: string;
     role: string;
     phone: string | null;
+    address: string | null;
     bio: string | null;
     image: string | null;
   };
@@ -41,6 +42,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
     defaultValues: {
       name: user.name ?? "",
       phone: user.phone ?? "",
+      address: user.address ?? "",
       bio: user.bio ?? "",
       image: user.image ?? "",
     },
@@ -54,6 +56,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
         await updateCurrentUserProfile({
           ...data,
           phone: data.phone?.trim() ? normalizePeruPhone(data.phone) : null,
+          address: data.address?.trim() ? data.address.trim() : null,
           bio: data.bio?.trim() ? data.bio : null,
           image: data.image?.trim() ? data.image : null,
         });
@@ -112,6 +115,23 @@ export function ProfileForm({ user }: ProfileFormProps) {
         <p className="mt-1 text-xs text-muted-foreground">{t("profile.phoneHint")}</p>
         {errors.phone && (
           <p className="mt-1 text-xs text-destructive">{errors.phone.message}</p>
+        )}
+      </div>
+
+      <div>
+        <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-foreground">
+          <MapPin className="h-4 w-4" />
+          {t("profile.addressLabel")}
+        </label>
+        <input
+          {...register("address")}
+          placeholder={t("profile.addressPlaceholder")}
+          maxLength={100}
+          className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
+        />
+        <p className="mt-1 text-xs text-muted-foreground">{t("profile.addressHint")}</p>
+        {errors.address && (
+          <p className="mt-1 text-xs text-destructive">{errors.address.message}</p>
         )}
       </div>
 

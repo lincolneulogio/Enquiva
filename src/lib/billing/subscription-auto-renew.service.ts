@@ -167,7 +167,7 @@ export class SubscriptionAutoRenewService {
       if (Number(plan.priceMonthly) <= 0 || plan.slug === "free") continue;
 
       const [user] = await db
-        .select({ email: users.email, name: users.name, phone: users.phone })
+        .select({ email: users.email, name: users.name, phone: users.phone, address: users.address })
         .from(users)
         .where(eq(users.id, subscription.userId))
         .limit(1);
@@ -178,6 +178,7 @@ export class SubscriptionAutoRenewService {
         name: user.name,
         email: user.email,
         phone: user.phone,
+        address: user.address,
       });
       if (ok) renewed += 1;
     }
