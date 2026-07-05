@@ -124,7 +124,7 @@ async function main() {
       isFeatured: true,
       price: "25.00",
       hasTransport: true,
-      coverImage: "https://images.unsplash.com/photo-1540575467061-178a50c2df87?w=1200&q=80",
+      coverImage: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&q=80",
     },
     {
       slug: "networking-juvenil-2026",
@@ -161,7 +161,7 @@ async function main() {
       isFeatured: true,
       price: null,
       hasTransport: false,
-      coverImage: "https://images.unsplash.com/photo-1511578314322-379afb4768f1?w=1200&q=80",
+      coverImage: "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=1200&q=80",
     },
   ];
 

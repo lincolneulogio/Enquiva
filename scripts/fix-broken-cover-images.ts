@@ -6,17 +6,22 @@ import { db } from "@/lib/db";
 import { events } from "@/lib/db/schema";
 import { sql } from "drizzle-orm";
 
-const REPLACEMENTS: Record<string, string> = {
+/** IDs de foto Unsplash retirados → URL de reemplazo verificada. */
+const BROKEN_TO_NEW: Record<string, string> = {
   "photo-1507692049794-ef8b2f0a0b8b":
-    "https://images.unsplash.com/photo-1540575467061-178a50c2df87?w=1200&q=80",
+    "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&q=80",
   "photo-1470101460543-b7272ff8350a":
-    "https://images.unsplash.com/photo-1511578314322-379afb4768f1?w=1200&q=80",
+    "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=1200&q=80",
+  "photo-1540575467061-178a50c2df87":
+    "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&q=80",
+  "photo-1511578314322-379afb4768f1":
+    "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=1200&q=80",
 };
 
 async function main() {
   let updated = 0;
 
-  for (const [brokenId, newUrl] of Object.entries(REPLACEMENTS)) {
+  for (const [brokenId, newUrl] of Object.entries(BROKEN_TO_NEW)) {
     const result = await db
       .update(events)
       .set({ coverImage: newUrl })
