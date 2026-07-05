@@ -21,12 +21,14 @@ interface EventCardProps {
   event: Event & { attendeeCount?: number };
   className?: string;
   categoryMap?: Record<string, { label: string; colorClass?: string | null }>;
+  priority?: boolean;
 }
 
 export async function EventCard({
   event,
   className,
   categoryMap,
+  priority = false,
 }: EventCardProps) {
   const locale = await getLocale();
   const t = (key: string, params?: Record<string, string | number>) =>
@@ -87,10 +89,12 @@ export async function EventCard({
                 alt={event.title}
                 width={600}
                 height={400}
+                priority={priority}
                 className={cn(
-                  "w-full h-auto max-h-[220px] object-contain transition-all duration-700 ease-out z-10",
+                  "z-10 w-full max-h-[220px] object-contain transition-all duration-700 ease-out",
                   isEventExpired ? "grayscale-[0.35]" : "group-hover:scale-[1.02]",
                 )}
+                style={{ width: "auto", height: "auto", maxWidth: "100%", maxHeight: "220px" }}
               />
             </div>
           </>

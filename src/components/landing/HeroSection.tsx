@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Sparkles, ArrowRight, Compass } from "lucide-react";
 
 interface HeroSectionProps {
@@ -87,12 +86,13 @@ export function HeroSection({ t, locale, signals, features }: HeroSectionProps) 
           <div className="relative overflow-hidden rounded-[1.75rem] border border-border/80 bg-card/90 p-5 shadow-xl backdrop-blur-sm sm:p-6">
             <div className="mb-5 flex items-center justify-between">
               <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                <Image
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src="/images/logo-mark-xs.png"
                   alt="Eventia"
-                  width={18}
                   height={18}
-                  className="h-[18px] w-auto object-contain"
+                  className="object-contain"
+                  style={{ height: "18px", width: "auto" }}
                 />
                 Eventia
               </span>

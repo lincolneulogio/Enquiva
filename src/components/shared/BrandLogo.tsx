@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { BRAND } from "@/lib/brand";
@@ -36,14 +35,16 @@ export function BrandLogo({
 
   const content = (
     <>
-      <Image
+      {/* img nativo: evita warnings de Next/Image al escalar logos locales */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
         src={s.src}
         alt={BRAND.name}
-        width={Math.round(s.height * 1.15)}
         height={s.height}
-        priority={priority}
-        className="w-auto shrink-0 object-contain"
-        style={{ height: s.height, width: "auto" }}
+        decoding="async"
+        fetchPriority={priority ? "high" : "auto"}
+        className="shrink-0 object-contain"
+        style={{ height: `${s.height}px`, width: "auto" }}
       />
       {showText && (
         <span className={cn("font-display font-semibold text-foreground", s.text, textClassName)}>
