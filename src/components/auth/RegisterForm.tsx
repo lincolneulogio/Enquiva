@@ -13,6 +13,30 @@ import { Eye, EyeOff, Loader2, Calendar, Users, Building2 } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import { cn } from "@/lib/utils";
 
+const ACCOUNT_TYPES = [
+  {
+    value: "member" as const,
+    icon: Users,
+    tabKey: "auth.accountTypeMemberTab",
+    helpKey: "auth.accountTypeMemberHelp",
+  },
+  {
+    value: "organizer" as const,
+    icon: Calendar,
+    tabKey: "auth.accountTypeOrganizerTab",
+    helpKey: "auth.accountTypeOrganizerHelp",
+  },
+  {
+    value: "entity_admin" as const,
+    icon: Building2,
+    tabKey: "auth.accountTypeEntityAdminTab",
+    helpKey: "auth.accountTypeEntityAdminHelp",
+  },
+];
+
+const inputClassName =
+  "w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary";
+
 export function RegisterForm() {
   const router = useRouter();
   const t = useTranslations();
@@ -38,6 +62,7 @@ export function RegisterForm() {
   });
 
   const accountType = watch("accountType");
+  const activeAccountType = ACCOUNT_TYPES.find((type) => type.value === accountType) ?? ACCOUNT_TYPES[0];
 
   const onSubmit = (data: SignUpInput) => {
     clearErrors("root");
@@ -102,7 +127,7 @@ export function RegisterForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5">
       {errors.root?.message && (
         <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {errors.root.message}
@@ -115,58 +140,38 @@ export function RegisterForm() {
           name="accountType"
           control={control}
           render={({ field }) => (
-            <div className="grid gap-2">
-              <button
-                type="button"
-                onClick={() => field.onChange("member")}
-                className={cn(
-                  "rounded-xl border p-3 text-left transition",
-                  field.value === "member"
-                    ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                    : "border-border hover:border-primary/30",
-                )}
-              >
-                <div className="flex items-center gap-2 font-medium text-foreground">
-                  <Users className="h-4 w-4 text-primary" />
-                  {t("auth.accountTypeMember")}
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">{t("auth.accountTypeMemberHelp")}</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => field.onChange("organizer")}
-                className={cn(
-                  "rounded-xl border p-3 text-left transition",
-                  field.value === "organizer"
-                    ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                    : "border-border hover:border-primary/30",
-                )}
-              >
-                <div className="flex items-center gap-2 font-medium text-foreground">
-                  <Calendar className="h-4 w-4 text-primary" />
-                  {t("auth.accountTypeOrganizer")}
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">{t("auth.accountTypeOrganizerHelp")}</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => field.onChange("entity_admin")}
-                className={cn(
-                  "rounded-xl border p-3 text-left transition",
-                  field.value === "entity_admin"
-                    ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                    : "border-border hover:border-primary/30",
-                )}
-              >
-                <div className="flex items-center gap-2 font-medium text-foreground">
-                  <Building2 className="h-4 w-4 text-primary" />
-                  {t("auth.accountTypeEntityAdmin")}
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">{t("auth.accountTypeEntityAdminHelp")}</p>
-              </button>
+            <div
+              role="tablist"
+              aria-label={t("auth.accountTypeLabel")}
+              className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-muted/40 p-1"
+            >
+              {ACCOUNT_TYPES.map((type) => {
+                const Icon = type.icon;
+                const isActive = field.value === type.value;
+
+                return (
+                  <button
+                    key={type.value}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => field.onChange(type.value)}
+                    className={cn(
+                      "flex flex-col items-center gap-1 rounded-lg px-2 py-2 text-center transition sm:flex-row sm:justify-center sm:gap-1.5",
+                      isActive
+                        ? "bg-background text-foreground shadow-sm ring-1 ring-primary/25"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <Icon className={cn("h-4 w-4 shrink-0", isActive && "text-primary")} />
+                    <span className="text-[11px] font-medium leading-tight sm:text-sm">{t(type.tabKey)}</span>
+                  </button>
+                );
+              })}
             </div>
           )}
         />
+        <p className="text-xs text-muted-foreground">{t(activeAccountType.helpKey)}</p>
 
         {accountType === "entity_admin" && (
           <div>
@@ -176,7 +181,7 @@ export function RegisterForm() {
             <input
               {...register("orgName")}
               placeholder={t("auth.orgNamePlaceholder")}
-              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm"
+              className={inputClassName}
             />
             {errors.orgName && (
               <p className="mt-1 text-xs text-destructive">{getValidationMessage(errors.orgName.message, t)}</p>
@@ -193,7 +198,7 @@ export function RegisterForm() {
               {...register("inviteCode", { required: accountType === "organizer" })}
               placeholder={t("auth.inviteCodePlaceholder")}
               required={accountType === "organizer"}
-              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm uppercase"
+              className={cn(inputClassName, "uppercase")}
             />
             {errors.inviteCode && (
               <p className="mt-1 text-xs text-destructive">{getValidationMessage(errors.inviteCode.message, t)}</p>
@@ -211,85 +216,89 @@ export function RegisterForm() {
         )}
       </div>
 
-      <div>
-        <label className="mb-1.5 block text-sm font-medium text-foreground">{t("auth.fullName")}</label>
-        <input
-          {...register("name")}
-          placeholder={t("auth.yourName")}
-          className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          aria-invalid={!!errors.name}
-        />
-        {errors.name && (
-          <p className="mt-1 text-xs text-destructive">{getValidationMessage(errors.name.message, t)}</p>
-        )}
-      </div>
-
-      <div>
-        <label className="mb-1.5 block text-sm font-medium text-foreground">{t("auth.email")}</label>
-        <input
-          type="email"
-          {...register("email")}
-          placeholder={t("auth.emailPlaceholder")}
-          className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          aria-invalid={!!errors.email}
-        />
-        {errors.email && (
-          <p className="mt-1 text-xs text-destructive">{getValidationMessage(errors.email.message, t)}</p>
-        )}
-      </div>
-
-      <div>
-        <label className="mb-1.5 block text-sm font-medium text-foreground">{t("auth.password")}</label>
-        <div className="relative">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">{t("auth.fullName")}</label>
           <input
-            type={showPassword ? "text" : "password"}
-            {...register("password")}
-            placeholder={t("auth.min8Chars")}
-            className="w-full rounded-xl border border-border bg-background px-4 py-2.5 pr-11 text-sm"
-            aria-invalid={!!errors.password}
+            {...register("name")}
+            placeholder={t("auth.yourName")}
+            className={inputClassName}
+            aria-invalid={!!errors.name}
           />
-          <button
-            type="button"
-            onClick={() => setShowPassword((prev) => !prev)}
-            className="absolute inset-y-0 right-2 my-auto h-8 rounded-lg px-2 text-muted-foreground hover:bg-muted"
-            aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
-          >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
+          {errors.name && (
+            <p className="mt-1 text-xs text-destructive">{getValidationMessage(errors.name.message, t)}</p>
+          )}
         </div>
-        {errors.password && (
-          <p className="mt-1 text-xs text-destructive">{getValidationMessage(errors.password.message, t)}</p>
-        )}
+
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">{t("auth.email")}</label>
+          <input
+            type="email"
+            {...register("email")}
+            placeholder={t("auth.emailPlaceholder")}
+            className={inputClassName}
+            aria-invalid={!!errors.email}
+          />
+          {errors.email && (
+            <p className="mt-1 text-xs text-destructive">{getValidationMessage(errors.email.message, t)}</p>
+          )}
+        </div>
       </div>
 
-      <div>
-        <label className="mb-1.5 block text-sm font-medium text-foreground">{t("auth.confirmPassword")}</label>
-        <div className="relative">
-          <input
-            type={showConfirmPassword ? "text" : "password"}
-            {...register("confirmPassword")}
-            placeholder={t("auth.repeatPassword")}
-            className="w-full rounded-xl border border-border bg-background px-4 py-2.5 pr-11 text-sm"
-            aria-invalid={!!errors.confirmPassword}
-          />
-          <button
-            type="button"
-            onClick={() => setShowConfirmPassword((prev) => !prev)}
-            className="absolute inset-y-0 right-2 my-auto h-8 rounded-lg px-2 text-muted-foreground hover:bg-muted"
-            aria-label={showConfirmPassword ? t("auth.hideConfirmPassword") : t("auth.showConfirmPassword")}
-          >
-            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">{t("auth.password")}</label>
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              {...register("password")}
+              placeholder={t("auth.min8Chars")}
+              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 pr-11 text-sm"
+              aria-invalid={!!errors.password}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute inset-y-0 right-2 my-auto h-8 rounded-lg px-2 text-muted-foreground hover:bg-muted"
+              aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+          {errors.password && (
+            <p className="mt-1 text-xs text-destructive">{getValidationMessage(errors.password.message, t)}</p>
+          )}
         </div>
-        {errors.confirmPassword && (
-          <p className="mt-1 text-xs text-destructive">{getValidationMessage(errors.confirmPassword.message, t)}</p>
-        )}
+
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">{t("auth.confirmPassword")}</label>
+          <div className="relative">
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              {...register("confirmPassword")}
+              placeholder={t("auth.repeatPassword")}
+              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 pr-11 text-sm"
+              aria-invalid={!!errors.confirmPassword}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword((prev) => !prev)}
+              className="absolute inset-y-0 right-2 my-auto h-8 rounded-lg px-2 text-muted-foreground hover:bg-muted"
+              aria-label={showConfirmPassword ? t("auth.hideConfirmPassword") : t("auth.showConfirmPassword")}
+            >
+              {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+          {errors.confirmPassword && (
+            <p className="mt-1 text-xs text-destructive">{getValidationMessage(errors.confirmPassword.message, t)}</p>
+          )}
+        </div>
       </div>
 
       <button
         type="submit"
         disabled={isPending}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
       >
         {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("auth.createAccount")}
       </button>
