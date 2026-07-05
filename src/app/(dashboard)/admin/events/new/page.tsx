@@ -8,8 +8,13 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { normalizeRole } from "@/lib/auth/rbac";
 
+import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
+import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
+
 export default async function AdminNewEventPage() {
     const { t } = await getI18n();
+    const staffBase = await getStaffBaseFromRequest();
+    const eventsPath = staffDashboardPath(staffBase, "events");
     const categories = await getCategories();
     const session = await auth.api.getSession({ headers: await headers() });
     const role = normalizeRole(session?.user?.role);
@@ -24,7 +29,7 @@ export default async function AdminNewEventPage() {
         <div className="space-y-6">
             <div>
                 <Link
-                    href="/admin/events"
+                    href={eventsPath}
                     className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                     <ArrowLeft className="h-3.5 w-3.5" />
@@ -38,7 +43,7 @@ export default async function AdminNewEventPage() {
                 </p>
             </div>
 
-            <EventForm redirectPath="/admin/events" categories={categories} canFeature />
+            <EventForm redirectPath={eventsPath} categories={categories} canFeature />
         </div>
     );
 }

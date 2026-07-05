@@ -7,11 +7,14 @@ import { PublicMobileMenu } from "@/components/shared/PublicMobileMenu";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { BrandLogo } from "@/components/shared/BrandLogo";
 
+import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";
+
 function getDashboardPath(role?: string | null) {
   const normalizedRole = normalizeRole(role);
   if (normalizedRole === "organizer") return "/organizer";
-  if (normalizedRole === "admin" || normalizedRole === "super_admin")
-    return "/admin";
+  if (normalizedRole === "admin" || normalizedRole === "super_admin") {
+    return getStaffDashboardHome(role);
+  }
   return "/member";
 }
 

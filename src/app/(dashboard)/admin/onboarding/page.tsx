@@ -12,7 +12,7 @@ export default async function AdminOnboardingPage() {
   if (!session?.user) redirect("/login");
 
   const role = normalizeRole(session.user.role);
-  if (role === "super_admin") redirect("/admin");
+  if (role === "super_admin") redirect("/superadmin");
   if (role !== "admin") redirect("/organizer");
 
   const org = await OrganizationService.getOrganizationForUser(session.user.id);

@@ -7,6 +7,7 @@ import { SeedRolesButton } from "@/components/dashboard";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";
 import { getI18n } from "@/lib/i18n/server";
 
 async function getRolesWithCounts() {
@@ -29,7 +30,7 @@ export default async function AdminRolesPage() {
     const { locale, t } = await getI18n();
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user) redirect("/login");
-    if (session.user.role !== "super_admin") redirect("/admin");
+    if (session.user.role !== "super_admin") redirect(getStaffDashboardHome(session.user.role));
 
     const rolesWithCounts = await getRolesWithCounts();
     const isEmpty = rolesWithCounts.length === 0;

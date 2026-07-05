@@ -14,6 +14,9 @@ import {
   isUnassignedAdminScope,
   resolveAdminScope,
 } from "@/lib/organizations/admin-scope";
+import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";
+import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
+import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
 
 interface AdminAuditPageProps {
   searchParams: Promise<{
@@ -68,8 +71,11 @@ export default async function AdminAuditPage({ searchParams }: AdminAuditPagePro
   const isSuperAdmin = role === "super_admin";
   const isEntityAdmin = adminScope.mode === "org";
 
-  if (!isSuperAdmin && !isEntityAdmin) redirect("/admin");
-  if (isUnassignedAdminScope(adminScope)) redirect("/admin");
+  const staffBase = await getStaffBaseFromRequest();
+  const auditPath = staffDashboardPath(staffBase, "audit");
+
+  if (!isSuperAdmin && !isEntityAdmin) redirect(getStaffDashboardHome(role));
+  if (isUnassignedAdminScope(adminScope)) redirect(getStaffDashboardHome(role));
 
   const { locale, t } = await getI18n();
   const params = await searchParams;
@@ -167,7 +173,7 @@ export default async function AdminAuditPage({ searchParams }: AdminAuditPagePro
       </div>
 
       <div className="bg-card border border-border/60 rounded-3xl p-6 shadow-sm">
-        <form method="GET" action="/admin/audit" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+        <form method="GET" action={auditPath} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-muted-foreground block">
               {t("dashboard.admin.auditSearchLabel")}
@@ -232,7 +238,7 @@ export default async function AdminAuditPage({ searchParams }: AdminAuditPagePro
             </button>
             {(params.search || params.action || params.entityType) && (
               <Link
-                href="/admin/audit"
+                href={auditPath}
                 className="rounded-xl border border-border bg-background hover:bg-secondary px-3 text-xs font-semibold flex items-center justify-center text-foreground transition-all h-full"
               >
                 {t("dashboard.admin.auditClear")}
@@ -313,7 +319,7 @@ export default async function AdminAuditPage({ searchParams }: AdminAuditPagePro
           </div>
 
           <TablePagination
-            basePath="/admin/audit"
+            basePath={auditPath}
             currentPage={safePage}
             totalPages={totalPages}
             totalItems={total}

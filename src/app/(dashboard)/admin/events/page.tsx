@@ -13,6 +13,8 @@ import { getExportEventOptions } from "@/actions/exports";
 import { getCategories } from "@/actions/events";
 import { Suspense } from "react";
 import { resolveAdminScope, scopeEventCondition } from "@/lib/organizations/admin-scope";
+import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
+import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
 
 interface AdminEventsPageProps {
     searchParams: Promise<{
@@ -31,6 +33,8 @@ const EVENT_STATUS_VALUES = ["all", "published", "draft", "cancelled", "complete
 
 export default async function AdminEventsPage({ searchParams }: AdminEventsPageProps) {
     const { locale, t } = await getI18n();
+    const staffBase = await getStaffBaseFromRequest();
+    const eventsPath = staffDashboardPath(staffBase, "events");
     const adminScope = await resolveAdminScope();
     const orgEventFilter = scopeEventCondition(adminScope);
     const params = await searchParams;
@@ -145,7 +149,7 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                     </p>
                 </div>
                 <Link
-                    href="/admin/events/new"
+                    href={`${eventsPath}/new`}
                     className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 sm:w-auto"
                 >
                     <Plus className="h-4 w-4" />
@@ -173,7 +177,7 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                         </p>
                     ) : (
                         <Link
-                            href="/admin/events/new"
+                            href={`${eventsPath}/new`}
                             className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                         >
                             <Plus className="h-4 w-4" /> {t("common.createEvent")}
@@ -256,7 +260,7 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                                                         {t("common.view")}
                                                     </Link>
                                                     <Link
-                                                        href={`/admin/events/${event.id}`}
+                                                        href={`${eventsPath}/${event.id}`}
                                                         className="text-blue-600 hover:underline dark:text-blue-400 font-semibold"
                                                     >
                                                         {t("common.edit")}
@@ -271,7 +275,7 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                         </table>
                     </div>
                     <TablePagination
-                        basePath="/admin/events"
+                        basePath={eventsPath}
                         currentPage={safePage}
                         totalPages={totalPages}
                         totalItems={total}

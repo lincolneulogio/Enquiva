@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { DashboardSidebar, DashboardTopbar } from "@/components/dashboard";
 import { normalizeRole } from "@/lib/auth/rbac";
+import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";
 import { DashboardAICopilot } from "@/components/dashboard/IACopilot/DashboardAICopilot";
 
 export default async function MemberLayout({
@@ -20,7 +21,7 @@ export default async function MemberLayout({
   if (!session?.user) redirect("/login");
 
   const role = normalizeRole(session.user.role);
-  if (role === "super_admin" || role === "admin") redirect("/admin");
+  if (role === "super_admin" || role === "admin") redirect(getStaffDashboardHome(role));
   if (role === "organizer") redirect("/organizer");
 
   return (

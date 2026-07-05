@@ -1,19 +1,24 @@
 import Link from "next/link";
 import { ShieldAlert, ArrowRight } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
+import { staffDashboardPath, type StaffDashboardBase } from "@/lib/navigation/dashboard-paths";
 
 type AdminPendingPaymentsAlertProps = {
   count: number;
+  staffBase?: StaffDashboardBase;
 };
 
-export async function AdminPendingPaymentsAlert({ count }: AdminPendingPaymentsAlertProps) {
+export async function AdminPendingPaymentsAlert({
+  count,
+  staffBase = "/admin",
+}: AdminPendingPaymentsAlertProps) {
   if (count <= 0) return null;
 
   const { t } = await getI18n();
 
   return (
     <Link
-      href="/admin/payments?status=pending"
+      href={`${staffDashboardPath(staffBase, "payments")}?status=pending`}
       className="flex items-center justify-between gap-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 px-5 py-4 transition-colors hover:bg-amber-500/10"
     >
       <div className="flex items-center gap-3">

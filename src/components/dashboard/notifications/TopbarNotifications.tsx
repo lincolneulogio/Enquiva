@@ -29,7 +29,8 @@ interface TopbarNotificationsProps {
 function roleNotificationsPath(role?: string | null) {
     if (role === "organizer") return "/organizer/notifications";
     if (role === "member") return "/member/notifications";
-    if (role === "admin" || role === "super_admin") return "/admin/notifications";
+    if (role === "super_admin") return "/superadmin/notifications";
+    if (role === "admin") return "/admin/notifications";
     return "/dashboard";
 }
 

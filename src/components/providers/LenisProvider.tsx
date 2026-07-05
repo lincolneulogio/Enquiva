@@ -8,7 +8,7 @@ interface LenisProviderProps {
     children: ReactNode;
 }
 
-const DASHBOARD_PREFIXES = ["/dashboard", "/admin", "/member", "/organizer"];
+const DASHBOARD_PREFIXES = ["/dashboard", "/admin", "/superadmin", "/member", "/organizer"];
 
 function isDashboardPath(pathname: string): boolean {
     return DASHBOARD_PREFIXES.some(

@@ -10,12 +10,13 @@ import {
 import { getPermissionMatrix } from "@/actions/admin";
 import { PermissionToggleCell } from "@/components/dashboard";
 import { getI18n } from "@/lib/i18n/server";
+import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";
 import { getPermissionLabel, getRoleLabel } from "@/lib/i18n/core";
 
 export default async function AdminPermissionsPage() {
     const { locale, t } = await getI18n();
     const session = await auth.api.getSession({ headers: await headers() });
-    if (session?.user?.role !== "super_admin") redirect("/admin");
+    if (session?.user?.role !== "super_admin") redirect(getStaffDashboardHome(session?.user?.role));
 
     const currentRole = normalizeRole(session.user.role);
     const matrix = await getPermissionMatrix();

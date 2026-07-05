@@ -12,6 +12,8 @@ import { getAdminDashboardStats } from "@/lib/analytics/admin";
 import { getDashboardRevenueSnapshot } from "@/lib/analytics/platform-revenue";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
+import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
+import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
 import { resolveAdminScope, getOrganizationIdFromScope } from "@/lib/organizations/admin-scope";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -19,6 +21,7 @@ import { headers } from "next/headers";
 export default async function AdminDashboardPage() {
   const { locale, t } = await getI18n();
   const session = await auth.api.getSession({ headers: await headers() });
+  const staffBase = await getStaffBaseFromRequest();
   const adminScope = await resolveAdminScope();
   const organizationId = getOrganizationIdFromScope(adminScope);
   const isEntityScope = adminScope.mode === "org";
@@ -41,7 +44,7 @@ export default async function AdminDashboardPage() {
       color: "text-primary",
       iconBg: "bg-primary/10",
       Icon: Users,
-      href: "/admin/users",
+      href: staffDashboardPath(staffBase, "users"),
       delta: stats.comparisons.totalUsers,
     },
     {
@@ -50,7 +53,7 @@ export default async function AdminDashboardPage() {
       color: "text-blue-600",
       iconBg: "bg-blue-500/10",
       Icon: CalendarDays,
-      href: "/admin/events",
+      href: staffDashboardPath(staffBase, "events"),
       delta: stats.comparisons.totalEvents,
     },
     {
@@ -59,7 +62,7 @@ export default async function AdminDashboardPage() {
       color: "text-green-600",
       iconBg: "bg-green-500/10",
       Icon: BadgeCheck,
-      href: "/admin/events?status=published",
+      href: `${staffDashboardPath(staffBase, "events")}?status=published`,
     },
     {
       label: t("dashboard.admin.totalRegistrations"),
@@ -67,7 +70,7 @@ export default async function AdminDashboardPage() {
       color: "text-accent",
       iconBg: "bg-accent/10",
       Icon: Ticket,
-      href: "/admin/registrations",
+      href: staffDashboardPath(staffBase, "registrations"),
       delta: stats.comparisons.totalRegistrations,
     },
   ];
@@ -94,7 +97,7 @@ export default async function AdminDashboardPage() {
         />
       ) : null}
 
-      <AdminPendingPaymentsAlert count={stats.pendingPaymentsCount} />
+      <AdminPendingPaymentsAlert count={stats.pendingPaymentsCount} staffBase={staffBase} />
 
       {isEntityScope ? (
         <AdminStatsSectionHeader scope="entity" />
@@ -122,7 +125,7 @@ export default async function AdminDashboardPage() {
           <h2 className="font-display text-lg font-semibold text-foreground">
             {t("dashboard.admin.analyticsQuickLinksTitle")}
           </h2>
-          <AdminAnalyticsQuickLinks />
+          <AdminAnalyticsQuickLinks staffBase={staffBase} />
         </section>
       ) : isEntityScope ? (
         <section className="space-y-4">
@@ -130,7 +133,7 @@ export default async function AdminDashboardPage() {
             {t("dashboard.admin.analyticsQuickLinksTitle")}
           </h2>
           <Link
-            href="/admin/analytics"
+            href={staffDashboardPath(staffBase, "analytics")}
             className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
           >
             {t("dashboard.admin.analyticsEntityLink")}

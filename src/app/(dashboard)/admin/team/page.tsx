@@ -6,13 +6,15 @@ import { AdminTeamPanel } from "@/components/dashboard/admin/AdminTeamPanel";
 import { getI18n } from "@/lib/i18n/server";
 import { normalizeRole } from "@/lib/auth/rbac";
 
+import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";
+
 export default async function AdminTeamPage() {
   const { t } = await getI18n();
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) redirect("/login");
 
   const role = normalizeRole(session.user.role);
-  if (role !== "admin" && role !== "super_admin") redirect("/admin");
+  if (role !== "admin") redirect(getStaffDashboardHome(role));
 
   const ctx = await getMyOrganization();
   if (!ctx && role === "admin") {

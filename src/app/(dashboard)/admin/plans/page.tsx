@@ -5,9 +5,11 @@ import { getAllPlans, getOrganizersForPlanAssignment } from "@/actions/admin/pla
 import { PlansManager } from "@/components/dashboard/admin/PlansManager";
 import { SubscriptionService } from "@/lib/billing/subscription.service";
 
+import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";
+
 export default async function AdminPlansPage() {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (session?.user?.role !== "super_admin") redirect("/admin");
+  if (session?.user?.role !== "super_admin") redirect(getStaffDashboardHome(session?.user?.role));
 
   await SubscriptionService.ensureDefaultPlans();
   const [plans, organizers] = await Promise.all([getAllPlans(), getOrganizersForPlanAssignment()]);

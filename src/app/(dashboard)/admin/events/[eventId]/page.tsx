@@ -15,8 +15,13 @@ interface AdminEditEventPageProps {
     params: Promise<{ eventId: string }>;
 }
 
+import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
+import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
+
 export default async function AdminEditEventPage({ params }: AdminEditEventPageProps) {
     const { t } = await getI18n();
+    const staffBase = await getStaffBaseFromRequest();
+    const eventsPath = staffDashboardPath(staffBase, "events");
     const { eventId } = await params;
 
     const session = await auth.api.getSession({ headers: await headers() });
@@ -42,7 +47,7 @@ export default async function AdminEditEventPage({ params }: AdminEditEventPageP
         <div className="space-y-6">
             <div>
                 <Link
-                    href="/admin/events"
+                    href={eventsPath}
                     className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                     <ArrowLeft className="h-3.5 w-3.5" />
@@ -54,7 +59,7 @@ export default async function AdminEditEventPage({ params }: AdminEditEventPageP
                 <p className="mt-1 text-muted-foreground">{t("dashboard.admin.updateEventDetails", { title: event.title })}</p>
             </div>
 
-            <EventForm event={event} redirectPath="/admin/events" categories={categories} canFeature />
+            <EventForm event={event} redirectPath={eventsPath} categories={categories} canFeature />
         </div>
     );
 }

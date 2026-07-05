@@ -6,6 +6,8 @@ import { getAdminDashboardStats, type AdminStatsRange } from "@/lib/analytics/ad
 import { getI18n } from "@/lib/i18n/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { getStaffDashboardHome, staffDashboardPath } from "@/lib/navigation/dashboard-paths";
+import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
 import { resolveAdminScope } from "@/lib/organizations/admin-scope";
 
 const RANGE_OPTIONS: AdminStatsRange[] = ["30d", "90d", "12m", "all"];
@@ -32,7 +34,8 @@ export default async function AdminMyEventsAnalyticsPage({
     session?.user?.role !== "super_admin" ||
     !session.user.id
   ) {
-    redirect("/admin/analytics");
+    const staffBase = await getStaffBaseFromRequest();
+    redirect(staffDashboardPath(staffBase, "analytics"));
   }
 
   const { t } = await getI18n();

@@ -109,6 +109,7 @@ const organizerSections = (options: OrganizerNavOptions): NavSection[] =>
 type AdminNavOptions = {
   variant: "super_admin" | "entity_admin" | "entity_admin_unassigned";
   showEntityTeam?: boolean;
+  basePath?: "/admin" | "/superadmin";
 };
 
 const adminUnassignedSections = (): NavSection[] =>
@@ -136,6 +137,8 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
     return adminUnassignedSections();
   }
 
+  const base = options.basePath ?? (options.variant === "super_admin" ? "/superadmin" : "/admin");
+  const p = (path: string) => (path ? `${base}${path}` : base);
   const isSuperAdmin = options.variant === "super_admin";
   const isEntityAdmin = options.variant === "entity_admin";
 
@@ -143,28 +146,28 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
   {
     titleKey: "dashboard.sidebar.groups.core",
     items: [
-      { labelKey: "dashboard.sidebar.admin.overview", href: "/admin", icon: LayoutDashboard },
+      { labelKey: "dashboard.sidebar.admin.overview", href: p(""), icon: LayoutDashboard },
       ...(isSuperAdmin
         ? [
             {
               labelKey: "dashboard.sidebar.admin.analyticsGlobal",
-              href: "/admin/analytics",
+              href: p("/analytics"),
               icon: BarChart3,
             },
             {
               labelKey: "dashboard.sidebar.admin.analyticsOwn",
-              href: "/admin/my-events/analytics",
+              href: p("/my-events/analytics"),
               icon: LineChart,
             },
           ]
         : [
             {
               labelKey: "dashboard.sidebar.admin.analytics",
-              href: "/admin/analytics",
+              href: p("/analytics"),
               icon: BarChart3,
             },
           ]),
-      { labelKey: "dashboard.sidebar.admin.notifications", href: "/admin/notifications", icon: Bell },
+      { labelKey: "dashboard.sidebar.admin.notifications", href: p("/notifications"), icon: Bell },
     ],
   },
   {
@@ -174,35 +177,35 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
         labelKey: isEntityAdmin
           ? "dashboard.sidebar.admin.entityEvents"
           : "dashboard.sidebar.admin.allEvents",
-        href: "/admin/events",
+        href: p("/events"),
         icon: Calendar,
       },
-      { labelKey: "dashboard.sidebar.admin.categories", href: "/admin/categories", icon: ClipboardList },
-      { labelKey: "dashboard.sidebar.admin.users", href: "/admin/users", icon: UserCog },
+      { labelKey: "dashboard.sidebar.admin.categories", href: p("/categories"), icon: ClipboardList },
+      { labelKey: "dashboard.sidebar.admin.users", href: p("/users"), icon: UserCog },
       ...(options.showEntityTeam
         ? [{ labelKey: "dashboard.sidebar.admin.myEntity", href: "/admin/team", icon: Users }]
         : []),
       ...(isSuperAdmin
-        ? [{ labelKey: "dashboard.sidebar.admin.roles", href: "/admin/roles", icon: Shield }]
+        ? [{ labelKey: "dashboard.sidebar.admin.roles", href: p("/roles"), icon: Shield }]
         : []),
-      { labelKey: "dashboard.sidebar.admin.registrations", href: "/admin/registrations", icon: ClipboardList },
+      { labelKey: "dashboard.sidebar.admin.registrations", href: p("/registrations"), icon: ClipboardList },
       ...(isEntityAdmin || isSuperAdmin
-        ? [{ labelKey: "dashboard.sidebar.admin.broadcasts", href: "/admin/broadcasts", icon: Megaphone }]
+        ? [{ labelKey: "dashboard.sidebar.admin.broadcasts", href: p("/broadcasts"), icon: Megaphone }]
         : []),
     ],
   },
   {
     titleKey: "dashboard.sidebar.groups.finances",
     items: [
-      { labelKey: "dashboard.sidebar.admin.payments", href: "/admin/payments", icon: CreditCard },
+      { labelKey: "dashboard.sidebar.admin.payments", href: p("/payments"), icon: CreditCard },
       ...(isSuperAdmin
-        ? [{ labelKey: "dashboard.sidebar.admin.platformPayments", href: "/admin/payment-methods", icon: Wallet }]
+        ? [{ labelKey: "dashboard.sidebar.admin.platformPayments", href: p("/payment-methods"), icon: Wallet }]
         : []),
-      { labelKey: "dashboard.sidebar.admin.transport", href: "/admin/transport", icon: Bus },
+      { labelKey: "dashboard.sidebar.admin.transport", href: p("/transport"), icon: Bus },
       ...(isSuperAdmin
         ? [
-            { labelKey: "dashboard.sidebar.admin.plans", href: "/admin/plans", icon: Crown },
-            { labelKey: "dashboard.sidebar.admin.platformBilling", href: "/admin/billing", icon: BarChart3 },
+            { labelKey: "dashboard.sidebar.admin.plans", href: p("/plans"), icon: Crown },
+            { labelKey: "dashboard.sidebar.admin.platformBilling", href: p("/billing"), icon: BarChart3 },
           ]
         : isEntityAdmin
           ? [{ labelKey: "dashboard.sidebar.admin.entityPlan", href: "/admin/plan", icon: Crown }]
@@ -212,22 +215,22 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
   {
     titleKey: "dashboard.sidebar.groups.tools",
     items: [
-      { labelKey: "dashboard.sidebar.admin.scan", href: "/admin/scan", icon: QrCode },
+      { labelKey: "dashboard.sidebar.admin.scan", href: p("/scan"), icon: QrCode },
       ...(isSuperAdmin
         ? [
-            { labelKey: "dashboard.sidebar.admin.audit", href: "/admin/audit", icon: Shield },
-            { labelKey: "dashboard.sidebar.admin.permissions", href: "/admin/permissions", icon: KeyRound },
+            { labelKey: "dashboard.sidebar.admin.audit", href: p("/audit"), icon: Shield },
+            { labelKey: "dashboard.sidebar.admin.permissions", href: p("/permissions"), icon: KeyRound },
           ]
         : isEntityAdmin
-          ? [{ labelKey: "dashboard.sidebar.admin.audit", href: "/admin/audit", icon: Shield }]
+          ? [{ labelKey: "dashboard.sidebar.admin.audit", href: p("/audit"), icon: Shield }]
           : []),
     ],
   },
   {
     titleKey: "dashboard.sidebar.groups.account",
     items: [
-      { labelKey: "dashboard.sidebar.admin.profile", href: "/admin/profile", icon: User },
-      { labelKey: "dashboard.sidebar.admin.settings", href: "/admin/settings", icon: Settings },
+      { labelKey: "dashboard.sidebar.admin.profile", href: p("/profile"), icon: User },
+      { labelKey: "dashboard.sidebar.admin.settings", href: p("/settings"), icon: Settings },
     ],
   },
   ]);

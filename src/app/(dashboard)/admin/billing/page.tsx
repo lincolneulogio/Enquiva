@@ -10,10 +10,12 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq, inArray } from "drizzle-orm";
 
+import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";
+
 export default async function AdminBillingPage() {
   const { t } = await getI18n();
   const session = await auth.api.getSession({ headers: await headers() });
-  if (session?.user?.role !== "super_admin") redirect("/admin");
+  if (session?.user?.role !== "super_admin") redirect(getStaffDashboardHome(session?.user?.role));
 
   const [revenue, pendingRows] = await Promise.all([
     getPlatformRevenue(),

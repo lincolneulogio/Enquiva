@@ -11,6 +11,9 @@ import {
 import { OrganizerBillingClient } from "@/components/dashboard/organizer/OrganizerBillingClient";
 import { env } from "@/env";
 import { isPlatformCulqiConfigured } from "@/lib/culqi/client";
+import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";
+import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
+import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
 import { getI18n } from "@/lib/i18n/server";
 
 export default async function AdminEntityPlanPage() {
@@ -19,8 +22,8 @@ export default async function AdminEntityPlanPage() {
   if (!session?.user) redirect("/login");
 
   const role = session.user.role;
-  if (role === "super_admin") redirect("/admin/billing");
-  if (role !== "admin") redirect("/admin");
+  if (role === "super_admin") redirect("/superadmin/billing");
+  if (role !== "admin") redirect(getStaffDashboardHome(role));
 
   const [subscription, availablePlans, platformMethods, pendingPayment, paymentHistory] =
     await Promise.all([

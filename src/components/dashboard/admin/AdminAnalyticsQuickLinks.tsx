@@ -1,20 +1,25 @@
 import Link from "next/link";
 import { BarChart3, UserCircle2, ArrowRight } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
+import { staffDashboardPath, type StaffDashboardBase } from "@/lib/navigation/dashboard-paths";
 
-export async function AdminAnalyticsQuickLinks() {
+type AdminAnalyticsQuickLinksProps = {
+  staffBase?: StaffDashboardBase;
+};
+
+export async function AdminAnalyticsQuickLinks({ staffBase = "/superadmin" }: AdminAnalyticsQuickLinksProps) {
   const { t } = await getI18n();
 
   const links = [
     {
-      href: "/admin/analytics",
+      href: staffDashboardPath(staffBase, "analytics"),
       titleKey: "analyticsGlobalLinkTitle" as const,
       descriptionKey: "analyticsGlobalLinkDescription" as const,
       Icon: BarChart3,
       iconClass: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
     },
     {
-      href: "/admin/my-events/analytics",
+      href: staffDashboardPath(staffBase, "my-events/analytics"),
       titleKey: "analyticsOwnLinkTitle" as const,
       descriptionKey: "analyticsOwnLinkDescription" as const,
       Icon: UserCircle2,

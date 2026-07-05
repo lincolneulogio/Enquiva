@@ -8,6 +8,7 @@ import {
   isPathAllowedForUnassignedAdmin,
   isUnassignedAdminScope,
 } from "@/lib/organizations/admin-scope";
+import { mapAdminPathToSuperadmin } from "@/lib/navigation/dashboard-paths";
 import { DashboardAICopilot } from "@/components/dashboard/IACopilot/DashboardAICopilot";
 
 export default async function AdminLayout({
@@ -25,24 +26,27 @@ export default async function AdminLayout({
   if (!session?.user) redirect("/login");
 
   const role = normalizeRole(session.user.role);
-  if (role !== "super_admin" && role !== "admin") {
+  const requestHeaders = await headers();
+  const pathname = requestHeaders.get("x-pathname") ?? "";
+
+  if (role === "super_admin") {
+    redirect(mapAdminPathToSuperadmin(pathname));
+  }
+
+  if (role !== "admin") {
     if (role === "member") redirect("/member");
     redirect("/organizer");
   }
-  const isSuperAdmin = role === "super_admin";
+
   const adminScope = await resolveAdminScope();
-  const requestHeaders = await headers();
-  const pathname = requestHeaders.get("x-pathname") ?? "";
 
   if (isUnassignedAdminScope(adminScope) && !isPathAllowedForUnassignedAdmin(pathname)) {
     redirect("/admin/onboarding");
   }
 
-  const adminNavVariant = isSuperAdmin
-    ? "super_admin"
-    : isUnassignedAdminScope(adminScope)
-      ? "entity_admin_unassigned"
-      : "entity_admin";
+  const adminNavVariant = isUnassignedAdminScope(adminScope)
+    ? "entity_admin_unassigned"
+    : "entity_admin";
 
   return (
     <div className="flex min-h-screen bg-background">
