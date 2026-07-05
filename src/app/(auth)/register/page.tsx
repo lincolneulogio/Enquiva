@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 import { getI18n } from "@/lib/i18n/server";
 import { BrandLogo } from "@/components/shared/BrandLogo";
@@ -27,7 +28,9 @@ export default async function RegisterPage() {
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <RegisterForm />
+          <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted/40" />}>
+            <RegisterForm />
+          </Suspense>
         </div>
 
         <p className="mt-5 text-center text-sm text-muted-foreground sm:mt-6">

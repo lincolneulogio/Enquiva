@@ -31,7 +31,7 @@ function randomInviteCode() {
 
 export type SignupIntentPayload =
   | { type: "member" }
-  | { type: "organizer"; inviteCode: string }
+  | { type: "organizer"; inviteCode?: string }
   | { type: "entity_admin"; orgName: string };
 
 export class OrganizationService {
@@ -157,6 +157,26 @@ export class OrganizationService {
       .where(eq(users.id, input.userId));
 
     return org;
+  }
+
+  static async activateIndependentOrganizer(input: { userId: string }) {
+    const [user] = await db
+      .select({ organizationId: users.organizationId })
+      .from(users)
+      .where(eq(users.id, input.userId))
+      .limit(1);
+
+    if (!user) throw new Error("Usuario no encontrado.");
+    if (user.organizationId) throw new Error("Ya perteneces a una entidad.");
+
+    await db
+      .update(users)
+      .set({ role: "organizer", updatedAt: new Date() })
+      .where(eq(users.id, input.userId));
+
+    await SubscriptionService.getOrCreateSubscription(input.userId, "organizer");
+
+    return { success: true };
   }
 
   static async promoteUserInOrg(input: {
@@ -386,8 +406,11 @@ export class OrganizationService {
     try {
       const parsed = JSON.parse(raw) as SignupIntentPayload;
       if (parsed.type === "entity_admin" && parsed.orgName?.trim()) return parsed;
-      if (parsed.type === "organizer" && parsed.inviteCode?.trim()) {
-        return { type: "organizer", inviteCode: parsed.inviteCode.trim() };
+      if (parsed.type === "organizer") {
+        const inviteCode = parsed.inviteCode?.trim();
+        return inviteCode
+          ? { type: "organizer", inviteCode }
+          : { type: "organizer" };
       }
       if (parsed.type === "member") return parsed;
     } catch {

@@ -6,6 +6,7 @@ import { promoteOrgMember } from "@/actions/organizations";
 import { Copy, Users, KeyRound } from "lucide-react";
 import { getRoleLabel } from "@/lib/i18n/core";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
+import { InviteCodeShareButtons } from "@/components/dashboard/admin/InviteCodeShareButtons";
 import type { Organization } from "@/lib/db/schema";
 
 interface TeamRow {
@@ -53,21 +54,24 @@ export function AdminTeamPanel({ organization, team, isOwner }: AdminTeamPanelPr
         <h2 className="text-lg font-semibold text-foreground">{organization.name}</h2>
         <p className="mt-1 text-sm text-muted-foreground">{t("dashboard.admin.entityTeamIntro")}</p>
 
-        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
-          <KeyRound className="h-5 w-5 text-primary" />
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-muted-foreground">{t("dashboard.admin.inviteCodeLabel")}</p>
-            <p className="font-mono text-lg font-bold tracking-widest text-foreground">{organization.inviteCode}</p>
-            <p className="text-xs text-muted-foreground mt-1">{t("dashboard.admin.inviteCodeHelp")}</p>
+        <div className="mt-4 space-y-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <KeyRound className="h-5 w-5 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-muted-foreground">{t("dashboard.admin.inviteCodeLabel")}</p>
+              <p className="font-mono text-lg font-bold tracking-widest text-foreground">{organization.inviteCode}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{t("dashboard.admin.inviteCodeHelp")}</p>
+            </div>
+            <button
+              type="button"
+              onClick={copyCode}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
+            >
+              <Copy className="h-4 w-4" />
+              {t("dashboard.admin.copyInviteCode")}
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={copyCode}
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
-          >
-            <Copy className="h-4 w-4" />
-            {t("dashboard.admin.copyInviteCode")}
-          </button>
+          <InviteCodeShareButtons inviteCode={organization.inviteCode} entityName={organization.name} />
         </div>
       </div>
 

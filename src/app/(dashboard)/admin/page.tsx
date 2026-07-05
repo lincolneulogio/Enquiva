@@ -87,7 +87,12 @@ export default async function AdminDashboardPage() {
         </p>
       </div>
 
-      {isEntityScope ? <EntityInviteBanner inviteCode={adminScope.inviteCode} /> : null}
+      {isEntityScope ? (
+        <EntityInviteBanner
+          inviteCode={adminScope.inviteCode}
+          entityName={adminScope.organizationName}
+        />
+      ) : null}
 
       <AdminPendingPaymentsAlert count={stats.pendingPaymentsCount} />
 

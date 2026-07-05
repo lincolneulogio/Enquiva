@@ -17,6 +17,8 @@ const validationMessageMap: Record<string, string> = {
     "Please confirm your password": "auth.validationConfirmPasswordRequired",
     "Passwords do not match": "auth.validationPasswordsDoNotMatch",
     "Password is required": "auth.validationPasswordRequired",
+    "Invite code is required": "auth.validationInviteCodeRequired",
+    "Organization name is required": "auth.validationOrgNameRequired",
 };
 
 export function getValidationMessage(rawMessage: string | undefined, t: TranslateFn): string {

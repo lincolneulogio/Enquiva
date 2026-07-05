@@ -17,6 +17,7 @@ export const signUpSchema = z
   .object({
     ...baseSignUpFields,
     accountType: z.enum(["member", "organizer", "entity_admin"]),
+    organizerLinkMode: z.enum(["independent", "entity"]).optional(),
     orgName: z.string().trim().max(120).optional(),
     inviteCode: z.string().trim().max(20).optional(),
   })
@@ -30,7 +31,9 @@ export const signUpSchema = z
   )
   .refine(
     (data) =>
-      data.accountType !== "organizer" || (data.inviteCode?.trim().length ?? 0) >= 4,
+      data.accountType !== "organizer" ||
+      data.organizerLinkMode !== "entity" ||
+      (data.inviteCode?.trim().length ?? 0) >= 4,
     { message: "Invite code is required", path: ["inviteCode"] },
   );
 
@@ -48,12 +51,15 @@ export function buildSignupPayload(data: SignUpInput) {
     return { type: "entity_admin" as const, orgName: data.orgName!.trim() };
   }
   if (data.accountType === "organizer") {
-    const code = data.inviteCode?.trim();
-    if (!code) throw new Error("Invite code is required");
-    return {
-      type: "organizer" as const,
-      inviteCode: code,
-    };
+    if (data.organizerLinkMode === "entity") {
+      const code = data.inviteCode?.trim();
+      if (!code) throw new Error("Invite code is required");
+      return {
+        type: "organizer" as const,
+        inviteCode: code,
+      };
+    }
+    return { type: "organizer" as const };
   }
   return { type: "member" as const };
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { checkAuthIdentityByEmail, sendVerificationCode } from "@/actions/auth";
@@ -51,17 +51,30 @@ export function RegisterForm() {
     setError,
     clearErrors,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<SignUpInput>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
       accountType: "member",
+      organizerLinkMode: "independent",
       orgName: "",
       inviteCode: "",
     },
   });
 
   const accountType = watch("accountType");
+  const organizerLinkMode = watch("organizerLinkMode");
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const invite = searchParams.get("invite")?.trim().toUpperCase();
+    if (!invite || invite.length < 4) return;
+
+    setValue("accountType", "organizer");
+    setValue("organizerLinkMode", "entity");
+    setValue("inviteCode", invite);
+  }, [searchParams, setValue]);
   const activeAccountType = ACCOUNT_TYPES.find((type) => type.value === accountType) ?? ACCOUNT_TYPES[0];
 
   const onSubmit = (data: SignUpInput) => {
@@ -190,20 +203,68 @@ export function RegisterForm() {
         )}
 
         {accountType === "organizer" && (
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">
-              {t("auth.inviteCodeLabel")}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground">
+              {t("auth.organizerLinkModeLabel")}
             </label>
-            <input
-              {...register("inviteCode", { required: accountType === "organizer" })}
-              placeholder={t("auth.inviteCodePlaceholder")}
-              required={accountType === "organizer"}
-              className={cn(inputClassName, "uppercase")}
+            <Controller
+              name="organizerLinkMode"
+              control={control}
+              render={({ field }) => (
+                <div className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-muted/40 p-1">
+                  <button
+                    type="button"
+                    onClick={() => field.onChange("independent")}
+                    className={cn(
+                      "rounded-lg px-3 py-2 text-left transition",
+                      field.value === "independent"
+                        ? "bg-background text-foreground shadow-sm ring-1 ring-primary/25"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <span className="block text-sm font-medium">{t("auth.organizerLinkIndependent")}</span>
+                    <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
+                      {t("auth.organizerLinkIndependentHelp")}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => field.onChange("entity")}
+                    className={cn(
+                      "rounded-lg px-3 py-2 text-left transition",
+                      field.value === "entity"
+                        ? "bg-background text-foreground shadow-sm ring-1 ring-primary/25"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <span className="block text-sm font-medium">{t("auth.organizerLinkEntity")}</span>
+                    <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
+                      {t("auth.organizerLinkEntityHelp")}
+                    </span>
+                  </button>
+                </div>
+              )}
             />
-            {errors.inviteCode && (
-              <p className="mt-1 text-xs text-destructive">{getValidationMessage(errors.inviteCode.message, t)}</p>
+
+            {organizerLinkMode === "entity" && (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
+                  {t("auth.inviteCodeLabel")}
+                </label>
+                <input
+                  {...register("inviteCode", { required: organizerLinkMode === "entity" })}
+                  placeholder={t("auth.inviteCodePlaceholder")}
+                  required={organizerLinkMode === "entity"}
+                  className={cn(inputClassName, "uppercase")}
+                />
+                {errors.inviteCode && (
+                  <p className="mt-1 text-xs text-destructive">
+                    {getValidationMessage(errors.inviteCode.message, t)}
+                  </p>
+                )}
+                <p className="mt-1 text-xs text-muted-foreground">{t("auth.inviteCodeHelp")}</p>
+              </div>
             )}
-            <p className="mt-1 text-xs text-muted-foreground">{t("auth.inviteCodeHelp")}</p>
           </div>
         )}
 
@@ -211,7 +272,9 @@ export function RegisterForm() {
           <p className="rounded-xl border border-amber-200/60 bg-amber-50/50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-200">
             {accountType === "entity_admin"
               ? t("auth.accountTypeEntityAdminPlanNote")
-              : t("auth.accountTypeOrganizerPlanNote")}
+              : organizerLinkMode === "entity"
+                ? t("auth.accountTypeOrganizerPlanNote")
+                : t("auth.accountTypeOrganizerIndependentPlanNote")}
           </p>
         )}
       </div>
