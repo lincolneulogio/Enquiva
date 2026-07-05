@@ -9,6 +9,7 @@ import { SidebarMenuButton } from "./SidebarMenuButton";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import Link from "next/link";
 import { Globe } from "lucide-react";
+import { BrandLogo } from "@/components/shared/BrandLogo";
 
 interface DashboardTopbarProps {
   user: {
@@ -33,8 +34,8 @@ export async function DashboardTopbar({ user }: DashboardTopbarProps) {
     >
       <div className="flex min-w-0 shrink-0 items-center gap-2.5">
         <SidebarMenuButton />
-        <div className="hidden truncate font-display text-lg text-foreground md:block lg:hidden">
-          EncuentroDeFe
+        <div className="flex lg:hidden">
+          <BrandLogo href="/" size="xs" showText={false} />
         </div>
       </div>
 

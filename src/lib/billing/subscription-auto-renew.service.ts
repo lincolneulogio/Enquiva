@@ -128,7 +128,7 @@ export class SubscriptionAutoRenewService {
           sourceId: subscription.culqiCardId,
           recurrent: true,
           customer,
-          description: `Renovación automática ${plan.name} - EncuentroDeFe`,
+          description: `Renovación automática ${plan.name} - Eventia`,
           metadata: {
             userId,
             planId: plan.id,

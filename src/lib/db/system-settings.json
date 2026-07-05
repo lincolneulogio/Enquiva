@@ -1,6 +1,6 @@
 {
-  "organizationName": "Encuentro de Fe",
-  "supportEmail": "soporte@encuentrodefe.org",
+  "organizationName": "Eventia",
+  "supportEmail": "soporte@eventia.app",
   "alertNewPayments": true,
   "alertTransportCapacity": true,
   "alertDailyFinanceSummary": true

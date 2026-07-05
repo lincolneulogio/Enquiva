@@ -5,7 +5,6 @@ import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { ProfileEditor } from "@/components/dashboard";
 import { getI18n } from "@/lib/i18n/server";
-import { PushNotificationToggle } from "@/components/dashboard/profile/PushNotificationToggle";
 
 export default async function MemberProfilePage() {
     const { t } = await getI18n();
@@ -41,14 +40,7 @@ export default async function MemberProfilePage() {
                 <p className="mt-1 text-muted-foreground">{t("dashboard.member.accountInfo")}</p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                <div className="lg:col-span-2">
-                    <ProfileEditor user={profileUser} />
-                </div>
-                <div className="space-y-6">
-                    <PushNotificationToggle />
-                </div>
-            </div>
+            <ProfileEditor user={profileUser} />
         </div>
     );
 }

@@ -76,7 +76,7 @@ export function DownloadTicketButton({
       doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(14);
-      doc.text("ENCUENTRO DE FE", 160, 40, { align: "center" });
+      doc.text("Eventia", 160, 40, { align: "center" });
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);

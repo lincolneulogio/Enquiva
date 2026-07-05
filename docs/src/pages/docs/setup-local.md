@@ -1,10 +1,10 @@
 ---
 title: "Setup Local y Entorno de Desarrollo"
-description: "Guía paso a paso para clonar, configurar y ejecutar EncuentroDeFe en tu máquina local."
+description: "Guía paso a paso para clonar, configurar y ejecutar Eventia en tu máquina local."
 layout: "../../layouts/DocLayout.astro"
 ---
 
-Esta guía está diseñada para desarrolladores que desean contribuir al código base de EncuentroDeFe. El proyecto  utiliza **Next.js 16**, **Drizzle ORM** y **PostgreSQL**. Sigue estos pasos para tener un entorno funcional en minutos.
+Esta guía está diseñada para desarrolladores que desean contribuir al código base de Eventia. El proyecto  utiliza **Next.js 16**, **Drizzle ORM** y **PostgreSQL**. Sigue estos pasos para tener un entorno funcional en minutos.
 
 ---
 
@@ -41,7 +41,7 @@ Abre tu archivo `.env.local` e introduce las credenciales necesarias. El sistema
 
 ```env
 # Base de Datos
-DATABASE_URL="postgresql://usuario:password@localhost:5432/encuentrodefe"
+DATABASE_URL="postgresql://usuario:password@localhost:5432/Eventia"
 
 # Autenticación (better-auth)
 BETTER_AUTH_SECRET="un-string-largo-generado-aleatoriamente"
@@ -63,7 +63,7 @@ UPLOADTHING_APP_ID="tu-app-id"
 
 ## 4. Inicialización de la Base de Datos
 
-EncuentroDeFe usa **Drizzle ORM**. Antes de arrancar la app, necesitas empujar el esquema a tu base de datos vacía y sembrarla con los roles iniciales.
+Eventia usa **Drizzle ORM**. Antes de arrancar la app, necesitas empujar el esquema a tu base de datos vacía y sembrarla con los roles iniciales.
 
 ```bash
 # Sincroniza el esquema con tu base de datos Postgres

@@ -7,7 +7,7 @@ layout: "../../layouts/DocLayout.astro"
 Si no lograste encontrar la respuesta a tu problema en la sección de [Preguntas Frecuentes](/docs/faq) o en los [Videotutoriales](/docs/videotutoriales), nuestro equipo de coordinación está dispuesto a ayudarte de manera directa.
 
 > [!CAUTION]  
-> Ningún miembro del soporte oficial de EncuentroDeFe te solicitará jamás tu clave OTP, contraseñas, ni te pedirá realizar transferencias bancarias a números distintos a los publicados oficialmente en la app.
+> Ningún miembro del soporte oficial de Eventia te solicitará jamás tu clave OTP, contraseñas, ni te pedirá realizar transferencias bancarias a números distintos a los publicados oficialmente en la app.
 
 ---
 
@@ -20,7 +20,7 @@ Si tienes un problema relacionado a tu experiencia personal, como un pago trabad
 
 ### Soporte para Organizadores (Técnico)
 Si eres parte del equipo organizador y experimentas fallos en la plataforma (ej. el escáner QR no enciende la cámara, el dashboard no sincroniza los datos):
-- **Correo Electrónico:** soporte-admin@encuentrodefe.org
+- **Correo Electrónico:** soporte-admin@Eventia.org
 - **Tiempo de Respuesta Esperado:** Menos de 4 horas.
 
 ---

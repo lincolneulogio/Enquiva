@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Sparkles, ArrowRight, Radio, Compass } from "lucide-react";
+import Image from "next/image";
+import { Sparkles, ArrowRight, Compass } from "lucide-react";
 
 interface HeroSectionProps {
   t: (key: string) => string;
@@ -86,8 +87,14 @@ export function HeroSection({ t, locale, signals, features }: HeroSectionProps) 
           <div className="relative overflow-hidden rounded-[1.75rem] border border-border/80 bg-card/90 p-5 shadow-xl backdrop-blur-sm sm:p-6">
             <div className="mb-5 flex items-center justify-between">
               <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                <Radio className="h-3.5 w-3.5" />
-                Encuentro de Fe
+                <Image
+                  src="/images/logo-mark-xs.png"
+                  alt="Eventia"
+                  width={18}
+                  height={18}
+                  className="h-[18px] w-auto object-contain"
+                />
+                Eventia
               </span>
               <span className="text-xs text-muted-foreground">Live</span>
             </div>

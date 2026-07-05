@@ -35,9 +35,9 @@ export function CalendarSyncButtons({ event, className = "" }: CalendarSyncButto
       const icsLines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        "PRODID:-//EncuentroDeFe//Event Calendar//ES",
+        "PRODID:-//Eventia//Event Calendar//ES",
         "BEGIN:VEVENT",
-        `UID:${event.id}@encuentrodefe.com`,
+        `UID:${event.id}@Eventia.com`,
         `DTSTAMP:${start}`,
         `DTSTART:${start}`,
         `DTEND:${end}`,

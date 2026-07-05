@@ -5,6 +5,7 @@ import { normalizeRole } from "@/lib/auth/rbac";
 import { getI18n } from "@/lib/i18n/server";
 import { PublicMobileMenu } from "@/components/shared/PublicMobileMenu";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import { BrandLogo } from "@/components/shared/BrandLogo";
 
 function getDashboardPath(role?: string | null) {
   const normalizedRole = normalizeRole(role);
@@ -28,14 +29,7 @@ export async function PublicHeader() {
     <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
         <div className="flex items-center gap-2.5">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
-              <span className="text-lg text-primary-foreground">✦</span>
-            </div>
-            <span className="font-display text-lg font-semibold text-foreground sm:text-xl">
-              EncuentroDeFe
-            </span>
-          </Link>
+          <BrandLogo href="/" size="md" priority className="shrink-0" />
           <a
             href={process.env.NEXT_PUBLIC_DOCS_URL || "http://localhost:3001"}
             target="_blank"

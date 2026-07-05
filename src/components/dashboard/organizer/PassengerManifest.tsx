@@ -78,7 +78,7 @@ export function PassengerManifest({ eventId }: PassengerManifestProps) {
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text("EncuentroDeFe - Sistema de Control y Logística de Rutas", 14, 30);
+    doc.text("Eventia - Sistema de Control y Logística de Rutas", 14, 30);
 
     // Document Info Box
     doc.setTextColor(50, 50, 50);

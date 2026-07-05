@@ -17,8 +17,8 @@ const SETTINGS_ROW_ID = "default";
 const LEGACY_SETTINGS_FILE_PATH = path.join(process.cwd(), "src/lib/db/system-settings.json");
 
 export const DEFAULT_SETTINGS: SystemSettings = {
-  organizationName: "Encuentro de Fe",
-  supportEmail: "soporte@encuentrodefe.org",
+  organizationName: "Eventia",
+  supportEmail: "soporte@eventia.app",
   alertNewPayments: true,
   alertTransportCapacity: true,
   alertDailyFinanceSummary: false,

@@ -1,6 +1,6 @@
 ---
 title: "Videotutoriales y Demos"
-description: "Aprende a dominar EncuentroDeFe a través de guías visuales paso a paso."
+description: "Aprende a dominar Eventia a través de guías visuales paso a paso."
 layout: "../../layouts/DocLayout.astro"
 ---
 

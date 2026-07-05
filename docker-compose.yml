@@ -6,13 +6,13 @@ services:
     environment:
       POSTGRES_USER: events_user
       POSTGRES_PASSWORD: events_password
-      POSTGRES_DB: encuentrodefe
+      POSTGRES_DB: eventia
     ports:
       - "15432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U events_user -d encuentrodefe"]
+      test: ["CMD-SHELL", "pg_isready -U events_user -d eventia"]
       interval: 10s
       timeout: 5s
       retries: 5

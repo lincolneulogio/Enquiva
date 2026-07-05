@@ -9,10 +9,12 @@ export async function GET(req: Request) {
         const origin = req.headers.get("origin");
         const headersList = new Headers();
         
-        // Permitir CORS para localhost (Astro) y dominios autorizados de EncuentroDeFe
+        // Permitir CORS para localhost (Astro) y dominios autorizados de Eventia
         if (origin && (
             origin.includes("localhost") || 
             origin.includes("127.0.0.1") || 
+            origin.includes("eventia.app") ||
+            origin.includes("eventia.site") ||
             origin.includes("encuentrodefe.site") ||
             origin.includes("encuentrodefe.org")
         )) {
@@ -55,6 +57,8 @@ export async function OPTIONS(req: Request) {
     if (origin && (
         origin.includes("localhost") || 
         origin.includes("127.0.0.1") || 
+        origin.includes("eventia.app") ||
+        origin.includes("eventia.site") ||
         origin.includes("encuentrodefe.site") ||
         origin.includes("encuentrodefe.org")
     )) {

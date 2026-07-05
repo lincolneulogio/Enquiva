@@ -18,8 +18,6 @@ export const env = createEnv({
     UPLOADTHING_TOKEN: z.string().min(1).optional(),
     UPSTASH_REDIS_REST_URL: z.string().url(),
     UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
-    VAPID_PRIVATE_KEY: z.string().min(1).optional(),
-    VAPID_SUBJECT: z.string().min(1).optional(),
     GEMINI_API_KEY: z.string().optional(),
     GEMINI_MODEL: z.string().default("gemini-2.5-flash"),
     OPENROUTER_API_KEY: z.string().optional(),
@@ -36,7 +34,6 @@ export const env = createEnv({
     NEXT_PUBLIC_PUSHER_KEY: z.string().min(1),
     NEXT_PUBLIC_PUSHER_CLUSTER: z.string().min(1),
     NEXT_PUBLIC_UPLOADTHING_APP_ID: z.string().min(1),
-    NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().min(1).optional(),
     NEXT_PUBLIC_CULQI_PUBLIC_KEY: z.string().min(1).optional(),
   },
   runtimeEnv: {
@@ -55,8 +52,6 @@ export const env = createEnv({
     UPLOADTHING_TOKEN: process.env.UPLOADTHING_TOKEN,
     UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
-    VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
-    VAPID_SUBJECT: process.env.VAPID_SUBJECT,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     GEMINI_MODEL: process.env.GEMINI_MODEL,
     OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
@@ -71,7 +66,6 @@ export const env = createEnv({
     NEXT_PUBLIC_PUSHER_KEY: process.env.NEXT_PUBLIC_PUSHER_KEY,
     NEXT_PUBLIC_PUSHER_CLUSTER: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
     NEXT_PUBLIC_UPLOADTHING_APP_ID: process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID,
-    NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
     NEXT_PUBLIC_CULQI_PUBLIC_KEY: process.env.NEXT_PUBLIC_CULQI_PUBLIC_KEY,
   },
 });

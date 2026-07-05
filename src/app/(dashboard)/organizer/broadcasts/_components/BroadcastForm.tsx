@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Send, AlertCircle, CheckCircle2, Mail, Bell, Smartphone } from "lucide-react";
+import { Send, AlertCircle, CheckCircle2, Mail, Bell } from "lucide-react";
 import { sendBroadcastAction } from "@/actions/events";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import type { MassCommunicationChannels } from "@/lib/notifications/mass-communication";
@@ -20,7 +20,6 @@ interface BroadcastFormProps {
 const DEFAULT_CHANNELS: MassCommunicationChannels = {
   email: true,
   inApp: true,
-  push: true,
   pusher: true,
 };
 
@@ -38,7 +37,7 @@ export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) 
   const toggleChannel = (key: keyof MassCommunicationChannels) => {
     setChannels((prev) => {
       const next = { ...prev, [key]: !prev[key] };
-      if (!next.email && !next.inApp && !next.push) {
+      if (!next.email && !next.inApp) {
         return prev;
       }
       return next;
@@ -180,13 +179,6 @@ export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) 
             onClick={() => toggleChannel("inApp")}
             icon={Bell}
             label={t("dashboard.organizer.broadcastChannelInApp")}
-            disabled={disabled || isPending}
-          />
-          <ChannelToggle
-            active={channels.push}
-            onClick={() => toggleChannel("push")}
-            icon={Smartphone}
-            label={t("dashboard.organizer.broadcastChannelPush")}
             disabled={disabled || isPending}
           />
         </div>

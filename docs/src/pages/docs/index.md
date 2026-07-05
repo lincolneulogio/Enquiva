@@ -1,10 +1,10 @@
 ---
 layout: ../../layouts/DocLayout.astro
-title: "¡Bienvenido a EncuentroDeFe Docs!"
-description: "Guía y portal de documentación oficial para usuarios, organizadores y administradores de EncuentroDeFe."
+title: "¡Bienvenido a Eventia Docs!"
+description: "Guía y portal de documentación oficial para usuarios, organizadores y administradores de Eventia."
 ---
 
-**EncuentroDeFe** es una plataforma premium y autogestionable de gestión de eventos, control de asistencia e integración de transporte, diseñada específicamente para comunidades de fe, congregaciones y organizaciones sociales.
+**Eventia** es una plataforma premium y autogestionable de gestión de eventos, control de asistencia e integración de transporte, diseñada para organizadores, empresas, asociaciones y comunidades de todo tipo.
 
 Este portal de documentación te guiará paso a paso sobre cómo interactuar con el sistema según tu rol, ya seas un **asistente** que busca registrarse en eventos, un **organizador** logístico que gestiona transporte y pagos, o un **administrador** que supervisa la seguridad y analíticas de la plataforma.
 
@@ -30,7 +30,7 @@ Para comenzar a interactuar con la plataforma, cada usuario debe registrar su pe
 * Asegúrate de confirmar tu número de teléfono de contacto en formato internacional (`+519XXXXXXXX` para Perú) si planeas reservar autobuses.
 
 ### 2. Verificación de Seguridad (OTP)
-> **¡IMPORTANTE!** EncuentroDeFe utiliza un sistema de verificación de doble factor (OTP) mediante correo electrónico para mantener las cuentas libres de spam y asegurar la autenticidad de los registros.
+> **¡IMPORTANTE!** Eventia utiliza un sistema de verificación de doble factor (OTP) mediante correo electrónico para mantener las cuentas libres de spam y asegurar la autenticidad de los registros.
 
 * Al registrarte, recibirás un correo electrónico con un **código de seguridad único de 6 dígitos**.
 * La aplicación te redirigirá a una pantalla de verificación. Digita el código de 6 dígitos para activar tu cuenta de inmediato.

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Mail, MapPin, ArrowRight, ChevronUp } from "lucide-react";
+import { BrandLogo } from "@/components/shared/BrandLogo";
 
 interface FooterProps {
   t: (key: string) => string;
@@ -15,10 +16,7 @@ export function Footer({ t }: FooterProps) {
       <div className="mx-auto max-w-7xl overflow-hidden rounded-[1.8rem] border border-border/88 bg-card/80 shadow-lg backdrop-blur-sm">
         <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[1.2fr_0.8fr_0.8fr_1fr] lg:gap-10 lg:p-10">
           <div>
-            <div className="mb-4 inline-flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">✦</div>
-              <span className="font-display text-lg font-semibold text-foreground">Encuentro de Fe</span>
-            </div>
+            <BrandLogo href="/" size="sm" showText className="mb-4" />
 
             <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
               {t("public.home.footerTagline")}
@@ -90,11 +88,11 @@ export function Footer({ t }: FooterProps) {
 
             <div className="space-y-2.5 text-sm">
               <a
-                href="mailto:hola@EncuentroDeFe.app"
+                href="mailto:hola@eventia.app"
                 className="inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
               >
                 <Mail className="h-4 w-4 text-primary" />
-                hola@EncuentroDeFe.app
+                hola@eventia.app
               </a>
               <p className="inline-flex items-center gap-2 text-muted-foreground">
                 <MapPin className="h-4 w-4 text-primary" />
@@ -128,7 +126,7 @@ export function Footer({ t }: FooterProps) {
         </div>
 
         <div className="flex flex-col gap-3 border-t border-border/80 bg-background/70 px-6 py-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-10">
-          <p>© {new Date().getFullYear()} EncuentroDeFe. {t("public.home.footerBuilt")}</p>
+          <p>© {new Date().getFullYear()} Eventia. {t("public.home.footerBuilt")}</p>
           <Link
             href="#top"
             className="inline-flex items-center gap-1 self-start rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground transition-colors hover:bg-secondary sm:self-auto"

@@ -51,8 +51,8 @@ export const broadcastJobs = pgTable(
     channels: jsonb("channels").notNull().$type<{
       email: boolean;
       inApp: boolean;
-      push: boolean;
       pusher: boolean;
+      push?: boolean;
     }>(),
     locale: text("locale").notNull().default("es"),
     status: broadcastJobStatusEnum("status").notNull().default("pending"),

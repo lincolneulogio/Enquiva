@@ -1,10 +1,10 @@
 ---
 layout: ../../layouts/DocLayout.astro
 title: "Arquitectura Técnica (Desarrolladores)"
-description: "Documentación técnica detallada de EncuentroDeFe: stack principal, base de datos, relaciones de Drizzle ORM y revalidación de caché."
+description: "Documentación técnica detallada de Eventia: stack principal, base de datos, relaciones de Drizzle ORM y revalidación de caché."
 ---
 
-Esta sección describe la arquitectura técnica, el modelo de base de datos relacional y las políticas de sincronización de caché en el servidor de **EncuentroDeFe** para facilitar el mantenimiento y la extensión del código por parte de nuevos desarrolladores.
+Esta sección describe la arquitectura técnica, el modelo de base de datos relacional y las políticas de sincronización de caché en el servidor de **Eventia** para facilitar el mantenimiento y la extensión del código por parte de nuevos desarrolladores.
 
 ---
 

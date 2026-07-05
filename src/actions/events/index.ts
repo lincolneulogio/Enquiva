@@ -285,7 +285,7 @@ export async function sendBroadcastEmailAction(input: {
 }) {
   const result = await sendBroadcastAction({
     ...input,
-    channels: { email: true, inApp: false, push: false, pusher: false },
+    channels: { email: true, inApp: false, pusher: false },
   });
 
   if (!result.success) {

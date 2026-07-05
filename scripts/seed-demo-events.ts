@@ -50,25 +50,25 @@ async function ensurePaymentMethods(organizerId: string) {
       type: "yape" as const,
       label: "Yape",
       phone: "+51987654321",
-      holderName: "EncuentroDeFe",
+      holderName: "Eventia",
     },
     {
       type: "plin" as const,
       label: "Plin",
       phone: "+51912345678",
-      holderName: "EncuentroDeFe",
+      holderName: "Eventia",
     },
     {
       type: "cash" as const,
       label: "Efectivo en puerta",
-      holderName: "EncuentroDeFe",
+      holderName: "Eventia",
     },
     ...(isCulqiEnvConfigured()
       ? [
           {
             type: "culqi" as const,
             label: "Tarjeta de crédito/débito",
-            holderName: "EncuentroDeFe",
+            holderName: "Eventia",
           },
         ]
       : []),
@@ -109,11 +109,11 @@ async function main() {
 
   const demoEvents = [
     {
-      slug: "campana-evangelistica-lima-2026",
-      title: "Campaña Evangelística Lima 2026",
+      slug: "festival-comunitario-lima-2026",
+      title: "Festival Comunitario Lima 2026",
       description:
-        "Una jornada de adoración, predicación y comunión para toda la familia. Música en vivo, talleres para niños y jóvenes, y un cierre con oración por la ciudad.",
-      category: "campanas-evangelisticas",
+        "Una jornada abierta para toda la familia con música en vivo, talleres para niños y jóvenes, y actividades para la comunidad.",
+      category: "conference",
       date: addDays(30),
       endDate: addDays(30, 22),
       location: "Parque de la Muralla, Lima Centro",
@@ -127,11 +127,11 @@ async function main() {
       coverImage: "https://images.unsplash.com/photo-1507692049794-ef8b2f0a0b8b?w=1200&q=80",
     },
     {
-      slug: "confraternidad-juventud-2026",
-      title: "Confraternidad de Juventud 2026",
+      slug: "networking-juvenil-2026",
+      title: "Networking Juvenil 2026",
       description:
-        "Encuentro de jóvenes con dinámicas, worship y espacio para compartir testimonios. Ideal para grupos de iglesia y nuevos visitantes.",
-      category: "confraternidades",
+        "Encuentro juvenil con dinámicas, música en vivo y espacio para networking. Ideal para grupos universitarios y nuevos participantes.",
+      category: "youth",
       date: addDays(45, 16),
       endDate: addDays(45, 21),
       location: "Auditorio Central, San Isidro",
@@ -145,17 +145,17 @@ async function main() {
       coverImage: "https://images.unsplash.com/photo-1529070538774-1843cb3265df?w=1200&q=80",
     },
     {
-      slug: "noche-virtual-de-oracion",
-      title: "Noche Virtual de Oración",
+      slug: "webinar-liderazgo-digital",
+      title: "Webinar de Liderazgo Digital",
       description:
-        "Únete desde casa a un tiempo de intercesión y reflexión bíblica. Recibirás el enlace de acceso al confirmar tu registro.",
-      category: "campanas-evangelisticas",
+        "Únete desde casa a una sesión de formación y networking profesional. Recibirás el enlace de acceso al confirmar tu registro.",
+      category: "conference",
       date: addDays(14, 20),
       endDate: addDays(14, 22),
       location: null,
       locationUrl: null,
       isVirtual: true,
-      virtualLink: "https://meet.google.com/demo-encuentrodefe",
+      virtualLink: "https://meet.google.com/demo-eventia",
       capacity: 1000,
       status: "published" as const,
       isFeatured: true,

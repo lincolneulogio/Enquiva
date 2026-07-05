@@ -1,6 +1,5 @@
 import { db } from "@/lib/db";
 import { notifications } from "@/lib/db/schema";
-import { sendPushNotification } from "@/lib/notifications/push";
 import { sendBroadcastEmail } from "@/lib/mail";
 import { pusherServer } from "@/lib/pusher/server";
 import { PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/shared";
@@ -20,14 +19,12 @@ export type MassCommunicationNotificationType =
 export type MassCommunicationChannels = {
   email: boolean;
   inApp: boolean;
-  push: boolean;
   pusher: boolean;
 };
 
 export const DEFAULT_MASS_CHANNELS: MassCommunicationChannels = {
   email: true,
   inApp: true,
-  push: true,
   pusher: true,
 };
 
@@ -47,7 +44,6 @@ export type MassCommunicationPayload = {
   locale?: Locale;
   notificationType?: MassCommunicationNotificationType;
   metadata?: Record<string, unknown>;
-  pushUrl?: string;
 };
 
 export type MassDeliveryStats = {
@@ -71,7 +67,6 @@ async function deliverToRecipient(
     locale = "es",
     notificationType = "event_reminder",
     metadata = {},
-    pushUrl = "/member/notifications",
   } = payload;
 
   let delivered = false;
@@ -108,13 +103,6 @@ async function deliverToRecipient(
 
     if (channels.inApp || channels.pusher) {
       await invalidateCache(CACHE_KEYS.userNotificationsCount(recipient.id));
-    }
-
-    if (channels.push) {
-      await sendPushNotification(recipient.id, title, body, pushUrl).catch((error) => {
-        console.error(`Push failed for user ${recipient.id}:`, error);
-      });
-      delivered = true;
     }
 
     if (channels.email && recipient.email) {

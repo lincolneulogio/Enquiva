@@ -9,8 +9,6 @@ const publicRoutes = new Set([
   "/forgot-password",
   "/reset-password",
   "/events",
-  "/manifest.json",
-  "/sw.js",
 ]);
 
 const publicPatterns = [

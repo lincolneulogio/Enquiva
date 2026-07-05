@@ -15,7 +15,7 @@ export function wrapInTemplate(
   orgName?: string,
   locale: MailLocale = "es",
 ) {
-  const finalOrgName = orgName ?? "EncuentroDeFe";
+  const finalOrgName = orgName ?? "Eventia";
   const resolvedFooter = footerNote ?? defaultFooterNote(locale);
   const copyright = copyrightFooter(locale, finalOrgName);
   return `
@@ -169,7 +169,7 @@ export function getVerificationCodeTemplate(
 
 export function getPasswordChangedTemplate(greeting: string, orgName?: string) {
   const title = "Contraseña actualizada";
-  const finalOrgName = orgName ?? "EncuentroDeFe";
+  const finalOrgName = orgName ?? "Eventia";
   const bodyHtml = `
     <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #bbf7d0; border-radius: 20px; padding: 24px; text-align: center; margin: 8px 0 24px 0; box-shadow: 0 4px 10px rgba(22, 101, 52, 0.05);">
       <div style="background-color: #22c55e; width: 44px; height: 44px; border-radius: 50%; display: inline-block; text-align: center; line-height: 44px; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(34, 197, 94, 0.3);">
@@ -204,7 +204,7 @@ export function getPasswordChangedTemplate(greeting: string, orgName?: string) {
 
 export function getPasswordResetTemplate(url: string, greeting: string, orgName?: string) {
   const title = "Restablecer tu contraseña";
-  const finalOrgName = orgName ?? "EncuentroDeFe";
+  const finalOrgName = orgName ?? "Eventia";
   const bodyHtml = `
     <p style="margin: 0 0 20px 0; font-size: 15px; color: #475569; line-height: 1.6; font-family: 'Outfit', sans-serif;">
       Recibimos una solicitud para restablecer la contraseña de tu cuenta en <strong>${finalOrgName}</strong>. Haz clic en el botón de abajo para definir una nueva contraseña segura:
@@ -340,7 +340,7 @@ export function getSubscriptionRenewalReminderTemplate(opts: {
   `;
 
   return {
-    subject: `${opts.planName} vence en ${opts.daysRemaining} día(s) — EncuentroDeFe`,
+    subject: `${opts.planName} vence en ${opts.daysRemaining} día(s) — Eventia`,
     text: `${opts.greeting}\n\nTu plan ${opts.planName} vence el ${opts.renewalDate} (${opts.daysRemaining} días).\n\nRenueva aquí: ${opts.billingUrl}`,
     html: wrapInTemplate(title, opts.greeting, bodyHtml, undefined, opts.orgName),
   };
@@ -386,7 +386,7 @@ export function getCustomNotificationEmailTemplate(opts: {
       ${opts.body}
     </p>
   `;
-  const footerNote = customNotificationFooter(locale, opts.orgName ?? "EncuentroDeFe");
+  const footerNote = customNotificationFooter(locale, opts.orgName ?? "Eventia");
 
   return {
     subject: opts.subject,

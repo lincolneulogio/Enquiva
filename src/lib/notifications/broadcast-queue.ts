@@ -101,7 +101,6 @@ export async function processBroadcastJob(
       channels: job.channels,
       locale: (job.locale as Locale) ?? "es",
       metadata: { broadcastJobId: job.id, recipientStatus: job.recipientStatus },
-      pushUrl: "/member/notifications",
     });
 
     await db.insert(broadcastLogs).values({

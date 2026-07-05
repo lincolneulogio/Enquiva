@@ -4,7 +4,7 @@ description: "Mantente al tanto de las últimas actualizaciones, mejoras y corre
 layout: "../../layouts/DocLayout.astro"
 ---
 
-Documentamos todas las mejoras significativas en el ecosistema de EncuentroDeFe. A continuación, encontrarás el registro histórico organizado por número de versión y fecha de lanzamiento.
+Documentamos todas las mejoras significativas en el ecosistema de Eventia. A continuación, encontrarás el registro histórico organizado por número de versión y fecha de lanzamiento.
 
 ---
 

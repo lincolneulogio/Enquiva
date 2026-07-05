@@ -4,7 +4,7 @@ description: "Modelado relacional, estructuración de tablas mediante Drizzle OR
 layout: "../../layouts/DocLayout.astro"
 ---
 
-La plataforma EncuentroDeFe utiliza **PostgreSQL** administrado a través de **Drizzle ORM** para garantizar un tipado estricto (Type-Safety) desde la base de datos hasta el cliente React.
+La plataforma Eventia utiliza **PostgreSQL** administrado a través de **Drizzle ORM** para garantizar un tipado estricto (Type-Safety) desde la base de datos hasta el cliente React.
 
 A continuación, se detalla la arquitectura de las entidades principales del ecosistema y la estructura del motor de copias de seguridad.
 

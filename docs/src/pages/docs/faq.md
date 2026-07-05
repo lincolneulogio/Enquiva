@@ -1,6 +1,6 @@
 ---
 title: "Preguntas Frecuentes (FAQ)"
-description: "Respuestas a las dudas más comunes sobre pagos, registro y uso de la plataforma EncuentroDeFe."
+description: "Respuestas a las dudas más comunes sobre pagos, registro y uso de la plataforma Eventia."
 layout: "../../layouts/DocLayout.astro"
 ---
 
@@ -32,7 +32,7 @@ Sí, pero ten en cuenta que tu asiento en el autobús y tu cupo en el evento **n
 ## Entradas y Escáner QR (Organizadores)
 
 ### El escáner de la puerta dice "Firma Inválida", ¿qué significa?
-La plataforma utiliza códigos QR criptográficos. Si el escáner muestra "Firma Inválida", significa que el código fue alterado digitalmente o no fue generado por EncuentroDeFe. **No permitas el acceso a esa persona**.
+La plataforma utiliza códigos QR criptográficos. Si el escáner muestra "Firma Inválida", significa que el código fue alterado digitalmente o no fue generado por Eventia. **No permitas el acceso a esa persona**.
 
 ### ¿Qué pasa si un usuario olvida su celular?
 Como organizador, puedes acceder al panel de **Control de Asistencia** y buscar manualmente al usuario por su nombre o correo electrónico. Desde allí podrás marcar su ingreso con un solo botón sin necesidad de escanear el QR.
@@ -55,4 +55,4 @@ La ubicación exacta, la hora de encuentro y el responsable de cada autobús est
 En la pantalla de inicio de sesión, haz clic en **"Olvidé mi contraseña"**. Ingresa el correo con el que te registraste y recibirás un enlace seguro para crear una nueva clave.
 
 > [!WARNING]
-> Nunca compartas tu código OTP o enlaces de recuperación con nadie. El equipo de EncuentroDeFe jamás te pedirá tu contraseña.
+> Nunca compartas tu código OTP o enlaces de recuperación con nadie. El equipo de Eventia jamás te pedirá tu contraseña.

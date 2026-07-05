@@ -22,7 +22,6 @@ import { generateTicketForRegistration, buildTicketPublicUrl, resolveTicketQrDat
 import { sendTicketEmailWithPdf } from "@/lib/mail";
 import { env } from "@/env";
 import { runBackground } from "@/lib/background";
-import { sendPushNotification } from "@/lib/notifications/push";
 import {
   assertCanManageEvent,
   type AdminScope,
@@ -358,25 +357,6 @@ export class PaymentService {
               console.error("Error al enviar el correo con el ticket:", err);
             }
           }
-        }
-
-        // Envío de Notificaciones Push Nativas (Web Push) en segundo plano
-        try {
-          if (updated.status === "approved") {
-            const pushTitle = "¡Tu entrada está lista! 🎉";
-            const pushBody = `El organizador aprobó tu pago para el evento "${event.title}". Toca para ver tu ticket QR.`;
-            const pushUrl = ticket ? `/ticket/${ticket.code}` : "/member/tickets";
-            
-            await sendPushNotification(payment.userId, pushTitle, pushBody, pushUrl);
-          } else if (updated.status === "rejected") {
-            const pushTitle = "⚠️ Pago observado";
-            const pushBody = `Hubo un inconveniente con tu comprobante para "${event.title}". Vuelve a subirlo para asegurar tu vacante.`;
-            const pushUrl = `/member/payments/new/${registration.id}`;
-            
-            await sendPushNotification(payment.userId, pushTitle, pushBody, pushUrl);
-          }
-        } catch (err) {
-          console.error("Error al enviar notificación push en segundo plano:", err);
         }
       });
 

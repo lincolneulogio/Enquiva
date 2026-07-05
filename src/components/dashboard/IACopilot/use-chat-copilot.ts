@@ -19,9 +19,9 @@ function buildWelcomeMessage(
       ? "• Consultar métricas de la plataforma en tiempo real.\n• Analizar los últimos registros de auditoría de seguridad.\n• Buscar eventos de forma semántica y rápida."
       : userRole === "organizer"
         ? "• Consultar estadísticas de asistencia de tus eventos.\n• Redactar borradores para comunicados masivos.\n• Gestionar y coordinar la logística de tus eventos."
-        : "• Buscar retiros, misas o eventos de oración.\n• Verificar tus entradas y tickets activos.\n• Coordinar traslados y transporte.";
+        : "• Buscar conferencias, talleres o eventos locales.\n• Verificar tus entradas y tickets activos.\n• Coordinar traslados y transporte.";
 
-  return `¡Hola ${userName}! ✦ Soy FeBot, tu Copiloto de Inteligencia Artificial para EncuentroDeFe.\n\nComo ${getRoleLabel(userRole as any, locale)}, puedo ayudarte de manera personalizada:\n${capabilityText}\n\n¿En qué puedo asistirte hoy?`;
+  return `¡Hola ${userName}! ✦ Soy EventiaBot, tu Copiloto de Inteligencia Artificial para Eventia.\n\nComo ${getRoleLabel(userRole as any, locale)}, puedo ayudarte de manera personalizada:\n${capabilityText}\n\n¿En qué puedo asistirte hoy?`;
 }
 
 const ROLE_ICON: Record<string, LucideIcon> = {

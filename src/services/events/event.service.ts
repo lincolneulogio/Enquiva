@@ -25,15 +25,15 @@ import { OCCUPYING_REGISTRATION_STATUSES } from "@/lib/registrations/constants";
 import { cascadeEventCancellation } from "@/lib/events/lifecycle";
 
 const FALLBACK_CATEGORIES: Pick<Category, "slug" | "label" | "colorClass">[] = [
-  { slug: "worship", label: "Adoración", colorClass: "bg-purple-100 text-purple-800" },
-  { slug: "retreat", label: "Retiro", colorClass: "bg-green-100 text-green-800" },
+  { slug: "worship", label: "Música y espectáculos", colorClass: "bg-purple-100 text-purple-800" },
+  { slug: "retreat", label: "Talleres y capacitación", colorClass: "bg-green-100 text-green-800" },
   { slug: "youth", label: "Juventud", colorClass: "bg-orange-100 text-orange-800" },
-  { slug: "charity", label: "Caridad", colorClass: "bg-red-100 text-red-800" },
+  { slug: "charity", label: "Beneficencia", colorClass: "bg-red-100 text-red-800" },
   { slug: "conference", label: "Conferencia", colorClass: "bg-blue-100 text-blue-800" },
-  { slug: "prayer", label: "Oración", colorClass: "bg-indigo-100 text-indigo-800" },
-  { slug: "bible_study", label: "Estudio Bíblico", colorClass: "bg-teal-100 text-teal-800" },
-  { slug: "outreach", label: "Misiones", colorClass: "bg-amber-100 text-amber-800" },
-  { slug: "fellowship", label: "Comunión", colorClass: "bg-pink-100 text-pink-800" },
+  { slug: "prayer", label: "Networking", colorClass: "bg-indigo-100 text-indigo-800" },
+  { slug: "bible_study", label: "Formación", colorClass: "bg-teal-100 text-teal-800" },
+  { slug: "outreach", label: "Comunitario", colorClass: "bg-amber-100 text-amber-800" },
+  { slug: "fellowship", label: "Social", colorClass: "bg-pink-100 text-pink-800" },
   { slug: "other", label: "Otro", colorClass: "bg-gray-100 text-gray-800" },
 ];
 

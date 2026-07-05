@@ -122,7 +122,7 @@ export async function POST(req: Request) {
         sourceId: chargeSourceId,
         recurrent: useRecurrent,
         customer,
-        description: `Suscripción ${plan.name} - EncuentroDeFe`,
+        description: `Suscripción ${plan.name} - Eventia`,
         metadata: {
           userId: session.user.id,
           planId: plan.id,

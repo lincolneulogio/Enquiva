@@ -19,7 +19,7 @@ export function createSearchEvents(scope: ChatToolScope) {
             ? "Busca eventos publicados de tu entidad."
             : "Busca tus eventos publicados.",
     parameters: z.object({
-      query: z.string().describe("Texto de búsqueda (ej. 'retiro', 'oración', 'jóvenes')"),
+      query: z.string().describe("Texto de búsqueda (ej. 'conferencia', 'taller', 'jóvenes')"),
     }),
     execute: async ({ query }: { query: string }) => {
       try {

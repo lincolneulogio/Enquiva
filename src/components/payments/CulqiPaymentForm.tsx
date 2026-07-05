@@ -73,7 +73,7 @@ export function CulqiPaymentForm({
 
       const checkoutResult = await openCulqiCheckout({
         publicKey: culqiPublicKey,
-        title: "EncuentroDeFe",
+        title: "Eventia",
         amount,
         email: checkoutEmail,
         orderId: orderData.orderId,

@@ -11,7 +11,7 @@ Esta sección está dedicada a los coordinadores y organizadores de eventos. Aqu
 ## Creación de Eventos y Métodos de Pago
 
 1. Ingresa a tu panel de organizador y haz clic en **Crear evento**.
-2. Completa los datos obligatorios del evento: Título, Categoría (Adoración, Retiro, Juventud, etc.), Fecha, Dirección o enlace de reunión si es virtual, y precio de la entrada.
+2. Completa los datos obligatorios del evento: Título, Categoría (Conferencia, Taller, Juventud, etc.), Fecha, Dirección o enlace de reunión si es virtual, y precio de la entrada.
 3. Habilita las opciones **Ofrecer transporte** si organizarás buses.
 4. **Habilitar Medios de Pago:** En la sección *Medios de Pago*, configura las cuentas receptoras. Digita el nombre del titular de la cuenta, el número de teléfono, y **sube la imagen de tu código QR de Yape o Plin** para que los asistentes lo descarguen al pagar.
 

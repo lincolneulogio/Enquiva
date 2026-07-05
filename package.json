@@ -1,5 +1,5 @@
 {
-  "name": "EncuentroDeFe",
+  "name": "Eventia",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -48,8 +48,8 @@
     "test:ai": "tsx --env-file=.env ./scripts/test-ai-providers.ts",
     "test:uploadthing": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/test-uploadthing.ts",
     "test:redis": "tsx --env-file=.env ./scripts/test-redis.ts",
-    "generate:vapid": "tsx ./scripts/generate-vapid.ts",
-    "setup:local": "pnpm run generate:vapid && pnpm run db:seed:all"
+    "generate:brand": "tsx scripts/generate-brand-assets.ts",
+    "setup:local": "pnpm run db:seed:all"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.80",
@@ -98,7 +98,6 @@
     "sweetalert2": "^11.26.24",
     "tailwind-merge": "^3.6.0",
     "uploadthing": "^7.7.4",
-    "web-push": "^3.6.7",
     "xlsx": "^0.18.5",
     "zod": "^4.4.3"
   },
@@ -109,13 +108,13 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
-    "@types/web-push": "^3.6.4",
     "autoprefixer": "^10.5.0",
     "cross-env": "^10.1.0",
     "drizzle-kit": "^0.31.10",
     "eslint": "^10.4.0",
     "eslint-config-next": "^16.2.6",
     "postcss": "^8.5.15",
+    "sharp": "^0.35.3",
     "tailwindcss": "^4.3.0",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3",

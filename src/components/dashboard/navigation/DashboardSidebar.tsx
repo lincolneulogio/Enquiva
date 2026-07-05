@@ -34,6 +34,7 @@ import { isNavItemActive } from "@/lib/navigation/is-nav-active";
 import Image from "next/image";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+import { BrandLogo } from "@/components/shared/BrandLogo";
 
 interface NavItem {
   labelKey: string;
@@ -342,14 +343,12 @@ export function DashboardSidebar({ role, user, organizerNav, adminNav }: Dashboa
       >
         <div className="border-b border-sidebar-border px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
-                <span className="text-sm text-sidebar-primary-foreground">✦</span>
-              </div>
-              <span className="font-display text-lg font-semibold text-sidebar-foreground">
-              EncuentroDeFe
-              </span>
-            </Link>
+            <BrandLogo
+              href="/"
+              size="md"
+              textClassName="text-sidebar-foreground"
+              className="min-w-0"
+            />
             <button
               type="button"
               onClick={() => setIsMobileOpen(false)}
@@ -423,14 +422,11 @@ export function DashboardSidebar({ role, user, organizerNav, adminNav }: Dashboa
       <aside className="hidden w-64 shrink-0 flex-col bg-sidebar lg:fixed lg:inset-y-0 lg:left-0 lg:z-20 lg:flex lg:h-screen lg:overflow-hidden">
         {/* Logo */}
         <div className="border-b border-sidebar-border px-6 py-5">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
-              <span className="text-sm text-sidebar-primary-foreground">✦</span>
-            </div>
-            <span className="font-display text-lg font-semibold text-sidebar-foreground">
-            EncuentroDeFe
-            </span>
-          </Link>
+          <BrandLogo
+            href="/"
+            size="md"
+            textClassName="text-sidebar-foreground"
+          />
         </div>
 
         {/* Nav */}
