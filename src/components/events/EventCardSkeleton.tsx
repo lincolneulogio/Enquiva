@@ -8,7 +8,7 @@ export function EventCardSkeleton({ className }: { className?: string }) {
         className
       )}
     >
-      <div className="skeleton h-48 w-full" />
+      <div className="skeleton aspect-[16/10] w-full" />
       <div className="flex flex-col gap-3 p-5">
         <div className="skeleton h-6 w-3/4 rounded-lg" />
         <div className="skeleton h-4 w-full rounded-lg" />

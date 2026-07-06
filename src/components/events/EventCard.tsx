@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight, Calendar, Lock, MapPin, Users } from "lucide-react";
-import { EventCoverImage } from "@/components/events/EventCoverImage";
+import { EventCoverFrame, EventCoverPlaceholder } from "@/components/events/EventCoverFrame";
 import type { Event } from "@/lib/db/schema";
 import {
   categoryColor,
@@ -68,39 +68,22 @@ export async function EventCard({
         className,
       )}
     >
-      {/* Cover Image */}
-      <div className="relative w-full overflow-hidden bg-secondary/15 flex items-center justify-center border-b border-border/50">
+      {/* Cover Image — marco fijo 16:10, imagen completa sin recorte (object-contain) */}
+      <div className="relative w-full overflow-hidden border-b border-border/50">
         {event.coverImage ? (
-          <>
-            <div
-              className="absolute inset-0 select-none overflow-hidden opacity-25 blur-[40px] dark:opacity-15 pointer-events-none bg-cover bg-center"
-              style={{ backgroundImage: `url(${event.coverImage})` }}
-              aria-hidden
-            />
-            <div className="relative w-full overflow-hidden flex items-center justify-center p-0.5">
-              <EventCoverImage
-                src={event.coverImage}
-                alt={event.title}
-                width={600}
-                height={400}
-                priority={priority}
-                className={cn(
-                  "z-10 w-full max-h-[220px] object-contain transition-all duration-700 ease-out",
-                  isEventExpired ? "grayscale-[0.35]" : "group-hover:scale-[1.02]",
-                )}
-                style={{ width: "auto", height: "auto", maxWidth: "100%", maxHeight: "220px" }}
-              />
-            </div>
-          </>
+          <EventCoverFrame
+            src={event.coverImage}
+            alt={event.title}
+            variant="card"
+            priority={priority}
+            dimmed={isEventExpired}
+            imageClassName={isEventExpired ? undefined : "group-hover:scale-[1.02]"}
+          />
         ) : (
-          <div className="relative flex h-48 w-full items-center justify-center bg-gradient-to-br from-secondary via-secondary to-muted/80">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_30%,hsl(var(--primary)/0.2),transparent_40%),radial-gradient(circle_at_80%_70%,hsl(var(--accent)/0.18),transparent_45%)]" />
-            <div className="absolute inset-0 animate-pulse bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/0.04),transparent_60%)]" />
-            <span className="relative text-5xl opacity-30">✦</span>
-          </div>
+          <EventCoverPlaceholder />
         )}
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/25 to-transparent z-20" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-14 bg-gradient-to-t from-black/30 to-transparent" />
 
         {/* Category badge */}
         <div className="absolute left-3 top-3 z-30">

@@ -10,7 +10,7 @@ import { getPaymentMethodsForEventForm, setEventPaymentMethods } from "@/actions
 import { UploadDropzone } from "@/lib/uploadthing/components";
 import { toast } from "sonner";
 import { Loader2, ImageIcon, MapPin, Video, Star, Bus, Smartphone, QrCode, Wallet } from "lucide-react";
-import { EventCoverImage } from "@/components/events/EventCoverImage";
+import { EventCoverFrame } from "@/components/events/EventCoverFrame";
 import type { Event } from "@/lib/db/schema";
 import type { FieldErrors } from "react-hook-form";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
@@ -542,15 +542,15 @@ export function EventForm({
                 <div className="space-y-6">
                     <div>
                         <label className="mb-1.5 block text-sm font-medium text-foreground">{t("events.form.coverImage")}</label>
+                        <p className="mb-2 text-xs text-muted-foreground">{t("events.form.coverImageHint")}</p>
                         <div className="overflow-hidden rounded-xl border border-border bg-secondary">
                             {coverImage ? (
                                 <div className="relative">
-                                    <EventCoverImage
+                                    <EventCoverFrame
                                         src={coverImage}
                                         alt="Cover"
-                                        width={400}
-                                        height={400}
-                                        className="h-96 w-full object-contain bg-muted"
+                                        variant="preview"
+                                        className="min-h-72 rounded-none"
                                     />
                                     <button
                                         type="button"
@@ -561,7 +561,7 @@ export function EventForm({
                                     </button>
                                 </div>
                             ) : (
-                                <div className="flex h-96 flex-col items-center justify-center gap-2 px-4 text-center text-muted-foreground">
+                                <div className="flex aspect-[16/10] min-h-72 flex-col items-center justify-center gap-2 px-4 text-center text-muted-foreground">
                                     <div className="rounded-full bg-primary/10 p-2.5">
                                         <ImageIcon className="h-5 w-5 text-primary animate-pulse" />
                                     </div>
