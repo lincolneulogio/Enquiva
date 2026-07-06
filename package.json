@@ -45,7 +45,12 @@
     "doctor": "npx react-doctor@latest",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:all": "vitest run && pnpm run test:e2e",
     "test:watch": "vitest",
+    "test:e2e": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/seed-e2e-user.ts && playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report",
+    "db:seed:e2e": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/seed-e2e-user.ts",
     "test:ai": "tsx --env-file=.env ./scripts/test-ai-providers.ts",
     "test:uploadthing": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/test-uploadthing.ts",
     "test:redis": "tsx --env-file=.env ./scripts/test-redis.ts",
@@ -103,6 +108,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4.3.0",
     "@types/node": "^25.9.1",
     "@types/nodemailer": "^8.0.0",

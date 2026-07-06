@@ -39,6 +39,9 @@ App: `http://localhost:3000` · Docs: `cd docs && pnpm run dev` → `http://loca
 | Comando | Descripción |
 |---------|-------------|
 | `pnpm run dev` | Servidor de desarrollo |
+| `pnpm test` | Tests unitarios (Vitest) |
+| `pnpm run test:e2e` | Tests E2E (Playwright) — requiere Docker + `.env` |
+| `pnpm run test:all` | Unitarios + E2E |
 | `pnpm run db:push` | Sincronizar esquema Drizzle |
 | `pnpm run db:seed:all` | Roles, categorías, planes y eventos demo |
 | `pnpm run db:backup` | Export JSON completo a `backups/` |

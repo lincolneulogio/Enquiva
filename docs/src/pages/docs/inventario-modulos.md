@@ -92,6 +92,7 @@ Resumen técnico del ecosistema **Eventia** (actualizado desde el código).
 - `BROADCAST_BATCH_SIZE` configurable
 - Validación mail producción (alerta si Mailtrap)
 - Tests: broadcasts, billing renewal, mail config
+- **E2E Playwright** — registro, login, inscripción, pagos (`pnpm test:e2e`)
 
 ---
 
