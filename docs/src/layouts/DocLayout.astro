@@ -23,6 +23,7 @@ import {
   History,
   LifeBuoy,
   TerminalSquare,
+  Rocket,
   Menu,
   X,
 } from "lucide-react";
@@ -100,6 +101,10 @@ const navigation: NavGroup[] = [
     items: [
       { label: "Arquitectura Técnica", path: "/arquitectura", icon: Cpu },
       { label: "Setup Local", path: "/setup-local", icon: TerminalSquare },
+      { label: "Local vs Producción", path: "/datos-local-vs-produccion", icon: Database },
+      { label: "Despliegue", path: "/despliegue", icon: Rocket },
+      { label: "Operaciones", path: "/operaciones", icon: Shield },
+      { label: "Migraciones", path: "/migraciones", icon: History },
       { label: "Esquema de BD", path: "/base-de-datos", icon: Database },
       { label: "Roles y Permisos", path: "/auth-roles", icon: Shield },
       { label: "Tiempo Real (WS)", path: "/websockets", icon: Activity },

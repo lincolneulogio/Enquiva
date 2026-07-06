@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { exportFullDatabaseData } from "@/lib/db/export-full-database";
 import {
     roles,
     payments,
@@ -127,48 +128,5 @@ export async function backfillPendingPayments() {
 
 export async function exportFullDatabase() {
     await requireSuperAdmin();
-
-    const [
-        allUsers,
-        allEvents,
-        allRegistrations,
-        allPayments,
-        allRoutes,
-        allBookings,
-        allCategories,
-        allNotifications,
-        allPaymentMethods,
-        allPermissions,
-        allRoles,
-    ] = await Promise.all([
-        db.select().from(users),
-        db.select().from(events),
-        db.select().from(registrations),
-        db.select().from(payments),
-        db.select().from(transportRoutes),
-        db.select().from(transportBookings),
-        db.select().from(categories),
-        db.select().from(notifications),
-        db.select().from(paymentMethods),
-        db.select().from(rolePermissions),
-        db.select().from(roles),
-    ]);
-
-    return {
-        timestamp: new Date().toISOString(),
-        version: "1.0",
-        data: {
-            users: allUsers,
-            events: allEvents,
-            registrations: allRegistrations,
-            payments: allPayments,
-            transportRoutes: allRoutes,
-            transportBookings: allBookings,
-            categories: allCategories,
-            notifications: allNotifications,
-            paymentMethods: allPaymentMethods,
-            rolePermissions: allPermissions,
-            roles: allRoles,
-        }
-    };
+    return exportFullDatabaseData();
 }

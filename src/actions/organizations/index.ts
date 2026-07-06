@@ -78,3 +78,23 @@ export async function canManageOrgTeam() {
   if (role === "super_admin") return true;
   return OrganizationService.isOrgAdmin(user.id, user.role);
 }
+
+export async function joinOrganizationWithInviteCode(inviteCode: string) {
+  const user = await requireAuth();
+  const role = normalizeRole(user.role);
+  if (role !== "organizer") {
+    throw new Error("Solo los organizadores pueden unirse a una entidad con código.");
+  }
+
+  const existing = await OrganizationService.getOrganizationForUser(user.id);
+  if (existing) throw new Error("Ya perteneces a una entidad.");
+
+  const org = await OrganizationService.joinOrganizationAsOrganizer({
+    userId: user.id,
+    inviteCode: inviteCode.trim().toUpperCase(),
+  });
+
+  revalidatePath("/organizer");
+  revalidatePath("/organizer/settings");
+  return { success: true, organizationName: org.name };
+}

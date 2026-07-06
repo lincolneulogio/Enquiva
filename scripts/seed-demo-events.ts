@@ -124,7 +124,7 @@ async function main() {
       isFeatured: true,
       price: "25.00",
       hasTransport: true,
-      coverImage: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&q=80",
+      coverImage: "/images/event-covers/festival-comunitario.svg",
     },
     {
       slug: "networking-juvenil-2026",
@@ -142,7 +142,7 @@ async function main() {
       isFeatured: false,
       price: "15.00",
       hasTransport: false,
-      coverImage: "https://images.unsplash.com/photo-1529070538774-1843cb3265df?w=1200&q=80",
+      coverImage: "/images/event-covers/networking-juvenil.svg",
     },
     {
       slug: "webinar-liderazgo-digital",
@@ -161,7 +161,7 @@ async function main() {
       isFeatured: true,
       price: null,
       hasTransport: false,
-      coverImage: "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=1200&q=80",
+      coverImage: "/images/event-covers/webinar-liderazgo.svg",
     },
   ];
 

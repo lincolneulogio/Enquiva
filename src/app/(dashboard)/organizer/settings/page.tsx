@@ -1,9 +1,11 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { User, Mail, Shield, Crown, ShieldCheck, Briefcase, UserRound } from "lucide-react";
+import { User, Mail, Shield, Crown, ShieldCheck, Briefcase, UserRound, Building2 } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getRoleLabel } from "@/lib/i18n/core";
 import { ROLE_BADGE_STYLES, normalizeRole } from "@/lib/auth/rbac";
+import { OrganizationService } from "@/lib/organizations/organization.service";
+import { JoinEntityForm } from "@/components/dashboard/organizer/JoinEntityForm";
 
 const roleIcons = {
     super_admin: Crown,
@@ -19,6 +21,7 @@ export default async function OrganizerSettingsPage() {
 
     const normalizedRole = normalizeRole(user.role);
     const RoleIcon = roleIcons[normalizedRole];
+    const organization = await OrganizationService.getOrganizationForUser(user.id);
 
     return (
         <div className="space-y-8">
@@ -41,6 +44,22 @@ export default async function OrganizerSettingsPage() {
                         </span>
                     </div>
                 </div>
+
+                {organization ? (
+                    <div className="rounded-xl border border-border bg-card p-6">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                                <Building2 className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">{t("dashboard.organizer.linkedEntity")}</p>
+                                <p className="font-semibold text-foreground">{organization.name}</p>
+                            </div>
+                        </div>
+                    </div>
+                ) : normalizedRole === "organizer" ? (
+                    <JoinEntityForm />
+                ) : null}
 
                 <div className="rounded-xl border border-border bg-card divide-y divide-border">
                     <div className="flex items-center gap-4 p-4">

@@ -26,7 +26,10 @@ export const env = createEnv({
     CULQI_SECRET_KEY: z.string().min(1).optional(),
     CULQI_WEBHOOK_SECRET: z.string().min(1).optional(),
     PLATFORM_FEE_PERCENT: z.coerce.number().min(0).max(100).optional(),
-    CRON_SECRET: z.string().min(16).optional(),
+    CRON_SECRET:
+      process.env.NODE_ENV === "production"
+        ? z.string().min(16)
+        : z.string().min(16).optional(),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().url(),

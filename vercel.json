@@ -1,0 +1,20 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/events",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/subscriptions",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/broadcasts",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/backup",
+      "schedule": "0 5 * * 0"
+    }
+  ]
+}

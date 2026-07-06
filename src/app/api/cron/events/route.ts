@@ -1,20 +1,14 @@
 import { NextResponse } from "next/server";
 import { env } from "@/env";
+import { verifyCronAuth } from "@/lib/cron/verify-cron-auth";
 import {
   markPastPublishedEventsCompleted,
   cleanupOrphanGuestUsers,
 } from "@/lib/events/lifecycle";
 
 export async function GET(req: Request) {
-  const secret = env.CRON_SECRET;
-  if (!secret) {
-    return NextResponse.json({ error: "CRON_SECRET no configurado" }, { status: 503 });
-  }
-
-  const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-  }
+  const authFailure = verifyCronAuth(req, env.CRON_SECRET);
+  if (authFailure) return authFailure.response;
 
   try {
     const completed = await markPastPublishedEventsCompleted();

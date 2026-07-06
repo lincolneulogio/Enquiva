@@ -70,6 +70,7 @@ Desktop.ini
 # Deployment / platform
 # --------------------------------------------------
 .vercel/
+backups/
 
 # --------------------------------------------------
 # Temporary files

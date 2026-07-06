@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Plus, Calendar, Users, Eye } from "lucide-react";
 import { categoryLabel, eventStatusLabel, formatEventDateShort, statusColor } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { OrganizerGettingStarted } from "@/components/dashboard/organizer/OrganizerGettingStarted";
 import { getI18n } from "@/lib/i18n/server";
 
 export default async function OrganizerDashboardPage() {
@@ -59,6 +60,8 @@ export default async function OrganizerDashboardPage() {
       </div>
 
       <PlanUsageBanner summary={planSummary} showFeatures />
+
+      {organizerEvents.length === 0 ? <OrganizerGettingStarted /> : null}
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">

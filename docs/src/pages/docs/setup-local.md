@@ -4,97 +4,98 @@ description: "Guía paso a paso para clonar, configurar y ejecutar Eventia en tu
 layout: "../../layouts/DocLayout.astro"
 ---
 
-Esta guía está diseñada para desarrolladores que desean contribuir al código base de Eventia. El proyecto  utiliza **Next.js 16**, **Drizzle ORM** y **PostgreSQL**. Sigue estos pasos para tener un entorno funcional en minutos.
+Esta guía está diseñada para desarrolladores que desean contribuir al código base de Eventia. El proyecto utiliza **Next.js 16**, **Drizzle ORM**, **pnpm 11** y **PostgreSQL en Docker**.
 
 ---
 
-## 1. Requisitos Previos
+## 1. Requisitos previos
 
-Asegúrate de tener instaladas las siguientes herramientas en tu sistema operativo:
-* **Node.js** (v18.17.0 o superior).
-* **npm** (v9 o superior).
-* Una instancia local de **PostgreSQL** o una base de datos en la nube (como Neon, Supabase o Vercel Postgres).
-* Una cuenta en **Pusher** (para WebSockets).
-* Una cuenta en **Uploadthing** (para manejo de imágenes).
+* **Node.js** 20 o superior
+* **pnpm** 11.10.0 (`corepack enable`)
+* **Docker** y Docker Compose (Postgres local)
+* Cuentas en **Pusher**, **Uploadthing** y **Upstash Redis** (ver `.env.example`)
 
-## 2. Clonación e Instalación
-
-Clona el repositorio desde la rama principal (`developer` si estás desarrollando nuevas características) e instala las dependencias.
+## 2. Clonación e instalación
 
 ```bash
 git clone https://github.com/LincolEulogio/SistemaEventsFIN.git
 cd SistemaEventsFIN
-npm install
+pnpm install
 ```
 
-## 3. Configuración de Variables de Entorno
+## 3. Base de datos con Docker
 
-En la raíz del proyecto, copia el archivo de ejemplo para crear tu propio archivo `.env` o `.env.local`:
+Levanta Postgres aislado para desarrollo (puerto **15432**, no 5432):
 
 ```bash
-cp .env.example .env.local
+docker compose up -d
 ```
 
-### Variables Obligatorias
+Esto crea la base `eventia` con usuario `events_user` / contraseña `events_password`. Los datos viven en el volumen Docker `postgres_data` y **no** se mezclan con producción.
 
-Abre tu archivo `.env.local` e introduce las credenciales necesarias. El sistema no arrancará si faltan estas claves:
+## 4. Variables de entorno
+
+```bash
+cp .env.example .env
+```
+
+### Variables obligatorias (extracto)
 
 ```env
-# Base de Datos
-DATABASE_URL="postgresql://usuario:password@localhost:5432/Eventia"
+DATABASE_URL="postgresql://events_user:events_password@localhost:15432/eventia"
 
-# Autenticación (better-auth)
-BETTER_AUTH_SECRET="un-string-largo-generado-aleatoriamente"
-BETTER_AUTH_URL="http://localhost:3000"
+BETTER_AUTH_SECRET="genera-al-menos-32-caracteres-aleatorios"
+TICKET_SIGNING_KEY="otro-string-de-al-menos-32-caracteres"
 
-# Pusher (WebSockets para notificaciones)
-NEXT_PUBLIC_PUSHER_APP_KEY="tu-app-key"
-PUSHER_APP_ID="tu-app-id"
-PUSHER_SECRET="tu-secret"
-NEXT_PUBLIC_PUSHER_CLUSTER="us2"
+SMTP_HOST="sandbox.smtp.mailtrap.io"
+SMTP_PORT=2525
+# ... resto según .env.example
 
-# Uploadthing (Carga de archivos)
-UPLOADTHING_SECRET="sk_live_..."
-UPLOADTHING_APP_ID="tu-app-id"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
-> [!CAUTION]
-> Nunca subas el archivo `.env.local` o `.env` al repositorio público. El archivo `.gitignore` ya está configurado para evitarlo.
+> `CRON_SECRET` es opcional en local; **obligatorio** en producción.
 
-## 4. Inicialización de la Base de Datos
-
-Eventia usa **Drizzle ORM**. Antes de arrancar la app, necesitas empujar el esquema a tu base de datos vacía y sembrarla con los roles iniciales.
+## 5. Inicializar esquema y datos demo
 
 ```bash
-# Sincroniza el esquema con tu base de datos Postgres
-npm run db:push
-
-# Ejecuta los scripts de sembrado (Roles y Categorías)
-npm run db:seed:all
+pnpm run db:push
+pnpm run db:seed:all
 ```
 
-## 5. Levantar el Entorno Local
+`db:seed:all` carga roles, categorías, planes y eventos de demostración con portadas locales en `/public/images/event-covers/`.
 
-Con la base de datos lista y el `.env` configurado, puedes iniciar el servidor de desarrollo de Next.js:
+## 6. Levantar la aplicación
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
-La aplicación principal estará disponible en `http://localhost:3000`. 
-Si deseas modificar la documentación (Astro), debes abrir una segunda terminal, ingresar a la carpeta `docs` y ejecutar el mismo comando.
+* App: `http://localhost:3000`
+* Documentación (opcional): `cd docs && pnpm install && pnpm run dev` → `http://localhost:4321`
 
-```bash
-cd docs
-npm run dev
-```
+## 7. Scripts útiles
 
-La documentación estará corriendo en `http://localhost:4321`.
+| Comando | Descripción |
+|---------|-------------|
+| `pnpm run db:studio` | UI Drizzle para inspeccionar tablas |
+| `pnpm run db:backup` | Export JSON a carpeta `backups/` |
+| `pnpm test` | Tests unitarios |
+| `pnpm run typecheck` | Verificación TypeScript |
 
 ---
 
-## Solución de Problemas Comunes
+## Solución de problemas
 
-- **Error de Drizzle "relation does not exist":** Significa que no has corrido `npm run db:push`. Asegúrate de que tu `DATABASE_URL` sea correcta.
-- **Error en Uploadthing al subir una imagen:** Si trabajas en `localhost`, asegúrate de que tu red permita las llamadas salientes a la API de Uploadthing.
-- **No llegan las notificaciones en tiempo real:** Revisa que el Cluster de Pusher en tu `.env` (`NEXT_PUBLIC_PUSHER_CLUSTER`) coincida exactamente con el dashboard de Pusher.
+- **"relation does not exist"**: ejecuta `pnpm run db:push` y verifica `DATABASE_URL` (puerto **15432**).
+- **No conecta a Postgres**: `docker compose ps` — el contenedor debe estar `healthy`.
+- **Puerto 5432 vs 15432**: el proyecto usa **15432** en Docker para no chocar con Postgres del sistema.
+- **Eventos en producción pero no en local**: son bases distintas; ver [Local vs Producción](/docs/datos-local-vs-produccion).
+
+---
+
+## Siguiente lectura
+
+* [Local vs Producción](/docs/datos-local-vs-produccion)
+* [Despliegue](/docs/despliegue)
+* [Migraciones](/docs/migraciones)
