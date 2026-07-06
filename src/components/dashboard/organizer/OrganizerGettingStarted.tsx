@@ -1,15 +1,31 @@
 import Link from "next/link";
-import { Calendar, CreditCard, Rocket, Share2 } from "lucide-react";
+import { Building2, Calendar, CreditCard, Rocket, Share2, Sparkles } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { OrganizationService } from "@/lib/organizations/organization.service";
 
-const steps = [
+const steps: {
+  titleKey: string;
+  descKey: string;
+  href: string;
+  icon: typeof Calendar;
+  optional?: boolean;
+}[] = [
   { titleKey: "gettingStartedStep1Title", descKey: "gettingStartedStep1Desc", href: "/organizer/events/new", icon: Calendar },
-  { titleKey: "gettingStartedStep2Title", descKey: "gettingStartedStep2Desc", href: "/organizer/payments", icon: CreditCard },
+  { titleKey: "gettingStartedStep2Title", descKey: "gettingStartedStep2Desc", href: "/organizer/payment-methods", icon: CreditCard },
   { titleKey: "gettingStartedStep3Title", descKey: "gettingStartedStep3Desc", href: "/organizer/events", icon: Share2 },
-] as const;
+  { titleKey: "gettingStartedStep4Title", descKey: "gettingStartedStep4Desc", href: "/organizer/settings", icon: Building2, optional: true },
+];
 
 export async function OrganizerGettingStarted() {
   const { t } = await getI18n();
+  const session = await auth.api.getSession({ headers: await headers() });
+  const org = session?.user
+    ? await OrganizationService.getOrganizationForUser(session.user.id)
+    : null;
+
+  const visibleSteps = steps.filter((step) => !(step.optional && org));
 
   return (
     <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-6 sm:p-8">
@@ -26,7 +42,7 @@ export async function OrganizerGettingStarted() {
       </div>
 
       <ol className="space-y-3">
-        {steps.map(({ titleKey, descKey, href, icon: Icon }, index) => (
+        {visibleSteps.map(({ titleKey, descKey, href, icon: Icon }, index) => (
           <li key={titleKey}>
             <Link
               href={href}
@@ -49,6 +65,11 @@ export async function OrganizerGettingStarted() {
           </li>
         ))}
       </ol>
+
+      <p className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+        <Sparkles className="h-3.5 w-3.5 text-primary" />
+        {t("dashboard.organizer.gettingStartedTip")}
+      </p>
     </div>
   );
 }

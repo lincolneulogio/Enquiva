@@ -5,6 +5,11 @@ import { pusherServer } from "@/lib/pusher/server";
 import { PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/shared";
 import { invalidateCache, CACHE_KEYS } from "@/lib/redis";
 import type { Locale } from "@/lib/i18n/core";
+import { env } from "@/env";
+import {
+  chunkRecipients,
+  resolveBroadcastBatchSize,
+} from "@/lib/notifications/broadcast-batch";
 
 export type MassCommunicationNotificationType =
   | "event_published"
@@ -51,7 +56,7 @@ export type MassDeliveryStats = {
   failureCount: number;
 };
 
-const DEFAULT_BATCH_SIZE = 8;
+const DEFAULT_BATCH_SIZE = resolveBroadcastBatchSize(env.BROADCAST_BATCH_SIZE);
 
 async function deliverToRecipient(
   recipient: MassCommunicationRecipient,
@@ -133,8 +138,7 @@ export async function deliverMassCommunication(
   let successCount = 0;
   let failureCount = 0;
 
-  for (let i = 0; i < recipients.length; i += batchSize) {
-    const batch = recipients.slice(i, i + batchSize);
+  for (const batch of chunkRecipients(recipients, batchSize)) {
     const results = await Promise.all(batch.map((recipient) => deliverToRecipient(recipient, payload)));
     for (const ok of results) {
       if (ok) successCount++;

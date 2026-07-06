@@ -30,6 +30,7 @@ export const env = createEnv({
       process.env.NODE_ENV === "production"
         ? z.string().min(16)
         : z.string().min(16).optional(),
+    BROADCAST_BATCH_SIZE: z.coerce.number().int().min(1).max(50).optional(),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().url(),
@@ -64,6 +65,7 @@ export const env = createEnv({
     CULQI_WEBHOOK_SECRET: process.env.CULQI_WEBHOOK_SECRET,
     PLATFORM_FEE_PERCENT: process.env.PLATFORM_FEE_PERCENT,
     CRON_SECRET: process.env.CRON_SECRET,
+    BROADCAST_BATCH_SIZE: process.env.BROADCAST_BATCH_SIZE,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_DOCS_URL: process.env.NEXT_PUBLIC_DOCS_URL,
     NEXT_PUBLIC_PUSHER_KEY: process.env.NEXT_PUBLIC_PUSHER_KEY,

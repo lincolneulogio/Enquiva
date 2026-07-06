@@ -1,9 +1,10 @@
 import { Calendar, Users, Bell, Shield, Zap } from "lucide-react";
-import { getPublicEvents } from "@/actions/events";
+import { getFeaturedPublicEvents, getPublicEvents } from "@/actions/events";
 import { PublicHeader } from "@/components/shared/PublicHeader";
 import { getI18n } from "@/lib/i18n/server";
 import {
   HeroSection,
+  FeaturedEventsCarousel,
   EventsShowcase,
   FeaturesSection,
   Footer,
@@ -11,7 +12,10 @@ import {
 
 export default async function HomePage() {
   const { locale, t } = await getI18n();
-  const { events, totalRegistrations } = await getPublicEvents({ page: 1, limit: 6 });
+  const [featuredEvents, { events, totalRegistrations }] = await Promise.all([
+    getFeaturedPublicEvents(8),
+    getPublicEvents({ page: 1, limit: 6 }),
+  ]);
 
   const formattedRegistrations = new Intl.NumberFormat(
     locale === "en" ? "en-US" : "es-PE"
@@ -78,6 +82,8 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
+
+      <FeaturedEventsCarousel events={featuredEvents} t={t} />
 
       <EventsShowcase
         events={events}

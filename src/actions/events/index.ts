@@ -173,6 +173,10 @@ export async function getPublicEvents(filterInput?: unknown) {
   return EventService.getPublicEvents(filterInput);
 }
 
+export async function getFeaturedPublicEvents(limit = 6) {
+  return EventService.getFeaturedPublicEvents(limit);
+}
+
 // ─── Get Event by Slug ────────────────────────────────────────────────────────
 
 export async function getEventBySlug(slug: string) {

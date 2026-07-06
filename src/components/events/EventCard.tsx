@@ -22,6 +22,8 @@ interface EventCardProps {
   className?: string;
   categoryMap?: Record<string, { label: string; colorClass?: string | null }>;
   priority?: boolean;
+  /** Oculta la fila de fecha en meta (ya aparece en la portada). */
+  hideDateMeta?: boolean;
 }
 
 export async function EventCard({
@@ -29,6 +31,7 @@ export async function EventCard({
   className,
   categoryMap,
   priority = false,
+  hideDateMeta = false,
 }: EventCardProps) {
   const locale = await getLocale();
   const t = (key: string, params?: Record<string, string | number>) =>
@@ -153,15 +156,16 @@ export async function EventCard({
 
         {/* Meta */}
         <div className="space-y-2 text-xs text-muted-foreground mt-auto">
-          {/* Date */}
-          <div className="flex items-center gap-2.5 rounded-2xl border border-border/30 bg-secondary/5 dark:bg-secondary/5 px-3 py-2 transition-all hover:bg-secondary/15 hover:border-border/50">
-            <span className="inline-flex h-6.5 w-6.5 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/10 shrink-0">
-              <Calendar className="h-3.5 w-3.5 text-primary" />
-            </span>
-            <span className="font-semibold text-foreground/90 leading-none">
-              {formatEventDateShort(event.date, locale)}
-            </span>
-          </div>
+          {!hideDateMeta && (
+            <div className="flex items-center gap-2.5 rounded-2xl border border-border/30 bg-secondary/5 dark:bg-secondary/5 px-3 py-2 transition-all hover:bg-secondary/15 hover:border-border/50">
+              <span className="inline-flex h-6.5 w-6.5 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/10 shrink-0">
+                <Calendar className="h-3.5 w-3.5 text-primary" />
+              </span>
+              <span className="font-semibold text-foreground/90 leading-none">
+                {formatEventDateShort(event.date, locale)}
+              </span>
+            </div>
+          )}
 
           {/* Location */}
           <div className="flex items-center gap-2.5 rounded-2xl border border-border/30 bg-secondary/5 dark:bg-secondary/5 px-3 py-2 transition-all hover:bg-secondary/15 hover:border-border/50">

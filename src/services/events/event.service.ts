@@ -13,7 +13,7 @@ import {
 import { pusherServer, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/server";
 import { generateUniqueSlug } from "@/lib/utils";
 import { assertCanManageEvent } from "@/lib/organizations/admin-scope";
-import { eq, and, desc, ilike, count, sql, asc, inArray, isNull } from "drizzle-orm";
+import { eq, and, desc, ilike, count, sql, asc, inArray, isNull, gte } from "drizzle-orm";
 import {
   createEventSchema,
   updateEventSchema,
@@ -276,6 +276,65 @@ export class EventService {
 
     await setCached(cacheKey, result, CACHE_TTL.publicEvents);
     return result;
+  }
+
+  /** Eventos destacados para carrusel en home (fallback a próximos publicados). */
+  static async getFeaturedPublicEvents(limit = 6) {
+    const cacheKey = `${CACHE_KEYS.publicEvents}:featured:${limit}`;
+    const cached = await getCached<PublicEventsResult["events"]>(cacheKey);
+    if (cached) return cached;
+
+    const now = new Date();
+    const baseConditions = [eq(events.status, "published"), gte(events.date, now)];
+
+    const queryFeatured = () =>
+      db
+        .select({
+          event: events,
+          attendeeCount: sql<number>`count(${registrations.id})::int`,
+        })
+        .from(events)
+        .leftJoin(
+          registrations,
+          and(
+            eq(registrations.eventId, events.id),
+            inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES]),
+          ),
+        )
+        .where(and(...baseConditions, eq(events.isFeatured, true)))
+        .groupBy(events.id)
+        .orderBy(asc(events.date))
+        .limit(limit);
+
+    let results = await queryFeatured();
+
+    if (results.length === 0) {
+      results = await db
+        .select({
+          event: events,
+          attendeeCount: sql<number>`count(${registrations.id})::int`,
+        })
+        .from(events)
+        .leftJoin(
+          registrations,
+          and(
+            eq(registrations.eventId, events.id),
+            inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES]),
+          ),
+        )
+        .where(and(...baseConditions))
+        .groupBy(events.id)
+        .orderBy(desc(events.isFeatured), asc(events.date))
+        .limit(limit);
+    }
+
+    const eventsWithAttendeeCount = results.map((row) => ({
+      ...row.event,
+      attendeeCount: row.attendeeCount ?? 0,
+    }));
+
+    await setCached(cacheKey, eventsWithAttendeeCount, CACHE_TTL.publicEvents);
+    return eventsWithAttendeeCount;
   }
 
   /**

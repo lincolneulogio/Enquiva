@@ -1,5 +1,11 @@
 import nodemailer from "nodemailer";
 import { env } from "@/env";
+import { validateProductionMailConfig } from "@/lib/mail/config";
+
+const mailCheck = validateProductionMailConfig();
+if (mailCheck.warning) {
+  console.warn(`[mail] ${mailCheck.warning}`);
+}
 
 export const transporter = nodemailer.createTransport({
   host: env.SMTP_HOST,

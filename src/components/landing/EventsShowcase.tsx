@@ -38,7 +38,7 @@ export function EventsShowcase({ events, t }: EventsShowcaseProps) {
               data-aos="zoom-in-up"
               data-aos-delay={String(70 + index * 60)}
             >
-              <EventCard event={event} priority={index === 0} />
+              <EventCard event={event} priority={index === 0} hideDateMeta />
             </div>
           ))}
         </div>

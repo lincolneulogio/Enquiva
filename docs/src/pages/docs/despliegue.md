@@ -74,9 +74,26 @@ curl -H "Authorization: Bearer TU_CRON_SECRET" https://tudominio.com/api/cron/ev
 2. Verifica correo OTP con SMTP de producción.
 3. Revisa logs de Vercel tras el primer cron.
 4. Configura dominio personalizado en Vercel.
+5. Comprueba salud: `GET https://tudominio.com/api/health`
 
 ---
 
-## 5. Documentación (opcional)
+## 5. Deploy automático (GitHub Actions)
+
+El workflow `.github/workflows/deploy.yml` ejecuta typecheck, tests y despliega a Vercel en push a `main`.
+
+Secrets requeridos en GitHub → Settings → Secrets:
+
+| Secret | Dónde obtenerlo |
+|--------|-----------------|
+| `VERCEL_TOKEN` | Vercel → Account → Tokens |
+| `VERCEL_ORG_ID` | Vercel → Project → Settings → General |
+| `VERCEL_PROJECT_ID` | Idem |
+
+Si prefieres deploy solo desde el dashboard de Vercel, puedes desactivar este workflow.
+
+---
+
+## 6. Documentación (opcional)
 
 El sitio Astro en `/docs` puede desplegarse por separado o servirse en `NEXT_PUBLIC_DOCS_URL`.
