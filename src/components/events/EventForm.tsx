@@ -10,7 +10,7 @@ import { getPaymentMethodsForEventForm, setEventPaymentMethods } from "@/actions
 import { UploadDropzone } from "@/lib/uploadthing/components";
 import { toast } from "sonner";
 import { Loader2, ImageIcon, MapPin, Video, Star, Bus, Smartphone, QrCode, Wallet } from "lucide-react";
-import Image from "next/image";
+import { EventCoverImage } from "@/components/events/EventCoverImage";
 import type { Event } from "@/lib/db/schema";
 import type { FieldErrors } from "react-hook-form";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
@@ -545,7 +545,7 @@ export function EventForm({
                         <div className="overflow-hidden rounded-xl border border-border bg-secondary">
                             {coverImage ? (
                                 <div className="relative">
-                                    <Image
+                                    <EventCoverImage
                                         src={coverImage}
                                         alt="Cover"
                                         width={400}

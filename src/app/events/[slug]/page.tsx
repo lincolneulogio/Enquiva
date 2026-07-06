@@ -8,7 +8,7 @@ import { RegisterButton } from "@/components/events/RegisterButton";
 import { TicketCard } from "@/components/tickets/TicketCard";
 import { PublicHeader } from "@/components/shared/PublicHeader";
 import Link from "next/link";
-import Image from "next/image";
+import { EventCoverImage } from "@/components/events/EventCoverImage";
 import { categoryColor, categoryLabel, cn, formatEventDate } from "@/lib/utils";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
@@ -231,20 +231,14 @@ export default async function EventDetailPage({ params }: EventPageProps) {
               {/* Cover Image */}
               {event.coverImage && (
                 <div className="group relative overflow-hidden rounded-3xl border border-border bg-secondary/15 shadow-md hover:shadow-lg transition-all duration-300 w-full flex items-center justify-center">
-                  {/* Ambient blurred background glow */}
-                  <div className="absolute inset-0 select-none overflow-hidden opacity-20 blur-[100px] dark:opacity-10 pointer-events-none">
-                    <Image
-                      src={event.coverImage}
-                      alt=""
-                      fill
-                      sizes="100vw"
-                      className="object-cover"
-                    />
-                  </div>
-                  
-                  {/* Main Image */}
+                  <div
+                    className="absolute inset-0 select-none overflow-hidden opacity-20 blur-[100px] dark:opacity-10 pointer-events-none bg-cover bg-center"
+                    style={{ backgroundImage: `url(${event.coverImage})` }}
+                    aria-hidden
+                  />
+
                   <div className="relative w-full overflow-hidden flex items-center justify-center">
-                    <Image
+                    <EventCoverImage
                       src={event.coverImage}
                       alt={event.title}
                       width={1200}

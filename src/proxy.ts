@@ -33,7 +33,7 @@ export async function proxy(request: NextRequest) {
   const hasSession = request.cookies.getAll().some(
     (cookie) =>
       cookie.name.includes("better-auth.session_token") ||
-      cookie.name.includes("session_token")
+      cookie.name.includes("session_token"),
   );
 
   if (!hasSession) {
@@ -52,10 +52,6 @@ export async function proxy(request: NextRequest) {
   });
 }
 
-export { proxy as middleware };
-
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api).*)"],
 };

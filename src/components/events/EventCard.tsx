@@ -1,6 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowUpRight, Calendar, Lock, MapPin, Users } from "lucide-react";
+import { EventCoverImage } from "@/components/events/EventCoverImage";
 import type { Event } from "@/lib/db/schema";
 import {
   categoryColor,
@@ -72,19 +72,13 @@ export async function EventCard({
       <div className="relative w-full overflow-hidden bg-secondary/15 flex items-center justify-center border-b border-border/50">
         {event.coverImage ? (
           <>
-            {/* Ambient blurred background glow */}
-            <div className="absolute inset-0 select-none overflow-hidden opacity-25 blur-[40px] dark:opacity-15 pointer-events-none">
-              <Image
-                src={event.coverImage}
-                alt={`Imagen de ${event.title}`}
-                fill
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                className="object-cover"
-              />
-            </div>
-            {/* Main fully visible image */}
+            <div
+              className="absolute inset-0 select-none overflow-hidden opacity-25 blur-[40px] dark:opacity-15 pointer-events-none bg-cover bg-center"
+              style={{ backgroundImage: `url(${event.coverImage})` }}
+              aria-hidden
+            />
             <div className="relative w-full overflow-hidden flex items-center justify-center p-0.5">
-              <Image
+              <EventCoverImage
                 src={event.coverImage}
                 alt={event.title}
                 width={600}
