@@ -7,9 +7,11 @@ import {
   getTicketTemplate,
   getBroadcastEmailTemplate,
   getCustomNotificationEmailTemplate,
+  getWelcomeEmailTemplate,
 } from "./templates";
 import { getSystemSettings } from "@/lib/settings";
-import { mailGreeting, type MailLocale } from "./locale-strings";
+import { mailGreeting, welcomeLoginPath, type MailLocale, type WelcomeAccountType } from "./locale-strings";
+import { env } from "@/env";
 
 async function safeSendMail(options: Parameters<typeof transporter.sendMail>[0]) {
   try {
@@ -35,6 +37,34 @@ export async function sendVerificationCodeEmail(input: {
     organizationName,
     locale,
   );
+
+  await safeSendMail({
+    from: sender(),
+    to: input.email,
+    subject,
+    text,
+    html,
+  });
+}
+
+export async function sendWelcomeEmail(input: {
+  email: string;
+  name?: string | null;
+  accountType: WelcomeAccountType;
+  locale?: MailLocale;
+}) {
+  const { organizationName } = await getSystemSettings();
+  const locale = input.locale ?? "es";
+  const greeting = mailGreeting(locale, input.name);
+  const loginPath = welcomeLoginPath(input.accountType);
+  const loginUrl = new URL(loginPath, env.NEXT_PUBLIC_APP_URL).toString();
+  const { subject, text, html } = getWelcomeEmailTemplate({
+    greeting,
+    accountType: input.accountType,
+    loginUrl,
+    orgName: organizationName,
+    locale,
+  });
 
   await safeSendMail({
     from: sender(),

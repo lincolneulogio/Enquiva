@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { env } from "@/env";
 import { users, verifications } from "@/lib/db/schema";
-import { sendPasswordChangedEmail, sendVerificationCodeEmail } from "@/lib/mail";
+import { sendPasswordChangedEmail, sendVerificationCodeEmail, sendWelcomeEmail } from "@/lib/mail";
 import { getLocale } from "@/lib/i18n/server";
 
 const authIdentitySchema = z.object({
@@ -223,7 +223,7 @@ export async function confirmVerificationCode(input: { email: string; code: stri
     });
 
     const [user] = await db
-        .select({ id: users.id, role: users.role })
+        .select({ id: users.id, role: users.role, name: users.name })
         .from(users)
         .where(eq(users.email, validated.email))
         .limit(1);
@@ -261,6 +261,16 @@ export async function confirmVerificationCode(input: { email: string; code: stri
               : signupIntent.type === "organizer"
                 ? "organizer"
                 : "member";
+
+    const locale = await getLocale();
+    if (user) {
+        await sendWelcomeEmail({
+            email: validated.email,
+            name: user.name,
+            accountType,
+            locale,
+        });
+    }
 
     return {
         verified: true,
