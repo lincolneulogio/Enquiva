@@ -1,4 +1,5 @@
 import { transporter, sender } from "./transporter";
+import { appendEmailBrandLogoAttachment } from "./brand-header";
 import { generatePdfBuffer } from "./pdf";
 import {
   getVerificationCodeTemplate,
@@ -18,7 +19,10 @@ import { env } from "@/env";
 
 async function safeSendMail(options: Parameters<typeof transporter.sendMail>[0]) {
   try {
-    return await transporter.sendMail(options);
+    return await transporter.sendMail({
+      ...options,
+      attachments: appendEmailBrandLogoAttachment(options.attachments ?? []),
+    });
   } catch (error) {
     console.error(`[SMTP Error] Failed to send email to ${options.to}:`, error);
     return null;

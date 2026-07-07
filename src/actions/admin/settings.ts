@@ -4,6 +4,7 @@ import { requireSuperAdmin } from "./users";
 import { getSystemSettings, saveSystemSettings, describeSettingsChanges, type SystemSettings } from "@/lib/settings";
 import { logAdminAction } from "@/lib/analytics/log-admin-action";
 import { wrapInTemplate } from "@/lib/mail/templates";
+import { appendEmailBrandLogoAttachment } from "@/lib/mail/brand-header";
 import { transporter, sender } from "@/lib/mail/transporter";
 import { revalidatePath } from "next/cache";
 import { env } from "@/env";
@@ -121,7 +122,8 @@ export async function sendTestEmailAction(email: string) {
             to: email,
             subject: `Prueba de correo SMTP — ${BRAND.name}`,
             text: `¡Hola ${user.name}! Este es un correo de prueba SMTP exitoso de la plataforma ${settings.organizationName}.`,
-            html
+            html,
+            attachments: appendEmailBrandLogoAttachment(),
         });
         
         const latencyMs = Date.now() - start;
