@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { checkAuthIdentityByEmail, sendVerificationCode } from "@/actions/auth";
+import { checkAuthIdentityByEmail, sendVerificationCode, validateOrganizerInviteAtSignup } from "@/actions/auth";
 import { signUp } from "@/lib/auth/client";
 import { getAuthErrorKind, getAuthErrorMessage, getValidationMessage } from "@/lib/auth/messages";
 import { signUpSchema, buildSignupPayload, type SignUpInput } from "@/lib/validations";
@@ -92,6 +92,12 @@ export function RegisterForm() {
           return;
         }
 
+        const signupPayload = buildSignupPayload(data);
+
+        if (data.accountType === "organizer" && data.organizerLinkMode === "entity") {
+          await validateOrganizerInviteAtSignup(data.inviteCode ?? "");
+        }
+
         const result = await signUp.email({
           name: data.name,
           email: data.email,
@@ -119,7 +125,6 @@ export function RegisterForm() {
           return;
         }
 
-        const signupPayload = buildSignupPayload(data);
         await sendVerificationCode({ email: data.email, signupPayload });
 
         const successKey =

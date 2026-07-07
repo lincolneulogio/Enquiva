@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Building2, Loader2 } from "lucide-react";
 import { joinOrganizationWithInviteCode } from "@/actions/organizations";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+import { toast } from "sonner";
 
 export function JoinEntityForm() {
   const router = useRouter();
@@ -19,8 +20,11 @@ export function JoinEntityForm() {
 
     startTransition(async () => {
       try {
-        await joinOrganizationWithInviteCode(inviteCode);
-        router.refresh();
+        const result = await joinOrganizationWithInviteCode(inviteCode);
+        if (result.pending) {
+          toast.success(t("dashboard.organizer.joinEntityPending"));
+        }
+        router.push("/member");
       } catch (err) {
         setError(err instanceof Error ? err.message : t("dashboard.organizer.joinEntityError"));
       }

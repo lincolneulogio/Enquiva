@@ -10,8 +10,62 @@ export async function getMyOrganization() {
   const org = await OrganizationService.getOrganizationForUser(user.id);
   if (!org) return null;
 
-  const team = await OrganizationService.listTeamMembers(org.id);
-  return { organization: org, team, isOwner: org.ownerId === user.id };
+  const [team, pendingRequests] = await Promise.all([
+    OrganizationService.listTeamMembers(org.id),
+    OrganizationService.listPendingOrganizerRequests(org.id),
+  ]);
+  return { organization: org, team, pendingRequests, isOwner: org.ownerId === user.id };
+}
+
+export async function getMyPendingOrganizerRequest() {
+  const user = await requireAuth();
+  return OrganizationService.getPendingOrganizerMembershipForUser(user.id);
+}
+
+export async function approveOrganizerRequest(targetUserId: string) {
+  const user = await requireAuth();
+  const result = await OrganizationService.approveOrganizerRequest({
+    actorId: user.id,
+    actorRole: user.role,
+    targetUserId,
+  });
+
+  const { sendOrganizerApprovedEmail } = await import("@/lib/mail");
+  const { getLocale } = await import("@/lib/i18n/server");
+  await sendOrganizerApprovedEmail({
+    email: result.user.email,
+    name: result.user.name,
+    organizationName: result.organization.name,
+    locale: await getLocale(),
+  });
+
+  revalidatePath("/admin/team");
+  revalidatePath("/admin/users");
+  revalidatePath("/member");
+  revalidatePath("/organizer");
+  return { success: true };
+}
+
+export async function rejectOrganizerRequest(targetUserId: string) {
+  const user = await requireAuth();
+  const result = await OrganizationService.rejectOrganizerRequest({
+    actorId: user.id,
+    actorRole: user.role,
+    targetUserId,
+  });
+
+  const { sendOrganizerRejectedEmail } = await import("@/lib/mail");
+  const { getLocale } = await import("@/lib/i18n/server");
+  await sendOrganizerRejectedEmail({
+    email: result.user.email,
+    name: result.user.name,
+    organizationName: result.organization.name,
+    locale: await getLocale(),
+  });
+
+  revalidatePath("/admin/team");
+  revalidatePath("/member");
+  return { success: true };
 }
 
 export async function promoteOrgMember(targetUserId: string, newRole: "organizer" | "member") {
@@ -81,20 +135,32 @@ export async function canManageOrgTeam() {
 
 export async function joinOrganizationWithInviteCode(inviteCode: string) {
   const user = await requireAuth();
-  const role = normalizeRole(user.role);
-  if (role !== "organizer") {
-    throw new Error("Solo los organizadores pueden unirse a una entidad con código.");
-  }
 
   const existing = await OrganizationService.getOrganizationForUser(user.id);
   if (existing) throw new Error("Ya perteneces a una entidad.");
 
-  const org = await OrganizationService.joinOrganizationAsOrganizer({
+  const pending = await OrganizationService.getPendingOrganizerMembershipForUser(user.id);
+  if (pending) throw new Error("Ya tienes una solicitud pendiente de aprobación.");
+
+  const org = await OrganizationService.requestJoinOrganizationAsOrganizer({
     userId: user.id,
     inviteCode: inviteCode.trim().toUpperCase(),
   });
 
+  const { notifyEntityAdminOfOrganizerRequest } = await import(
+    "@/lib/organizations/organizer-request-notifications"
+  );
+  const { getLocale } = await import("@/lib/i18n/server");
+  await notifyEntityAdminOfOrganizerRequest({
+    org,
+    requesterName: user.name,
+    requesterEmail: user.email,
+    locale: await getLocale(),
+  });
+
   revalidatePath("/organizer");
   revalidatePath("/organizer/settings");
-  return { success: true, organizationName: org.name };
+  revalidatePath("/member");
+  revalidatePath("/admin/team");
+  return { success: true, organizationName: org.name, pending: true };
 }

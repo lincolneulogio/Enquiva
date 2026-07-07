@@ -15,6 +15,9 @@ import { Suspense } from "react";
 import { resolveAdminScope, scopeEventCondition } from "@/lib/organizations/admin-scope";
 import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
 import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { normalizeRole } from "@/lib/auth/rbac";
 
 interface AdminEventsPageProps {
     searchParams: Promise<{
@@ -33,6 +36,9 @@ const EVENT_STATUS_VALUES = ["all", "published", "draft", "cancelled", "complete
 
 export default async function AdminEventsPage({ searchParams }: AdminEventsPageProps) {
     const { locale, t } = await getI18n();
+    const session = await auth.api.getSession({ headers: await headers() });
+    const role = normalizeRole(session?.user?.role);
+    const canCreateEvents = role === "super_admin";
     const staffBase = await getStaffBaseFromRequest();
     const eventsPath = staffDashboardPath(staffBase, "events");
     const adminScope = await resolveAdminScope();
@@ -148,6 +154,7 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                         )}
                     </p>
                 </div>
+                {canCreateEvents && (
                 <Link
                     href={`${eventsPath}/new`}
                     className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 sm:w-auto"
@@ -155,6 +162,7 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                     <Plus className="h-4 w-4" />
                     {t("common.createEvent")}
                 </Link>
+                )}
             </div>
 
             <Suspense>
@@ -175,13 +183,15 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                         <p className="mt-1 text-sm text-muted-foreground">
                             {locale === "en" ? "No events match your filters." : "Ningún evento coincide con los filtros."}
                         </p>
-                    ) : (
+                    ) : canCreateEvents ? (
                         <Link
                             href={`${eventsPath}/new`}
                             className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                         >
                             <Plus className="h-4 w-4" /> {t("common.createEvent")}
                         </Link>
+                    ) : (
+                        <p className="mt-2 text-sm text-muted-foreground">{t("auth.adminCannotCreateEventsBody")}</p>
                     )}
                 </div>
             ) : (

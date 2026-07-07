@@ -5,7 +5,7 @@ import {
   users,
   type Organization,
 } from "@/lib/db/schema";
-import { and, eq, inArray, asc, count } from "drizzle-orm";
+import { and, eq, asc, count } from "drizzle-orm";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { SubscriptionService } from "@/lib/billing/subscription.service";
 import { PlanLimitError } from "@/lib/billing/enforce";
@@ -125,7 +125,7 @@ export class OrganizationService {
     throw new Error("No se pudo crear la organización. Intenta con otro nombre.");
   }
 
-  static async joinOrganizationAsOrganizer(input: {
+  static async requestJoinOrganizationAsOrganizer(input: {
     userId: string;
     inviteCode: string;
   }) {
@@ -133,7 +133,10 @@ export class OrganizationService {
     if (!org) throw new Error("Código de entidad inválido o inactivo.");
 
     const [existingMember] = await db
-      .select({ id: organizationMembers.id })
+      .select({
+        id: organizationMembers.id,
+        status: organizationMembers.status,
+      })
       .from(organizationMembers)
       .where(
         and(
@@ -142,22 +145,192 @@ export class OrganizationService {
         ),
       )
       .limit(1);
-    if (existingMember) throw new Error("Ya perteneces a esta entidad.");
 
-    await this.assertCanAddOrganizerToOrg(org.id);
+    if (existingMember?.status === "active") {
+      throw new Error("Ya perteneces a esta entidad.");
+    }
+    if (existingMember?.status === "pending") {
+      throw new Error("Tu solicitud ya está pendiente de aprobación.");
+    }
 
-    await db.insert(organizationMembers).values({
-      organizationId: org.id,
-      userId: input.userId,
-      role: "organizer",
-    });
+    if (existingMember?.status === "rejected") {
+      await db
+        .update(organizationMembers)
+        .set({ status: "pending", role: "organizer" })
+        .where(eq(organizationMembers.id, existingMember.id));
+    } else {
+      await db.insert(organizationMembers).values({
+        organizationId: org.id,
+        userId: input.userId,
+        role: "organizer",
+        status: "pending",
+      });
+    }
 
     await db
       .update(users)
-      .set({ organizationId: org.id, role: "organizer", updatedAt: new Date() })
+      .set({ organizationId: org.id, role: "member", updatedAt: new Date() })
       .where(eq(users.id, input.userId));
 
     return org;
+  }
+
+  /** @deprecated Use requestJoinOrganizationAsOrganizer for invite-based joins. */
+  static async joinOrganizationAsOrganizer(input: {
+    userId: string;
+    inviteCode: string;
+  }) {
+    return this.requestJoinOrganizationAsOrganizer(input);
+  }
+
+  static async approveOrganizerRequest(input: {
+    actorId: string;
+    actorRole: string | null | undefined;
+    targetUserId: string;
+  }) {
+    const actorOrg = await this.getOrganizationForUser(input.actorId);
+    if (!actorOrg) throw new Error("No perteneces a una entidad.");
+
+    const isSuper = normalizeRole(input.actorRole) === "super_admin";
+    const isOwner = actorOrg.ownerId === input.actorId;
+    if (!isSuper && !isOwner) {
+      throw new Error("Solo el administrador de la entidad puede aprobar solicitudes.");
+    }
+
+    const [memberRow] = await db
+      .select()
+      .from(organizationMembers)
+      .where(
+        and(
+          eq(organizationMembers.organizationId, actorOrg.id),
+          eq(organizationMembers.userId, input.targetUserId),
+          eq(organizationMembers.role, "organizer"),
+          eq(organizationMembers.status, "pending"),
+        ),
+      )
+      .limit(1);
+
+    if (!memberRow) throw new Error("No hay una solicitud pendiente de este usuario.");
+
+    await this.assertCanAddOrganizerToOrg(actorOrg.id);
+
+    const [target] = await db
+      .select({ id: users.id, name: users.name, email: users.email })
+      .from(users)
+      .where(eq(users.id, input.targetUserId))
+      .limit(1);
+    if (!target) throw new Error("Usuario no encontrado.");
+
+    await db.transaction(async (trx) => {
+      await trx
+        .update(organizationMembers)
+        .set({ status: "active" })
+        .where(eq(organizationMembers.id, memberRow.id));
+
+      await trx
+        .update(users)
+        .set({ role: "organizer", updatedAt: new Date() })
+        .where(eq(users.id, input.targetUserId));
+    });
+
+    return { organization: actorOrg, user: target };
+  }
+
+  static async rejectOrganizerRequest(input: {
+    actorId: string;
+    actorRole: string | null | undefined;
+    targetUserId: string;
+  }) {
+    const actorOrg = await this.getOrganizationForUser(input.actorId);
+    if (!actorOrg) throw new Error("No perteneces a una entidad.");
+
+    const isSuper = normalizeRole(input.actorRole) === "super_admin";
+    const isOwner = actorOrg.ownerId === input.actorId;
+    if (!isSuper && !isOwner) {
+      throw new Error("Solo el administrador de la entidad puede rechazar solicitudes.");
+    }
+
+    const [memberRow] = await db
+      .select()
+      .from(organizationMembers)
+      .where(
+        and(
+          eq(organizationMembers.organizationId, actorOrg.id),
+          eq(organizationMembers.userId, input.targetUserId),
+          eq(organizationMembers.role, "organizer"),
+          eq(organizationMembers.status, "pending"),
+        ),
+      )
+      .limit(1);
+
+    if (!memberRow) throw new Error("No hay una solicitud pendiente de este usuario.");
+
+    const [target] = await db
+      .select({ id: users.id, name: users.name, email: users.email, organizationId: users.organizationId })
+      .from(users)
+      .where(eq(users.id, input.targetUserId))
+      .limit(1);
+    if (!target) throw new Error("Usuario no encontrado.");
+
+    await db.transaction(async (trx) => {
+      await trx
+        .update(organizationMembers)
+        .set({ status: "rejected" })
+        .where(eq(organizationMembers.id, memberRow.id));
+
+      if (target.organizationId === actorOrg.id) {
+        await trx
+          .update(users)
+          .set({ organizationId: null, updatedAt: new Date() })
+          .where(eq(users.id, input.targetUserId));
+      }
+    });
+
+    return { organization: actorOrg, user: target };
+  }
+
+  static async listPendingOrganizerRequests(organizationId: string) {
+    return db
+      .select({
+        member: organizationMembers,
+        user: {
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          role: users.role,
+          createdAt: users.createdAt,
+        },
+      })
+      .from(organizationMembers)
+      .innerJoin(users, eq(organizationMembers.userId, users.id))
+      .where(
+        and(
+          eq(organizationMembers.organizationId, organizationId),
+          eq(organizationMembers.role, "organizer"),
+          eq(organizationMembers.status, "pending"),
+        ),
+      )
+      .orderBy(asc(organizationMembers.createdAt));
+  }
+
+  static async getPendingOrganizerMembershipForUser(userId: string) {
+    const [row] = await db
+      .select({
+        member: organizationMembers,
+        organization: organizations,
+      })
+      .from(organizationMembers)
+      .innerJoin(organizations, eq(organizationMembers.organizationId, organizations.id))
+      .where(
+        and(
+          eq(organizationMembers.userId, userId),
+          eq(organizationMembers.role, "organizer"),
+          eq(organizationMembers.status, "pending"),
+        ),
+      )
+      .limit(1);
+
+    return row ?? null;
   }
 
   static async activateIndependentOrganizer(input: { userId: string }) {
@@ -237,7 +410,10 @@ export class OrganizationService {
 
       await trx
         .update(organizationMembers)
-        .set({ role: input.newRole })
+        .set({
+          role: input.newRole,
+          status: "active",
+        })
         .where(
           and(
             eq(organizationMembers.userId, input.targetUserId),
@@ -326,7 +502,12 @@ export class OrganizationService {
       })
       .from(organizationMembers)
       .innerJoin(users, eq(organizationMembers.userId, users.id))
-      .where(eq(organizationMembers.organizationId, organizationId))
+      .where(
+        and(
+          eq(organizationMembers.organizationId, organizationId),
+          eq(organizationMembers.status, "active"),
+        ),
+      )
       .orderBy(asc(organizationMembers.createdAt));
   }
 
@@ -337,7 +518,8 @@ export class OrganizationService {
       .where(
         and(
           eq(organizationMembers.organizationId, organizationId),
-          inArray(organizationMembers.role, ["owner", "organizer"]),
+          eq(organizationMembers.role, "organizer"),
+          eq(organizationMembers.status, "active"),
         ),
       );
     return rows.map((r) => r.userId);
@@ -350,10 +532,28 @@ export class OrganizationService {
       .where(
         and(
           eq(organizationMembers.organizationId, organizationId),
-          inArray(organizationMembers.role, ["owner", "organizer"]),
+          eq(organizationMembers.role, "organizer"),
+          eq(organizationMembers.status, "active"),
         ),
       );
     return total ?? 0;
+  }
+
+  /** Valida código de invitación antes del registro (sin comprobar cupo; se valida al aprobar). */
+  static async validateOrganizerInviteForSignup(inviteCode: string) {
+    const org = await this.getByInviteCode(inviteCode);
+    if (!org) {
+      throw new Error("INVITE_CODE_INVALID");
+    }
+
+    const plan = await SubscriptionService.getOrganizationPlan(org.id);
+
+    return {
+      organizationName: org.name,
+      planName: plan.name,
+      maxOrganizers: plan.maxOrganizers,
+      usedOrganizerSlots: await this.countOrganizerSlotsInOrg(org.id),
+    };
   }
 
   private static async assertCanAddOrganizerToOrg(organizationId: string) {
@@ -370,7 +570,7 @@ export class OrganizationService {
     const used = await this.countOrganizerSlotsInOrg(organizationId);
     if (used >= plan.maxOrganizers) {
       throw new PlanLimitError(
-        `El plan ${plan.name} de esta entidad permite hasta ${plan.maxOrganizers} organizador(es). Actualiza el plan en facturación.`,
+        `El plan ${plan.name} de esta entidad permite hasta ${plan.maxOrganizers} organizador(es) de eventos (sin contar al administrador). Actualiza el plan en facturación.`,
       );
     }
   }

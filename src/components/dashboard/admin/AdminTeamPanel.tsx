@@ -2,15 +2,19 @@
 
 import { useTransition } from "react";
 import { toast } from "sonner";
-import { promoteOrgMember } from "@/actions/organizations";
-import { Copy, Users, KeyRound } from "lucide-react";
+import {
+  approveOrganizerRequest,
+  promoteOrgMember,
+  rejectOrganizerRequest,
+} from "@/actions/organizations";
+import { Copy, Users, KeyRound, UserPlus } from "lucide-react";
 import { getRoleLabel } from "@/lib/i18n/core";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { InviteCodeShareButtons } from "@/components/dashboard/admin/InviteCodeShareButtons";
 import type { Organization } from "@/lib/db/schema";
 
 interface TeamRow {
-  member: { role: string };
+  member: { role: string; status?: string };
   user: {
     id: string;
     name: string;
@@ -23,10 +27,16 @@ interface TeamRow {
 interface AdminTeamPanelProps {
   organization: Organization;
   team: TeamRow[];
+  pendingRequests: TeamRow[];
   isOwner: boolean;
 }
 
-export function AdminTeamPanel({ organization, team, isOwner }: AdminTeamPanelProps) {
+export function AdminTeamPanel({
+  organization,
+  team,
+  pendingRequests,
+  isOwner,
+}: AdminTeamPanelProps) {
   const { locale } = useLocale();
   const t = useTranslations();
   const [isPending, startTransition] = useTransition();
@@ -44,6 +54,30 @@ export function AdminTeamPanel({ organization, team, isOwner }: AdminTeamPanelPr
         window.location.reload();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t("dashboard.admin.failedToUpdateRole"));
+      }
+    });
+  };
+
+  const approveRequest = (userId: string) => {
+    startTransition(async () => {
+      try {
+        await approveOrganizerRequest(userId);
+        toast.success(t("dashboard.admin.organizerRequestApproved"));
+        window.location.reload();
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : t("dashboard.admin.failedToApproveRequest"));
+      }
+    });
+  };
+
+  const rejectRequest = (userId: string) => {
+    startTransition(async () => {
+      try {
+        await rejectOrganizerRequest(userId);
+        toast.success(t("dashboard.admin.organizerRequestRejected"));
+        window.location.reload();
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : t("dashboard.admin.failedToRejectRequest"));
       }
     });
   };
@@ -74,6 +108,52 @@ export function AdminTeamPanel({ organization, team, isOwner }: AdminTeamPanelPr
           <InviteCodeShareButtons inviteCode={organization.inviteCode} entityName={organization.name} />
         </div>
       </div>
+
+      {isOwner && (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-6 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <UserPlus className="h-5 w-5 text-amber-600" />
+            <h3 className="font-semibold text-foreground">{t("dashboard.admin.pendingOrganizerRequests")}</h3>
+          </div>
+          <p className="mb-4 text-sm text-muted-foreground">{t("dashboard.admin.pendingOrganizerIntro")}</p>
+
+          {pendingRequests.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("dashboard.admin.noPendingRequests")}</p>
+          ) : (
+            <div className="space-y-3">
+              {pendingRequests.map(({ user }) => (
+                <div
+                  key={user.id}
+                  className="flex flex-col gap-2 rounded-xl border border-border bg-background/50 p-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <p className="font-medium text-foreground">{user.name}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => approveRequest(user.id)}
+                      className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+                    >
+                      {t("dashboard.admin.approveRequest")}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => rejectRequest(user.id)}
+                      className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium disabled:opacity-50"
+                    >
+                      {t("dashboard.admin.rejectRequest")}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div className="mb-4 flex items-center gap-2">

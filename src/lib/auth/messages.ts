@@ -6,6 +6,11 @@ export type AuthErrorKind =
     | "email_already_in_use"
     | "invalid_credentials"
     | "account_not_verified"
+    | "verification_code_expired"
+    | "verification_code_invalid"
+    | "verification_code_not_found"
+    | "invite_code_invalid"
+    | "plan_limit"
     | "unknown";
 
 const validationMessageMap: Record<string, string> = {
@@ -56,8 +61,28 @@ export function getAuthErrorKind(rawMessage: string | undefined): AuthErrorKind 
         return "invalid_credentials";
     }
 
-    if (normalized.includes("email not verified") || normalized.includes("verification") || normalized.includes("not verified")) {
+    if (normalized.includes("email not verified") || normalized.includes("verification") && normalized.includes("not verified")) {
         return "account_not_verified";
+    }
+
+    if (normalized.includes("verification_code_expired") || normalized.includes("código expiró") || normalized.includes("code expired")) {
+        return "verification_code_expired";
+    }
+
+    if (normalized.includes("verification_code_invalid") || normalized.includes("código incorrecto")) {
+        return "verification_code_invalid";
+    }
+
+    if (normalized.includes("verification_code_not_found") || normalized.includes("solicita un código nuevo")) {
+        return "verification_code_not_found";
+    }
+
+    if (normalized.includes("invite_code_invalid") || normalized.includes("código de entidad inválido")) {
+        return "invite_code_invalid";
+    }
+
+    if (normalized.includes("plan_limit") || normalized.includes("plan ") && normalized.includes("organizador")) {
+        return "plan_limit";
     }
 
     return "unknown";
@@ -73,6 +98,11 @@ export function getAuthErrorMessage(rawMessage: string | undefined, t: Translate
     if (errorKind === "email_already_in_use") return t("auth.emailAlreadyInUse");
     if (errorKind === "invalid_credentials") return t("auth.invalidCredentials");
     if (errorKind === "account_not_verified") return t("auth.accountNotVerified");
+    if (errorKind === "verification_code_expired") return t("auth.verificationCodeExpired");
+    if (errorKind === "verification_code_invalid") return t("auth.verificationCodeInvalid");
+    if (errorKind === "verification_code_not_found") return t("auth.verificationCodeNotFound");
+    if (errorKind === "invite_code_invalid") return t("auth.inviteCodeInvalid");
+    if (errorKind === "plan_limit") return rawMessage;
 
     return rawMessage;
 }

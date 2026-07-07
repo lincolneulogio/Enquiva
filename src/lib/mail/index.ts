@@ -8,6 +8,9 @@ import {
   getBroadcastEmailTemplate,
   getCustomNotificationEmailTemplate,
   getWelcomeEmailTemplate,
+  getOrganizerRequestAdminEmailTemplate,
+  getOrganizerApprovedEmailTemplate,
+  getOrganizerRejectedEmailTemplate,
 } from "./templates";
 import { getSystemSettings } from "@/lib/settings";
 import { mailGreeting, welcomeLoginPath, type MailLocale, type WelcomeAccountType } from "./locale-strings";
@@ -62,6 +65,89 @@ export async function sendWelcomeEmail(input: {
     greeting,
     accountType: input.accountType,
     loginUrl,
+    orgName: organizationName,
+    locale,
+  });
+
+  await safeSendMail({
+    from: sender(),
+    to: input.email,
+    subject,
+    text,
+    html,
+  });
+}
+
+export async function sendOrganizerRequestAdminEmail(input: {
+  email: string;
+  name?: string | null;
+  requesterName: string;
+  requesterEmail: string;
+  organizationName: string;
+  locale?: MailLocale;
+}) {
+  const { organizationName } = await getSystemSettings();
+  const locale = input.locale ?? "es";
+  const greeting = mailGreeting(locale, input.name);
+  const teamUrl = new URL("/admin/team", env.NEXT_PUBLIC_APP_URL).toString();
+  const { subject, text, html } = getOrganizerRequestAdminEmailTemplate({
+    greeting,
+    requesterName: input.requesterName,
+    requesterEmail: input.requesterEmail,
+    organizationName: input.organizationName,
+    teamUrl,
+    orgName: organizationName,
+    locale,
+  });
+
+  await safeSendMail({
+    from: sender(),
+    to: input.email,
+    subject,
+    text,
+    html,
+  });
+}
+
+export async function sendOrganizerApprovedEmail(input: {
+  email: string;
+  name?: string | null;
+  organizationName: string;
+  locale?: MailLocale;
+}) {
+  const { organizationName } = await getSystemSettings();
+  const locale = input.locale ?? "es";
+  const greeting = mailGreeting(locale, input.name);
+  const loginUrl = new URL("/login", env.NEXT_PUBLIC_APP_URL).toString();
+  const { subject, text, html } = getOrganizerApprovedEmailTemplate({
+    greeting,
+    organizationName: input.organizationName,
+    loginUrl,
+    orgName: organizationName,
+    locale,
+  });
+
+  await safeSendMail({
+    from: sender(),
+    to: input.email,
+    subject,
+    text,
+    html,
+  });
+}
+
+export async function sendOrganizerRejectedEmail(input: {
+  email: string;
+  name?: string | null;
+  organizationName: string;
+  locale?: MailLocale;
+}) {
+  const { organizationName } = await getSystemSettings();
+  const locale = input.locale ?? "es";
+  const greeting = mailGreeting(locale, input.name);
+  const { subject, text, html } = getOrganizerRejectedEmailTemplate({
+    greeting,
+    organizationName: input.organizationName,
     orgName: organizationName,
     locale,
   });

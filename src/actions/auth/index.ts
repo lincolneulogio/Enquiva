@@ -178,8 +178,13 @@ export async function sendVerificationCode(input: {
     if (input.signupPayload) {
         const payload = signupIntentPayloadSchema.parse(input.signupPayload);
         if (payload.type === "organizer" && payload.inviteCode) {
-            const org = await OrganizationService.getByInviteCode(payload.inviteCode);
-            if (!org) throw new Error("Código de entidad inválido. Pide el código a tu administrador.");
+            try {
+                await OrganizationService.validateOrganizerInviteForSignup(
+                    payload.inviteCode.trim().toUpperCase(),
+                );
+            } catch {
+                throw new Error("INVITE_CODE_INVALID");
+            }
         }
         await storeSignupIntent(validated.email, payload);
     } else {
@@ -197,9 +202,14 @@ export async function sendVerificationCode(input: {
     return { sent: true };
 }
 
+export async function validateOrganizerInviteAtSignup(inviteCode: string) {
+    return OrganizationService.validateOrganizerInviteForSignup(inviteCode.trim().toUpperCase());
+}
+
 export async function confirmVerificationCode(input: { email: string; code: string }) {
     const validated = verificationCodeSchema.parse(input);
     const identifier = verificationIdentifier(validated.email);
+    const normalizedCode = validated.code.trim();
 
     const [verification] = await db
         .select()
@@ -207,8 +217,16 @@ export async function confirmVerificationCode(input: { email: string; code: stri
         .where(eq(verifications.identifier, identifier))
         .limit(1);
 
-    if (!verification || verification.value !== validated.code || verification.expiresAt < new Date()) {
-        throw new Error("Código de confirmación inválido o vencido.");
+    if (!verification) {
+        throw new Error("VERIFICATION_CODE_NOT_FOUND");
+    }
+
+    if (verification.expiresAt < new Date()) {
+        throw new Error("VERIFICATION_CODE_EXPIRED");
+    }
+
+    if (verification.value !== normalizedCode) {
+        throw new Error("VERIFICATION_CODE_INVALID");
     }
 
     const signupIntent = await consumeSignupIntent(validated.email);
@@ -228,7 +246,12 @@ export async function confirmVerificationCode(input: { email: string; code: stri
         .where(eq(users.email, validated.email))
         .limit(1);
 
+    const locale = await getLocale();
+
     if (user) {
+        let joinedOrg: Awaited<ReturnType<typeof OrganizationService.requestJoinOrganizationAsOrganizer>> | null =
+            null;
+
         if (signupIntent.type === "platform_owner") {
             await claimPlatformOwner(user.id);
         } else if (user.role === "member") {
@@ -240,7 +263,7 @@ export async function confirmVerificationCode(input: { email: string; code: stri
             } else if (signupIntent.type === "organizer") {
                 const inviteCode = signupIntent.inviteCode?.trim();
                 if (inviteCode) {
-                    await OrganizationService.joinOrganizationAsOrganizer({
+                    joinedOrg = await OrganizationService.requestJoinOrganizationAsOrganizer({
                         userId: user.id,
                         inviteCode,
                     });
@@ -251,7 +274,22 @@ export async function confirmVerificationCode(input: { email: string; code: stri
                 }
             }
         }
+
+        if (joinedOrg) {
+            const { notifyEntityAdminOfOrganizerRequest } = await import(
+                "@/lib/organizations/organizer-request-notifications"
+            );
+            await notifyEntityAdminOfOrganizerRequest({
+                org: joinedOrg,
+                requesterName: user.name,
+                requesterEmail: validated.email,
+                locale,
+            });
+        }
     }
+
+    const hasOrganizerInvite =
+        signupIntent.type === "organizer" && Boolean(signupIntent.inviteCode?.trim());
 
     const accountType =
         signupIntent.type === "platform_owner"
@@ -259,10 +297,11 @@ export async function confirmVerificationCode(input: { email: string; code: stri
             : signupIntent.type === "entity_admin"
               ? "entity_admin"
               : signupIntent.type === "organizer"
-                ? "organizer"
+                ? hasOrganizerInvite
+                  ? "organizer_pending"
+                  : "organizer"
                 : "member";
 
-    const locale = await getLocale();
     if (user) {
         await sendWelcomeEmail({
             email: validated.email,

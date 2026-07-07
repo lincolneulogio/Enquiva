@@ -60,13 +60,13 @@ export async function requireOrganizerOrStaff(): Promise<SessionUser> {
   return requireOrganizerOrHigher();
 }
 
-/** organizer | admin | super_admin — mensaje orientado a eventos. */
+/** Solo organizadores de eventos y super_admin (no administradores de entidad). */
 export async function requireOrganizer(): Promise<SessionUser> {
   const user = await requireAuth();
   assertRole(
     user,
-    ["organizer", "admin", "super_admin"],
-    "Only organizers or administrators can perform this action",
+    ["organizer", "super_admin"],
+    "Solo los organizadores de eventos pueden realizar esta acción. Si eres administrador de entidad, asigna el rol organizador en tu equipo o regístrate como organizador.",
   );
   return user;
 }

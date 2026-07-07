@@ -17,6 +17,12 @@ export const organizationMemberRoleEnum = pgEnum("organization_member_role", [
   "member",
 ]);
 
+export const organizationMemberStatusEnum = pgEnum("organization_member_status", [
+  "active",
+  "pending",
+  "rejected",
+]);
+
 export const organizations = pgTable(
   "organizations",
   {
@@ -48,6 +54,7 @@ export const organizationMembers = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     role: organizationMemberRoleEnum("role").notNull(),
+    status: organizationMemberStatusEnum("status").notNull().default("active"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [

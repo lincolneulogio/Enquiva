@@ -37,7 +37,12 @@ export function customNotificationFooter(locale: MailLocale, orgName: string) {
   return `Este es un mensaje automático de la comunidad <strong>${orgName}</strong>.`;
 }
 
-export type WelcomeAccountType = "member" | "organizer" | "entity_admin" | "platform_owner";
+export type WelcomeAccountType =
+  | "member"
+  | "organizer"
+  | "organizer_pending"
+  | "entity_admin"
+  | "platform_owner";
 
 export function welcomeEmailCopy(
   locale: MailLocale,
@@ -89,6 +94,20 @@ export function welcomeEmailCopy(
             "Share the registration link with attendees",
           ],
           cta: "Open organizer panel",
+        };
+      case "organizer_pending":
+        return {
+          ...common,
+          subject: "Request received — awaiting entity approval",
+          title: "Your request was sent",
+          intro:
+            "Your account is verified. The entity administrator must approve your request before you can create events for that organization.",
+          steps: [
+            "Sign in to see the status of your request",
+            "The administrator will review your request in the Team section",
+            "You will receive an email when you are approved or rejected",
+          ],
+          cta: "Sign in",
         };
       default:
         return {
@@ -151,6 +170,20 @@ export function welcomeEmailCopy(
         ],
         cta: "Abrir panel de organizador",
       };
+    case "organizer_pending":
+      return {
+        ...common,
+        subject: "Solicitud enviada — esperando aprobación de la entidad",
+        title: "Tu solicitud fue enviada",
+        intro:
+          "Tu cuenta quedó verificada. El administrador de la entidad debe aprobar tu solicitud antes de que puedas crear eventos para esa organización.",
+        steps: [
+          "Inicia sesión para ver el estado de tu solicitud",
+          "El administrador la revisará en la sección Equipo",
+          "Recibirás un correo cuando seas aprobado o rechazado",
+        ],
+        cta: "Iniciar sesión",
+      };
     default:
       return {
         ...common,
@@ -170,4 +203,60 @@ export function welcomeLoginPath(accountType: WelcomeAccountType): string {
   if (accountType === "platform_owner") return "/superadmin/login";
   if (accountType === "member") return "/events";
   return "/login";
+}
+
+export function organizerRequestAdminEmailCopy(
+  locale: MailLocale,
+  input: { requesterName: string; requesterEmail: string; organizationName: string },
+) {
+  if (locale === "en") {
+    return {
+      subject: `New organizer request — ${input.organizationName}`,
+      title: "New organizer request",
+      body: `<p><strong>${input.requesterName}</strong> (${input.requesterEmail}) requested to join <strong>${input.organizationName}</strong> as an event organizer.</p><p>Review and approve or reject the request from the Team section in your admin panel.</p>`,
+    };
+  }
+  return {
+    subject: `Nueva solicitud de organizador — ${input.organizationName}`,
+    title: "Nueva solicitud de organizador",
+    body: `<p><strong>${input.requesterName}</strong> (${input.requesterEmail}) solicitó unirse a <strong>${input.organizationName}</strong> como organizador de eventos.</p><p>Revisa y aprueba o rechaza la solicitud desde la sección Equipo en tu panel de administración.</p>`,
+  };
+}
+
+export function organizerApprovedEmailCopy(
+  locale: MailLocale,
+  input: { organizationName: string },
+) {
+  if (locale === "en") {
+    return {
+      subject: `Approved — you can now organize for ${input.organizationName}`,
+      title: "Request approved",
+      body: `<p>Your request to join <strong>${input.organizationName}</strong> as an organizer was approved.</p><p>Sign in to create and manage events for this entity.</p>`,
+      cta: "Open organizer panel",
+    };
+  }
+  return {
+    subject: `Aprobado — ya puedes organizar en ${input.organizationName}`,
+    title: "Solicitud aprobada",
+    body: `<p>Tu solicitud para unirte a <strong>${input.organizationName}</strong> como organizador fue aprobada.</p><p>Inicia sesión para crear y gestionar eventos de esta entidad.</p>`,
+    cta: "Abrir panel de organizador",
+  };
+}
+
+export function organizerRejectedEmailCopy(
+  locale: MailLocale,
+  input: { organizationName: string },
+) {
+  if (locale === "en") {
+    return {
+      subject: `Update on your request — ${input.organizationName}`,
+      title: "Request not approved",
+      body: `<p>Your request to join <strong>${input.organizationName}</strong> as an organizer was not approved at this time.</p><p>If you have questions, contact the entity administrator directly.</p>`,
+    };
+  }
+  return {
+    subject: `Actualización de tu solicitud — ${input.organizationName}`,
+    title: "Solicitud no aprobada",
+    body: `<p>Tu solicitud para unirte a <strong>${input.organizationName}</strong> como organizador no fue aprobada en este momento.</p><p>Si tienes dudas, contacta directamente al administrador de la entidad.</p>`,
+  };
 }

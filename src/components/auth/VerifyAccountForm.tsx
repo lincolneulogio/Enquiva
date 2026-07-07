@@ -61,6 +61,8 @@ export function VerifyAccountForm({
             ? "auth.accountVerifiedSuperAdmin"
             : result.accountType === "entity_admin"
             ? "auth.accountVerifiedEntityAdmin"
+            : result.accountType === "organizer_pending"
+              ? "auth.accountVerifiedOrganizerPending"
             : result.accountType === "organizer"
               ? "auth.accountVerifiedOrganizer"
               : "auth.accountVerified";

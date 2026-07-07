@@ -35,7 +35,12 @@ export default async function AdminTeamPage() {
         <h1 className="font-display text-3xl font-semibold text-foreground">{t("dashboard.admin.myEntity")}</h1>
         <p className="mt-1 text-muted-foreground">{t("dashboard.admin.myEntitySubtitle")}</p>
       </div>
-      <AdminTeamPanel organization={ctx.organization} team={ctx.team} isOwner={ctx.isOwner} />
+      <AdminTeamPanel
+        organization={ctx.organization}
+        team={ctx.team}
+        pendingRequests={ctx.pendingRequests}
+        isOwner={ctx.isOwner}
+      />
     </div>
   );
 }
