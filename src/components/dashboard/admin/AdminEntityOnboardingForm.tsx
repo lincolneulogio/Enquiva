@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { Building2, Loader2 } from "lucide-react";
 import { createMyOrganization } from "@/actions/organizations";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+import { usePersistedState } from "@/hooks/useFormPersistence";
+import { formStorageKey } from "@/lib/form-persistence";
 
 export function AdminEntityOnboardingForm() {
   const router = useRouter();
   const t = useTranslations();
-  const [orgName, setOrgName] = useState("");
+  const [orgName, setOrgName, clearOrgName] = usePersistedState(formStorageKey("admin.entity-onboarding"), "");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -20,6 +22,7 @@ export function AdminEntityOnboardingForm() {
     startTransition(async () => {
       try {
         await createMyOrganization(orgName);
+        clearOrgName();
         router.push("/admin");
         router.refresh();
       } catch (err) {

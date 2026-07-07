@@ -11,6 +11,8 @@ import {
 import { Loader2, Plus, Trash2, Pencil, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Plan } from "@/lib/db/schema";
+import { usePersistedState } from "@/hooks/useFormPersistence";
+import { formStorageKey } from "@/lib/form-persistence";
 
 type OrganizerOption = { id: string; name: string; email: string };
 
@@ -53,14 +55,14 @@ const emptyForm = {
 
 export function PlansManager({ initialPlans, organizers }: PlansManagerProps) {
   const [plans, setPlans] = useState(initialPlans);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm, clearForm] = usePersistedState(formStorageKey("admin.plans.form"), emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [assignUserId, setAssignUserId] = useState("");
-  const [assignPlanId, setAssignPlanId] = useState("");
+  const [assignUserId, setAssignUserId] = usePersistedState(formStorageKey("admin.plans.assign-user"), "");
+  const [assignPlanId, setAssignPlanId] = usePersistedState(formStorageKey("admin.plans.assign-plan"), "");
   const [isPending, startTransition] = useTransition();
 
   const resetForm = () => {
-    setForm(emptyForm);
+    clearForm();
     setEditingId(null);
   };
 

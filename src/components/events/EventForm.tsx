@@ -21,6 +21,8 @@ import { PlanUsageBanner } from "@/components/dashboard/organizer/PlanUsageBanne
 import type { getOrganizerPlanSummary } from "@/lib/billing/enforce";
 import Link from "next/link";
 import { Lock } from "lucide-react";
+import { useFormPersistence } from "@/hooks/useFormPersistence";
+import { formStorageKey, loadFormDraft, saveFormDraft } from "@/lib/form-persistence";
 
 type PlanSummary = Awaited<ReturnType<typeof getOrganizerPlanSummary>>;
 
@@ -38,7 +40,12 @@ interface EventFormProps {
     planSummary?: PlanSummary;
 }
 
-const EVENT_DRAFT_STORAGE_KEY = "Eventia.eventDraft.create";
+const EVENT_DRAFT_STORAGE_KEY = formStorageKey("event.create");
+
+type EventFormDraft = {
+    coverImage: string | null;
+    selectedPaymentMethodIds: string[];
+};
 
 const VALIDATION_MESSAGE_KEY_BY_TEXT: Record<string, string> = {
     "Title must be at least 3 characters": "events.form.validation.titleMin",
@@ -97,15 +104,7 @@ export function EventForm({
             ? "border-destructive ring-2 ring-destructive/40 animate-pulse"
             : "";
 
-    const {
-        register,
-        handleSubmit,
-        watch,
-        setValue,
-        setFocus,
-        reset,
-        formState: { errors },
-    } = useForm<CreateEventInput>({
+    const form = useForm<CreateEventInput>({
         resolver: zodResolver(createEventSchema),
         defaultValues: event
             ? {
@@ -124,6 +123,21 @@ export function EventForm({
             }
             : { status: "draft", isVirtual: false, isFeatured: false, hasTransport: false, price: undefined },
     });
+    const {
+        register,
+        handleSubmit,
+        watch,
+        setValue,
+        setFocus,
+        reset,
+        formState: { errors },
+    } = form;
+    const eventDraftKey = event
+        ? formStorageKey(`event.edit.${event.id}`)
+        : EVENT_DRAFT_STORAGE_KEY;
+    const { clearDraft } = useFormPersistence(eventDraftKey, form);
+    const extraDraftKey = `${eventDraftKey}.extra`;
+    const extraHydratedRef = useRef(false);
 
     const isVirtual = watch("isVirtual");
     const hasTransport = watch("hasTransport");
@@ -179,16 +193,26 @@ export function EventForm({
     }, [event?.id]);
 
     useEffect(() => {
+        if (event || extraHydratedRef.current) return;
+        extraHydratedRef.current = true;
+
+        const saved = loadFormDraft<EventFormDraft>(extraDraftKey);
+        if (!saved) return;
+
+        if (saved.coverImage) setCoverImage(saved.coverImage);
+        if (saved.selectedPaymentMethodIds?.length) {
+            setSelectedPaymentMethodIds(saved.selectedPaymentMethodIds);
+        }
+    }, [event, extraDraftKey]);
+
+    useEffect(() => {
         if (event) return;
 
-        reset({
-            status: "draft",
-            isVirtual: false,
-            isFeatured: false,
-            hasTransport: false,
-        });
-        setCoverImage(null);
-    }, [event, reset]);
+        const timer = setTimeout(() => {
+            saveFormDraft(extraDraftKey, { coverImage, selectedPaymentMethodIds });
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [event, extraDraftKey, coverImage, selectedPaymentMethodIds]);
 
     useEffect(() => {
         return () => {
@@ -233,6 +257,10 @@ export function EventForm({
                         await setEventPaymentMethods(savedEventId, selectedPaymentMethodIds);
                     }
 
+                    clearDraft();
+                    if (!event) {
+                        saveFormDraft(extraDraftKey, { coverImage: null, selectedPaymentMethodIds: [] });
+                    }
 
                     toast.success(event ? t("events.form.eventUpdated") : t("events.form.eventCreated"));
                     router.push(redirectPath);

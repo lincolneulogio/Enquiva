@@ -8,6 +8,8 @@ import { updateCurrentUserPassword } from "@/actions/profile";
 import { updatePasswordSchema, type UpdatePasswordInput } from "@/lib/validations";
 import { Eye, EyeOff, Loader2, LockKeyhole } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+import { useFormPersistence } from "@/hooks/useFormPersistence";
+import { formStorageKey } from "@/lib/form-persistence";
 
 function getPasswordStrength(password: string) {
   let score = 0;
@@ -36,13 +38,7 @@ export function PasswordForm() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const {
-    register: registerPassword,
-    handleSubmit: handlePasswordSubmit,
-    reset: resetPasswordForm,
-    watch: watchPassword,
-    formState: { errors: passwordErrors },
-  } = useForm<UpdatePasswordInput>({
+  const passwordForm = useForm<UpdatePasswordInput>({
     resolver: zodResolver(updatePasswordSchema),
     defaultValues: {
       currentPassword: "",
@@ -50,6 +46,14 @@ export function PasswordForm() {
       confirmPassword: "",
     },
   });
+  const {
+    register: registerPassword,
+    handleSubmit: handlePasswordSubmit,
+    reset: resetPasswordForm,
+    watch: watchPassword,
+    formState: { errors: passwordErrors },
+  } = passwordForm;
+  useFormPersistence(formStorageKey("profile.password"), passwordForm);
 
   const newPasswordValue = watchPassword("newPassword") ?? "";
   const passwordStrength = getPasswordStrength(newPasswordValue);

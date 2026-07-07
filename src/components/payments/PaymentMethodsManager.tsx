@@ -10,6 +10,8 @@ import { useTranslations } from "@/components/providers/LocaleProvider";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import type { PaymentMethod } from "@/lib/db/schema";
+import { usePersistedFormFields } from "@/hooks/useFormPersistence";
+import { formStorageKey } from "@/lib/form-persistence";
 
 const TYPE_ICONS = { yape: Smartphone, plin: QrCode, cash: Wallet, culqi: CreditCard };
 const TYPE_LABELS = { yape: "Yape", plin: "Plin", cash: "Efectivo", culqi: "Tarjeta (Culqi)" };
@@ -109,13 +111,19 @@ export function PaymentMethodsManager({
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [type, setType] = useState<"yape" | "plin" | "cash" | "culqi">("yape");
-  const [label, setLabel] = useState("");
-  const [holderName, setHolderName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [qrPreview, setQrPreview] = useState<string | null>(null);
-  const [culqiPublicKey, setCulqiPublicKey] = useState("");
-  const [culqiSecretKey, setCulqiSecretKey] = useState("");
+  const { values, setValue, setValues, clear } = usePersistedFormFields(
+    formStorageKey(`payment-methods.${scope}`),
+    {
+      type: "yape" as "yape" | "plin" | "cash" | "culqi",
+      label: "",
+      holderName: "",
+      phone: "",
+      qrPreview: null as string | null,
+      culqiPublicKey: "",
+      culqiSecretKey: "",
+    },
+  );
+  const { type, label, holderName, phone, qrPreview, culqiPublicKey, culqiSecretKey } = values;
 
   const isPlatform = scope === "platform";
   const isCulqiType = type === "culqi";
@@ -127,25 +135,21 @@ export function PaymentMethodsManager({
     : [...ORGANIZER_MANUAL_TYPES, ...(canAddCulqiType ? (["culqi"] as const) : [])];
 
   const resetForm = () => {
-    setType("yape");
-    setLabel("");
-    setHolderName("");
-    setPhone("");
-    setQrPreview(null);
-    setCulqiPublicKey("");
-    setCulqiSecretKey("");
+    clear();
     setEditingId(null);
     setShowForm(false);
   };
 
   const edit = (m: PaymentMethod) => {
-    setType(m.type);
-    setLabel(m.label);
-    setHolderName(m.holderName);
-    setPhone(m.phone ?? "");
-    setQrPreview(m.qrCodeUrl);
-    setCulqiPublicKey(m.culqiPublicKey ?? "");
-    setCulqiSecretKey("");
+    setValues({
+      type: m.type,
+      label: m.label,
+      holderName: m.holderName,
+      phone: m.phone ?? "",
+      qrPreview: m.qrCodeUrl,
+      culqiPublicKey: m.culqiPublicKey ?? "",
+      culqiSecretKey: "",
+    });
     setEditingId(m.id);
     setShowForm(true);
   };
@@ -199,15 +203,13 @@ export function PaymentMethodsManager({
   };
 
   const selectType = (next: typeof type) => {
-    setType(next);
-    if (next === "culqi") {
-      setLabel((prev) => prev || "Tarjeta de crédito/débito");
-      setPhone("");
-      setQrPreview(null);
-    } else if (next === "cash") {
-      setQrPreview(null);
-      setPhone("");
-    }
+    setValues((prev) => ({
+      ...prev,
+      type: next,
+      label: next === "culqi" ? (prev.label || "Tarjeta de crédito/débito") : prev.label,
+      phone: next === "culqi" || next === "cash" ? "" : prev.phone,
+      qrPreview: next === "culqi" || next === "cash" ? null : prev.qrPreview,
+    }));
   };
 
   const showOrganizerCulqiHints = !isPlatform && role === "organizer";
@@ -351,7 +353,7 @@ export function PaymentMethodsManager({
                 <input
                   type="text"
                   value={culqiPublicKey}
-                  onChange={(e) => setCulqiPublicKey(e.target.value)}
+                  onChange={(e) => setValue("culqiPublicKey", e.target.value)}
                   placeholder="pk_test_..."
                   className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-mono placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
@@ -363,7 +365,7 @@ export function PaymentMethodsManager({
                 <input
                   type="password"
                   value={culqiSecretKey}
-                  onChange={(e) => setCulqiSecretKey(e.target.value)}
+                  onChange={(e) => setValue("culqiSecretKey", e.target.value)}
                   placeholder={editingId ? t("payments.config.culqiSecretKeyKeep") : "sk_test_..."}
                   className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-mono placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   autoComplete="new-password"
@@ -380,7 +382,7 @@ export function PaymentMethodsManager({
               <input
                 type="text"
                 value={label}
-                onChange={(e) => setLabel(e.target.value)}
+                onChange={(e) => setValue("label", e.target.value)}
                 placeholder={
                   isCulqiType
                     ? t("payments.config.labelPlaceholderCulqi")
@@ -407,7 +409,7 @@ export function PaymentMethodsManager({
               <input
                 type="text"
                 value={holderName}
-                onChange={(e) => setHolderName(e.target.value)}
+                onChange={(e) => setValue("holderName", e.target.value)}
                 placeholder={
                   isCulqiType
                     ? isPlatform
@@ -428,7 +430,7 @@ export function PaymentMethodsManager({
                 <input
                   type="text"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => setValue("phone", e.target.value)}
                   placeholder="Celular, ej: +51 999 999 999"
                   className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
@@ -439,7 +441,7 @@ export function PaymentMethodsManager({
                 <label className="mb-1.5 block text-sm font-semibold text-foreground">
                   QR de {type === "yape" ? "Yape" : "Plin"}
                 </label>
-                <UploadQRDropzone value={qrPreview} onChange={setQrPreview} />
+                <UploadQRDropzone value={qrPreview} onChange={(value) => setValue("qrPreview", value)} />
               </div>
             )}
           </div>

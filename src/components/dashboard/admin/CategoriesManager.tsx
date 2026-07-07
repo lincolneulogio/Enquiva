@@ -5,7 +5,7 @@ import { createCategory, deleteCategory, reorderCategories, updateCategory } fro
 import { toast } from "sonner";
 import { confirmDeleteAction } from "@/lib/ui/confirm";
 import { GripVertical } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, normalizeCategorySlug } from "@/lib/utils";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 
 type CategoryItem = {
@@ -44,17 +44,7 @@ function reorderList<T extends { id: string }>(list: T[], draggedId: string, tar
     return next.map((item, idx) => ({ ...item, sortOrder: idx + 1 }));
 }
 
-const slugify = (text: string) => {
-    return text
-        .toString()
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .trim()
-        .replace(/\s+/g, "-")
-        .replace(/[^\w\-]+/g, "")
-        .replace(/\-\-+/g, "-");
-};
+const slugify = normalizeCategorySlug;
 
 export function CategoriesManager({ initialCategories }: CategoriesManagerProps) {
     const { locale } = useLocale();
@@ -221,7 +211,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                         </label>
                         <input
                             value={newItem.slug}
-                            onChange={(e) => setNewItem((p) => ({ ...p, slug: e.target.value }))}
+                            onChange={(e) => setNewItem((p) => ({ ...p, slug: normalizeCategorySlug(e.target.value) }))}
                             placeholder={t("dashboard.admin.slugPlaceholder") || "ej-slug-categoria"}
                             className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm transition focus:border-primary focus:ring-1 focus:ring-primary font-mono text-xs focus:bg-background/80"
                         />

@@ -15,6 +15,8 @@ import { superAdminRegisterSchema, type SuperAdminRegisterInput } from "@/lib/va
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+import { useFormPersistence } from "@/hooks/useFormPersistence";
+import { formStorageKey } from "@/lib/form-persistence";
 
 const inputClassName =
   "w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary";
@@ -30,18 +32,20 @@ export function SuperAdminRegisterForm({ requiresSecret }: SuperAdminRegisterFor
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const form = useForm<SuperAdminRegisterInput>({
+    resolver: zodResolver(superAdminRegisterSchema),
+    defaultValues: {
+      bootstrapSecret: "",
+    },
+  });
   const {
     register,
     handleSubmit,
     setError,
     clearErrors,
     formState: { errors },
-  } = useForm<SuperAdminRegisterInput>({
-    resolver: zodResolver(superAdminRegisterSchema),
-    defaultValues: {
-      bootstrapSecret: "",
-    },
-  });
+  } = form;
+  const { clearDraft } = useFormPersistence(formStorageKey("auth.superadmin.register"), form);
 
   const onSubmit = (data: SuperAdminRegisterInput) => {
     clearErrors("root");
@@ -95,6 +99,7 @@ export function SuperAdminRegisterForm({ requiresSecret }: SuperAdminRegisterFor
         });
 
         toast.success(t("auth.superAdminRegisterSuccess"));
+        clearDraft();
         router.replace(
           `/verify-account?email=${encodeURIComponent(data.email)}&flow=superadmin`,
         );

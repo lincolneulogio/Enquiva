@@ -12,6 +12,7 @@ import {
   andWithScope,
 } from "@/lib/organizations/admin-scope";
 import { logAdminAction } from "@/lib/analytics/log-admin-action";
+import { normalizeCategorySlug } from "@/lib/utils";
 
 async function assertCategoryAccess(categoryId: string, userId: string, role: string | null | undefined) {
   const scope = await resolveAdminScopeForUser(userId, role);
@@ -45,8 +46,11 @@ export async function createCategory(input: {
 }) {
     const user = await requireAdminOrSuper();
     const scope = await resolveAdminScopeForUser(user.id, user.role);
-    const slug = input.slug.trim().toLowerCase().replace(/\s+/g, "_");
-    if (!/^[a-z0-9_]+$/.test(slug)) throw new Error("Slug can only contain lowercase letters, numbers and underscores");
+    const slug = normalizeCategorySlug(input.slug);
+    if (!slug) throw new Error("El slug es obligatorio y solo puede usar letras minúsculas, números y guiones bajos");
+    if (!/^[a-z0-9_]+$/.test(slug)) {
+        throw new Error("El slug solo puede contener letras minúsculas, números y guiones bajos");
+    }
 
     const organizationId = scope.mode === "org" ? scope.organizationId : null;
 

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Send, AlertCircle, CheckCircle2, Mail, Bell } from "lucide-react";
 import { sendBroadcastAction } from "@/actions/events";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+import { usePersistedFormFields } from "@/hooks/useFormPersistence";
+import { formStorageKey } from "@/lib/form-persistence";
 import type { MassCommunicationChannels } from "@/lib/notifications/mass-communication";
 
 interface EventItem {
@@ -26,21 +28,27 @@ const DEFAULT_CHANNELS: MassCommunicationChannels = {
 export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) {
   const t = useTranslations();
   const router = useRouter();
-  const [eventId, setEventId] = useState("");
-  const [recipientStatus, setRecipientStatus] = useState<"all" | "registered" | "checked_in" | "waitlisted">("all");
-  const [subject, setSubject] = useState("");
-  const [message, setMessage] = useState("");
-  const [channels, setChannels] = useState<MassCommunicationChannels>(DEFAULT_CHANNELS);
+  const { values, setValue, setValues, clear } = usePersistedFormFields(
+    formStorageKey("organizer.broadcast"),
+    {
+      eventId: "",
+      recipientStatus: "all" as "all" | "registered" | "checked_in" | "waitlisted",
+      subject: "",
+      message: "",
+      channels: DEFAULT_CHANNELS,
+    },
+  );
+  const { eventId, recipientStatus, subject, message, channels } = values;
   const [isPending, setIsPending] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const toggleChannel = (key: keyof MassCommunicationChannels) => {
-    setChannels((prev) => {
-      const next = { ...prev, [key]: !prev[key] };
+    setValues((prev) => {
+      const next = { ...prev.channels, [key]: !prev.channels[key] };
       if (!next.email && !next.inApp) {
         return prev;
       }
-      return next;
+      return { ...prev, channels: next };
     });
   };
 
@@ -70,8 +78,7 @@ export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) 
             count: res.recipientCount,
           }),
         });
-        setSubject("");
-        setMessage("");
+        clear();
         router.refresh();
       } else {
         setStatus({
@@ -130,7 +137,7 @@ export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) 
           <select
             id="eventId"
             value={eventId}
-            onChange={(e) => setEventId(e.target.value)}
+            onChange={(e) => setValue("eventId", e.target.value)}
             disabled={disabled || isPending}
             className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
             required
@@ -151,7 +158,7 @@ export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) 
           <select
             id="recipientStatus"
             value={recipientStatus}
-            onChange={(e) => setRecipientStatus(e.target.value as typeof recipientStatus)}
+            onChange={(e) => setValue("recipientStatus", e.target.value as typeof recipientStatus)}
             disabled={disabled || isPending}
             className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
             required
@@ -193,7 +200,7 @@ export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) 
           id="subject"
           type="text"
           value={subject}
-          onChange={(e) => setSubject(e.target.value)}
+          onChange={(e) => setValue("subject", e.target.value)}
           placeholder={t("dashboard.organizer.broadcastFormSubjectPlaceholder")}
           disabled={disabled || isPending}
           className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
@@ -208,7 +215,7 @@ export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) 
         <textarea
           id="message"
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={(e) => setValue("message", e.target.value)}
           placeholder={t("dashboard.organizer.broadcastFormMessagePlaceholder")}
           rows={8}
           disabled={disabled || isPending}

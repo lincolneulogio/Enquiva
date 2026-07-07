@@ -8,6 +8,7 @@ import { useLocale } from "@/components/providers/LocaleProvider";
 import { useSession } from "@/lib/auth/client";
 import { Crown, ShieldCheck, Briefcase, UserRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { formStorageKey, loadFormDraft, saveFormDraft } from "@/lib/form-persistence";
 
 function buildWelcomeMessage(
   userName: string,
@@ -50,6 +51,7 @@ export function useChatCopilot() {
     isLoading,
     setMessages,
     append,
+    setInput,
   } = useChat({
     api: "/api/chat",
     streamProtocol: "text",
@@ -62,6 +64,18 @@ export function useChatCopilot() {
     ],
   });
 
+
+  useEffect(() => {
+    const saved = loadFormDraft<string>(formStorageKey("ai.copilot.input"));
+    if (saved) setInput(saved);
+  }, [setInput]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      saveFormDraft(formStorageKey("ai.copilot.input"), input);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [input]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

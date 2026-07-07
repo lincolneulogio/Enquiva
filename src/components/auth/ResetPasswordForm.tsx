@@ -1,19 +1,24 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { resetPasswordWithToken } from "@/actions/auth";
 import { getAuthErrorMessage } from "@/lib/auth/messages";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+import { usePersistedFormFields } from "@/hooks/useFormPersistence";
+import { formStorageKey } from "@/lib/form-persistence";
 
 export function ResetPasswordForm({ token, email }: { token: string; email?: string }) {
   const router = useRouter();
   const t = useTranslations();
   const [isPending, startTransition] = useTransition();
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const { values, setValue, clear } = usePersistedFormFields(
+    formStorageKey(`auth.reset-password.${token}`),
+    { password: "", confirmPassword: "" },
+  );
+  const { password, confirmPassword } = values;
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -31,6 +36,7 @@ export function ResetPasswordForm({ token, email }: { token: string; email?: str
     startTransition(async () => {
       try {
         await resetPasswordWithToken({ token, newPassword: password, email });
+        clear();
         toast.success(t("auth.passwordResetSuccess"));
         router.push("/login");
         router.refresh();
@@ -48,7 +54,7 @@ export function ResetPasswordForm({ token, email }: { token: string; email?: str
         <input
           type="password"
           value={password}
-          onChange={(event) => setPassword(event.target.value)}
+          onChange={(event) => setValue("password", event.target.value)}
           placeholder={t("auth.min8Chars")}
           className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         />
@@ -59,7 +65,7 @@ export function ResetPasswordForm({ token, email }: { token: string; email?: str
         <input
           type="password"
           value={confirmPassword}
-          onChange={(event) => setConfirmPassword(event.target.value)}
+          onChange={(event) => setValue("confirmPassword", event.target.value)}
           placeholder={t("auth.repeatPassword")}
           className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         />

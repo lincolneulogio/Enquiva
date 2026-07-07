@@ -8,6 +8,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+import { useFormPersistence } from "@/hooks/useFormPersistence";
+import { formStorageKey } from "@/lib/form-persistence";
 import { z } from "zod";
 import Link from "next/link";
 
@@ -22,19 +24,22 @@ export function ForgotPasswordForm() {
   const [isPending, startTransition] = useTransition();
   const [submitted, setSubmitted] = useState(false);
 
+  const form = useForm<ForgotPasswordInput>({
+    resolver: zodResolver(forgotPasswordSchema),
+  });
   const {
     register,
     handleSubmit,
     setError,
     formState: { errors },
-  } = useForm<ForgotPasswordInput>({
-    resolver: zodResolver(forgotPasswordSchema),
-  });
+  } = form;
+  const { clearDraft } = useFormPersistence(formStorageKey("auth.forgot-password"), form);
 
   const onSubmit = (data: ForgotPasswordInput) => {
     startTransition(async () => {
       try {
         await requestPasswordReset({ email: data.email });
+        clearDraft();
         setSubmitted(true);
         toast.success(t("auth.resetLinkSent"));
       } catch (error) {

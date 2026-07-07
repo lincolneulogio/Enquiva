@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { createPayment } from "@/actions/payments";
 import { Loader2, Smartphone, QrCode, Wallet, Copy, Download } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+import { usePersistedFormFields } from "@/hooks/useFormPersistence";
+import { formStorageKey } from "@/lib/form-persistence";
 import { UploadDropzone } from "@/lib/uploadthing/components";
 import Image from "next/image";
 
@@ -43,12 +45,18 @@ export function ManualPaymentMethodForm({
 }: ManualPaymentMethodFormProps) {
   const t = useTranslations();
   const router = useRouter();
-  const [isSaving, setIsSaving] = useState(false);
   const firstMethodId = eventMethods[0]?.id ?? "";
-  const [methodId, setMethodId] = useState<string>(existingMethod ?? firstMethodId);
-  const [reference, setReference] = useState<string>("");
-  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
-  const [receiptFileName, setReceiptFileName] = useState<string | null>(null);
+  const { values, setValue, clear } = usePersistedFormFields(
+    formStorageKey(`payment.manual.${registrationId}`),
+    {
+      methodId: existingMethod ?? firstMethodId,
+      reference: "",
+      receiptUrl: null as string | null,
+      receiptFileName: null as string | null,
+    },
+  );
+  const { methodId, reference, receiptUrl, receiptFileName } = values;
+  const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   const currentMethod = eventMethods.find((m) => m.id === methodId);
@@ -106,6 +114,7 @@ export function ManualPaymentMethodForm({
         notes: `Pago vía ${currentMethod?.label} para ${eventTitle}`,
       });
 
+      clear();
       toast.success(t("payments.manual.success"));
       setIsSaving(false);
       router.push("/member/payments");
@@ -144,7 +153,7 @@ export function ManualPaymentMethodForm({
                 <button
                   key={em.id}
                   type="button"
-                  onClick={() => setMethodId(em.id)}
+                  onClick={() => setValue("methodId", em.id)}
                   disabled={isSaving || isUploading}
                   className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors ${
                     isActive
@@ -289,7 +298,7 @@ export function ManualPaymentMethodForm({
                   <Image src={receiptUrl} alt="Comprobante" width={300} height={200} className="rounded-lg border object-cover" />
                   <button
                     type="button"
-                    onClick={() => { setReceiptUrl(null); setReceiptFileName(null); }}
+                    onClick={() => { setValue("receiptUrl", null); setValue("receiptFileName", null); }}
                     className="absolute right-2 top-2 rounded-lg bg-destructive px-2 py-1 text-xs font-medium text-destructive-foreground"
                   >
                     Quitar
@@ -304,8 +313,8 @@ export function ManualPaymentMethodForm({
                 onClientUploadComplete={(res) => {
                   setIsUploading(false);
                   if (res?.[0]) {
-                    setReceiptUrl(res[0].url);
-                    setReceiptFileName(res[0].name);
+                    setValue("receiptUrl", res[0].url);
+                    setValue("receiptFileName", res[0].name);
                   }
                 }}
                 onUploadError={(err) => {
@@ -337,7 +346,7 @@ export function ManualPaymentMethodForm({
           <input
             type="text"
             value={reference}
-            onChange={(e) => setReference(e.target.value)}
+            onChange={(e) => setValue("reference", e.target.value)}
             placeholder={t("payments.manual.referencePlaceholder")}
             className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             disabled={isSaving}

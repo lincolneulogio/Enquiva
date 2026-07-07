@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import Swal from "sweetalert2";
 import { registerOfflineAttendeeAction } from "@/actions/registrations";
 import { Plus, X, User, Phone, FileText, Loader2 } from "lucide-react";
+import { usePersistedFormFields } from "@/hooks/useFormPersistence";
+import { formStorageKey } from "@/lib/form-persistence";
  
 interface ManualRegistrationDialogProps {
   events: Array<{ value: string; label: string }>;
@@ -16,18 +18,13 @@ export function ManualRegistrationDialog({ events = [] }: ManualRegistrationDial
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
  
-  // Form states
-  const [eventId, setEventId] = useState("");
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [notes, setNotes] = useState("");
- 
-  // Pre-select first event if exists
-  useState(() => {
-    if (events.length > 0) {
-      setEventId(events[0].value);
-    }
+  const { values, setValue, clear } = usePersistedFormFields(formStorageKey("registration.manual"), {
+    eventId: events[0]?.value ?? "",
+    name: "",
+    phone: "",
+    notes: "",
   });
+  const { eventId, name, phone, notes } = values;
  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,9 +58,7 @@ export function ManualRegistrationDialog({ events = [] }: ManualRegistrationDial
  
         if (result.success) {
           setIsOpen(false);
-          setName("");
-          setPhone("");
-          setNotes("");
+          clear();
           
           toast.success("¡Asistente registrado con éxito!");
           router.refresh();
@@ -142,7 +137,7 @@ export function ManualRegistrationDialog({ events = [] }: ManualRegistrationDial
                 <select
                   required
                   value={eventId}
-                  onChange={(e) => setEventId(e.target.value)}
+                  onChange={(e) => setValue("eventId", e.target.value)}
                   className="w-full px-3 py-2 text-sm bg-card border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-foreground font-medium"
                 >
                   <option value="" disabled>Selecciona un evento</option>
@@ -166,7 +161,7 @@ export function ManualRegistrationDialog({ events = [] }: ManualRegistrationDial
                     required
                     placeholder="Nombre completo"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => setValue("name", e.target.value)}
                     className="w-full pl-10 pr-3 py-2.5 text-sm bg-card border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-foreground placeholder:text-muted-foreground/60 transition-all font-medium"
                   />
                 </div>
@@ -189,7 +184,7 @@ export function ManualRegistrationDialog({ events = [] }: ManualRegistrationDial
                     onChange={(e) => {
                       const onlyDigits = e.target.value.replace(/\D/g, "");
                       if (onlyDigits.length <= 9) {
-                        setPhone(onlyDigits);
+                        setValue("phone", onlyDigits);
                       }
                     }}
                     style={{ paddingLeft: "54px" }}
@@ -232,7 +227,7 @@ export function ManualRegistrationDialog({ events = [] }: ManualRegistrationDial
                     rows={2}
                     placeholder="Detalles del pago en efectivo u observaciones..."
                     value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
+                    onChange={(e) => setValue("notes", e.target.value)}
                     className="w-full pl-10 pr-3 py-2.5 text-sm bg-card border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-foreground placeholder:text-muted-foreground/60 transition-all font-medium resize-none"
                   />
                 </div>

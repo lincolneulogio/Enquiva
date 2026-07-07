@@ -24,6 +24,8 @@ import { useTranslations } from "@/components/providers/LocaleProvider";
 import Link from "next/link";
 import { translateRegistrationError } from "@/lib/errors/registration";
 import { confirmDeleteAction } from "@/lib/ui/confirm";
+import { usePersistedFormFields } from "@/hooks/useFormPersistence";
+import { formStorageKey } from "@/lib/form-persistence";
 
 interface RegisterButtonProps {
   eventId: string;
@@ -81,18 +83,24 @@ export function RegisterButton({
   
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [wantsTransport, setWantsTransport] = useState(false);
-  const [selectedRouteId, setSelectedRouteId] = useState("");
-  const [selectedStopId, setSelectedStopId] = useState("");
-  const [seatsCount, setSeatsCount] = useState(1);
-  const [contactPhone, setContactPhone] = useState("");
+  const { values: registrationDraft, setValue: setRegistrationValue, setValues: setRegistrationValues, clear: clearRegistrationDraft } = usePersistedFormFields(
+    formStorageKey(`event.register.${eventId}`),
+    {
+      wantsTransport: false,
+      selectedRouteId: "",
+      selectedStopId: "",
+      seatsCount: 1,
+      contactPhone: "",
+      guests: [] as Array<{ name: string; phone: string }>,
+    },
+  );
+  const { wantsTransport, selectedRouteId, selectedStopId, seatsCount, contactPhone, guests } = registrationDraft;
   const [visualHeight, setVisualHeight] = useState("90vh");
-  const [guests, setGuests] = useState<Array<{ name: string; phone: string }>>([]);
 
   // Sincronizar automáticamente la cantidad de asientos de bus con el titular + invitados
   useEffect(() => {
-    setSeatsCount(1 + guests.length);
-  }, [guests.length]);
+    setRegistrationValue("seatsCount", 1 + guests.length);
+  }, [guests.length, setRegistrationValue]);
 
   // Dynamic visual viewport height adjustment (e.g. when keyboard opens on mobile)
   useEffect(() => {
@@ -119,13 +127,9 @@ export function RegisterButton({
   // Select first route by default if routes exist
   useEffect(() => {
     if (transportRoutes.length > 0 && !selectedRouteId) {
-      setSelectedRouteId(transportRoutes[0].id);
+      setRegistrationValue("selectedRouteId", transportRoutes[0].id);
     }
-  }, [transportRoutes, selectedRouteId]);
-
-  useEffect(() => {
-    setSelectedStopId("");
-  }, [selectedRouteId]);
+  }, [transportRoutes, selectedRouteId, setRegistrationValue]);
 
   // Lock body scroll when modal is open to hide scrollbar and prevent background scrolling
   useEffect(() => {
@@ -220,6 +224,7 @@ export function RegisterButton({
                 : t("register.registrationSuccess"),
           );
           setIsModalOpen(false);
+          clearRegistrationDraft();
 
           if (result.status === "waitlisted") {
             router.refresh();
@@ -552,7 +557,7 @@ export function RegisterButton({
                 <div className="grid grid-cols-2 gap-3 pt-1">
                   <button
                     type="button"
-                    onClick={() => setWantsTransport(true)}
+                    onClick={() => setRegistrationValue("wantsTransport", true)}
                     className={`flex items-center justify-center gap-2 rounded-xl py-3 border font-medium transition-all ${
                       wantsTransport
                         ? "border-primary bg-primary/5 text-primary ring-1 ring-primary"
@@ -565,8 +570,11 @@ export function RegisterButton({
                   <button
                     type="button"
                     onClick={() => {
-                      setWantsTransport(false);
-                      setSeatsCount(1);
+                      setRegistrationValues((prev) => ({
+                        ...prev,
+                        wantsTransport: false,
+                        seatsCount: 1,
+                      }));
                     }}
                     className={`flex items-center justify-center gap-2 rounded-xl py-3 border font-medium transition-all ${
                       !wantsTransport
@@ -594,8 +602,11 @@ export function RegisterButton({
                         <div
                           key={route.id}
                           onClick={() => {
-                            setSelectedRouteId(route.id);
-                            setSelectedStopId("");
+                            setRegistrationValues((prev) => ({
+                              ...prev,
+                              selectedRouteId: route.id,
+                              selectedStopId: "",
+                            }));
                           }}
                           className={`cursor-pointer rounded-xl border p-3.5 transition-all text-left flex flex-col gap-2 ${
                             selectedRouteId === route.id
@@ -641,7 +652,7 @@ export function RegisterButton({
                       <select
                         id="register-stop-id"
                         value={selectedStopId}
-                        onChange={(e) => setSelectedStopId(e.target.value)}
+                        onChange={(e) => setRegistrationValue("selectedStopId", e.target.value)}
                         className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                       >
                         <option value="">Punto de partida general ({activeRoute.departurePoint})</option>
@@ -671,7 +682,7 @@ export function RegisterButton({
                         onChange={(e) => {
                           const onlyDigits = e.target.value.replace(/\D/g, "");
                           if (onlyDigits.length <= 9) {
-                            setContactPhone(onlyDigits);
+                            setRegistrationValue("contactPhone", onlyDigits);
                           }
                         }}
                         style={{ paddingLeft: "54px" }}
@@ -725,7 +736,7 @@ export function RegisterButton({
                   {guests.length < 5 && (
                     <button
                       type="button"
-                      onClick={() => setGuests([...guests, { name: "", phone: "" }])}
+                      onClick={() => setRegistrationValue("guests", [...guests, { name: "", phone: "" }])}
                       className="px-2.5 py-1 text-xs font-semibold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all rounded-lg select-none"
                     >
                       + Añadir
@@ -745,7 +756,7 @@ export function RegisterButton({
                             type="button"
                             onClick={() => {
                               const newGuests = guests.filter((_, i) => i !== idx);
-                              setGuests(newGuests);
+                              setRegistrationValue("guests", newGuests);
                             }}
                             className="text-xs font-bold text-rose-500 hover:text-rose-600 transition-colors flex items-center gap-0.5 select-none"
                           >
@@ -767,7 +778,7 @@ export function RegisterButton({
                               onChange={(e) => {
                                 const newGuests = [...guests];
                                 newGuests[idx].name = e.target.value;
-                                setGuests(newGuests);
+                                setRegistrationValue("guests", newGuests);
                               }}
                               className="w-full px-3 py-1.5 text-xs bg-muted/40 border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-foreground placeholder:text-muted-foreground/60"
                             />
@@ -792,7 +803,7 @@ export function RegisterButton({
                                   if (onlyDigits.length <= 9) {
                                     const newGuests = [...guests];
                                     newGuests[idx].phone = onlyDigits;
-                                    setGuests(newGuests);
+                                    setRegistrationValue("guests", newGuests);
                                   }
                                 }}
                                 style={{ paddingLeft: "46px" }}

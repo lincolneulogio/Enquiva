@@ -9,6 +9,8 @@ import { getAuthErrorMessage, getValidationMessage } from "@/lib/auth/messages";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+import { useFormPersistence } from "@/hooks/useFormPersistence";
+import { formStorageKey } from "@/lib/form-persistence";
 import { z } from "zod";
 
 const verifyAccountSchema = z.object({
@@ -31,6 +33,13 @@ export function VerifyAccountForm({
   const [resendPending, startResendTransition] = useTransition();
   const [hasCode, setHasCode] = useState(false);
 
+  const form = useForm<VerifyAccountInput>({
+    resolver: zodResolver(verifyAccountSchema),
+    defaultValues: {
+      email: initialEmail ?? "",
+      code: "",
+    },
+  });
   const {
     register,
     handleSubmit,
@@ -38,13 +47,11 @@ export function VerifyAccountForm({
     setValue,
     getValues,
     formState: { errors },
-  } = useForm<VerifyAccountInput>({
-    resolver: zodResolver(verifyAccountSchema),
-    defaultValues: {
-      email: initialEmail ?? "",
-      code: "",
-    },
-  });
+  } = form;
+  const { clearDraft } = useFormPersistence(
+    formStorageKey(flow === "superadmin" ? "auth.verify.superadmin" : "auth.verify"),
+    form,
+  );
 
   useEffect(() => {
     if (initialEmail) {
@@ -67,6 +74,7 @@ export function VerifyAccountForm({
               ? "auth.accountVerifiedOrganizer"
               : "auth.accountVerified";
         toast.success(t(messageKey));
+        clearDraft();
         router.replace(result.loginPath ?? (flow === "superadmin" ? "/superadmin/login" : "/login"));
       } catch (error) {
         const message = getAuthErrorMessage(error instanceof Error ? error.message : t("auth.unexpectedAuthError"), t);

@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { Eye, EyeOff, Loader2, Calendar, Users, Building2 } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import { cn } from "@/lib/utils";
+import { useFormPersistence } from "@/hooks/useFormPersistence";
+import { formStorageKey } from "@/lib/form-persistence";
 
 const ACCOUNT_TYPES = [
   {
@@ -44,6 +46,15 @@ export function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const form = useForm<SignUpInput>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      accountType: "member",
+      organizerLinkMode: "independent",
+      orgName: "",
+      inviteCode: "",
+    },
+  });
   const {
     register,
     handleSubmit,
@@ -53,15 +64,8 @@ export function RegisterForm() {
     watch,
     setValue,
     formState: { errors },
-  } = useForm<SignUpInput>({
-    resolver: zodResolver(signUpSchema),
-    defaultValues: {
-      accountType: "member",
-      organizerLinkMode: "independent",
-      orgName: "",
-      inviteCode: "",
-    },
-  });
+  } = form;
+  const { clearDraft } = useFormPersistence(formStorageKey("auth.register"), form);
 
   const accountType = watch("accountType");
   const organizerLinkMode = watch("organizerLinkMode");
@@ -134,6 +138,7 @@ export function RegisterForm() {
               ? "auth.createOrganizerAccountSuccess"
               : "auth.createAccountSuccess";
         toast.success(t(successKey));
+        clearDraft();
         router.replace(`/verify-account?email=${encodeURIComponent(data.email)}`);
       } catch (error) {
         const rawMessage = error instanceof Error ? error.message : t("auth.unexpectedAuthError");

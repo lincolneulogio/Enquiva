@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { Building2, Loader2 } from "lucide-react";
 import { joinOrganizationWithInviteCode } from "@/actions/organizations";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+import { usePersistedState } from "@/hooks/useFormPersistence";
+import { formStorageKey } from "@/lib/form-persistence";
 import { toast } from "sonner";
 
 export function JoinEntityForm() {
   const router = useRouter();
   const t = useTranslations();
-  const [inviteCode, setInviteCode] = useState("");
+  const [inviteCode, setInviteCode, clearInviteCode] = usePersistedState(formStorageKey("organizer.join-entity"), "");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -24,6 +26,7 @@ export function JoinEntityForm() {
         if (result.pending) {
           toast.success(t("dashboard.organizer.joinEntityPending"));
         }
+        clearInviteCode();
         router.push("/organizer");
       } catch (err) {
         setError(err instanceof Error ? err.message : t("dashboard.organizer.joinEntityError"));

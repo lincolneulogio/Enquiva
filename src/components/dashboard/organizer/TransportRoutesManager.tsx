@@ -15,6 +15,8 @@ import {
 import { getEventPaymentMethods } from "@/actions/payment-methods";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { getIntlLocale } from "@/lib/i18n/core";
+import { usePersistedState } from "@/hooks/useFormPersistence";
+import { formStorageKey } from "@/lib/form-persistence";
 
 interface Route {
     id: string;
@@ -60,7 +62,7 @@ export function TransportRoutesManager({
     const [isPending, startTransition] = useTransition();
     const [showForm, setShowForm] = useState(false);
     const [editId, setEditId] = useState<string | null>(null);
-    const [form, setForm] = useState(EMPTY_FORM);
+    const [form, setForm, clearForm] = usePersistedState(formStorageKey(`transport.routes.${eventId}`), EMPTY_FORM);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
     // Event payment methods states
@@ -160,7 +162,7 @@ export function TransportRoutesManager({
 
     const openCreate = () => {
         setEditId(null);
-        setForm(EMPTY_FORM);
+        clearForm();
         setShowForm(true);
     };
 
@@ -245,7 +247,7 @@ export function TransportRoutesManager({
                 }
                 setShowForm(false);
                 setEditId(null);
-                setForm(EMPTY_FORM);
+                clearForm();
             } catch (e) {
                 toast.error(e instanceof Error ? e.message : t("transport.manager.saveError"));
             }

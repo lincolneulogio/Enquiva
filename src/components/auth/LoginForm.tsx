@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+import { useFormPersistence } from "@/hooks/useFormPersistence";
+import { formStorageKey } from "@/lib/form-persistence";
 
 export function LoginForm() {
   const router = useRouter();
@@ -19,18 +21,20 @@ export function LoginForm() {
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
 
+  const form = useForm<SignInInput>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: {
+      rememberMe: true,
+    },
+  });
   const {
     register,
     handleSubmit,
     setError,
     clearErrors,
     formState: { errors },
-  } = useForm<SignInInput>({
-    resolver: zodResolver(signInSchema),
-    defaultValues: {
-      rememberMe: true,
-    },
-  });
+  } = form;
+  const { clearDraft } = useFormPersistence(formStorageKey("auth.login"), form);
 
   const onSubmit = (data: SignInInput) => {
     clearErrors("root");
@@ -84,6 +88,7 @@ export function LoginForm() {
           return;
         }
 
+        clearDraft();
         toast.success(t("auth.loginSuccess"));
         router.push("/dashboard");
         router.refresh();

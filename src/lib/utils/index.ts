@@ -29,6 +29,20 @@ export function slugify(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+/** Slug de categoría: minúsculas, números y guiones bajos (sin acentos ni guiones). */
+export function normalizeCategorySlug(text: string): string {
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .replace(/[\s-]+/g, "_")
+    .replace(/[^a-z0-9_]/g, "")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+}
+
 export function generateUniqueSlug(title: string): string {
   const base = slugify(title);
   const suffix = Math.random().toString(36).slice(2, 7);

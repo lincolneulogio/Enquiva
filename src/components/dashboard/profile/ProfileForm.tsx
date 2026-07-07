@@ -10,6 +10,8 @@ import { updateProfileSchema, type UpdateProfileInput } from "@/lib/validations"
 import { Loader2, Mail, Shield, User, Phone, MapPin } from "lucide-react";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { getRoleLabel } from "@/lib/i18n/core";
+import { useFormPersistence } from "@/hooks/useFormPersistence";
+import { formStorageKey } from "@/lib/form-persistence";
 import { formatPeruPhoneInput } from "@/lib/utils";
 import { AvatarUploadCard } from "./AvatarUploadCard";
 
@@ -31,13 +33,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
   const { locale } = useLocale();
   const [isProfilePending, startProfileTransition] = useTransition();
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useForm<UpdateProfileInput>({
+  const form = useForm<UpdateProfileInput>({
     resolver: zodResolver(updateProfileSchema),
     defaultValues: {
       name: user.name ?? "",
@@ -47,6 +43,17 @@ export function ProfileForm({ user }: ProfileFormProps) {
       image: user.image ?? "",
     },
   });
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = form;
+  const { clearDraft } = useFormPersistence(
+    formStorageKey(`profile.${user.email}`),
+    form,
+  );
 
   const previewImage = watch("image") || user.image;
 
@@ -61,6 +68,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
           image: data.image?.trim() ? data.image : null,
         });
         toast.success(t("dashboard.profile.profileUpdated"));
+        clearDraft();
         router.refresh();
       } catch (error) {
         toast.error(

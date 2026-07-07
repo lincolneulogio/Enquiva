@@ -11,6 +11,8 @@ import { UploadDropzone } from "@/lib/uploadthing/components";
 import Image from "next/image";
 import Swal from "sweetalert2";
 import { confirmDeleteAction } from "@/lib/ui/confirm";
+import { usePersistedFormFields } from "@/hooks/useFormPersistence";
+import { formStorageKey } from "@/lib/form-persistence";
 
 interface Stop {
     id: string;
@@ -60,14 +62,20 @@ export function TransportBookingForm({
     const router = useRouter();
     const t = useTranslations();
     const { locale } = useLocale();
-    const [isPending, startTransition] = useTransition();
-    const [seats, setSeats] = useState(1);
-    const [stopId, setStopId] = useState("");
     const firstMethodId = paymentMethods[0]?.id ?? "";
-    const [methodId, setMethodId] = useState<string>(firstMethodId);
-    const [reference, setReference] = useState("");
-    const [receiptUrl, setReceiptUrl] = useState("");
-    const [receiptFileName, setReceiptFileName] = useState<string | null>(null);
+    const { values, setValue, clear } = usePersistedFormFields(
+        formStorageKey(`transport.booking.${registrationId}.${route.id}`),
+        {
+            seats: 1,
+            stopId: "",
+            methodId: firstMethodId,
+            reference: "",
+            receiptUrl: "",
+            receiptFileName: null as string | null,
+        },
+    );
+    const { seats, stopId, methodId, reference, receiptUrl, receiptFileName } = values;
+    const [isPending, startTransition] = useTransition();
     const [isUploading, setIsUploading] = useState(false);
 
     const currentMethod = paymentMethods.find((m) => m.id === methodId);
@@ -132,6 +140,7 @@ export function TransportBookingForm({
                     receiptFileName: receiptFileName ?? undefined,
                     stopId: stopId || undefined,
                 });
+                clear();
                 toast.success(t("transport.booking.reservationSent"));
                 router.refresh();
             } catch (e) {
@@ -172,7 +181,7 @@ export function TransportBookingForm({
                         min={1}
                         max={Math.min(route.availableSeats, 5)}
                         value={seats}
-                        onChange={(e) => setSeats(Math.max(1, parseInt(e.target.value) || 1))}
+                        onChange={(e) => setValue("seats", Math.max(1, parseInt(e.target.value) || 1))}
                         className={inputClass}
                     />
                     <p className="mt-1 text-xs text-muted-foreground">
@@ -205,7 +214,7 @@ export function TransportBookingForm({
                         <select
                             id="stopId"
                             value={stopId}
-                            onChange={(e) => setStopId(e.target.value)}
+                            onChange={(e) => setValue("stopId", e.target.value)}
                             disabled={isPending || isUploading}
                             className={inputClass}
                         >
@@ -270,7 +279,7 @@ export function TransportBookingForm({
                                         <button
                                             key={em.id}
                                             type="button"
-                                            onClick={() => setMethodId(em.id)}
+                                            onClick={() => setValue("methodId", em.id)}
                                             disabled={isPending || isUploading}
                                             className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors ${
                                                 isActive
@@ -411,7 +420,7 @@ export function TransportBookingForm({
                                         className={inputClass}
                                         placeholder={t("transport.booking.referencePlaceholder")}
                                         value={reference}
-                                        onChange={(e) => setReference(e.target.value)}
+                                        onChange={(e) => setValue("reference", e.target.value)}
                                     />
                                 </div>
 
@@ -426,7 +435,7 @@ export function TransportBookingForm({
                                                 <Image src={receiptUrl} alt="Comprobante" width={300} height={200} className="rounded-lg border object-cover animate-fade-in" />
                                                 <button
                                                     type="button"
-                                                    onClick={() => { setReceiptUrl(""); setReceiptFileName(null); }}
+                                                    onClick={() => { setValue("receiptUrl", ""); setValue("receiptFileName", null); }}
                                                     className="absolute right-2 top-2 rounded-lg bg-destructive px-2 py-1 text-xs font-medium text-destructive-foreground hover:bg-destructive/95 transition-colors"
                                                 >
                                                     Quitar
@@ -441,8 +450,8 @@ export function TransportBookingForm({
                                             onClientUploadComplete={(res) => {
                                                 setIsUploading(false);
                                                 if (res?.[0]) {
-                                                    setReceiptUrl(res[0].url);
-                                                    setReceiptFileName(res[0].name);
+                                                    setValue("receiptUrl", res[0].url);
+                                                    setValue("receiptFileName", res[0].name);
                                                 }
                                             }}
                                             onUploadError={(err) => {

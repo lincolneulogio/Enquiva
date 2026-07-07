@@ -21,6 +21,8 @@ import {
     ACCENT_COLORS,
     type AccentColor,
 } from "./AccentColorInitializer";
+import { usePersistedFormFields } from "@/hooks/useFormPersistence";
+import { formStorageKey } from "@/lib/form-persistence";
 
 type EntitySubTab = "profile" | "entity" | "appearance";
 type PlatformSubTab = "identity" | "smtp" | "notifications";
@@ -68,16 +70,29 @@ export function SettingsTabs({
     const [entitySubTab, setEntitySubTab] = useState<EntitySubTab>("profile");
     const [platformSubTab, setPlatformSubTab] = useState<PlatformSubTab>("identity");
 
-    const [entityName, setEntityName] = useState(entityContext?.name ?? "");
-    const [platformOrgName, setPlatformOrgName] = useState(initialPlatformSettings?.organizationName ?? "");
-    const [platformSupportEmail, setPlatformSupportEmail] = useState(initialPlatformSettings?.supportEmail ?? "");
-    const [alertPayments, setAlertPayments] = useState(initialPlatformSettings?.alertNewPayments ?? true);
-    const [alertTransport, setAlertTransport] = useState(initialPlatformSettings?.alertTransportCapacity ?? true);
-    const [alertFinance, setAlertFinance] = useState(initialPlatformSettings?.alertDailyFinanceSummary ?? false);
-
+    const { values: settingsDraft, setValue: setSettingsValue } = usePersistedFormFields(
+        formStorageKey("admin.settings"),
+        {
+            entityName: entityContext?.name ?? "",
+            platformOrgName: initialPlatformSettings?.organizationName ?? "",
+            platformSupportEmail: initialPlatformSettings?.supportEmail ?? "",
+            alertPayments: initialPlatformSettings?.alertNewPayments ?? true,
+            alertTransport: initialPlatformSettings?.alertTransportCapacity ?? true,
+            alertFinance: initialPlatformSettings?.alertDailyFinanceSummary ?? false,
+            testEmail: "",
+        },
+    );
+    const {
+        entityName,
+        platformOrgName,
+        platformSupportEmail,
+        alertPayments,
+        alertTransport,
+        alertFinance,
+        testEmail,
+    } = settingsDraft;
     const [smtpStatus, setSmtpStatus] = useState<"idle" | "checking" | "connected" | "disconnected">("idle");
     const [smtpInfo, setSmtpInfo] = useState<{ host?: string; port?: number; latencyMs?: number; error?: string } | null>(null);
-    const [testEmail, setTestEmail] = useState("");
     const [isTestingEmail, startTestingEmail] = useTransition();
     const [isSaving, startSaving] = useTransition();
     const [activeAccent, setActiveAccent] = useState<AccentColor>("amber");
@@ -196,7 +211,7 @@ export function SettingsTabs({
                             ? `Diagnostic email sent in ${res.latencyMs}ms!`
                             : `¡Correo de diagnóstico enviado en ${res.latencyMs}ms!`,
                     );
-                    setTestEmail("");
+                    setSettingsValue("testEmail", "");
                 } else {
                     toast.error(res.error ?? "Failed to send");
                 }
@@ -352,7 +367,7 @@ export function SettingsTabs({
                                 <input
                                     type="text"
                                     value={entityName}
-                                    onChange={(e) => setEntityName(e.target.value)}
+                                    onChange={(e) => setSettingsValue("entityName", e.target.value)}
                                     disabled={!entityContext.isOwner}
                                     className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground text-foreground transition-all disabled:opacity-60"
                                 />
@@ -557,7 +572,7 @@ export function SettingsTabs({
                                     <input
                                         type="text"
                                         value={platformOrgName}
-                                        onChange={(e) => setPlatformOrgName(e.target.value)}
+                                        onChange={(e) => setSettingsValue("platformOrgName", e.target.value)}
                                         className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
                                     />
                                 </div>
@@ -568,7 +583,7 @@ export function SettingsTabs({
                                     <input
                                         type="email"
                                         value={platformSupportEmail}
-                                        onChange={(e) => setPlatformSupportEmail(e.target.value)}
+                                        onChange={(e) => setSettingsValue("platformSupportEmail", e.target.value)}
                                         className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
                                     />
                                 </div>
@@ -675,7 +690,7 @@ export function SettingsTabs({
                                         <input
                                             type="email"
                                             value={testEmail}
-                                            onChange={(e) => setTestEmail(e.target.value)}
+                                            onChange={(e) => setSettingsValue("testEmail", e.target.value)}
                                             className="w-full rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
                                             placeholder="ejemplo@correo.com"
                                         />
@@ -710,7 +725,7 @@ export function SettingsTabs({
                                 {[
                                     {
                                         checked: alertPayments,
-                                        onChange: () => setAlertPayments(!alertPayments),
+                                        onChange: () => setSettingsValue("alertPayments", !alertPayments),
                                         titleEs: "Registro de nuevos pagos",
                                         titleEn: "New payments uploaded",
                                         descEs: "Aviso cuando un asistente suba un comprobante de pago manual.",
@@ -718,7 +733,7 @@ export function SettingsTabs({
                                     },
                                     {
                                         checked: alertTransport,
-                                        onChange: () => setAlertTransport(!alertTransport),
+                                        onChange: () => setSettingsValue("alertTransport", !alertTransport),
                                         titleEs: "Aforo crítico de transporte (90%)",
                                         titleEn: "Transport route occupancy (90%)",
                                         descEs: "Alerta cuando una ruta alcance el 90% de capacidad.",
@@ -726,7 +741,7 @@ export function SettingsTabs({
                                     },
                                     {
                                         checked: alertFinance,
-                                        onChange: () => setAlertFinance(!alertFinance),
+                                        onChange: () => setSettingsValue("alertFinance", !alertFinance),
                                         titleEs: "Resumen financiero diario",
                                         titleEn: "Daily financial summary",
                                         descEs: "Balance consolidado a medianoche.",
