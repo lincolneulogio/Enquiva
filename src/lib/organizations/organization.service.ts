@@ -32,7 +32,8 @@ function randomInviteCode() {
 export type SignupIntentPayload =
   | { type: "member" }
   | { type: "organizer"; inviteCode?: string }
-  | { type: "entity_admin"; orgName: string };
+  | { type: "entity_admin"; orgName: string }
+  | { type: "platform_owner" };
 
 export class OrganizationService {
   static async getByInviteCode(code: string) {
@@ -413,6 +414,7 @@ export class OrganizationService {
           : { type: "organizer" };
       }
       if (parsed.type === "member") return parsed;
+      if (parsed.type === "platform_owner") return parsed;
     } catch {
       // legacy plain string
     }

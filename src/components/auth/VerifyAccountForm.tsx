@@ -18,7 +18,13 @@ const verifyAccountSchema = z.object({
 
 type VerifyAccountInput = z.infer<typeof verifyAccountSchema>;
 
-export function VerifyAccountForm({ initialEmail }: { initialEmail?: string }) {
+export function VerifyAccountForm({
+  initialEmail,
+  flow,
+}: {
+  initialEmail?: string;
+  flow?: "superadmin";
+}) {
   const router = useRouter();
   const t = useTranslations();
   const [isPending, startTransition] = useTransition();
@@ -51,13 +57,15 @@ export function VerifyAccountForm({ initialEmail }: { initialEmail?: string }) {
       try {
         const result = await confirmVerificationCode(data);
         const messageKey =
-          result.accountType === "entity_admin"
+          result.accountType === "platform_owner"
+            ? "auth.accountVerifiedSuperAdmin"
+            : result.accountType === "entity_admin"
             ? "auth.accountVerifiedEntityAdmin"
             : result.accountType === "organizer"
               ? "auth.accountVerifiedOrganizer"
               : "auth.accountVerified";
         toast.success(t(messageKey));
-        router.replace("/login");
+        router.replace(result.loginPath ?? (flow === "superadmin" ? "/superadmin/login" : "/login"));
       } catch (error) {
         const message = getAuthErrorMessage(error instanceof Error ? error.message : t("auth.unexpectedAuthError"), t);
         setError("root", { type: "server", message });
@@ -114,8 +122,8 @@ export function VerifyAccountForm({ initialEmail }: { initialEmail?: string }) {
           inputMode="numeric"
           maxLength={6}
           {...register("code")}
-          placeholder="123456"
-          className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm tracking-[0.35em] placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-destructive"
+          placeholder={t("auth.verificationCodePlaceholder")}
+          className="w-full rounded-xl border border-border bg-background px-4 py-2.5 font-mono text-sm tracking-[0.2em] placeholder:font-sans placeholder:tracking-normal placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-destructive"
           aria-invalid={!!errors.code}
         />
         {errors.code && <p className="mt-1 text-xs text-destructive">{getValidationMessage(errors.code.message, t)}</p>}

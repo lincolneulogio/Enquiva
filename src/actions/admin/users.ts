@@ -17,6 +17,7 @@ import {
 } from "@/lib/auth/rbac";
 import { LogService } from "@/lib/analytics/audit";
 import { OrganizationService } from "@/lib/organizations/organization.service";
+import { assertCanAssignSuperAdmin } from "@/lib/auth/platform-bootstrap";
 import {
     requireSuperAdmin,
     requireAdminOrSuper,
@@ -51,6 +52,10 @@ export async function updateUserRole(
 
     if (actorRole !== "super_admin") {
         throw new Error("Forbidden");
+    }
+
+    if (role === "super_admin") {
+        await assertCanAssignSuperAdmin(userId);
     }
 
     await db.update(users).set({ role }).where(eq(users.id, userId));

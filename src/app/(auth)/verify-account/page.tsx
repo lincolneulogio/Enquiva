@@ -6,10 +6,11 @@ import { BrandLogo } from "@/components/shared/BrandLogo";
 export default async function VerifyAccountPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ email?: string }>;
+  searchParams?: Promise<{ email?: string; flow?: string }>;
 }) {
   const { t } = await getI18n();
   const params = searchParams ? await searchParams : undefined;
+  const flow = params?.flow === "superadmin" ? "superadmin" : undefined;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-6">
@@ -28,7 +29,7 @@ export default async function VerifyAccountPage({
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
-          <VerifyAccountForm initialEmail={params?.email} />
+          <VerifyAccountForm initialEmail={params?.email} flow={flow} />
         </div>
       </div>
     </div>

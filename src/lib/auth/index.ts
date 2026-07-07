@@ -3,8 +3,8 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import { env } from "@/env";
-import { count } from "drizzle-orm";
 import { sendPasswordResetEmail } from "@/lib/mail";
+import { resolveSignupRole } from "@/lib/auth/platform-bootstrap";
 
 function parseTrustedOriginsEnv(): string[] {
   const raw = process.env.BETTER_AUTH_TRUSTED_ORIGINS;
@@ -86,11 +86,7 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (user) => {
-          const [{ count: userCount }] = await db
-            .select({ count: count() })
-            .from(schema.users);
-
-          const role = userCount === 0 ? "super_admin" : "member";
+          const role = await resolveSignupRole();
 
           return { data: { ...user, role } };
         },

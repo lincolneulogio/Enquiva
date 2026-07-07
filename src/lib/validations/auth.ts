@@ -46,6 +46,18 @@ export const signInSchema = z.object({
 export type SignUpInput = z.infer<typeof signUpSchema>;
 export type SignInInput = z.infer<typeof signInSchema>;
 
+export const superAdminRegisterSchema = z
+  .object({
+    ...baseSignUpFields,
+    bootstrapSecret: z.string().optional(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+export type SuperAdminRegisterInput = z.infer<typeof superAdminRegisterSchema>;
+
 export function buildSignupPayload(data: SignUpInput) {
   if (data.accountType === "entity_admin") {
     return { type: "entity_admin" as const, orgName: data.orgName!.trim() };

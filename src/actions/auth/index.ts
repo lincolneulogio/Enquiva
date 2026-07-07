@@ -19,9 +19,15 @@ const verificationCodeSchema = z.object({
 });
 
 import { OrganizationService, type SignupIntentPayload } from "@/lib/organizations/organization.service";
+import {
+    claimPlatformOwner,
+    getSuperAdminRegisterGate,
+    validateBootstrapSecret,
+} from "@/lib/auth/platform-bootstrap";
 
 const signupIntentPayloadSchema = z.discriminatedUnion("type", [
     z.object({ type: z.literal("member") }),
+    z.object({ type: z.literal("platform_owner") }),
     z.object({
         type: z.literal("organizer"),
         inviteCode: z.string().trim().min(4).max(20).optional(),
@@ -92,6 +98,49 @@ async function issueVerificationCode(email: string, name?: string | null) {
 
     const locale = await getLocale();
     await sendVerificationCodeEmail({ email, name, code, locale });
+}
+
+export async function getSuperAdminRegisterGateAction() {
+    return getSuperAdminRegisterGate();
+}
+
+export async function preparePlatformOwnerSignup(input: {
+    email: string;
+    bootstrapSecret?: string;
+}) {
+    const email = authIdentitySchema.parse({ email: input.email }).email;
+    const gate = await getSuperAdminRegisterGate();
+
+    if (!gate.canRegister) {
+        throw new Error("La plataforma ya tiene un superadministrador configurado.");
+    }
+
+    if (gate.requiresSecret) {
+        validateBootstrapSecret(input.bootstrapSecret ?? "");
+    }
+
+    await storeSignupIntent(email, { type: "platform_owner" });
+    return { prepared: true };
+}
+
+export async function checkSuperAdminIdentity(input: { email: string }) {
+    const validated = authIdentitySchema.parse(input);
+
+    const [user] = await db
+        .select({ role: users.role, emailVerified: users.emailVerified })
+        .from(users)
+        .where(eq(users.email, validated.email))
+        .limit(1);
+
+    if (!user) {
+        return { exists: false, isSuperAdmin: false, emailVerified: false };
+    }
+
+    return {
+        exists: true,
+        isSuperAdmin: user.role === "super_admin",
+        emailVerified: Boolean(user.emailVerified),
+    };
 }
 
 export async function checkAuthIdentityByEmail(input: { email: string }) {
@@ -179,35 +228,45 @@ export async function confirmVerificationCode(input: { email: string; code: stri
         .where(eq(users.email, validated.email))
         .limit(1);
 
-    if (user && user.role === "member") {
-        if (signupIntent.type === "entity_admin") {
-            await OrganizationService.createOrganizationForAdmin({
-                name: signupIntent.orgName,
-                ownerUserId: user.id,
-            });
-        } else if (signupIntent.type === "organizer") {
-            const inviteCode = signupIntent.inviteCode?.trim();
-            if (inviteCode) {
-                await OrganizationService.joinOrganizationAsOrganizer({
-                    userId: user.id,
-                    inviteCode,
+    if (user) {
+        if (signupIntent.type === "platform_owner") {
+            await claimPlatformOwner(user.id);
+        } else if (user.role === "member") {
+            if (signupIntent.type === "entity_admin") {
+                await OrganizationService.createOrganizationForAdmin({
+                    name: signupIntent.orgName,
+                    ownerUserId: user.id,
                 });
-            } else {
-                await OrganizationService.activateIndependentOrganizer({
-                    userId: user.id,
-                });
+            } else if (signupIntent.type === "organizer") {
+                const inviteCode = signupIntent.inviteCode?.trim();
+                if (inviteCode) {
+                    await OrganizationService.joinOrganizationAsOrganizer({
+                        userId: user.id,
+                        inviteCode,
+                    });
+                } else {
+                    await OrganizationService.activateIndependentOrganizer({
+                        userId: user.id,
+                    });
+                }
             }
         }
     }
 
     const accountType =
-        signupIntent.type === "entity_admin"
-            ? "entity_admin"
-            : signupIntent.type === "organizer"
-              ? "organizer"
-              : "member";
+        signupIntent.type === "platform_owner"
+            ? "platform_owner"
+            : signupIntent.type === "entity_admin"
+              ? "entity_admin"
+              : signupIntent.type === "organizer"
+                ? "organizer"
+                : "member";
 
-    return { verified: true, accountType };
+    return {
+        verified: true,
+        accountType,
+        loginPath: signupIntent.type === "platform_owner" ? "/superadmin/login" : "/login",
+    };
 }
 
 export async function resendVerificationCode(input: { email: string }) {

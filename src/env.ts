@@ -31,6 +31,10 @@ export const env = createEnv({
         ? z.string().min(16)
         : z.string().min(16).optional(),
     BROADCAST_BATCH_SIZE: z.coerce.number().int().min(1).max(50).optional(),
+    PLATFORM_BOOTSTRAP_SECRET:
+      process.env.NODE_ENV === "production"
+        ? z.string().min(16)
+        : z.string().min(16).optional(),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().url(),
@@ -66,6 +70,7 @@ export const env = createEnv({
     PLATFORM_FEE_PERCENT: process.env.PLATFORM_FEE_PERCENT,
     CRON_SECRET: process.env.CRON_SECRET,
     BROADCAST_BATCH_SIZE: process.env.BROADCAST_BATCH_SIZE,
+    PLATFORM_BOOTSTRAP_SECRET: process.env.PLATFORM_BOOTSTRAP_SECRET,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_DOCS_URL: process.env.NEXT_PUBLIC_DOCS_URL,
     NEXT_PUBLIC_PUSHER_KEY: process.env.NEXT_PUBLIC_PUSHER_KEY,

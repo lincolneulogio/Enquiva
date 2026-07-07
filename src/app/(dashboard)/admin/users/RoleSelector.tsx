@@ -18,6 +18,7 @@ interface RoleSelectorProps {
     currentUserId: string;
     scopeMode?: "platform" | "org";
     canEdit?: boolean;
+    superAdminTaken?: boolean;
 }
 
 function getOrgReadOnlyRoleLabel(
@@ -40,6 +41,7 @@ export function RoleSelector({
     currentUserId,
     scopeMode = "platform",
     canEdit = true,
+    superAdminTaken = false,
 }: RoleSelectorProps) {
     const { locale } = useLocale();
     const t = useTranslations();
@@ -106,7 +108,14 @@ export function RoleSelector({
     };
 
     const platformRoles: AppRole[] = ["member", "organizer", "admin", "super_admin"];
-    const options = isOrgScope ? [...ENTITY_ASSIGNABLE_ROLES] : platformRoles;
+    const options = isOrgScope
+        ? [...ENTITY_ASSIGNABLE_ROLES]
+        : platformRoles.filter(
+              (role) =>
+                  role !== "super_admin" ||
+                  currentRole === "super_admin" ||
+                  !superAdminTaken,
+          );
 
     return (
         <select

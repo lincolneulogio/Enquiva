@@ -12,6 +12,7 @@ import { TablePagination } from "@/components/dashboard";
 import { ROLE_BADGE_STYLES, normalizeRole, isEntityAssignableRole } from "@/lib/auth/rbac";
 import { resolveAdminScope, scopeUserCondition } from "@/lib/organizations/admin-scope";
 import { OrganizationService } from "@/lib/organizations/organization.service";
+import { hasSuperAdmin } from "@/lib/auth/platform-bootstrap";
 import Link from "next/link";
 
 interface AdminUsersPageProps {
@@ -39,6 +40,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
     const adminScope = await resolveAdminScope();
     const scopeFilter = scopeUserCondition(adminScope);
     const isPlatformScope = adminScope.mode === "platform";
+    const superAdminTaken = await hasSuperAdmin();
     const canManageRoles =
         isPlatformScope ||
         (await OrganizationService.isOrgAdmin(currentUserId, session!.user.role));
@@ -287,6 +289,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                                 currentUserId={currentUserId}
                                                 scopeMode={isPlatformScope ? "platform" : "org"}
                                                 canEdit={canManageRoles}
+                                                superAdminTaken={superAdminTaken}
                                             />
                                         </div>
                                         <div className="self-end pb-0.5">
@@ -390,6 +393,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                                     currentUserId={currentUserId}
                                                     scopeMode={isPlatformScope ? "platform" : "org"}
                                                     canEdit={canManageRoles}
+                                                    superAdminTaken={superAdminTaken}
                                                 />
                                             </td>
                                             <td className="px-4 py-3.5">

@@ -15,10 +15,10 @@ export default async function SuperadminLayout({
   try {
     session = await auth.api.getSession({ headers: await headers() });
   } catch {
-    redirect("/login");
+    redirect("/superadmin/login");
   }
 
-  if (!session?.user) redirect("/login");
+  if (!session?.user) redirect("/superadmin/login");
 
   const role = normalizeRole(session.user.role);
   const requestHeaders = await headers();
