@@ -11,6 +11,7 @@ import {
   CACHE_TTL,
 } from "@/lib/redis";
 import { pusherServer, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/server";
+import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
 import { generateUniqueSlug } from "@/lib/utils";
 import { assertCanManageEvent } from "@/lib/organizations/admin-scope";
 import { eq, and, desc, ilike, count, sql, asc, inArray, isNull, gte } from "drizzle-orm";
@@ -102,6 +103,12 @@ export class EventService {
       .returning();
 
     await invalidateCachePattern("events:*");
+    await broadcastTableRefresh({
+      resource: "events",
+      eventId: event.id,
+      organizationId: event.organizationId ?? undefined,
+      userId: organizerId,
+    });
     return event;
   }
 
@@ -178,6 +185,11 @@ export class EventService {
       PUSHER_EVENTS.eventUpdated,
       { eventId, title: updated.title, status: updated.status }
     );
+    await broadcastTableRefresh({
+      resource: "events",
+      eventId,
+      organizationId: updated.organizationId ?? undefined,
+    });
 
     await invalidateCache(CACHE_KEYS.eventBySlug(updated.slug));
     await invalidateCachePattern("events:public*");
@@ -218,6 +230,11 @@ export class EventService {
 
     await db.delete(events).where(eq(events.id, eventId));
     await invalidateCachePattern("events:*");
+    await broadcastTableRefresh({
+      resource: ["events", "registrations", "attendees"],
+      eventId,
+      organizationId: existing.organizationId ?? undefined,
+    });
 
     // Purga asíncrona de la portada al eliminar el evento
     if (oldCoverImage) {

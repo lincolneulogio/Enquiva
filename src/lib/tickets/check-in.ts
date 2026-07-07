@@ -14,6 +14,7 @@ import { RegistrationErrorCode, registrationError } from "@/lib/errors/registrat
 import { verifyTicketSignature } from "@/lib/tickets/signature";
 import { runBackground } from "@/lib/background";
 import { pusherServer, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/server";
+import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
 
 export type CheckInByRegistrationInput = {
   registrationId: string;
@@ -108,6 +109,11 @@ async function performCheckIn(
         registrationId: registration.id,
         userId: registration.userId,
         checkedInAt: now,
+      });
+      await broadcastTableRefresh({
+        resource: ["registrations", "attendees"],
+        eventId,
+        userId: registration.userId,
       });
     } catch (error) {
       console.error("Fallo al emitir evento Pusher para check-in", error);

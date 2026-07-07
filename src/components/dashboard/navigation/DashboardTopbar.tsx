@@ -5,6 +5,7 @@ import {
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { TopbarUserMenu } from "./TopbarUserMenu";
 import { TopbarNotifications } from "../notifications/TopbarNotifications";
+import { RealtimeDashboardSync } from "../RealtimeDashboardSync";
 import { SidebarMenuButton } from "./SidebarMenuButton";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import Link from "next/link";
@@ -55,12 +56,15 @@ export async function DashboardTopbar({ user }: DashboardTopbarProps) {
 
         {/* Notificaciones */}
         {user.id && (
-          <TopbarNotifications
+          <>
+            <RealtimeDashboardSync userId={user.id} role={user.role} />
+            <TopbarNotifications
             userId={user.id}
             role={user.role}
             initialUnreadCount={unreadCount}
             initialNotifications={initialNotifications}
           />
+          </>
         )}
 
         {/* Usuario + cerrar sesión */}

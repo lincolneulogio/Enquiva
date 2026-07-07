@@ -69,6 +69,8 @@ export async function createEvent(input: CreateEventInput) {
   await assertEventPayloadWithinPlan(user.id, user.role, {
     hasTransport: input.hasTransport,
     status: input.status,
+    capacity: input.isVirtual ? null : input.capacity,
+    isVirtual: input.isVirtual,
   });
   const event = await EventService.createEvent(input, user.id);
 
@@ -103,6 +105,8 @@ export async function updateEvent(eventId: string, input: UpdateEventInput) {
       status: events.status,
       hasTransport: events.hasTransport,
       organizerId: events.organizerId,
+      capacity: events.capacity,
+      isVirtual: events.isVirtual,
     })
     .from(events)
     .where(eq(events.id, eventId))
@@ -117,7 +121,14 @@ export async function updateEvent(eventId: string, input: UpdateEventInput) {
   await assertEventPayloadWithinPlan(
     planUserId,
     planRole,
-    { hasTransport: input.hasTransport, status: input.status },
+    {
+      hasTransport: input.hasTransport,
+      status: input.status,
+      capacity: input.capacity !== undefined
+        ? (input.isVirtual ?? existing.isVirtual ? null : input.capacity)
+        : undefined,
+      isVirtual: input.isVirtual,
+    },
     existing,
   );
 

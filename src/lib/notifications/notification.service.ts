@@ -1,7 +1,8 @@
 import { db, type DBTransaction } from "@/lib/db";
 import { notifications } from "@/lib/db/schema";
 import { triggerPusher } from "@/lib/pusher/server";
-import { PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/shared";
+import { PUSHER_CHANNELS, PUSHER_EVENTS, type TableRefreshPayload } from "@/lib/pusher/shared";
+import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
 import { invalidateCache, CACHE_KEYS } from "@/lib/redis";
 
 export type NotificationType =
@@ -76,5 +77,55 @@ export class NotificationService {
         }),
       ),
     );
+
+    await broadcastTableRefreshForNotifications(payloads);
+  }
+}
+
+function tableResourcesForNotification(payload: NotificationPayload) {
+  const meta = payload.metadata ?? {};
+
+  const map: Partial<Record<NotificationType, TableRefreshPayload["resource"]>> = {
+    registration_confirmed: ["registrations", "attendees", "payments", "events"],
+    waitlist_promoted: ["registrations", "attendees", "events"],
+    payment_submitted: ["payments", "registrations", "attendees"],
+    payment_status_updated: ["payments", "registrations", "attendees", "events"],
+    event_published: ["events"],
+    event_updated: meta.registrationId
+      ? ["registrations", "attendees", "events"]
+      : ["events"],
+    event_cancelled: ["events", "registrations", "attendees"],
+    event_reminder: ["events"],
+    organizer_request: ["users", "team"],
+    organizer_approved: ["users", "team"],
+    organizer_rejected: ["users", "team"],
+    transport_alert: ["transport", "registrations", "attendees"],
+    subscription_alert: ["plans", "payments"],
+  };
+
+  return map[payload.type];
+}
+
+async function broadcastTableRefreshForNotifications(payloads: NotificationPayload[]) {
+  const seen = new Set<string>();
+
+  for (const payload of payloads) {
+    const resource = tableResourcesForNotification(payload);
+    if (!resource) continue;
+
+    const eventId = typeof payload.metadata?.eventId === "string" ? payload.metadata.eventId : undefined;
+    const organizationId =
+      typeof payload.metadata?.organizationId === "string" ? payload.metadata.organizationId : undefined;
+
+    const key = JSON.stringify({ resource, eventId, organizationId, userId: payload.userId });
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    await broadcastTableRefresh({
+      resource,
+      eventId,
+      organizationId,
+      userId: payload.userId,
+    });
   }
 }

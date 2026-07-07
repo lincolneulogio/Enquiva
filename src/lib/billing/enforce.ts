@@ -180,12 +180,71 @@ export async function getOrganizerPlanSummary(userId: string, role?: string | nu
   };
 }
 
+export function assertEventCapacityWithinPlan(
+  plan: ResolvedPlan,
+  payload: { capacity?: number | null; isVirtual?: boolean },
+  isUnlimited = false,
+) {
+  if (isUnlimited || plan.maxAttendeesPerEvent == null) return;
+
+  const isVirtual = payload.isVirtual ?? false;
+  if (isVirtual) return;
+
+  const capacity = payload.capacity ?? null;
+  if (capacity != null && capacity > plan.maxAttendeesPerEvent) {
+    throw new PlanLimitError(
+      `La capacidad del evento (${capacity}) supera el máximo de ${plan.maxAttendeesPerEvent} asistentes del plan ${plan.name}. ${new PlanLimitError("").upgradeHint}`,
+    );
+  }
+}
+
+export function getEffectiveEventCapacity(
+  eventCapacity: number | null | undefined,
+  plan: ResolvedPlan | null | undefined,
+) {
+  if (plan?.maxAttendeesPerEvent == null) {
+    return eventCapacity ?? null;
+  }
+
+  if (eventCapacity == null) {
+    return plan.maxAttendeesPerEvent;
+  }
+
+  return Math.min(eventCapacity, plan.maxAttendeesPerEvent);
+}
+
 export async function assertEventPayloadWithinPlan(
   userId: string,
   role: string | null | undefined,
-  payload: { hasTransport?: boolean; status?: string },
-  existing?: { status: string; hasTransport: boolean },
+  payload: {
+    hasTransport?: boolean;
+    status?: string;
+    capacity?: number | null;
+    isVirtual?: boolean;
+  },
+  existing?: {
+    status: string;
+    hasTransport: boolean;
+    capacity?: number | null;
+    isVirtual?: boolean;
+  },
 ) {
+  const isUnlimited = SubscriptionService.isPlatformStaff(role);
+
+  if (!isUnlimited) {
+    const plan = await getResolvedPlanForUser(userId, role);
+    assertEventCapacityWithinPlan(
+      plan,
+      {
+        capacity:
+          payload.capacity !== undefined ? payload.capacity : existing?.capacity,
+        isVirtual:
+          payload.isVirtual !== undefined ? payload.isVirtual : existing?.isVirtual,
+      },
+      isUnlimited,
+    );
+  }
+
   if (payload.hasTransport === true && !existing?.hasTransport) {
     await requirePlanFeature(userId, role, "transport");
   }

@@ -35,6 +35,7 @@ import {
 import { createTransportBookingInTx } from "@/lib/transport/booking";
 import { NotificationService, type NotificationPayload } from "@/lib/notifications/notification.service";
 import { maybeNotifyTransportCapacityAlert } from "@/lib/notifications/transport-capacity-alert";
+import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
 
 export interface RegisterEventInput {
   eventId: string;
@@ -73,6 +74,12 @@ export class RegistrationService {
 
       await assertCanRegisterAttendee(event.organizerId, eventId, "organizer");
 
+      const { getOrganizerPlanForEvent, getEffectiveEventCapacity } = await import(
+        "@/lib/billing/enforce"
+      );
+      const plan = await getOrganizerPlanForEvent(eventId);
+      const effectiveCapacity = getEffectiveEventCapacity(event.capacity, plan);
+
       // Validar fecha del evento
       const eventDate = new Date(event.date);
       if (eventDate.getTime() <= Date.now()) {
@@ -109,7 +116,7 @@ export class RegistrationService {
 
       // 3. Validar capacidad — lista de espera si está lleno (solo titular, sin invitados ni transporte)
       let status: "registered" | "waitlisted" = "registered";
-      if (event.capacity) {
+      if (effectiveCapacity) {
         const [{ count: currentCount }] = await tx
           .select({ count: count() })
           .from(registrations)
@@ -120,7 +127,7 @@ export class RegistrationService {
             ),
           );
 
-        if (currentCount + totalNewRegistrations > event.capacity) {
+        if (currentCount + totalNewRegistrations > effectiveCapacity) {
           if (guests.length > 0 || input.routeId) {
             throw registrationError(RegistrationErrorCode.WAITLIST_NO_EXTRAS);
           }
@@ -407,6 +414,17 @@ export class RegistrationService {
             PUSHER_EVENTS.attendeeCountUpdated,
             { eventId, count: newCount }
           );
+          await pusherServer.trigger(
+            PUSHER_CHANNELS.adminDashboard,
+            PUSHER_EVENTS.newRegistration,
+            { eventId, count: newCount },
+          );
+          await broadcastTableRefresh({
+            resource: ["registrations", "attendees", "payments", "events"],
+            eventId,
+            organizationId: event.organizationId ?? undefined,
+            userId: attendee.id,
+          });
         } catch (error) {
           console.error("Fallo al enviar contador de asistentes vía Pusher", error);
         }
@@ -505,6 +523,11 @@ export class RegistrationService {
             PUSHER_EVENTS.attendeeCountUpdated,
             { eventId: reg.eventId, count: newCount },
           );
+          await broadcastTableRefresh({
+            resource: ["registrations", "attendees", "events"],
+            eventId: reg.eventId,
+            userId,
+          });
         } catch (error) {
           console.error("Fallo al actualizar contador tras cancelación", error);
         }
@@ -583,7 +606,7 @@ export class RegistrationService {
     organizerRole: string,
     input: { eventId: string; name: string; phone?: string | null; notes?: string | null }
   ) {
-    return db.transaction(async (tx) => {
+    const result = await db.transaction(async (tx) => {
       const eventId = input.eventId;
       const contactPhone = input.phone ? input.phone.trim() : null;
 
@@ -653,7 +676,23 @@ export class RegistrationService {
         success: true,
         registrationId: registration.id,
         ticketCode: ticket.code,
+        eventId,
+        organizationId: event.organizationId,
       };
     });
+
+    runBackground(async () => {
+      await broadcastTableRefresh({
+        resource: ["registrations", "attendees", "payments", "events"],
+        eventId: result.eventId,
+        organizationId: result.organizationId ?? undefined,
+      });
+    });
+
+    return {
+      success: result.success,
+      registrationId: result.registrationId,
+      ticketCode: result.ticketCode,
+    };
   }
 }

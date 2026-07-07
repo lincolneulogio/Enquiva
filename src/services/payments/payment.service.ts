@@ -29,6 +29,7 @@ import {
 } from "@/lib/organizations/admin-scope";
 import { NotificationService, type NotificationPayload } from "@/lib/notifications/notification.service";
 import { getEntityStaffUserIds } from "@/lib/notifications/notification-targets";
+import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
 
 export class PaymentService {
   /**
@@ -157,6 +158,12 @@ export class PaymentService {
     }));
 
     await NotificationService.createMany([memberNotification, ...staffNotifications]);
+    await broadcastTableRefresh({
+      resource: ["payments", "registrations", "attendees"],
+      eventId: event?.id,
+      organizationId: event?.organizationId ?? undefined,
+      userId,
+    });
 
     return { success: true };
   }
@@ -376,6 +383,12 @@ export class PaymentService {
               paymentId: payment.id,
             }
           );
+          await broadcastTableRefresh({
+            resource: ["payments", "registrations", "attendees", "events"],
+            eventId: event.id,
+            organizationId: event.organizationId ?? undefined,
+            userId: payment.userId,
+          });
         } catch (err) {
           console.error("Error al disparar eventos Pusher:", err);
         }

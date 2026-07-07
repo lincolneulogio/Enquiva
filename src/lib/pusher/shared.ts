@@ -13,4 +13,25 @@ export const PUSHER_EVENTS = {
     notificationCreated: "notification-created",
     eventUpdated: "event-updated",
     paymentUpdated: "payment-updated",
+    tableRefresh: "table-refresh",
 } as const;
+
+export type TableResource =
+    | "registrations"
+    | "attendees"
+    | "events"
+    | "payments"
+    | "users"
+    | "team"
+    | "transport"
+    | "broadcasts"
+    | "categories"
+    | "plans"
+    | "dashboard";
+
+export type TableRefreshPayload = {
+    resource: TableResource | TableResource[];
+    eventId?: string;
+    organizationId?: string;
+    userId?: string;
+};

@@ -41,3 +41,4 @@ export function getPusherClient(): PusherClient {
 }
 
 export { PUSHER_CHANNELS, PUSHER_EVENTS };
+export type { TableRefreshPayload, TableResource } from "./shared";

@@ -144,6 +144,55 @@ export function EventForm({
     const canUseTransport = planSummary?.isUnlimited || planSummary?.features.transport || event?.hasTransport;
     const canUseCulqi = planSummary?.isUnlimited || planSummary?.features.culqi;
     const canCreateEvent = planSummary?.isUnlimited || planSummary?.canCreateEvent !== false;
+    const planMaxAttendees =
+        planSummary && !planSummary.isUnlimited
+            ? planSummary.plan.maxAttendeesPerEvent
+            : null;
+
+    const clampCapacityInput = (raw: string) => {
+        if (raw === "" || planMaxAttendees == null) return raw;
+        const num = Number(raw);
+        if (Number.isNaN(num)) return raw;
+        if (num > planMaxAttendees) return String(planMaxAttendees);
+        return raw;
+    };
+
+    const {
+        onChange: onCapacityChange,
+        onBlur: onCapacityBlur,
+        ...capacityField
+    } = register("capacity", {
+        setValueAs: (value) => {
+            if (value === "" || value === null || value === undefined) return null;
+            const num = Number(value);
+            if (Number.isNaN(num)) return null;
+            if (planMaxAttendees != null && num > planMaxAttendees) return planMaxAttendees;
+            return num;
+        },
+        validate: (value) => {
+            if (planMaxAttendees == null || value == null) return true;
+            if (value <= planMaxAttendees) return true;
+            return t("events.form.validation.capacityPlanLimit", { max: planMaxAttendees });
+        },
+    });
+
+    const handleCapacityChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const clamped = clampCapacityInput(event.target.value);
+        if (clamped !== event.target.value) {
+            event.target.value = clamped;
+        }
+        void onCapacityChange(event);
+    };
+
+    const handleCapacityBlur = (event: React.FocusEvent<HTMLInputElement>) => {
+        const clamped = clampCapacityInput(event.target.value);
+        if (clamped !== event.target.value) {
+            event.target.value = clamped;
+            const num = clamped === "" ? null : Number(clamped);
+            setValue("capacity", Number.isNaN(num) ? null : num, { shouldValidate: true });
+        }
+        void onCapacityBlur(event);
+    };
     const selectablePaymentMethods = allPaymentMethods.filter(
         (pm) => pm.type !== "culqi" || canUseCulqi,
     );
@@ -154,6 +203,14 @@ export function EventForm({
             setAllPaymentMethods(methods);
         })();
     }, [event?.organizerId]);
+
+    useEffect(() => {
+        if (planMaxAttendees == null || isVirtual) return;
+        const current = form.getValues("capacity");
+        if (current != null && current > planMaxAttendees) {
+            setValue("capacity", planMaxAttendees, { shouldValidate: true });
+        }
+    }, [planMaxAttendees, isVirtual, form, setValue]);
 
     useEffect(() => {
         if (!event?.id || !hasTransport) return;
@@ -234,6 +291,20 @@ export function EventForm({
     }, [highlightedField, errors]);
 
     const onSubmit = (data: CreateEventInput) => {
+        if (
+            planMaxAttendees != null &&
+            !data.isVirtual &&
+            data.capacity != null &&
+            data.capacity > planMaxAttendees
+        ) {
+            toast.error(
+                t("events.form.validation.capacityPlanLimit", { max: planMaxAttendees }),
+            );
+            setFocus("capacity");
+            setHighlightedField("capacity");
+            return;
+        }
+
         startTransition(async () => {
             try {
                 const payload = {
@@ -427,6 +498,11 @@ export function EventForm({
                                 {errors.virtualLink && (
                                     <p className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.virtualLink.message)}</p>
                                 )}
+                                {planMaxAttendees != null && (
+                                    <p className="mt-2 text-xs text-muted-foreground">
+                                        {t("events.form.virtualCapacityHelpPlan", { max: planMaxAttendees })}
+                                    </p>
+                                )}
                             </div>
                         ) : (
                             <div key="physical-fields">
@@ -452,19 +528,23 @@ export function EventForm({
                             </label>
                             <input
                                 type="number"
-                                {...register("capacity", {
-                                    setValueAs: (value) => {
-                                        if (value === "" || value === null || value === undefined) return null;
-                                        const num = Number(value);
-                                        return Number.isNaN(num) ? null : num;
-                                    },
-                                })}
-                                placeholder={t("events.form.capacityPlaceholder")}
+                                {...capacityField}
+                                onChange={handleCapacityChange}
+                                onBlur={handleCapacityBlur}
+                                placeholder={
+                                    planMaxAttendees != null
+                                        ? t("events.form.capacityPlaceholderPlan", { max: planMaxAttendees })
+                                        : t("events.form.capacityPlaceholder")
+                                }
                                 min={1}
+                                max={planMaxAttendees ?? undefined}
+                                inputMode="numeric"
                                 className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("capacity")}`}
                             />
                             <p className="mt-1 text-xs text-muted-foreground">
-                                {t("events.form.capacityHelp")}
+                                {planMaxAttendees != null
+                                    ? t("events.form.capacityHelpPlan", { max: planMaxAttendees })
+                                    : t("events.form.capacityHelp")}
                             </p>
                             {errors.capacity && (
                                 <p className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.capacity.message)}</p>

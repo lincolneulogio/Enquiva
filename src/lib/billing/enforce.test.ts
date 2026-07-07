@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  assertEventCapacityWithinPlan,
+  getEffectiveEventCapacity,
   getPlatformFee,
   planIncludesBroadcasts,
   planIncludesFeature,
@@ -54,5 +56,25 @@ describe("billing enforce", () => {
     const err = new PlanLimitError("Límite alcanzado");
     expect(err.code).toBe("PLAN_LIMIT");
     expect(err.upgradeHint).toContain("/organizer/billing");
+  });
+
+  it("rejects event capacity above plan max", () => {
+    expect(() =>
+      assertEventCapacityWithinPlan(basePlan, { capacity: 250, isVirtual: false }),
+    ).toThrow(PlanLimitError);
+    expect(() =>
+      assertEventCapacityWithinPlan(basePlan, { capacity: 200, isVirtual: false }),
+    ).not.toThrow();
+    expect(() =>
+      assertEventCapacityWithinPlan(basePlan, { capacity: 500, isVirtual: true }),
+    ).not.toThrow();
+  });
+
+  it("computes effective capacity from event and plan limits", () => {
+    expect(getEffectiveEventCapacity(300, basePlan)).toBe(200);
+    expect(getEffectiveEventCapacity(null, basePlan)).toBe(200);
+    expect(getEffectiveEventCapacity(50, basePlan)).toBe(50);
+    expect(getEffectiveEventCapacity(300, null)).toBe(300);
+    expect(getEffectiveEventCapacity(null, null)).toBeNull();
   });
 });

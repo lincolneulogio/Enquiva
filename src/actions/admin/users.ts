@@ -22,6 +22,7 @@ import {
     requireSuperAdmin,
     requireAdminOrSuper,
 } from "@/lib/auth/guards";
+import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
 
 export { requireSuperAdmin, requireAdminOrSuper };
 
@@ -47,6 +48,7 @@ export async function updateUserRole(
         });
         revalidatePath("/admin/users");
         revalidatePath("/admin/team");
+        await broadcastTableRefresh({ resource: ["users", "team"], userId });
         return { success: true };
     }
 
@@ -73,6 +75,7 @@ export async function updateUserRole(
     });
 
     revalidatePath("/admin/users");
+    await broadcastTableRefresh({ resource: "users", userId });
     return { success: true };
 }
 
@@ -121,6 +124,7 @@ export async function deleteUser(userId: string) {
     });
 
     revalidatePath("/admin/users");
+    await broadcastTableRefresh({ resource: "users" });
     return { success: true };
 }
 
