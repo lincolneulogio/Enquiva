@@ -6,6 +6,8 @@ import {
   mailGreeting,
   type MailLocale,
 } from "./locale-strings";
+import { BRAND } from "@/lib/brand";
+import { renderEmailBrandHeader } from "./brand-header";
 
 export function wrapInTemplate(
   title: string,
@@ -15,7 +17,7 @@ export function wrapInTemplate(
   orgName?: string,
   locale: MailLocale = "es",
 ) {
-  const finalOrgName = orgName ?? "Eventia";
+  const finalOrgName = orgName ?? BRAND.name;
   const resolvedFooter = footerNote ?? defaultFooterNote(locale);
   const copyright = copyrightFooter(locale, finalOrgName);
   return `
@@ -51,17 +53,8 @@ export function wrapInTemplate(
               
               <!-- Brand Header -->
               <tr>
-                <td class="header-padding" style="background: linear-gradient(135deg, #4b1ab5 0%, #7c3aed 50%, #eb2e7a 100%); padding: 36px 32px; text-align: center;">
-                  <table border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
-                    <tr>
-                      <td style="background-color: rgba(255, 255, 255, 0.18); border-radius: 14px; width: 48px; height: 48px; text-align: center; vertical-align: middle; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
-                        <span style="font-size: 26px; color: #ffffff; line-height: 48px; display: inline-block; font-weight: bold;">✦</span>
-                      </td>
-                      <td style="padding-left: 14px; text-align: left; vertical-align: middle;">
-                        <span style="font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; display: block; font-family: 'Outfit', sans-serif; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">${finalOrgName}</span>
-                      </td>
-                    </tr>
-                  </table>
+                <td class="header-padding" style="background-color: #f5efe6; padding: 32px 32px; text-align: center; border-bottom: 1px solid rgba(61, 41, 20, 0.08);">
+                  ${renderEmailBrandHeader()}
                 </td>
               </tr>
 
@@ -169,7 +162,7 @@ export function getVerificationCodeTemplate(
 
 export function getPasswordChangedTemplate(greeting: string, orgName?: string) {
   const title = "Contraseña actualizada";
-  const finalOrgName = orgName ?? "Eventia";
+  const finalOrgName = orgName ?? BRAND.name;
   const bodyHtml = `
     <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #bbf7d0; border-radius: 20px; padding: 24px; text-align: center; margin: 8px 0 24px 0; box-shadow: 0 4px 10px rgba(22, 101, 52, 0.05);">
       <div style="background-color: #22c55e; width: 44px; height: 44px; border-radius: 50%; display: inline-block; text-align: center; line-height: 44px; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(34, 197, 94, 0.3);">
@@ -204,7 +197,7 @@ export function getPasswordChangedTemplate(greeting: string, orgName?: string) {
 
 export function getPasswordResetTemplate(url: string, greeting: string, orgName?: string) {
   const title = "Restablecer tu contraseña";
-  const finalOrgName = orgName ?? "Eventia";
+  const finalOrgName = orgName ?? BRAND.name;
   const bodyHtml = `
     <p style="margin: 0 0 20px 0; font-size: 15px; color: #475569; line-height: 1.6; font-family: 'Outfit', sans-serif;">
       Recibimos una solicitud para restablecer la contraseña de tu cuenta en <strong>${finalOrgName}</strong>. Haz clic en el botón de abajo para definir una nueva contraseña segura:
@@ -340,7 +333,7 @@ export function getSubscriptionRenewalReminderTemplate(opts: {
   `;
 
   return {
-    subject: `${opts.planName} vence en ${opts.daysRemaining} día(s) — Eventia`,
+    subject: `${opts.planName} vence en ${opts.daysRemaining} día(s) — ${BRAND.name}`,
     text: `${opts.greeting}\n\nTu plan ${opts.planName} vence el ${opts.renewalDate} (${opts.daysRemaining} días).\n\nRenueva aquí: ${opts.billingUrl}`,
     html: wrapInTemplate(title, opts.greeting, bodyHtml, undefined, opts.orgName),
   };
@@ -386,7 +379,7 @@ export function getCustomNotificationEmailTemplate(opts: {
       ${opts.body}
     </p>
   `;
-  const footerNote = customNotificationFooter(locale, opts.orgName ?? "Eventia");
+  const footerNote = customNotificationFooter(locale, opts.orgName ?? BRAND.name);
 
   return {
     subject: opts.subject,
