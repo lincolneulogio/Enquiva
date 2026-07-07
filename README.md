@@ -28,7 +28,6 @@ pnpm install
 cp .env.example .env
 docker compose up -d
 pnpm run db:push
-pnpm run db:seed:all
 pnpm run dev
 ```
 
@@ -43,7 +42,7 @@ App: `http://localhost:3000` · Docs: `cd docs && pnpm run dev` → `http://loca
 | `pnpm run test:e2e` | Tests E2E (Playwright) — requiere Docker + `.env` |
 | `pnpm run test:all` | Unitarios + E2E |
 | `pnpm run db:push` | Sincronizar esquema Drizzle |
-| `pnpm run db:seed:all` | Roles, categorías, planes y eventos demo |
+| `pnpm run db:reset` | Borrar todas las tablas (empezar de cero) |
 | `pnpm run db:backup` | Export JSON completo a `backups/` |
 | `pnpm test` | Tests unitarios |
 | `pnpm run typecheck` | Verificación TypeScript |

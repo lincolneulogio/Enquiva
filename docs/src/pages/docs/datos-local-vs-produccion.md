@@ -26,7 +26,7 @@ Los eventos, usuarios, pagos e inscripciones están en tablas PostgreSQL (`event
 - **Postgres en Docker** (`docker compose up -d`): puerto **15432**, base `eventia`, usuario `events_user`.
 - Volumen `postgres_data`: los datos persisten entre reinicios del contenedor.
 - `.env` típico: `DATABASE_URL=postgresql://events_user:events_password@localhost:15432/eventia`
-- Seeds de demo: `pnpm run db:seed:all` crea roles, categorías y eventos de ejemplo **solo en tu BD local**.
+- La BD local empieza vacía tras `pnpm run db:push`. No hay datos ficticios en el repositorio.
 
 ---
 

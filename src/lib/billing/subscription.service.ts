@@ -128,7 +128,7 @@ export class SubscriptionService {
   static async getFreePlan(): Promise<ResolvedPlan> {
     await this.ensureDefaultPlans();
     const plan = await this.getPlanBySlug("free");
-    if (!plan) throw new Error("Plan free no encontrado. Ejecuta pnpm run db:seed:plans");
+    if (!plan) throw new Error("Plan free no encontrado. Inicializa planes desde el panel superadmin.");
     return plan;
   }
 

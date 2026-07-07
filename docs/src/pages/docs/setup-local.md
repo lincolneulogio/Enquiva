@@ -56,14 +56,13 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 
 > `CRON_SECRET` es opcional en local; **obligatorio** en producción.
 
-## 5. Inicializar esquema y datos demo
+## 5. Inicializar esquema
 
 ```bash
 pnpm run db:push
-pnpm run db:seed:all
 ```
 
-`db:seed:all` carga roles, categorías, planes y eventos de demostración con portadas locales en `/public/images/event-covers/`.
+Esto crea las tablas vacías. Los roles se inicializan desde el panel superadmin; los planes al abrir **Admin → Planes**.
 
 ## 6. Levantar la aplicación
 

@@ -15,7 +15,7 @@ El repositorio incluye CI (typecheck, tests, lint) pero **no** despliega automá
 1. Crea un proyecto en [neon.tech](https://neon.tech).
 2. Copia la connection string (`postgresql://...?sslmode=require`).
 3. En local, una vez: `pnpm run db:push` contra esa URL (o ejecuta migraciones) para crear tablas.
-4. Opcional: `pnpm run db:seed:roles` y `db:seed:categories` en producción (no ejecutes seeds de demo en prod si no quieres datos ficticios).
+4. Tras el primer deploy: `pnpm run db:push` en la BD de producción (o desde CI). Inicializa roles desde superadmin y planes desde Admin → Planes.
 
 ### Supabase
 
@@ -70,7 +70,7 @@ curl -H "Authorization: Bearer TU_CRON_SECRET" https://tudominio.com/api/cron/ev
 
 ## 4. Post-deploy
 
-1. Registra el primer super admin (flujo de registro + cambio de rol en BD o seed controlado).
+1. Registra el primer super admin (flujo de registro + asignación de rol `super_admin` en BD o botón **Inicializar roles** en superadmin).
 2. Verifica correo OTP con SMTP de producción.
 3. Revisa logs de Vercel tras el primer cron.
 4. Configura dominio personalizado en Vercel.

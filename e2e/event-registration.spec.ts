@@ -1,13 +1,19 @@
 import { test, expect } from "@playwright/test";
-import { E2E_DEMO_EVENT_SLUG } from "./helpers/credentials";
+import { E2E_EVENT_SLUG } from "./helpers/credentials";
 
 test.describe("Inscripción a evento", () => {
+  test.beforeEach(() => {
+    if (!E2E_EVENT_SLUG) {
+      test.skip(true, "Define E2E_EVENT_SLUG en .env para pruebas de inscripción");
+    }
+  });
+
   test("miembro puede ver detalle y botón de inscripción", async ({ page }) => {
-    await page.goto(`/events/${E2E_DEMO_EVENT_SLUG}`);
+    await page.goto(`/events/${E2E_EVENT_SLUG}`);
 
     const notFound = page.getByText(/no encontrado|not found|404/i);
     if (await notFound.isVisible().catch(() => false)) {
-      test.skip(true, "Evento demo no disponible — ejecuta pnpm run db:seed:demo");
+      test.skip(true, "Evento no encontrado — verifica E2E_EVENT_SLUG");
       return;
     }
 
@@ -21,7 +27,7 @@ test.describe("Inscripción a evento", () => {
   });
 
   test("flujo de inscripción abre modal o confirma estado", async ({ page }) => {
-    await page.goto(`/events/${E2E_DEMO_EVENT_SLUG}`);
+    await page.goto(`/events/${E2E_EVENT_SLUG}`);
 
     const registerBtn = page.getByRole("button", { name: /inscribir|registr|register/i }).first();
     if (!(await registerBtn.isVisible().catch(() => false))) {

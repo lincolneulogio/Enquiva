@@ -36,7 +36,12 @@ Ejemplos ya registrados:
 - `db:migrate:subscriptions-organization`
 - `db:migrate:events-view-count`
 
-Si restauras desde cero, usa `db:push` + seeds en lugar de ejecutar todos los scripts históricos.
+Si restauras desde cero:
+
+```bash
+pnpm run db:reset
+pnpm run db:push
+```
 
 ---
 
@@ -55,5 +60,4 @@ Si restauras desde cero, usa `db:push` + seeds en lugar de ejecutar todos los sc
 docker compose down -v
 docker compose up -d
 pnpm run db:push
-pnpm run db:seed:all
 ```

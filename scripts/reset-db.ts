@@ -7,8 +7,11 @@ if (!connectionString) {
   process.exit(1);
 }
 
-console.log("Connecting to Database to reset...");
-const sql = postgres(connectionString, { ssl: "require" });
+const isLocal =
+  connectionString.includes("localhost") || connectionString.includes("127.0.0.1");
+
+console.log(`Connecting to Database to reset (${isLocal ? "local" : "remote"})...`);
+const sql = postgres(connectionString, isLocal ? {} : { ssl: "require" });
 
 async function reset() {
   try {
