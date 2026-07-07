@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { eq, and, type SQL, inArray, sql, or } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { events, users, categories, registrations, payments, transportRoutes, transportBookings, activityLogs } from "@/lib/db/schema";
+import { events, users, categories, registrations, payments, transportRoutes, transportBookings, activityLogs, organizationMembers } from "@/lib/db/schema";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { OrganizationService } from "@/lib/organizations/organization.service";
 
@@ -78,7 +78,15 @@ export function scopeEventCondition(scope: AdminScope): SQL | undefined {
 
 export function scopeUserCondition(scope: AdminScope): SQL | undefined {
   if (scope.mode === "org") {
-    return eq(users.organizationId, scope.organizationId);
+    const orgMemberUserIds = db
+      .select({ userId: organizationMembers.userId })
+      .from(organizationMembers)
+      .where(eq(organizationMembers.organizationId, scope.organizationId));
+
+    return or(
+      eq(users.organizationId, scope.organizationId),
+      inArray(users.id, orgMemberUserIds),
+    );
   }
   if (scope.mode === "unassigned") {
     return scopeDenyAllCondition();

@@ -71,6 +71,19 @@ export async function requireOrganizer(): Promise<SessionUser> {
   return user;
 }
 
+/** Organizador con membresía de entidad aprobada (o sin entidad). Bloquea creación de eventos si está pendiente. */
+export async function requireApprovedOrganizer(): Promise<SessionUser> {
+  const user = await requireOrganizer();
+  if (normalizeRole(user.role) === "super_admin") return user;
+
+  const { OrganizationService } = await import("@/lib/organizations/organization.service");
+  const pending = await OrganizationService.getPendingOrganizerMembershipForUser(user.id);
+  if (pending) {
+    throw new Error("ORGANIZER_APPROVAL_PENDING");
+  }
+  return user;
+}
+
 /** organizer | super_admin — medios de pago del organizador (sin admin de entidad). */
 export async function requireOrganizerRole(): Promise<SessionUser> {
   const user = await requireAuth();

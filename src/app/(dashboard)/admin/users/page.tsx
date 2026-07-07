@@ -14,6 +14,7 @@ import { resolveAdminScope, scopeUserCondition } from "@/lib/organizations/admin
 import { OrganizationService } from "@/lib/organizations/organization.service";
 import { hasSuperAdmin } from "@/lib/auth/platform-bootstrap";
 import Link from "next/link";
+import { OrganizerApprovalButtons } from "./OrganizerApprovalButtons";
 
 interface AdminUsersPageProps {
     searchParams: Promise<{
@@ -55,35 +56,83 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
             ? ""
             : rawSelectedRole;
 
-    // Build filter conditions
-    const conditions = [];
-    if (scopeFilter) {
-        conditions.push(scopeFilter);
-    }
-    if (!isPlatformScope) {
-        conditions.push(
-            or(
-                eq(users.role, "member"),
-                eq(users.role, "organizer"),
-                eq(users.role, "admin"),
-            ),
-        );
-    }
-    if (searchQuery) {
-        conditions.push(
-            or(
-                ilike(users.name, `%${searchQuery}%`),
-                ilike(users.email, `%${searchQuery}%`),
-                ilike(users.phone, `%${searchQuery}%`)
-            )
-        );
-    }
-    if (selectedRole) {
-        conditions.push(eq(users.role, selectedRole as "super_admin" | "admin" | "organizer" | "member"));
-    }
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const isOrgScope = adminScope.mode === "org";
+    const orgFilters = { search: searchQuery || undefined, role: selectedRole || undefined };
 
-    const [{ total }] = await db.select({ total: count() }).from(users).where(whereClause);
+    let total: number;
+    let allUsers: Array<{
+        id: string;
+        name: string;
+        email: string;
+        phone: string | null;
+        emailVerified: boolean;
+        isActive: boolean;
+        lastSeenAt: Date | null;
+        role: string | null;
+        createdAt: Date;
+        memberStatus?: string | null;
+        memberRole?: string | null;
+    }>;
+
+    if (isOrgScope) {
+        total = await OrganizationService.countOrganizationUsersForAdmin(
+            adminScope.organizationId,
+            orgFilters,
+        );
+        const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+        const safePage = Math.min(currentPage, totalPages);
+        const offset = (safePage - 1) * PAGE_SIZE;
+
+        allUsers = await OrganizationService.listOrganizationUsersForAdmin({
+            organizationId: adminScope.organizationId,
+            ...orgFilters,
+            limit: PAGE_SIZE,
+            offset,
+        });
+    } else {
+        const conditions = [];
+        if (scopeFilter) {
+            conditions.push(scopeFilter);
+        }
+        if (searchQuery) {
+            conditions.push(
+                or(
+                    ilike(users.name, `%${searchQuery}%`),
+                    ilike(users.email, `%${searchQuery}%`),
+                    ilike(users.phone, `%${searchQuery}%`),
+                ),
+            );
+        }
+        if (selectedRole) {
+            conditions.push(eq(users.role, selectedRole as "super_admin" | "admin" | "organizer" | "member"));
+        }
+        const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+        const [{ total: platformTotal }] = await db.select({ total: count() }).from(users).where(whereClause);
+        total = platformTotal ?? 0;
+        const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+        const safePage = Math.min(currentPage, totalPages);
+        const offset = (safePage - 1) * PAGE_SIZE;
+
+        allUsers = await db
+            .select({
+                id: users.id,
+                name: users.name,
+                email: users.email,
+                phone: users.phone,
+                emailVerified: users.emailVerified,
+                isActive: users.isActive,
+                lastSeenAt: users.lastSeenAt,
+                role: users.role,
+                createdAt: users.createdAt,
+            })
+            .from(users)
+            .where(whereClause)
+            .orderBy(desc(users.createdAt))
+            .limit(PAGE_SIZE)
+            .offset(offset);
+    }
+
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
     const safePage = Math.min(currentPage, totalPages);
     const offset = (safePage - 1) * PAGE_SIZE;
@@ -97,33 +146,57 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
         return getRoleLabel(normalized, locale);
     };
 
-    const allUsers = await db
-        .select({
-            id: users.id,
-            name: users.name,
-            email: users.email,
-            phone: users.phone,
-            emailVerified: users.emailVerified,
-            isActive: users.isActive,
-            lastSeenAt: users.lastSeenAt,
-            role: users.role,
-            createdAt: users.createdAt,
-        })
-        .from(users)
-        .where(whereClause)
-        .orderBy(desc(users.createdAt))
-        .limit(PAGE_SIZE)
-        .offset(offset);
+    const membershipMap = isOrgScope
+        ? new Map<string, { organizationName: string; role: string; status: string }>()
+        : await OrganizationService.getMembershipSummaryForUsers(allUsers.map((user) => user.id));
+
+    if (isOrgScope) {
+        for (const user of allUsers) {
+            if (user.memberRole && user.memberStatus) {
+                membershipMap.set(user.id, {
+                    organizationName: adminScope.organizationName,
+                    role: user.memberRole,
+                    status: user.memberStatus,
+                });
+            }
+        }
+    }
+
+    const getMembershipForUser = (userId: string) => membershipMap.get(userId);
+
+    const isPendingOrganizerUser = (user: (typeof allUsers)[number]) => {
+        const membership = getMembershipForUser(user.id);
+        return membership?.role === "organizer" && membership?.status === "pending";
+    };
 
     return (
         <div className="space-y-6">
             <div>
                 <h1 className="font-display text-3xl font-semibold text-foreground">{t("common.users")}</h1>
                 <p className="mt-1 text-muted-foreground">
-                    {t("dashboard.admin.usersRegistered", {
-                        count: total,
-                        label: total === 1 ? (locale === "en" ? "user" : "usuario") : (locale === "en" ? "users" : "usuarios"),
-                    })}
+                    {isOrgScope
+                        ? t("dashboard.admin.usersEntityIntro", {
+                              count: total,
+                              label:
+                                  total === 1
+                                      ? locale === "en"
+                                          ? "user"
+                                          : "usuario"
+                                      : locale === "en"
+                                        ? "users"
+                                        : "usuarios",
+                          })
+                        : t("dashboard.admin.usersRegistered", {
+                              count: total,
+                              label:
+                                  total === 1
+                                      ? locale === "en"
+                                          ? "user"
+                                          : "usuario"
+                                      : locale === "en"
+                                        ? "users"
+                                        : "usuarios",
+                          })}
                 </p>
             </div>
 
@@ -216,6 +289,8 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                         {allUsers.map((user, index) => {
                             const normalizedRole = normalizeRole(user.role);
                             const RoleIcon = roleIcons[normalizedRole];
+                            const membership = getMembershipForUser(user.id);
+                            const isPendingOrganizer = isPendingOrganizerUser(user);
 
                             return (
                                 <div key={user.id} className="rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm">
@@ -245,6 +320,11 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                                 <RoleIcon className="h-3 w-3" />
                                                 {getDisplayRoleLabel(user.role ?? "member")}
                                             </span>
+                                            {isPendingOrganizer && (
+                                                <span className="ml-1 inline-flex rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-500/20">
+                                                    {t("dashboard.admin.organizerPendingBadge")}
+                                                </span>
+                                            )}
                                         </div>
                                         <div>
                                             <span className="block text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{locale === "en" ? "Verified" : "Verificado"}</span>
@@ -281,7 +361,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                     </div>
 
                                     <div className="flex items-center justify-between gap-3 pt-1">
-                                        <div className="flex-1">
+                                        <div className="flex-1 space-y-2">
                                             <span className="block text-[9px] uppercase font-bold text-muted-foreground tracking-wider mb-1">{roleColumnLabel}</span>
                                             <RoleSelector
                                                 userId={user.id}
@@ -291,6 +371,9 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                                 canEdit={canManageRoles}
                                                 superAdminTaken={superAdminTaken}
                                             />
+                                            {canManageRoles && isPendingOrganizer && (
+                                                <OrganizerApprovalButtons userId={user.id} />
+                                            )}
                                         </div>
                                         <div className="self-end pb-0.5">
                                             {isPlatformScope && (
@@ -325,6 +408,8 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                 {allUsers.map((user, index) => {
                                     const normalizedRole = normalizeRole(user.role);
                                     const RoleIcon = roleIcons[normalizedRole];
+                                    const membership = getMembershipForUser(user.id);
+                                    const isPendingOrganizer = isPendingOrganizerUser(user);
 
                                     return (
                                         <tr key={user.id} className="hover:bg-muted/20 transition-colors">
@@ -351,10 +436,22 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                                 )}
                                             </td>
                                             <td className="px-4 py-3.5">
-                                                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${ROLE_BADGE_STYLES[normalizedRole]}`}>
-                                                    <RoleIcon className="h-3.5 w-3.5" />
-                                                    {getDisplayRoleLabel(user.role ?? "member")}
-                                                </span>
+                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${ROLE_BADGE_STYLES[normalizedRole]}`}>
+                                                        <RoleIcon className="h-3.5 w-3.5" />
+                                                        {getDisplayRoleLabel(user.role ?? "member")}
+                                                    </span>
+                                                    {isPendingOrganizer && (
+                                                        <span className="inline-flex rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 border border-amber-500/20">
+                                                            {t("dashboard.admin.organizerPendingBadge")}
+                                                        </span>
+                                                    )}
+                                                    {isPlatformScope && membership?.organizationName && (
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {membership.organizationName}
+                                                            </span>
+                                                        )}
+                                                </div>
                                             </td>
                                             <td className="px-4 py-3.5">
                                                 {user.isActive ? (
@@ -387,14 +484,19 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                                     : "—"}
                                             </td>
                                             <td className="px-4 py-3.5">
-                                                <RoleSelector
-                                                    userId={user.id}
-                                                    currentRole={(user.role ?? "member") as "member" | "organizer" | "admin" | "super_admin"}
-                                                    currentUserId={currentUserId}
-                                                    scopeMode={isPlatformScope ? "platform" : "org"}
-                                                    canEdit={canManageRoles}
-                                                    superAdminTaken={superAdminTaken}
-                                                />
+                                                <div className="space-y-2">
+                                                    <RoleSelector
+                                                        userId={user.id}
+                                                        currentRole={(user.role ?? "member") as "member" | "organizer" | "admin" | "super_admin"}
+                                                        currentUserId={currentUserId}
+                                                        scopeMode={isPlatformScope ? "platform" : "org"}
+                                                        canEdit={canManageRoles}
+                                                        superAdminTaken={superAdminTaken}
+                                                    />
+                                                    {canManageRoles && isPendingOrganizer && (
+                                                        <OrganizerApprovalButtons userId={user.id} />
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="px-4 py-3.5">
                                                 {isPlatformScope && (

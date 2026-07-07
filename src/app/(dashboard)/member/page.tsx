@@ -8,7 +8,6 @@ import { Calendar, ArrowRight } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
 import { registrationStatusLabel } from "@/lib/utils";
-import { PendingOrganizerBanner } from "@/components/dashboard/member/PendingOrganizerBanner";
 
 export default async function MemberDashboardPage() {
   const { locale, t } = await getI18n();
@@ -25,7 +24,6 @@ export default async function MemberDashboardPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <PendingOrganizerBanner />
       <div>
         <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
           {t("dashboard.member.hello", {

@@ -5,7 +5,7 @@ import {
   users,
   type Organization,
 } from "@/lib/db/schema";
-import { and, eq, asc, count } from "drizzle-orm";
+import { and, eq, asc, count, inArray, or, ilike, desc } from "drizzle-orm";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { SubscriptionService } from "@/lib/billing/subscription.service";
 import { PlanLimitError } from "@/lib/billing/enforce";
@@ -169,7 +169,7 @@ export class OrganizationService {
 
     await db
       .update(users)
-      .set({ organizationId: org.id, role: "member", updatedAt: new Date() })
+      .set({ organizationId: org.id, role: "organizer", updatedAt: new Date() })
       .where(eq(users.id, input.userId));
 
     return org;
@@ -183,34 +183,39 @@ export class OrganizationService {
     return this.requestJoinOrganizationAsOrganizer(input);
   }
 
+  private static async resolvePendingOrganizerRequestContext(input: {
+    actorId: string;
+    actorRole: string | null | undefined;
+    targetUserId: string;
+  }) {
+    const pending = await this.getPendingOrganizerMembershipForUser(input.targetUserId);
+    if (!pending) throw new Error("No hay una solicitud pendiente de este usuario.");
+
+    const isSuper = normalizeRole(input.actorRole) === "super_admin";
+    if (isSuper) {
+      return pending;
+    }
+
+    const actorOrg = await this.getOrganizationForUser(input.actorId);
+    if (!actorOrg) throw new Error("No perteneces a una entidad.");
+    if (actorOrg.id !== pending.organization.id) {
+      throw new Error("Este usuario no pertenece a tu entidad.");
+    }
+    if (actorOrg.ownerId !== input.actorId) {
+      throw new Error("Solo el administrador de la entidad puede gestionar solicitudes.");
+    }
+
+    return pending;
+  }
+
   static async approveOrganizerRequest(input: {
     actorId: string;
     actorRole: string | null | undefined;
     targetUserId: string;
   }) {
-    const actorOrg = await this.getOrganizationForUser(input.actorId);
-    if (!actorOrg) throw new Error("No perteneces a una entidad.");
-
-    const isSuper = normalizeRole(input.actorRole) === "super_admin";
-    const isOwner = actorOrg.ownerId === input.actorId;
-    if (!isSuper && !isOwner) {
-      throw new Error("Solo el administrador de la entidad puede aprobar solicitudes.");
-    }
-
-    const [memberRow] = await db
-      .select()
-      .from(organizationMembers)
-      .where(
-        and(
-          eq(organizationMembers.organizationId, actorOrg.id),
-          eq(organizationMembers.userId, input.targetUserId),
-          eq(organizationMembers.role, "organizer"),
-          eq(organizationMembers.status, "pending"),
-        ),
-      )
-      .limit(1);
-
-    if (!memberRow) throw new Error("No hay una solicitud pendiente de este usuario.");
+    const pending = await this.resolvePendingOrganizerRequestContext(input);
+    const actorOrg = pending.organization;
+    const memberRow = pending.member;
 
     await this.assertCanAddOrganizerToOrg(actorOrg.id);
 
@@ -229,7 +234,7 @@ export class OrganizationService {
 
       await trx
         .update(users)
-        .set({ role: "organizer", updatedAt: new Date() })
+        .set({ organizationId: actorOrg.id, role: "organizer", updatedAt: new Date() })
         .where(eq(users.id, input.targetUserId));
     });
 
@@ -241,29 +246,9 @@ export class OrganizationService {
     actorRole: string | null | undefined;
     targetUserId: string;
   }) {
-    const actorOrg = await this.getOrganizationForUser(input.actorId);
-    if (!actorOrg) throw new Error("No perteneces a una entidad.");
-
-    const isSuper = normalizeRole(input.actorRole) === "super_admin";
-    const isOwner = actorOrg.ownerId === input.actorId;
-    if (!isSuper && !isOwner) {
-      throw new Error("Solo el administrador de la entidad puede rechazar solicitudes.");
-    }
-
-    const [memberRow] = await db
-      .select()
-      .from(organizationMembers)
-      .where(
-        and(
-          eq(organizationMembers.organizationId, actorOrg.id),
-          eq(organizationMembers.userId, input.targetUserId),
-          eq(organizationMembers.role, "organizer"),
-          eq(organizationMembers.status, "pending"),
-        ),
-      )
-      .limit(1);
-
-    if (!memberRow) throw new Error("No hay una solicitud pendiente de este usuario.");
+    const pending = await this.resolvePendingOrganizerRequestContext(input);
+    const actorOrg = pending.organization;
+    const memberRow = pending.member;
 
     const [target] = await db
       .select({ id: users.id, name: users.name, email: users.email, organizationId: users.organizationId })
@@ -281,7 +266,7 @@ export class OrganizationService {
       if (target.organizationId === actorOrg.id) {
         await trx
           .update(users)
-          .set({ organizationId: null, updatedAt: new Date() })
+          .set({ organizationId: null, role: "member", updatedAt: new Date() })
           .where(eq(users.id, input.targetUserId));
       }
     });
@@ -374,15 +359,12 @@ export class OrganizationService {
       .where(eq(users.id, input.targetUserId))
       .limit(1);
     if (!target) throw new Error("Usuario no encontrado.");
-    if (target.organizationId !== actorOrg.id) {
-      throw new Error("Este usuario no pertenece a tu entidad.");
-    }
     if (target.id === actorOrg.ownerId) {
       throw new Error("No puedes cambiar el rol del dueño de la entidad.");
     }
 
     const [memberRow] = await db
-      .select({ role: organizationMembers.role })
+      .select({ id: organizationMembers.id, role: organizationMembers.role, status: organizationMembers.status })
       .from(organizationMembers)
       .where(
         and(
@@ -392,34 +374,44 @@ export class OrganizationService {
       )
       .limit(1);
 
-    if (
-      input.newRole === "organizer" &&
-      memberRow?.role !== "organizer" &&
-      !isSuper
-    ) {
+    if (!memberRow && target.organizationId !== actorOrg.id) {
+      throw new Error("Este usuario no pertenece a tu entidad.");
+    }
+
+    if (input.newRole === "organizer" && memberRow?.status !== "active" && !isSuper) {
       await this.assertCanAddOrganizerToOrg(actorOrg.id);
     }
 
     const globalRole = input.newRole === "organizer" ? "organizer" : "member";
+    const memberStatus = "active" as const;
+    const memberRole = input.newRole;
 
     await db.transaction(async (trx) => {
       await trx
         .update(users)
-        .set({ role: globalRole, updatedAt: new Date() })
+        .set({
+          role: globalRole,
+          organizationId: actorOrg.id,
+          updatedAt: new Date(),
+        })
         .where(eq(users.id, input.targetUserId));
 
-      await trx
-        .update(organizationMembers)
-        .set({
-          role: input.newRole,
-          status: "active",
-        })
-        .where(
-          and(
-            eq(organizationMembers.userId, input.targetUserId),
-            eq(organizationMembers.organizationId, actorOrg.id),
-          ),
-        );
+      if (memberRow) {
+        await trx
+          .update(organizationMembers)
+          .set({
+            role: memberRole,
+            status: memberStatus,
+          })
+          .where(eq(organizationMembers.id, memberRow.id));
+      } else {
+        await trx.insert(organizationMembers).values({
+          organizationId: actorOrg.id,
+          userId: input.targetUserId,
+          role: memberRole,
+          status: memberStatus,
+        });
+      }
     });
 
     return { success: true };
@@ -474,18 +466,162 @@ export class OrganizationService {
         organizationId: user.organizationId,
         userId,
         role: targetMemberRole,
+        status: "active",
       });
       return;
     }
 
     if (memberRow.role === "owner") return;
 
+    const memberStatus = globalRole === "organizer" ? "active" : "active";
+
     if (memberRow.role !== targetMemberRole) {
       await db
         .update(organizationMembers)
-        .set({ role: targetMemberRole })
+        .set({ role: targetMemberRole, status: memberStatus })
+        .where(eq(organizationMembers.id, memberRow.id));
+      return;
+    }
+
+    if (globalRole === "organizer") {
+      await db
+        .update(organizationMembers)
+        .set({ status: "active" })
         .where(eq(organizationMembers.id, memberRow.id));
     }
+  }
+
+  static async getOrgMembershipMap(organizationId: string, userIds: string[]) {
+    if (userIds.length === 0) return new Map<string, { role: string; status: string }>();
+
+    const rows = await db
+      .select({
+        userId: organizationMembers.userId,
+        role: organizationMembers.role,
+        status: organizationMembers.status,
+      })
+      .from(organizationMembers)
+      .where(
+        and(
+          eq(organizationMembers.organizationId, organizationId),
+          inArray(organizationMembers.userId, userIds),
+        ),
+      );
+
+    return new Map(rows.map((row) => [row.userId, { role: row.role, status: row.status }]));
+  }
+
+  static async getMembershipSummaryForUsers(userIds: string[]) {
+    if (userIds.length === 0) {
+      return new Map<string, { organizationName: string; role: string; status: string }>();
+    }
+
+    const rows = await db
+      .select({
+        userId: organizationMembers.userId,
+        role: organizationMembers.role,
+        status: organizationMembers.status,
+        organizationName: organizations.name,
+      })
+      .from(organizationMembers)
+      .innerJoin(organizations, eq(organizationMembers.organizationId, organizations.id))
+      .where(inArray(organizationMembers.userId, userIds));
+
+    return new Map(
+      rows.map((row) => [
+        row.userId,
+        {
+          organizationName: row.organizationName,
+          role: row.role,
+          status: row.status,
+        },
+      ]),
+    );
+  }
+
+  private static buildOrgUsersAdminWhere(
+    organizationId: string,
+    filters: { search?: string; role?: string },
+  ) {
+    const orgMemberUserIds = db
+      .select({ userId: organizationMembers.userId })
+      .from(organizationMembers)
+      .where(eq(organizationMembers.organizationId, organizationId));
+
+    const conditions = [
+      or(eq(users.organizationId, organizationId), inArray(users.id, orgMemberUserIds)),
+    ];
+
+    if (filters.role) {
+      conditions.push(
+        eq(users.role, filters.role as "member" | "organizer" | "admin" | "super_admin"),
+      );
+    }
+
+    const search = filters.search?.trim();
+    if (search) {
+      const pattern = `%${search}%`;
+      conditions.push(
+        or(
+          ilike(users.name, pattern),
+          ilike(users.email, pattern),
+          ilike(users.phone, pattern),
+        )!,
+      );
+    }
+
+    return and(...conditions);
+  }
+
+  private static orgUsersAdminMemberJoin(organizationId: string) {
+    return and(
+      eq(organizationMembers.userId, users.id),
+      eq(organizationMembers.organizationId, organizationId),
+    );
+  }
+
+  static async countOrganizationUsersForAdmin(
+    organizationId: string,
+    filters: { search?: string; role?: string } = {},
+  ) {
+    const where = this.buildOrgUsersAdminWhere(organizationId, filters);
+    const [{ total }] = await db
+      .select({ total: count() })
+      .from(users)
+      .leftJoin(organizationMembers, this.orgUsersAdminMemberJoin(organizationId))
+      .where(where);
+
+    return total ?? 0;
+  }
+
+  static async listOrganizationUsersForAdmin(input: {
+    organizationId: string;
+    search?: string;
+    role?: string;
+    limit: number;
+    offset: number;
+  }) {
+    const where = this.buildOrgUsersAdminWhere(input.organizationId, input);
+    return db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        phone: users.phone,
+        emailVerified: users.emailVerified,
+        isActive: users.isActive,
+        lastSeenAt: users.lastSeenAt,
+        role: users.role,
+        createdAt: users.createdAt,
+        memberStatus: organizationMembers.status,
+        memberRole: organizationMembers.role,
+      })
+      .from(users)
+      .leftJoin(organizationMembers, this.orgUsersAdminMemberJoin(input.organizationId))
+      .where(where)
+      .orderBy(desc(users.createdAt))
+      .limit(input.limit)
+      .offset(input.offset);
   }
 
   static async listTeamMembers(organizationId: string) {

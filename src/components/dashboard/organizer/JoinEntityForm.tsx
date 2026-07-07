@@ -24,7 +24,7 @@ export function JoinEntityForm() {
         if (result.pending) {
           toast.success(t("dashboard.organizer.joinEntityPending"));
         }
-        router.push("/member");
+        router.push("/organizer");
       } catch (err) {
         setError(err instanceof Error ? err.message : t("dashboard.organizer.joinEntityError"));
       }

@@ -404,6 +404,8 @@ const translations: Record<Locale, TranslationDictionary> = {
                 dataMaintenance: "Mantenimiento de datos",
                 dataMaintenanceHelp: "Crea pagos pendientes faltantes para registros históricos sin pago.",
                 categoriesIntro: "Administra las categorías de eventos usadas en los formularios de crear/editar eventos.",
+                usersEntityIntro:
+                    "Personas de tu entidad, incluidos los organizadores que se registraron con tu código de invitación ({count} {label}).",
                 usersRegistered: "{count} {label} registrados",
                 noUsersYet: "Aún no hay usuarios",
                 rolesIntro: "Administra las etiquetas y descripciones de roles para tu plataforma",
@@ -452,6 +454,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                 failedToApproveRequest: "No se pudo aprobar la solicitud",
                 failedToRejectRequest: "No se pudo rechazar la solicitud",
                 noPendingRequests: "No hay solicitudes pendientes",
+                organizerPendingBadge: "Pendiente de aprobación",
                 noEntityYet: "Tu cuenta de administrador aún no tiene una entidad vinculada.",
                 superAdminNoEntity: "Como super administrador de plataforma no tienes una entidad propia. Usa Planes SaaS para gestionar clientes.",
                 entityOnboardingTitle: "Configura tu entidad",
@@ -609,6 +612,9 @@ const translations: Record<Locale, TranslationDictionary> = {
                 joinEntityIntro: "Si tu organización ya existe en Eventia, ingresa el código que te dio el administrador.",
                 joinEntitySubmit: "Unirme a la entidad",
                 joinEntityPending: "Solicitud enviada. El administrador debe aprobarla antes de que puedas organizar para esa entidad.",
+                pendingApprovalTitle: "Solicitud pendiente en {entity}",
+                pendingApprovalBody:
+                    "Tu cuenta es de organizador, pero el administrador debe aprobar tu acceso antes de que puedas crear eventos para esta entidad.",
                 joinEntityError: "No se pudo vincular la entidad. Verifica el código.",
                 linkedEntity: "Entidad vinculada",
                 analyticsTitle: "Analítica de tus eventos",
@@ -932,7 +938,7 @@ const translations: Record<Locale, TranslationDictionary> = {
             accountTypeOrganizerIndependentPlanNote:
                 "Tendrás tu propio plan y facturación. Más adelante podrás unirte a una entidad si te comparten un código.",
             accountVerifiedOrganizerPending:
-                "Cuenta verificada. Tu solicitud fue enviada; el administrador de la entidad debe aprobarla.",
+                "Cuenta verificada como organizador. Tu solicitud fue enviada; el administrador de la entidad debe aprobarla.",
             accountVerifiedOrganizer: "Cuenta verificada. Ya puedes iniciar sesión como organizador.",
             orgNameLabel: "Nombre de la entidad",
             orgNamePlaceholder: "Ej. Empresa ABC, Universidad XYZ, Colegio San José…",
@@ -951,6 +957,8 @@ const translations: Record<Locale, TranslationDictionary> = {
             verificationCodeInvalid: "Código incorrecto. Si reenviaste el código, usa el más reciente del correo.",
             verificationCodeNotFound: "No hay un código activo. Solicita uno nuevo con «Reenviar código».",
             inviteCodeInvalid: "Código de entidad inválido. Pídeselo al administrador de la entidad.",
+            organizerApprovalPending:
+                "Tu solicitud como organizador aún no fue aprobada por el administrador de la entidad.",
             adminCannotCreateEventsTitle: "Los administradores no crean eventos",
             adminCannotCreateEventsBody:
                 "Como administrador de entidad gestionas el equipo, la facturación y la configuración. Los eventos los crean los organizadores: invítalos con tu código o asígnales el rol en Equipo.",
@@ -1870,6 +1878,8 @@ const translations: Record<Locale, TranslationDictionary> = {
                 dataMaintenance: "Data maintenance",
                 dataMaintenanceHelp: "Create missing pending payments for historical registrations without one.",
                 categoriesIntro: "Manage event categories used in create/edit event forms.",
+                usersEntityIntro:
+                    "People in your entity, including organizers who registered with your invite code ({count} {label}).",
                 usersRegistered: "{count} registered {label}",
                 noUsersYet: "No users yet",
                 rolesIntro: "Manage role labels and descriptions for your platform",
@@ -1906,6 +1916,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                 failedToApproveRequest: "Could not approve the request",
                 failedToRejectRequest: "Could not reject the request",
                 noPendingRequests: "No pending requests",
+                organizerPendingBadge: "Pending approval",
                 noEntityYet: "Your admin account is not linked to an entity yet.",
                 superAdminNoEntity: "As a platform super admin you do not have your own entity. Use SaaS Plans to manage clients.",
                 entityOnboardingTitle: "Set up your entity",
@@ -2063,6 +2074,9 @@ const translations: Record<Locale, TranslationDictionary> = {
                 joinEntityIntro: "If your organization already exists on Eventia, enter the code from your administrator.",
                 joinEntitySubmit: "Join entity",
                 joinEntityPending: "Request sent. The administrator must approve it before you can organize for that entity.",
+                pendingApprovalTitle: "Pending request for {entity}",
+                pendingApprovalBody:
+                    "Your account is an organizer, but the administrator must approve your access before you can create events for this entity.",
                 joinEntityError: "Could not link the entity. Check the code.",
                 linkedEntity: "Linked entity",
                 analyticsTitle: "Your events analytics",
@@ -2385,7 +2399,7 @@ const translations: Record<Locale, TranslationDictionary> = {
             accountTypeOrganizerIndependentPlanNote:
                 "You will have your own plan and billing. You can join an entity later if they share an invite code.",
             accountVerifiedOrganizerPending:
-                "Account verified. Your request was sent; the entity administrator must approve it.",
+                "Account verified as organizer. Your request was sent; the entity administrator must approve it.",
             accountVerifiedOrganizer: "Account verified. You can now sign in as an organizer.",
             orgNameLabel: "Entity name",
             orgNamePlaceholder: "E.g. ABC Company, San José School…",
@@ -2404,6 +2418,8 @@ const translations: Record<Locale, TranslationDictionary> = {
             verificationCodeInvalid: "Incorrect code. If you resent the code, use the latest one from your email.",
             verificationCodeNotFound: "There is no active code. Request a new one with «Resend code».",
             inviteCodeInvalid: "Invalid entity invite code. Ask your entity administrator.",
+            organizerApprovalPending:
+                "Your organizer request has not been approved by the entity administrator yet.",
             adminCannotCreateEventsTitle: "Administrators do not create events",
             adminCannotCreateEventsBody:
                 "As an entity administrator you manage the team, billing, and settings. Events are created by organizers: invite them with your code or assign the role in Team.",

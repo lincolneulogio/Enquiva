@@ -10,6 +10,7 @@ export type AuthErrorKind =
     | "verification_code_invalid"
     | "verification_code_not_found"
     | "invite_code_invalid"
+    | "organizer_approval_pending"
     | "plan_limit"
     | "unknown";
 
@@ -81,6 +82,10 @@ export function getAuthErrorKind(rawMessage: string | undefined): AuthErrorKind 
         return "invite_code_invalid";
     }
 
+    if (normalized.includes("organizer_approval_pending")) {
+        return "organizer_approval_pending";
+    }
+
     if (normalized.includes("plan_limit") || normalized.includes("plan ") && normalized.includes("organizador")) {
         return "plan_limit";
     }
@@ -102,6 +107,7 @@ export function getAuthErrorMessage(rawMessage: string | undefined, t: Translate
     if (errorKind === "verification_code_invalid") return t("auth.verificationCodeInvalid");
     if (errorKind === "verification_code_not_found") return t("auth.verificationCodeNotFound");
     if (errorKind === "invite_code_invalid") return t("auth.inviteCodeInvalid");
+    if (errorKind === "organizer_approval_pending") return t("auth.organizerApprovalPending");
     if (errorKind === "plan_limit") return rawMessage;
 
     return rawMessage;

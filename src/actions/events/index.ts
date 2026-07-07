@@ -15,7 +15,7 @@ import { db } from "@/lib/db";
 import { events, broadcastLogs, categories } from "@/lib/db/schema";
 import { eq, and, asc, desc } from "drizzle-orm";
 import { assertEventInAdminScope, resolveAdminScope, scopeEventCondition } from "@/lib/organizations/admin-scope";
-import { requireAuth, requireOrganizer } from "@/lib/auth/guards";
+import { requireAuth, requireApprovedOrganizer } from "@/lib/auth/guards";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { enqueueBroadcastJob } from "@/lib/notifications/broadcast-queue";
 import { DEFAULT_MASS_CHANNELS, type MassCommunicationChannels } from "@/lib/notifications/mass-communication";
@@ -60,7 +60,7 @@ export async function getCategories(): Promise<Pick<Category, "slug" | "label" |
 // ─── Create Event ─────────────────────────────────────────────────────────────
 
 export async function createEvent(input: CreateEventInput) {
-  const user = await requireOrganizer();
+  const user = await requireApprovedOrganizer();
   await assertCanCreateEvent(user.id, user.role);
   await assertEventPayloadWithinPlan(user.id, user.role, {
     hasTransport: input.hasTransport,
@@ -92,7 +92,7 @@ export async function createEvent(input: CreateEventInput) {
 // ─── Update Event ─────────────────────────────────────────────────────────────
 
 export async function updateEvent(eventId: string, input: UpdateEventInput) {
-  const user = await requireOrganizer();
+  const user = await requireApprovedOrganizer();
 
   const [existing] = await db
     .select({
@@ -142,7 +142,7 @@ export async function updateEvent(eventId: string, input: UpdateEventInput) {
 // ─── Delete Event ─────────────────────────────────────────────────────────────
 
 export async function deleteEvent(eventId: string) {
-  const user = await requireOrganizer();
+  const user = await requireApprovedOrganizer();
   await assertEventInAdminScope(eventId, user.id, user.role);
   
   const hdrs = await headers();
@@ -186,12 +186,12 @@ export async function getEventBySlug(slug: string) {
 // ─── Get Organizer Events ─────────────────────────────────────────────────────
 
 export async function getOrganizerEvents() {
-  const user = await requireOrganizer();
+  const user = await requireApprovedOrganizer();
   return EventService.getOrganizerEvents(user.id);
 }
 
 export async function getBroadcastEvents(): Promise<{ id: string; title: string }[]> {
-  const user = await requireOrganizer();
+  const user = await requireApprovedOrganizer();
   const role = normalizeRole(user.role);
 
   if (role === "organizer") {
@@ -221,7 +221,7 @@ export async function sendBroadcastAction(input: {
   recipientStatus: "all" | "registered" | "checked_in" | "waitlisted";
   channels?: Partial<MassCommunicationChannels>;
 }) {
-  const user = await requireOrganizer();
+  const user = await requireApprovedOrganizer();
 
   if (!input.eventId || !input.subject || !input.message) {
     throw new Error("Missing required fields");
