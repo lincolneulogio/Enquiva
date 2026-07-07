@@ -8,7 +8,7 @@ import {
   transportBookings,
   accounts,
 } from "@/lib/db/schema";
-import { eq, and, inArray, sql, desc, or } from "drizzle-orm";
+import { eq, and, inArray, sql, desc, or, count } from "drizzle-orm";
 import { verifyPassword } from "better-auth/crypto";
 import crypto from "crypto";
 import {
