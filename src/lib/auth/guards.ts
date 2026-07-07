@@ -71,13 +71,27 @@ export async function requireOrganizer(): Promise<SessionUser> {
   return user;
 }
 
-/** Organizador con membresía de entidad aprobada (o sin entidad). Bloquea creación de eventos si está pendiente. */
-export async function requireApprovedOrganizer(): Promise<SessionUser> {
-  const user = await requireOrganizer();
-  if (normalizeRole(user.role) === "super_admin") return user;
+/** Membresía de entidad pendiente de aprobación (null si no aplica o ya está activa). */
+export async function getOrganizerPendingApproval(user: SessionUser) {
+  if (normalizeRole(user.role) === "super_admin") return null;
 
   const { OrganizationService } = await import("@/lib/organizations/organization.service");
-  const pending = await OrganizationService.getPendingOrganizerMembershipForUser(user.id);
+  return OrganizationService.getPendingOrganizerMembershipForUser(user.id);
+}
+
+/** Organizador con estado de aprobación (lecturas que no deben lanzar si está pendiente). */
+export async function requireOrganizerWithApprovalState(): Promise<{
+  user: SessionUser;
+  pending: Awaited<ReturnType<typeof getOrganizerPendingApproval>>;
+}> {
+  const user = await requireOrganizer();
+  const pending = await getOrganizerPendingApproval(user);
+  return { user, pending };
+}
+
+/** Organizador con membresía de entidad aprobada (o sin entidad). Bloquea creación de eventos si está pendiente. */
+export async function requireApprovedOrganizer(): Promise<SessionUser> {
+  const { user, pending } = await requireOrganizerWithApprovalState();
   if (pending) {
     throw new Error("ORGANIZER_APPROVAL_PENDING");
   }

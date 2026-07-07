@@ -615,6 +615,15 @@ const translations: Record<Locale, TranslationDictionary> = {
                 pendingApprovalTitle: "Solicitud pendiente en {entity}",
                 pendingApprovalBody:
                     "Tu cuenta es de organizador, pero el administrador debe aprobar tu acceso antes de que puedas crear eventos para esta entidad.",
+                pendingApprovalModalTitle: "Esperando aprobación de {entity}",
+                pendingApprovalModalBody:
+                    "Iniciaste sesión correctamente, pero el administrador de la entidad aún no ha aprobado tu solicitud como organizador.",
+                pendingApprovalModalHint:
+                    "No podrás crear eventos ni usar las herramientas del panel hasta que te aprueben.",
+                pendingApprovalModalWait:
+                    "Te avisaremos por correo cuando tu acceso esté activo.",
+                pendingApprovalModalFooter:
+                    "Puedes cerrar esta ventana; el panel seguirá bloqueado hasta la aprobación.",
                 joinEntityError: "No se pudo vincular la entidad. Verifica el código.",
                 linkedEntity: "Entidad vinculada",
                 analyticsTitle: "Analítica de tus eventos",
@@ -2077,6 +2086,15 @@ const translations: Record<Locale, TranslationDictionary> = {
                 pendingApprovalTitle: "Pending request for {entity}",
                 pendingApprovalBody:
                     "Your account is an organizer, but the administrator must approve your access before you can create events for this entity.",
+                pendingApprovalModalTitle: "Waiting for approval from {entity}",
+                pendingApprovalModalBody:
+                    "You signed in successfully, but the entity administrator has not approved your organizer request yet.",
+                pendingApprovalModalHint:
+                    "You cannot create events or use panel tools until you are approved.",
+                pendingApprovalModalWait:
+                    "We will email you when your access is active.",
+                pendingApprovalModalFooter:
+                    "You can close this window; the panel stays locked until approval.",
                 joinEntityError: "Could not link the entity. Check the code.",
                 linkedEntity: "Linked entity",
                 analyticsTitle: "Your events analytics",

@@ -15,7 +15,11 @@ import { db } from "@/lib/db";
 import { events, broadcastLogs, categories } from "@/lib/db/schema";
 import { eq, and, asc, desc } from "drizzle-orm";
 import { assertEventInAdminScope, resolveAdminScope, scopeEventCondition } from "@/lib/organizations/admin-scope";
-import { requireAuth, requireApprovedOrganizer } from "@/lib/auth/guards";
+import {
+  requireAuth,
+  requireApprovedOrganizer,
+  requireOrganizerWithApprovalState,
+} from "@/lib/auth/guards";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { enqueueBroadcastJob } from "@/lib/notifications/broadcast-queue";
 import { DEFAULT_MASS_CHANNELS, type MassCommunicationChannels } from "@/lib/notifications/mass-communication";
@@ -186,12 +190,14 @@ export async function getEventBySlug(slug: string) {
 // ─── Get Organizer Events ─────────────────────────────────────────────────────
 
 export async function getOrganizerEvents() {
-  const user = await requireApprovedOrganizer();
+  const { user, pending } = await requireOrganizerWithApprovalState();
+  if (pending) return [];
   return EventService.getOrganizerEvents(user.id);
 }
 
 export async function getBroadcastEvents(): Promise<{ id: string; title: string }[]> {
-  const user = await requireApprovedOrganizer();
+  const { user, pending } = await requireOrganizerWithApprovalState();
+  if (pending) return [];
   const role = normalizeRole(user.role);
 
   if (role === "organizer") {
