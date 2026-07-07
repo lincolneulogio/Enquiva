@@ -9,6 +9,8 @@ const publicRoutes = new Set([
   "/forgot-password",
   "/reset-password",
   "/events",
+  "/superadmin/login",
+  "/superadmin/register",
 ]);
 
 const publicPatterns = [
@@ -22,13 +24,22 @@ const publicPatterns = [
 
 function isPublicRoute(pathname: string): boolean {
   if (publicRoutes.has(pathname)) return true;
+  if (pathname.startsWith("/verify-account")) return true;
   return publicPatterns.some((p) => pathname.startsWith(p));
 }
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (isPublicRoute(pathname)) return NextResponse.next();
+  if (isPublicRoute(pathname)) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-pathname", pathname);
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
+  }
 
   const hasSession = request.cookies.getAll().some(
     (cookie) =>
@@ -37,7 +48,10 @@ export async function proxy(request: NextRequest) {
   );
 
   if (!hasSession) {
-    const loginUrl = new URL("/login", request.url);
+    const loginPath = pathname.startsWith("/superadmin")
+      ? "/superadmin/login"
+      : "/login";
+    const loginUrl = new URL(loginPath, request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
