@@ -3,11 +3,11 @@ import {
     transportRoutes,
     transportBookings,
     payments,
-    notifications,
     users,
 } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { assertTransportPaymentInAdminScope } from "@/lib/organizations/admin-scope";
+import { NotificationService, type NotificationPayload } from "@/lib/notifications/notification.service";
 
 export class TransportAdminService {
   /**
@@ -62,8 +62,9 @@ export class TransportAdminService {
         throw new Error("Pago de transporte no encontrado");
 
     const bookingId: string = payment.transportBookingId;
+    let payload: NotificationPayload | null = null;
 
-    return db.transaction(async (tx) => {
+    await db.transaction(async (tx) => {
         await tx
             .update(payments)
             .set({
@@ -87,20 +88,24 @@ export class TransportAdminService {
 
         if (booking) {
             const [route] = await tx
-                .select({ name: transportRoutes.name })
+                .select({ name: transportRoutes.name, eventId: transportRoutes.eventId })
                 .from(transportRoutes)
                 .where(eq(transportRoutes.id, booking.routeId))
                 .limit(1);
 
-            await tx.insert(notifications).values({
+            payload = {
                 userId: booking.userId,
                 type: "payment_status_updated",
                 title: "¡Reserva de transporte confirmada!",
                 message: `Tu reserva para "${route?.name ?? "la ruta"}" fue aprobada. Nos vemos en el punto de salida.`,
-                metadata: { paymentId, bookingId },
-            });
+                metadata: { paymentId, bookingId, eventId: route?.eventId },
+            };
+
+            await NotificationService.create(payload, tx);
         }
     });
+
+    if (payload) await NotificationService.deliver([payload]);
   }
 
   /**
@@ -124,8 +129,9 @@ export class TransportAdminService {
         throw new Error("Pago de transporte no encontrado");
 
     const bookingId: string = payment.transportBookingId;
+    let payload: NotificationPayload | null = null;
 
-    return db.transaction(async (tx) => {
+    await db.transaction(async (tx) => {
         await tx
             .update(payments)
             .set({
@@ -149,14 +155,18 @@ export class TransportAdminService {
             .limit(1);
 
         if (booking) {
-            await tx.insert(notifications).values({
+            payload = {
                 userId: booking.userId,
                 type: "payment_status_updated",
                 title: "Reserva de transporte rechazada",
                 message: reason ?? "Tu reserva de transporte fue rechazada. Contacta al organizador.",
                 metadata: { paymentId, bookingId },
-            });
+            };
+
+            await NotificationService.create(payload, tx);
         }
     });
+
+    if (payload) await NotificationService.deliver([payload]);
   }
 }

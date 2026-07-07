@@ -2,14 +2,13 @@ import { db } from "@/lib/db";
 import {
   registrations,
   events,
-  notifications,
   users,
   tickets,
   payments,
   transportBookings,
   accounts,
 } from "@/lib/db/schema";
-import { eq, and, count, inArray, sql, desc } from "drizzle-orm";
+import { eq, and, inArray, sql, desc, or } from "drizzle-orm";
 import { verifyPassword } from "better-auth/crypto";
 import crypto from "crypto";
 import {
@@ -34,6 +33,8 @@ import {
   releaseRegistrationResources,
 } from "@/lib/registrations/cleanup";
 import { createTransportBookingInTx } from "@/lib/transport/booking";
+import { NotificationService, type NotificationPayload } from "@/lib/notifications/notification.service";
+import { maybeNotifyTransportCapacityAlert } from "@/lib/notifications/transport-capacity-alert";
 
 export interface RegisterEventInput {
   eventId: string;
@@ -209,12 +210,18 @@ export class RegistrationService {
       }
 
       if (status === "waitlisted") {
-        await tx.insert(notifications).values({
+        const waitlistPayload: NotificationPayload = {
           userId: attendee.id,
           type: "registration_confirmed",
           title: "En lista de espera",
           message: `Te añadimos a la lista de espera de "${event.title}". Te avisaremos si se libera un cupo.`,
           metadata: { eventId, eventTitle: event.title, registrationId: registration.id },
+        };
+
+        await NotificationService.create(waitlistPayload, tx);
+
+        runBackground(async () => {
+          await NotificationService.deliver([waitlistPayload]);
         });
 
         return {
@@ -233,6 +240,14 @@ export class RegistrationService {
       let transportPrice = 0;
       let transportBooking = null;
 
+      let transportCapacityContext: {
+        routeId: string;
+        routeName: string;
+        bookedSeats: number;
+        totalSeats: number;
+        newSeats: number;
+      } | null = null;
+
       if (input.routeId) {
         const seats = input.seats || 1;
 
@@ -250,6 +265,13 @@ export class RegistrationService {
 
         transportBooking = draft.booking;
         transportPrice = draft.transportPrice;
+        transportCapacityContext = {
+          routeId: draft.route.id,
+          routeName: draft.route.name,
+          bookedSeats: draft.bookedSeats,
+          totalSeats: draft.route.totalSeats,
+          newSeats: seats,
+        };
 
         const bookingStatus = eventPrice + transportPrice > 0 ? "pending" : "confirmed";
         if (bookingStatus === "confirmed") {
@@ -297,38 +319,44 @@ export class RegistrationService {
         .where(eq(tickets.registrationId, registration.id))
         .limit(1);
 
-      // 7. Crear notificación para el asistente
-      await tx.insert(notifications).values({
-        userId: attendee.id,
-        type: "registration_confirmed",
-        title: "Registration Confirmed!",
-        message: `You're registered for "${event.title}"`,
-        metadata: { eventId, eventTitle: event.title, registrationId: registration.id },
-      });
+      const registrationAlertTitle = "Nuevo registro en evento";
+      const registrationAlertMessage = `${attendee.name} se registró en "${event.title}".`;
 
-      // 8. Crear alertas de nuevo registro para Administradores y Organizadores
-      const adminUsers = await tx
-        .select({ id: users.id })
-        .from(users)
-        .where(inArray(users.role, ["admin", "super_admin"]));
+      const notificationPayloads: NotificationPayload[] = [
+        {
+          userId: attendee.id,
+          type: "registration_confirmed",
+          title: "Registration Confirmed!",
+          message: `You're registered for "${event.title}"`,
+          metadata: { eventId, eventTitle: event.title, registrationId: registration.id },
+        },
+      ];
 
       const recipientIds = new Set<string>();
       if (event.organizerId && event.organizerId !== attendee.id) {
         recipientIds.add(event.organizerId);
       }
-      for (const adminUser of adminUsers) {
-        if (adminUser.id !== attendee.id) {
-          recipientIds.add(adminUser.id);
-        }
+
+      const staffUsers = await tx
+        .select({ id: users.id })
+        .from(users)
+        .where(
+          or(
+            event.organizationId
+              ? and(eq(users.role, "admin"), eq(users.organizationId, event.organizationId))
+              : sql`false`,
+            eq(users.role, "super_admin"),
+          ),
+        );
+
+      for (const staffUser of staffUsers) {
+        if (staffUser.id !== attendee.id) recipientIds.add(staffUser.id);
       }
 
-      const registrationAlertTitle = "Nuevo registro en evento";
-      const registrationAlertMessage = `${attendee.name} se registró en \"${event.title}\".`;
-
-      if (recipientIds.size > 0) {
-        const alertPayload = Array.from(recipientIds).map((recipientId) => ({
+      for (const recipientId of recipientIds) {
+        notificationPayloads.push({
           userId: recipientId,
-          type: "event_updated" as const,
+          type: "event_updated",
           title: registrationAlertTitle,
           message: registrationAlertMessage,
           metadata: {
@@ -338,43 +366,27 @@ export class RegistrationService {
             attendeeId: attendee.id,
             attendeePhone: contactPhone,
           },
-        }));
-
-        await tx.insert(notifications).values(alertPayload);
+        });
       }
+
+      await NotificationService.createMany(notificationPayloads, tx);
 
       // 9. Ejecutar procesos pesados en segundo plano asíncronamente
       runBackground(async () => {
-        // Invalidar caché de notificaciones del asistente
-        await invalidateCache(CACHE_KEYS.userNotificationsCount(attendee.id));
+        await NotificationService.deliver(notificationPayloads);
 
-        // Invalidar caché de notificaciones de los administradores y organizadores, y enviar pusher
-        if (recipientIds.size > 0) {
-          await Promise.all(
-            Array.from(recipientIds).map((recipientId) =>
-              invalidateCache(CACHE_KEYS.userNotificationsCount(recipientId))
-            )
-          );
-
-          try {
-            await Promise.all(
-              Array.from(recipientIds).map((recipientId) =>
-                pusherServer.trigger(
-                  PUSHER_CHANNELS.userNotifications(recipientId),
-                  PUSHER_EVENTS.notificationCreated,
-                  {
-                    title: registrationAlertTitle,
-                    message: registrationAlertMessage,
-                    type: "event_updated",
-                    eventId,
-                    registrationId: registration.id,
-                  }
-                )
-              )
-            );
-          } catch (error) {
-            console.error("Fallo al enviar notificación en tiempo real a los administradores/organizadores", error);
-          }
+        if (transportCapacityContext) {
+          await maybeNotifyTransportCapacityAlert({
+            routeId: transportCapacityContext.routeId,
+            routeName: transportCapacityContext.routeName,
+            eventId,
+            eventTitle: event.title,
+            organizerId: event.organizerId,
+            organizationId: event.organizationId,
+            bookedSeats: transportCapacityContext.bookedSeats,
+            totalSeats: transportCapacityContext.totalSeats,
+            newSeats: transportCapacityContext.newSeats,
+          });
         }
 
         // Obtener nuevo conteo total de registrados para actualizar Pusher y Redis
@@ -469,12 +481,12 @@ export class RegistrationService {
         .set({ status: "cancelled" })
         .where(eq(registrations.id, registrationId));
 
-      const promotedUserId = await promoteNextWaitlisted(tx, reg.eventId);
+      const promotion = await promoteNextWaitlisted(tx, reg.eventId);
 
       runBackground(async () => {
         await invalidateCache(CACHE_KEYS.userNotificationsCount(userId));
-        if (promotedUserId) {
-          await invalidateCache(CACHE_KEYS.userNotificationsCount(promotedUserId));
+        if (promotion?.userId) {
+          await NotificationService.deliver([promotion.payload]);
         }
 
         const [{ count: newCount }] = await db

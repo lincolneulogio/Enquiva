@@ -3,7 +3,6 @@ import {
   payments,
   registrations,
   events,
-  notifications,
   users,
   transportBookings,
   transportRoutes,
@@ -28,6 +27,8 @@ import {
   paymentInOrgCondition,
   scopeDenyAllCondition,
 } from "@/lib/organizations/admin-scope";
+import { NotificationService, type NotificationPayload } from "@/lib/notifications/notification.service";
+import { getEntityStaffUserIds } from "@/lib/notifications/notification-targets";
 
 export class PaymentService {
   /**
@@ -102,7 +103,24 @@ export class PaymentService {
         .where(eq(transportBookings.id, existingPayment.transportBookingId));
     }
 
-    await db.insert(notifications).values({
+    const [event] = await db
+      .select({
+        id: events.id,
+        title: events.title,
+        organizerId: events.organizerId,
+        organizationId: events.organizationId,
+      })
+      .from(events)
+      .where(eq(events.id, registration.eventId))
+      .limit(1);
+
+    const [payer] = await db
+      .select({ name: users.name })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const memberNotification: NotificationPayload = {
       userId: registration.userId,
       type: "payment_submitted",
       title: validated.method === "cash" ? "Pago en efectivo registrado" : "Pago registrado",
@@ -113,9 +131,32 @@ export class PaymentService {
       metadata: {
         registrationId: registration.id,
         paymentId: existingPayment.id,
+        eventId: event?.id,
         method: validated.method,
       },
-    });
+    };
+
+    const staffIds = event
+      ? await getEntityStaffUserIds({
+          organizationId: event.organizationId,
+          organizerId: event.organizerId,
+          excludeUserId: userId,
+        })
+      : [];
+
+    const staffNotifications: NotificationPayload[] = staffIds.map((staffId) => ({
+      userId: staffId,
+      type: "payment_submitted",
+      title: "Nuevo pago pendiente",
+      message: `${payer?.name ?? "Un asistente"} registró un pago de S/ ${existingPayment.amount} para "${event?.title ?? "un evento"}".`,
+      metadata: {
+        registrationId: registration.id,
+        paymentId: existingPayment.id,
+        eventId: event?.id,
+      },
+    }));
+
+    await NotificationService.createMany([memberNotification, ...staffNotifications]);
 
     return { success: true };
   }
@@ -215,6 +256,8 @@ export class PaymentService {
         .where(eq(payments.id, validated.paymentId))
         .returning();
 
+      const statusNotifications: NotificationPayload[] = [];
+
       // 2. Gestionar la reserva de transporte si existe
       if (payment.transportBookingId) {
         const bookingStatus =
@@ -246,19 +289,23 @@ export class PaymentService {
               .where(eq(transportRoutes.id, booking.routeId))
               .limit(1);
 
-            await tx.insert(notifications).values({
+            statusNotifications.push({
               userId: payment.userId,
               type: "payment_status_updated",
               title: "¡Reserva de transporte confirmada!",
               message: `Tu reserva de transporte para "${route?.name ?? "la ruta"}" fue aprobada y confirmada.`,
-              metadata: { paymentId: payment.id, bookingId: payment.transportBookingId },
+              metadata: {
+                paymentId: payment.id,
+                bookingId: payment.transportBookingId,
+                eventId: event.id,
+              },
             });
           }
         }
       }
 
       // 3. Crear notificación del estado de pago
-      await tx.insert(notifications).values({
+      statusNotifications.push({
         userId: payment.userId,
         type: "payment_status_updated",
         title:
@@ -276,6 +323,8 @@ export class PaymentService {
           status: updated.status,
         },
       });
+
+      await NotificationService.createMany(statusNotifications, tx);
 
       // 4. Generación de ticket consistente dentro de la transacción
       let ticket = null;
@@ -304,7 +353,9 @@ export class PaymentService {
 
       // 5. Ejecutar tareas lentas asíncronamente en segundo plano (no bloqueante)
       runBackground(async () => {
-        // Notificar en tiempo real vía Pusher
+        await NotificationService.deliver(statusNotifications);
+
+        // Notificar en tiempo real vía Pusher (evento)
         try {
           await pusherServer.trigger(
             PUSHER_CHANNELS.event(event.id),

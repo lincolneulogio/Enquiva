@@ -4,8 +4,10 @@ import { env } from "@/env";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { isPlatformCulqiConfigured } from "@/lib/culqi/client";
+import { getI18n } from "@/lib/i18n/server";
 
 export default async function OrganizerBillingPage() {
+  const { t } = await getI18n();
   const session = await auth.api.getSession({ headers: await headers() });
   const [subscription, availablePlans, platformMethods, pendingPayment, paymentHistory] = await Promise.all([
     getMySubscription(),
@@ -18,9 +20,11 @@ export default async function OrganizerBillingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl font-semibold text-foreground">Mi plan</h1>
+        <h1 className="font-display text-3xl font-semibold text-foreground">{t("billing.organizer.pageTitle")}</h1>
         <p className="mt-1 text-muted-foreground">
-          Consulta tu uso, límites y mejora tu plan para desbloquear más funciones.
+          {subscription.canManageBilling
+            ? t("billing.organizer.pageIntroManage")
+            : t("billing.organizer.pageIntroReadOnly")}
         </p>
       </div>
       <OrganizerBillingClient

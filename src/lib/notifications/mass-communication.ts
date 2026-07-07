@@ -1,9 +1,4 @@
-import { db } from "@/lib/db";
-import { notifications } from "@/lib/db/schema";
-import { sendBroadcastEmail } from "@/lib/mail";
-import { pusherServer } from "@/lib/pusher/server";
-import { PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/shared";
-import { invalidateCache, CACHE_KEYS } from "@/lib/redis";
+import { NotificationService } from "@/lib/notifications/notification.service";
 import type { Locale } from "@/lib/i18n/core";
 import { env } from "@/env";
 import {
@@ -78,36 +73,28 @@ async function deliverToRecipient(
 
   try {
     if (channels.inApp) {
-      await db.insert(notifications).values({
+      await NotificationService.create({
         userId: recipient.id,
         type: notificationType,
         title,
         message: body,
-        read: false,
         metadata: { eventId, eventTitle, sentBy: senderId, ...metadata },
       });
       delivered = true;
-    }
-
-    if (channels.pusher) {
+    } else if (channels.pusher) {
       try {
-        await pusherServer.trigger(
-          PUSHER_CHANNELS.userNotifications(recipient.id),
-          PUSHER_EVENTS.notificationCreated,
+        await NotificationService.deliver([
           {
+            userId: recipient.id,
+            type: notificationType,
             title,
             message: body,
-            type: notificationType,
-            eventId,
+            metadata: { eventId, eventTitle, sentBy: senderId, ...metadata },
           },
-        );
+        ]);
       } catch (error) {
         console.error(`Pusher notification failed for user ${recipient.id}:`, error);
       }
-    }
-
-    if (channels.inApp || channels.pusher) {
-      await invalidateCache(CACHE_KEYS.userNotificationsCount(recipient.id));
     }
 
     if (channels.email && recipient.email) {

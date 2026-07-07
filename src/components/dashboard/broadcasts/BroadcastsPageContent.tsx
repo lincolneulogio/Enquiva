@@ -67,9 +67,13 @@ export async function BroadcastsPageContent({ billingPath = "/organizer/billing"
       {!isStaff && !planSummary.canSendBroadcast && !planSummary.isUnlimited && (
         <div className="rounded-2xl border border-amber-200/60 bg-amber-50/50 p-4 text-sm text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-200">
           {t("dashboard.organizer.broadcastsPlanBlocked", { plan: planSummary.plan.name })}{" "}
-          <Link href={billingPath} className="font-semibold underline">
-            {t("dashboard.organizer.broadcastsPlanBlockedLink")}
-          </Link>
+          {planSummary.canManageBilling ? (
+            <Link href={billingPath} className="font-semibold underline">
+              {t("dashboard.organizer.broadcastsPlanBlockedLink")}
+            </Link>
+          ) : (
+            <span className="font-semibold">{t("dashboard.organizer.planLimitContactAdmin")}</span>
+          )}
           .
         </div>
       )}

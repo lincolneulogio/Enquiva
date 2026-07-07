@@ -29,6 +29,7 @@
     "db:migrate:plans-ai-messages-limit": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-plans-ai-messages-limit.ts",
     "db:migrate:subscriptions-organization": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-subscriptions-organization.ts",
     "db:migrate:organization-member-status": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-organization-member-status.ts",
+    "db:migrate:notification-types": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-notification-types.ts",
     "db:cleanup:orphan-guests": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/cleanup-orphan-guest-users.ts",
     "jobs:subscriptions": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/process-subscription-lifecycle.ts",
     "db:sync:event-categories": "npx tsx --env-file=.env --tsconfig tsconfig.json ./scripts/sync-event-categories.ts",

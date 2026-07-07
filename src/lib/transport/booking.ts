@@ -152,5 +152,10 @@ export async function createTransportBookingInTx(
 
   const transportPrice = Number(capacity.route.pricePerSeat) * params.seats;
 
-  return { booking, route: capacity.route, transportPrice };
+  return {
+    booking,
+    route: capacity.route,
+    transportPrice,
+    bookedSeats: capacity.bookedCount + params.seats,
+  };
 }

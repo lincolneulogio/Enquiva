@@ -19,6 +19,11 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "waitlist_promoted",
   "payment_submitted",
   "payment_status_updated",
+  "organizer_request",
+  "organizer_approved",
+  "organizer_rejected",
+  "subscription_alert",
+  "transport_alert",
 ]);
 
 export const ticketStatusEnum = pgEnum("ticket_status", [

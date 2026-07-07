@@ -138,6 +138,7 @@ export async function getPaymentMethodsPageContext(scope: PaymentMethodScope) {
     hasCulqiMethod: methods.some((m) => m.type === "culqi" && m.isActive),
     role: user.role ?? "organizer",
     isStaff: false,
+    canManageBilling: subscription.canManageBilling ?? true,
   };
 }
 

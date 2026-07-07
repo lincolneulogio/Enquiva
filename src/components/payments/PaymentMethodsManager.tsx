@@ -87,6 +87,7 @@ interface Props {
   hasCulqiMethod: boolean;
   role: string;
   isStaff: boolean;
+  canManageBilling?: boolean;
 }
 
 export function PaymentMethodsManager({
@@ -100,6 +101,7 @@ export function PaymentMethodsManager({
   hasCulqiMethod,
   role,
   isStaff,
+  canManageBilling = true,
 }: Props) {
   const t = useTranslations();
   const router = useRouter();
@@ -238,18 +240,26 @@ export function PaymentMethodsManager({
               <p className="mt-2 flex flex-wrap items-center gap-1.5 text-amber-700 dark:text-amber-400">
                 <Crown className="h-3.5 w-3.5 shrink-0" />
                 {t("payments.config.culqiUpgrade")}
-                <Link href="/organizer/billing" className="font-semibold underline">
-                  {t("payments.config.viewPlans")}
-                </Link>
+                {canManageBilling ? (
+                  <Link href="/organizer/billing" className="font-semibold underline">
+                    {t("payments.config.viewPlans")}
+                  </Link>
+                ) : (
+                  <span className="font-semibold">{t("dashboard.organizer.planLimitContactAdmin")}</span>
+                )}
               </p>
             )}
             {needsRenewal && (
               <p className="mt-2 flex flex-wrap items-center gap-1.5 text-amber-700 dark:text-amber-400">
                 <Crown className="h-3.5 w-3.5 shrink-0" />
                 {t("payments.config.culqiRenewPlan")}
-                <Link href="/organizer/billing" className="font-semibold underline">
-                  {t("payments.config.renewPlan")}
-                </Link>
+                {canManageBilling ? (
+                  <Link href="/organizer/billing" className="font-semibold underline">
+                    {t("payments.config.renewPlan")}
+                  </Link>
+                ) : (
+                  <span className="font-semibold">{t("dashboard.organizer.planLimitContactAdmin")}</span>
+                )}
               </p>
             )}
             {culqiReadyToAdd && (

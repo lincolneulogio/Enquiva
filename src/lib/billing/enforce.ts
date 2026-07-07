@@ -4,6 +4,10 @@ import { and, count, eq, inArray } from "drizzle-orm";
 import { SubscriptionService } from "./subscription.service";
 import type { PlanFeatures, ResolvedPlan } from "./types";
 import { getAiChatUsage } from "./ai-chat-usage";
+import {
+  canManageSubscriptionBilling,
+  resolveSubscriptionBillingContext,
+} from "./subscription-context";
 
 export class PlanLimitError extends Error {
   code = "PLAN_LIMIT";
@@ -145,6 +149,8 @@ export async function getOrganizerPlanSummary(userId: string, role?: string | nu
   const { plan, usage } = info;
   const isUnlimited = SubscriptionService.isPlatformStaff(role);
   const aiUsage = await getAiChatUsage(userId, role);
+  const billingCtx = await resolveSubscriptionBillingContext(userId, role);
+  const canManageBilling = canManageSubscriptionBilling(userId, role, billingCtx);
 
   return {
     plan,
@@ -162,6 +168,15 @@ export async function getOrganizerPlanSummary(userId: string, role?: string | nu
       plan.maxBroadcastsPerMonth == null ||
       usage.broadcastsThisMonth < plan.maxBroadcastsPerMonth,
     features: plan.features,
+    canManageBilling,
+    organizationName:
+      billingCtx.mode === "organization" ? billingCtx.organizationName : null,
+    billingScope:
+      billingCtx.mode === "organization"
+        ? ("organization" as const)
+        : billingCtx.mode === "user"
+          ? ("user" as const)
+          : ("platform" as const),
   };
 }
 

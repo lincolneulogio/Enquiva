@@ -86,12 +86,18 @@ export function PlanUsageBanner({ summary, className, showFeatures = false }: Pl
             )}
           </div>
         </div>
-        <Link
-          href="/organizer/billing"
-          className="inline-flex shrink-0 items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
-        >
-          {t("dashboard.organizer.planUsageUpgrade")}
-        </Link>
+        {summary.canManageBilling ? (
+          <Link
+            href="/organizer/billing"
+            className="inline-flex shrink-0 items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+          >
+            {t("dashboard.organizer.planUsageUpgrade")}
+          </Link>
+        ) : summary.organizationName ? (
+          <p className="max-w-xs text-right text-xs text-muted-foreground">
+            {t("dashboard.organizer.planUsageManagedByAdmin", { org: summary.organizationName })}
+          </p>
+        ) : null}
       </div>
     </div>
   );

@@ -1,8 +1,9 @@
 import { db } from "@/lib/db";
-import { events, registrations, users, notifications } from "@/lib/db/schema";
+import { events, registrations, users } from "@/lib/db/schema";
 import { and, eq, inArray, isNull, lt, not, or, sql } from "drizzle-orm";
 import { invalidateCachePattern } from "@/lib/redis";
 import { releaseRegistrationResources } from "@/lib/registrations/cleanup";
+import { NotificationService } from "@/lib/notifications/notification.service";
 
 /**
  * Marca como completados los eventos publicados cuya fecha (o fin) ya pasó.
@@ -35,7 +36,7 @@ export async function markPastPublishedEventsCompleted() {
  * Cancela inscripciones activas y notifica cuando un evento pasa a cancelado.
  */
 export async function cascadeEventCancellation(eventId: string, eventTitle: string) {
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const activeRegs = await tx
       .select()
       .from(registrations)
@@ -54,20 +55,29 @@ export async function cascadeEventCancellation(eventId: string, eventTitle: stri
         .where(eq(registrations.id, reg.id));
     }
 
-    if (activeRegs.length > 0) {
-      await tx.insert(notifications).values(
-        activeRegs.map((reg) => ({
-          userId: reg.userId,
-          type: "event_cancelled" as const,
-          title: "Evento cancelado",
-          message: `El evento "${eventTitle}" fue cancelado. Tu inscripción ya no está activa.`,
-          metadata: { eventId, eventTitle, registrationId: reg.id },
-        })),
-      );
+    const payloads =
+      activeRegs.length > 0
+        ? activeRegs.map((reg) => ({
+            userId: reg.userId,
+            type: "event_cancelled" as const,
+            title: "Evento cancelado",
+            message: `El evento "${eventTitle}" fue cancelado. Tu inscripción ya no está activa.`,
+            metadata: { eventId, eventTitle, registrationId: reg.id },
+          }))
+        : [];
+
+    if (payloads.length > 0) {
+      await NotificationService.createMany(payloads, tx);
     }
 
-    return { cancelledRegistrations: activeRegs.length };
+    return { cancelledRegistrations: activeRegs.length, payloads };
   });
+
+  if (result.payloads.length > 0) {
+    await NotificationService.deliver(result.payloads);
+  }
+
+  return { cancelledRegistrations: result.cancelledRegistrations };
 }
 
 /**

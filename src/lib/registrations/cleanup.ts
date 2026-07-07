@@ -6,10 +6,10 @@ import {
   payments,
   transportBookings,
   events,
-  notifications,
   type Registration,
 } from "@/lib/db/schema";
 import { generateTicketForRegistration } from "@/lib/tickets";
+import { NotificationService } from "@/lib/notifications/notification.service";
 
 const GUEST_NOTES_PREFIX = "[GUESTS:";
 
@@ -66,7 +66,7 @@ export async function releaseRegistrationResources(
 export async function promoteNextWaitlisted(
   tx: DBTransaction,
   eventId: string,
-): Promise<string | null> {
+): Promise<{ userId: string; payload: import("@/lib/notifications/notification.service").NotificationPayload } | null> {
   const [event] = await tx
     .select({ id: events.id, title: events.title, price: events.price })
     .from(events)
@@ -104,13 +104,15 @@ export async function promoteNextWaitlisted(
     await generateTicketForRegistration(waitlisted.id, eventId, waitlisted.userId, tx);
   }
 
-  await tx.insert(notifications).values({
+  const waitlistPayload = {
     userId: waitlisted.userId,
-    type: "waitlist_promoted",
+    type: "waitlist_promoted" as const,
     title: "¡Buenas noticias! Tienes cupo",
     message: "Se liberó un lugar y quedaste inscrito desde la lista de espera.",
     metadata: { eventId, eventTitle: event.title, registrationId: waitlisted.id },
-  });
+  };
 
-  return waitlisted.userId;
+  await NotificationService.create(waitlistPayload, tx);
+
+  return { userId: waitlisted.userId, payload: waitlistPayload };
 }

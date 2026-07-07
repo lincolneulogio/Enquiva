@@ -1,7 +1,10 @@
 import { db, type DBClient } from "@/lib/db";
-import { payments, events, notifications } from "@/lib/db/schema";
+import { payments, events } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { createTransportBookingInTx } from "@/lib/transport/booking";
+import { NotificationService } from "@/lib/notifications/notification.service";
+import { maybeNotifyTransportCapacityAlert } from "@/lib/notifications/transport-capacity-alert";
+import { runBackground } from "@/lib/background";
 
 export type StandaloneTransportPaymentInput = {
   registrationId: string;
@@ -25,7 +28,7 @@ export async function bookTransportWithPayment(
   tx: DBClient = db,
 ) {
   const run = async (innerTx: DBClient) => {
-    const { booking, route, transportPrice } = await createTransportBookingInTx(innerTx, {
+    const { booking, route, transportPrice, bookedSeats } = await createTransportBookingInTx(innerTx, {
       routeId: input.routeId,
       registrationId: input.registrationId,
       userId: input.userId,
@@ -55,23 +58,60 @@ export async function bookTransportWithPayment(
       .returning();
 
     const [event] = await innerTx
-      .select({ title: events.title, organizerId: events.organizerId, id: events.id })
+      .select({
+        title: events.title,
+        organizerId: events.organizerId,
+        id: events.id,
+        organizationId: events.organizationId,
+      })
       .from(events)
       .where(eq(events.id, route.eventId))
       .limit(1);
 
     if (event) {
-      await innerTx.insert(notifications).values({
-        userId: event.organizerId,
-        type: "payment_submitted",
-        title: "Nueva reserva de transporte",
-        message: `${input.userName} reservó ${input.seats} asiento${input.seats > 1 ? "s" : ""} en "${route.name}" para "${event.title}"`,
-        metadata: {
-          bookingId: booking.id,
-          paymentId: payment.id,
-          eventId: event.id,
-          routeName: route.name,
+      await NotificationService.create(
+        {
+          userId: event.organizerId,
+          type: "payment_submitted",
+          title: "Nueva reserva de transporte",
+          message: `${input.userName} reservó ${input.seats} asiento${input.seats > 1 ? "s" : ""} en "${route.name}" para "${event.title}"`,
+          metadata: {
+            bookingId: booking.id,
+            paymentId: payment.id,
+            eventId: event.id,
+            routeName: route.name,
+          },
         },
+        innerTx,
+      );
+
+      runBackground(async () => {
+        await NotificationService.deliver([
+          {
+            userId: event.organizerId,
+            type: "payment_submitted",
+            title: "Nueva reserva de transporte",
+            message: `${input.userName} reservó ${input.seats} asiento${input.seats > 1 ? "s" : ""} en "${route.name}" para "${event.title}"`,
+            metadata: {
+              bookingId: booking.id,
+              paymentId: payment.id,
+              eventId: event.id,
+              routeName: route.name,
+            },
+          },
+        ]);
+
+        await maybeNotifyTransportCapacityAlert({
+          routeId: route.id,
+          routeName: route.name,
+          eventId: event.id,
+          eventTitle: event.title,
+          organizerId: event.organizerId,
+          organizationId: event.organizationId,
+          bookedSeats,
+          totalSeats: route.totalSeats,
+          newSeats: input.seats,
+        });
       });
     }
 

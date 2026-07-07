@@ -17,7 +17,22 @@ export default async function OrganizerExportsPage() {
   const showExports = planIncludesFeature(planSummary.plan, "exports", planSummary.isUnlimited);
 
   if (!showExports) {
-    redirect("/organizer/billing");
+    if (planSummary.canManageBilling) {
+      redirect("/organizer/billing");
+    }
+
+    return (
+      <div className="space-y-4">
+        <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl flex items-center gap-3">
+          <FileSpreadsheet className="h-7 w-7 text-primary shrink-0" />
+          {t("dashboard.organizer.exportsTitle")}
+        </h1>
+        <div className="rounded-2xl border border-amber-200/60 bg-amber-50/50 p-4 text-sm text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-200">
+          {t("dashboard.organizer.exportsPlanBlocked", { plan: planSummary.plan.name })}{" "}
+          <span className="font-semibold">{t("dashboard.organizer.planLimitContactAdmin")}</span>
+        </div>
+      </div>
+    );
   }
 
   const exportEventOptions = await getExportEventOptions("organizer");

@@ -8,6 +8,8 @@ export * from "./navigation/LanguageSwitcher";
 // ─── Notifications Components ────────────────────────────────────────────────
 export * from "./notifications/TopbarNotifications";
 export * from "./notifications/MarkAllReadButton";
+export * from "./notifications/NotificationsList";
+export * from "./notifications/NotificationsListView";
 
 // ─── Scanner Components ──────────────────────────────────────────────────────
 export { default as QRScanner } from "./scanner/QRScanner";

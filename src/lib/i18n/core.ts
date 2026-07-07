@@ -562,7 +562,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                 transportAdminTitle: "Transporte (Administrador)",
             },
             organizer: {
-                welcomeBack: "Bienvenido de nuevo, {firstName} ✦",
+                welcomeBack: "Bienvenido de nuevo, {name} ✦",
                 manageEvents: "Gestiona tus eventos y el seguimiento de asistencia",
                 totalEvents: "Eventos totales",
                 published: "Publicados",
@@ -677,13 +677,19 @@ const translations: Record<Locale, TranslationDictionary> = {
                 planUsageAiMessages: "Mensajes IA este mes:",
                 planUsageMaxAttendees: "Máx. asistentes/evento:",
                 planUsageUpgrade: "Mejorar plan",
+                planUsageManagedByAdmin: "El plan de {org} lo gestiona el administrador de la entidad.",
+                planLimitContactAdmin: "Pídele al administrador de la entidad que mejore el plan.",
+                planUpgradeToCreateMore: "Mejorar plan para crear más",
+                eventFormPlanLimit: "Has alcanzado el límite de eventos activos de tu plan.",
+                eventFormPlanLimitOrArchive: "o archiva un borrador/publicado antes de crear otro.",
+                exportsPlanBlocked: "Tu plan {plan} no incluye exportaciones.",
                 planUsageFeatureTransport: "Transporte",
                 planUsageFeatureCulqi: "Culqi",
                 planUsageFeatureAi: "IA",
                 planUsageFeatureExports: "Exportar",
             },
             member: {
-                hello: "Hola, {firstName} ✦",
+                hello: "Hola, {name} ✦",
                 pendingOrganizerTitle: "Solicitud pendiente en {entity}",
                 pendingOrganizerBody:
                     "El administrador de la entidad debe aprobar tu solicitud antes de que puedas crear eventos. Te avisaremos por correo cuando haya una decisión.",
@@ -1300,6 +1306,9 @@ const translations: Record<Locale, TranslationDictionary> = {
                 planUpgrade: "Plan {plan}",
             },
             organizer: {
+                pageTitle: "Mi plan",
+                pageIntroManage: "Consulta tu uso, límites y mejora tu plan para desbloquear más funciones.",
+                pageIntroReadOnly: "Consulta el uso y los límites del plan compartido de tu entidad.",
                 pendingPaymentTitle: "Pago pendiente — upgrade a {plan}",
                 pendingPaymentHelp: "Enviaste S/ {amount} vía {method}. El administrador revisará tu comprobante y activará tu plan.",
                 pendingExists: "Ya tienes un pago pendiente de revisión. Espera la aprobación del administrador.",
@@ -1361,6 +1370,8 @@ const translations: Record<Locale, TranslationDictionary> = {
                 blockedActionLimits: "Mientras tanto solo puedes ver esta página de facturación.",
                 blockedGoPay: "Renovar ahora",
                 blockedViewPlans: "Ver planes",
+                blockedContactAdmin:
+                    "El plan de {org} lo gestiona el administrador de la entidad. Pídele que renueve o mejore el plan.",
                 blockedFooter: "Sin pago, el acceso al panel permanece limitado.",
                 daysRemainingLabel: "días restantes",
                 dayRemaining: "día restante",
@@ -2033,7 +2044,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                 transportAdminTitle: "Transport (Admin)",
             },
             organizer: {
-                welcomeBack: "Welcome back, {firstName} ✦",
+                welcomeBack: "Welcome back, {name} ✦",
                 manageEvents: "Manage your events and track attendance",
                 totalEvents: "Total events",
                 published: "Published",
@@ -2148,13 +2159,19 @@ const translations: Record<Locale, TranslationDictionary> = {
                 planUsageAiMessages: "AI messages this month:",
                 planUsageMaxAttendees: "Max attendees/event:",
                 planUsageUpgrade: "Upgrade plan",
+                planUsageManagedByAdmin: "The plan for {org} is managed by the entity administrator.",
+                planLimitContactAdmin: "Ask the entity administrator to upgrade the plan.",
+                planUpgradeToCreateMore: "Upgrade plan to create more",
+                eventFormPlanLimit: "You have reached your plan's active event limit.",
+                eventFormPlanLimitOrArchive: "or archive a draft/published event before creating another.",
+                exportsPlanBlocked: "Your {plan} plan does not include exports.",
                 planUsageFeatureTransport: "Transport",
                 planUsageFeatureCulqi: "Culqi",
                 planUsageFeatureAi: "AI",
                 planUsageFeatureExports: "Export",
             },
             member: {
-                hello: "Hello, {firstName} ✦",
+                hello: "Hello, {name} ✦",
                 pendingOrganizerTitle: "Pending request for {entity}",
                 pendingOrganizerBody:
                     "The entity administrator must approve your request before you can create events. We will email you when there is a decision.",
@@ -2770,6 +2787,9 @@ const translations: Record<Locale, TranslationDictionary> = {
                 planUpgrade: "Plan {plan}",
             },
             organizer: {
+                pageTitle: "My plan",
+                pageIntroManage: "Review your usage, limits, and upgrade your plan to unlock more features.",
+                pageIntroReadOnly: "View usage and limits for your entity's shared plan.",
                 pendingPaymentTitle: "Pending payment — upgrade to {plan}",
                 pendingPaymentHelp: "You sent S/ {amount} via {method}. An admin will review your receipt and activate your plan.",
                 pendingExists: "You already have a payment pending review. Wait for admin approval.",
@@ -2831,6 +2851,8 @@ const translations: Record<Locale, TranslationDictionary> = {
                 blockedActionLimits: "Until then, only this billing page is available.",
                 blockedGoPay: "Renew now",
                 blockedViewPlans: "View plans",
+                blockedContactAdmin:
+                    "The plan for {org} is managed by the entity administrator. Ask them to renew or upgrade the plan.",
                 blockedFooter: "Without payment, panel access stays limited.",
                 daysRemainingLabel: "days remaining",
                 dayRemaining: "day remaining",
@@ -3154,6 +3176,36 @@ export function translateNotification(
                 .replace("has been rejected.", "ha sido rechazado.")
                 .replace("has been approved", "ha sido aprobado")
                 .replace("has been rejected", "ha sido rechazado");
+            break;
+
+        case "organizer_request":
+            if (title === "New organizer request") {
+                translatedTitle = "Nueva solicitud de organizador";
+            }
+            break;
+
+        case "organizer_approved":
+            if (title === "Organizer request approved") {
+                translatedTitle = "Solicitud de organizador aprobada";
+            }
+            break;
+
+        case "organizer_rejected":
+            if (title === "Organizer request declined") {
+                translatedTitle = "Solicitud de organizador rechazada";
+            }
+            break;
+
+        case "subscription_alert":
+            if (title === "Your plan expires soon") {
+                translatedTitle = "Tu plan vence pronto";
+            }
+            break;
+
+        case "transport_alert":
+            if (title === "Transport route almost full") {
+                translatedTitle = "Ruta de transporte casi llena";
+            }
             break;
     }
 

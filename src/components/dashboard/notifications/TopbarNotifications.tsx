@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { Bell, CheckCheck, Info, CalendarClock, CreditCard, UserPlus, BellRing } from "lucide-react";
+import { Bell, CheckCheck, Info, CalendarClock, CreditCard, UserPlus, BellRing, Users, Bus, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getRecentNotifications, markNotificationsAsRead } from "@/actions/notifications";
 import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
 import { getIntlLocale, translateNotification } from "@/lib/i18n/core";
+import { getNotificationHref } from "@/lib/notifications/notification-links";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 
 type NotificationItem = {
@@ -17,6 +18,7 @@ type NotificationItem = {
     message: string;
     read: boolean;
     createdAt: Date;
+    metadata?: Record<string, unknown> | null;
 };
 
 interface TopbarNotificationsProps {
@@ -47,6 +49,14 @@ function iconForType(type: string) {
         case "payment_submitted":
         case "payment_status_updated":
             return CreditCard;
+        case "organizer_request":
+        case "organizer_approved":
+        case "organizer_rejected":
+            return Users;
+        case "subscription_alert":
+            return Wallet;
+        case "transport_alert":
+            return Bus;
         default:
             return Info;
     }
@@ -188,40 +198,63 @@ export function TopbarNotifications({
                                         n.message,
                                         locale
                                     );
+                                    const href = getNotificationHref(role, n.type, n.metadata);
+                                    const row = (
+                                        <div className="flex items-start gap-3">
+                                            <div className={cn(
+                                                "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+                                                n.read ? "bg-muted" : "bg-primary/15"
+                                            )}>
+                                                <Icon className={cn("h-4 w-4", n.read ? "text-muted-foreground" : "text-primary")} />
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="truncate text-sm font-medium text-foreground">{displayTitle}</p>
+                                                <p className="line-clamp-2 text-xs text-muted-foreground">{displayMessage}</p>
+                                                <p className="mt-1 text-[11px] text-muted-foreground">
+                                                    {new Date(n.createdAt).toLocaleDateString(getIntlLocale(locale), {
+                                                        month: "short",
+                                                        day: "numeric",
+                                                        hour: "numeric",
+                                                        minute: "2-digit",
+                                                    })}
+                                                </p>
+                                            </div>
+                                            {!n.read && <span className="mt-2 h-2 w-2 rounded-full bg-primary" />}
+                                        </div>
+                                    );
+
+                                    const className = cn(
+                                        "w-full rounded-xl border p-3 text-left transition-colors",
+                                        n.read
+                                            ? "border-border bg-card hover:bg-secondary/40"
+                                            : "border-primary/20 bg-primary/5 hover:bg-primary/10"
+                                    );
+
+                                    if (href) {
+                                        return (
+                                            <Link
+                                                key={n.id}
+                                                href={href}
+                                                onClick={() => {
+                                                    if (!n.read) markOne(n.id);
+                                                    setOpen(false);
+                                                }}
+                                                className={className}
+                                            >
+                                                {row}
+                                            </Link>
+                                        );
+                                    }
+
                                     return (
                                         <button
                                             key={n.id}
                                             onClick={() => {
                                                 if (!n.read) markOne(n.id);
                                             }}
-                                            className={cn(
-                                                "w-full rounded-xl border p-3 text-left transition-colors",
-                                                n.read
-                                                    ? "border-border bg-card hover:bg-secondary/40"
-                                                    : "border-primary/20 bg-primary/5 hover:bg-primary/10"
-                                            )}
+                                            className={className}
                                         >
-                                            <div className="flex items-start gap-3">
-                                                <div className={cn(
-                                                    "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-                                                    n.read ? "bg-muted" : "bg-primary/15"
-                                                )}>
-                                                    <Icon className={cn("h-4 w-4", n.read ? "text-muted-foreground" : "text-primary")} />
-                                                </div>
-                                                <div className="min-w-0 flex-1">
-                                                    <p className="truncate text-sm font-medium text-foreground">{displayTitle}</p>
-                                                    <p className="line-clamp-2 text-xs text-muted-foreground">{displayMessage}</p>
-                                                    <p className="mt-1 text-[11px] text-muted-foreground">
-                                                        {new Date(n.createdAt).toLocaleDateString(getIntlLocale(locale), {
-                                                            month: "short",
-                                                            day: "numeric",
-                                                            hour: "numeric",
-                                                            minute: "2-digit",
-                                                        })}
-                                                    </p>
-                                                </div>
-                                                {!n.read && <span className="mt-2 h-2 w-2 rounded-full bg-primary" />}
-                                            </div>
+                                            {row}
                                         </button>
                                     );
                                 })}

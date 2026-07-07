@@ -84,21 +84,31 @@ export function OrganizerSubscriptionGate({
           </ul>
 
           <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-            <Link
-              href="/organizer/billing"
-              className={cn(
-                "inline-flex flex-1 items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90",
-              )}
-            >
-              {t("billing.organizer.blockedGoPay")}
-            </Link>
-            <button
-              type="button"
-              onClick={() => router.push("/organizer/billing")}
-              className="inline-flex flex-1 items-center justify-center rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
-            >
-              {t("billing.organizer.blockedViewPlans")}
-            </button>
+            {subscription.canManageBilling !== false ? (
+              <>
+                <Link
+                  href="/organizer/billing"
+                  className={cn(
+                    "inline-flex flex-1 items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90",
+                  )}
+                >
+                  {t("billing.organizer.blockedGoPay")}
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => router.push("/organizer/billing")}
+                  className="inline-flex flex-1 items-center justify-center rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
+                >
+                  {t("billing.organizer.blockedViewPlans")}
+                </button>
+              </>
+            ) : (
+              <p className="w-full rounded-xl border border-border bg-muted/40 px-4 py-3 text-center text-sm text-muted-foreground">
+                {subscription.organizationName
+                  ? t("billing.organizer.blockedContactAdmin", { org: subscription.organizationName })
+                  : t("dashboard.organizer.planLimitContactAdmin")}
+              </p>
+            )}
           </div>
 
           <p className="mt-4 text-center text-xs text-muted-foreground">

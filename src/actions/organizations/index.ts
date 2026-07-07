@@ -31,12 +31,29 @@ export async function approveOrganizerRequest(targetUserId: string) {
   });
 
   const { sendOrganizerApprovedEmail } = await import("@/lib/mail");
+  const { NotificationService } = await import("@/lib/notifications/notification.service");
   const { getLocale } = await import("@/lib/i18n/server");
+  const locale = await getLocale();
+
+  await NotificationService.create({
+    userId: result.user.id,
+    type: "organizer_approved",
+    title: locale === "en" ? "Organizer request approved" : "Solicitud de organizador aprobada",
+    message:
+      locale === "en"
+        ? `You can now create events for ${result.organization.name}.`
+        : `Ya puedes crear eventos para ${result.organization.name}.`,
+    metadata: {
+      organizationId: result.organization.id,
+      organizationName: result.organization.name,
+    },
+  });
+
   await sendOrganizerApprovedEmail({
     email: result.user.email,
     name: result.user.name,
     organizationName: result.organization.name,
-    locale: await getLocale(),
+    locale,
   });
 
   revalidatePath("/admin/team");
@@ -55,12 +72,29 @@ export async function rejectOrganizerRequest(targetUserId: string) {
   });
 
   const { sendOrganizerRejectedEmail } = await import("@/lib/mail");
+  const { NotificationService } = await import("@/lib/notifications/notification.service");
   const { getLocale } = await import("@/lib/i18n/server");
+  const locale = await getLocale();
+
+  await NotificationService.create({
+    userId: result.user.id,
+    type: "organizer_rejected",
+    title: locale === "en" ? "Organizer request declined" : "Solicitud de organizador rechazada",
+    message:
+      locale === "en"
+        ? `Your request to join ${result.organization.name} as an organizer was declined.`
+        : `Tu solicitud para unirte a ${result.organization.name} como organizador fue rechazada.`,
+    metadata: {
+      organizationId: result.organization.id,
+      organizationName: result.organization.name,
+    },
+  });
+
   await sendOrganizerRejectedEmail({
     email: result.user.email,
     name: result.user.name,
     organizationName: result.organization.name,
-    locale: await getLocale(),
+    locale,
   });
 
   revalidatePath("/admin/team");

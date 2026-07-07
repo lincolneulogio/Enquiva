@@ -27,7 +27,7 @@ export default async function MemberDashboardPage() {
       <div>
         <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
           {t("dashboard.member.hello", {
-            firstName: session?.user.name?.split(" ")[0] ?? "",
+            name: session?.user.name ?? "",
           })}
         </h1>
         <p className="mt-1 text-muted-foreground">

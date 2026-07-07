@@ -82,6 +82,21 @@ export class SubscriptionRenewalService {
         autoRenewEnabled: subscription.autoRenewEnabled,
       });
 
+      const { NotificationService } = await import("@/lib/notifications/notification.service");
+
+      await NotificationService.create({
+        userId: user.id,
+        type: "subscription_alert",
+        title: "Tu plan vence pronto",
+        message: `Tu plan ${plan.name} vence en ${daysLeft} días (${renewalDate}).`,
+        metadata: {
+          planId: plan.id,
+          planName: plan.name,
+          daysRemaining: daysLeft,
+          renewalDate,
+        },
+      });
+
       await db
         .update(subscriptions)
         .set({ renewalReminderSentAt: now, updatedAt: now })

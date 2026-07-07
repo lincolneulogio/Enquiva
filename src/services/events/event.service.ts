@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { events, registrations, categories, users } from "@/lib/db/schema";
+import { events, registrations, categories, users, organizations } from "@/lib/db/schema";
 import type { Category } from "@/lib/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
 import {
@@ -23,6 +23,8 @@ import {
 } from "@/lib/validations";
 import { OCCUPYING_REGISTRATION_STATUSES } from "@/lib/registrations/constants";
 import { cascadeEventCancellation } from "@/lib/events/lifecycle";
+import { runBackground } from "@/lib/background";
+import { NotificationService } from "@/lib/notifications/notification.service";
 
 const FALLBACK_CATEGORIES: Pick<Category, "slug" | "label" | "colorClass">[] = [
   { slug: "worship", label: "Música y espectáculos", colorClass: "bg-purple-100 text-purple-800" },
@@ -146,6 +148,28 @@ export class EventService {
 
     if (validated.status === "cancelled" && existing.status !== "cancelled") {
       await cascadeEventCancellation(eventId, updated.title);
+    }
+
+    if (existing.status !== "published" && updated.status === "published") {
+      runBackground(async () => {
+        if (!updated.organizationId) return;
+
+        const [org] = await db
+          .select({ ownerId: organizations.ownerId, name: organizations.name })
+          .from(organizations)
+          .where(eq(organizations.id, updated.organizationId))
+          .limit(1);
+
+        if (!org || org.ownerId === userId) return;
+
+        await NotificationService.create({
+          userId: org.ownerId,
+          type: "event_published",
+          title: "Nuevo evento publicado",
+          message: `Se publicó el evento "${updated.title}" en ${org.name}.`,
+          metadata: { eventId: updated.id, eventTitle: updated.title, organizationId: updated.organizationId },
+        });
+      });
     }
 
     // Notificar a los participantes en tiempo real

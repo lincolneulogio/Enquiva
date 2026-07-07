@@ -137,13 +137,17 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                         <Plus className="h-4 w-4" />
                         {t("common.newEvent")}
                     </Link>
-                ) : (
+                ) : planSummary.canManageBilling ? (
                     <Link
                         href="/organizer/billing"
                         className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200 sm:w-auto"
                     >
-                        {t("common.newEvent")} — Plan límite
+                        {t("dashboard.organizer.planUpgradeToCreateMore")}
                     </Link>
+                ) : (
+                    <p className="rounded-xl border border-amber-300/60 bg-amber-50/80 px-4 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200 sm:w-auto">
+                        {t("dashboard.organizer.planLimitContactAdmin")}
+                    </p>
                 )}
             </div>
 

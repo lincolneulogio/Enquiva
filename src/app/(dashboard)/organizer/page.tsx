@@ -33,7 +33,7 @@ export default async function OrganizerDashboardPage() {
         <div>
           <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
             {t("dashboard.organizer.welcomeBack", {
-              firstName: session?.user.name?.split(" ")[0] ?? "",
+              name: session?.user.name ?? "",
             })}
           </h1>
           <p className="mt-1 text-muted-foreground">
@@ -48,14 +48,18 @@ export default async function OrganizerDashboardPage() {
             <Plus className="h-4 w-4" />
             {t("common.newEvent")}
           </Link>
-        ) : (
+        ) : planSummary.canManageBilling ? (
           <Link
             href="/organizer/billing"
             className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-5 py-2.5 text-sm font-medium text-amber-900 transition-colors hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200 sm:w-auto"
           >
             <Plus className="h-4 w-4" />
-            Mejorar plan para crear más
+            {t("dashboard.organizer.planUpgradeToCreateMore")}
           </Link>
+        ) : (
+          <p className="rounded-xl border border-amber-300/60 bg-amber-50/80 px-4 py-2.5 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+            {t("dashboard.organizer.planLimitContactAdmin")}
+          </p>
         )}
       </div>
 
