@@ -2,7 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { users, rolePermissions } from "@/lib/db/schema";
+import { users, rolePermissions, roles } from "@/lib/db/schema";
 import { getFullEffectivePermissionMatrix } from "@/lib/auth/effective-permissions";
 import { logAdminAction } from "@/lib/analytics/log-admin-action";
 import { eq, count, and } from "drizzle-orm";
@@ -10,6 +10,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import {
     PERMISSIONS,
+    ROLE_LABELS,
     getDefaultPermissionMatrix,
     normalizeRole,
     type AppRole,
@@ -167,6 +168,17 @@ export async function updateRolePermission(input: {
                 )
             );
     } else {
+        // Asegura que exista la fila del rol (FK role_permissions.role_name → roles.name),
+        // por si la tabla `roles` aún no fue sembrada. Idempotente.
+        await db
+            .insert(roles)
+            .values({
+                name: input.role,
+                label: ROLE_LABELS[input.role],
+                description: ROLE_LABELS[input.role],
+            })
+            .onConflictDoNothing();
+
         await db
             .insert(rolePermissions)
             .values({
