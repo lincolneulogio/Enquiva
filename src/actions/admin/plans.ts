@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { requireSuperAdmin } from "@/actions/admin/users";
 import { SubscriptionService } from "@/lib/billing/subscription.service";
 import { logAdminAction } from "@/lib/analytics/log-admin-action";
+import { assertPermission } from "@/lib/auth/permission-guards";
 
 export async function getAllPlans() {
   await requireSuperAdmin();
@@ -33,6 +34,7 @@ export async function createPlan(input: {
   sortOrder?: number;
 }) {
   const user = await requireSuperAdmin();
+  await assertPermission(user, "plans:manage");
 
   const slug = input.slug.trim().toLowerCase();
   if (!/^[a-z0-9_-]+$/.test(slug)) {
@@ -97,6 +99,7 @@ export async function updatePlan(
   },
 ) {
   const user = await requireSuperAdmin();
+  await assertPermission(user, "plans:manage");
 
   await db
     .update(plans)
@@ -137,6 +140,7 @@ export async function updatePlan(
 
 export async function deletePlan(id: string) {
   const user = await requireSuperAdmin();
+  await assertPermission(user, "plans:manage");
 
   const [inUse] = await db
     .select({ id: subscriptions.id })
@@ -163,6 +167,7 @@ export async function deletePlan(id: string) {
 
 export async function assignUserPlan(userId: string, planId: string) {
   const actor = await requireSuperAdmin();
+  await assertPermission(actor, "plans:manage");
   await SubscriptionService.assignPlanToUser(userId, planId, actor.role ?? "super_admin");
 
   await logAdminAction({
@@ -189,6 +194,7 @@ export async function getOrganizersForPlanAssignment() {
 }
 
 export async function getPlatformRevenue() {
-  await requireSuperAdmin();
+  const user = await requireSuperAdmin();
+  await assertPermission(user, "platform:billing:view");
   return SubscriptionService.getRevenueSummary();
 }

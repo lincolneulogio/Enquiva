@@ -39,6 +39,7 @@ export async function getRoutesByEvent(eventId: string) {
 
 export async function createRoute(input: z.infer<typeof createRouteSchema>) {
     const user = await requireOrganizerOrHigher();
+    await assertAnyPermission(user, ["transport:manage:any", "transport:manage:own"]);
     await requirePlanFeature(user.id, user.role, "transport");
     const route = await TransportService.createRoute(input, user.id, user.role ?? "member");
 
@@ -60,6 +61,7 @@ export async function updateRoute(
     input: Partial<z.infer<typeof createRouteSchema>>
 ) {
     const user = await requireOrganizerOrHigher();
+    await assertAnyPermission(user, ["transport:manage:any", "transport:manage:own"]);
     const eventId = await TransportService.updateRoute(routeId, input, user.id, user.role ?? "member");
 
     await logAdminAction({
@@ -77,6 +79,7 @@ export async function updateRoute(
 
 export async function deleteRoute(routeId: string) {
     const user = await requireOrganizerOrHigher();
+    await assertAnyPermission(user, ["transport:manage:any", "transport:manage:own"]);
     const eventId = await TransportService.deleteRoute(routeId, user.id, user.role ?? "member");
 
     await logAdminAction({
@@ -94,12 +97,14 @@ export async function deleteRoute(routeId: string) {
 
 export async function toggleRouteActive(routeId: string, isActive: boolean) {
     const user = await requireOrganizerOrHigher();
+    await assertAnyPermission(user, ["transport:manage:any", "transport:manage:own"]);
     await TransportService.toggleRouteActive(routeId, isActive, user.id, user.role ?? "member");
     return { success: true };
 }
 
 export async function toggleEventTransport(eventId: string, hasTransport: boolean) {
     const user = await requireOrganizerOrHigher();
+    await assertAnyPermission(user, ["transport:manage:any", "transport:manage:own"]);
     if (hasTransport) {
         await requirePlanFeature(user.id, user.role, "transport");
     }
@@ -240,6 +245,7 @@ export async function createTransportStop(input: {
     longitude?: string | null;
 }) {
     const user = await requireOrganizerOrHigher();
+    await assertAnyPermission(user, ["transport:manage:any", "transport:manage:own"]);
     await assertRouteInAdminScope(input.routeId, user.id, user.role);
 
     if (!input.routeId || !input.name.trim()) {
@@ -270,6 +276,7 @@ export async function createTransportStop(input: {
 
 export async function deleteTransportStop(stopId: string) {
     const user = await requireOrganizerOrHigher();
+    await assertAnyPermission(user, ["transport:manage:any", "transport:manage:own"]);
 
     const [stop] = await db
         .select({ routeId: transportStops.routeId })

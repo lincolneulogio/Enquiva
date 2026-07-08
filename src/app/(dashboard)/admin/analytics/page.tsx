@@ -8,6 +8,8 @@ import { getI18n } from "@/lib/i18n/server";
 import { resolveAdminScope, getOrganizationIdFromScope } from "@/lib/organizations/admin-scope";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { hasEffectivePermission } from "@/lib/auth/effective-permissions";
 
 const RANGE_OPTIONS: AdminStatsRange[] = ["30d", "90d", "12m", "all"];
 
@@ -44,6 +46,12 @@ interface AdminAnalyticsPageProps {
 export default async function AdminAnalyticsPage({ searchParams }: AdminAnalyticsPageProps) {
   const { t } = await getI18n();
   const session = await auth.api.getSession({ headers: await headers() });
+  const role = session?.user?.role;
+
+  if (role !== "super_admin" && !(await hasEffectivePermission(role, "analytics:view:any"))) {
+    redirect("/admin");
+  }
+
   const params = await searchParams;
   const selectedRange = normalizeRange(params.range);
   const adminScope = await resolveAdminScope();

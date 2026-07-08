@@ -1,6 +1,7 @@
 "use server";
 
 import { requireSuperAdmin } from "./users";
+import { assertPermission } from "@/lib/auth/permission-guards";
 import { getSystemSettings, saveSystemSettings, describeSettingsChanges, type SystemSettings } from "@/lib/settings";
 import { logAdminAction } from "@/lib/analytics/log-admin-action";
 import { wrapInTemplate } from "@/lib/mail/templates";
@@ -25,6 +26,7 @@ export async function getSystemSettingsAction() {
  */
 export async function saveSystemSettingsAction(settings: Partial<SystemSettings>) {
     const user = await requireSuperAdmin();
+    await assertPermission(user, "settings:manage");
     const before = await getSystemSettings();
     const updated = await saveSystemSettings(settings, {
         id: user.id,
@@ -49,7 +51,8 @@ export async function saveSystemSettingsAction(settings: Partial<SystemSettings>
  * Only accessible by Super Admins.
  */
 export async function testMailConnectionAction() {
-    await requireSuperAdmin();
+    const user = await requireSuperAdmin();
+    await assertPermission(user, "settings:manage");
     
     try {
         const start = Date.now();
@@ -76,6 +79,7 @@ export async function testMailConnectionAction() {
  */
 export async function sendTestEmailAction(email: string) {
     const user = await requireSuperAdmin();
+    await assertPermission(user, "settings:manage");
     const settings = await getSystemSettings();
     
     try {

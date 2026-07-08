@@ -19,6 +19,7 @@ import { eq, and, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireSuperAdmin } from "./users";
 import { logAdminAction } from "@/lib/analytics/log-admin-action";
+import { assertPermission } from "@/lib/auth/permission-guards";
 
 const DEFAULT_ROLES = [
     {
@@ -48,7 +49,8 @@ const DEFAULT_ROLES = [
 ] as const;
 
 export async function seedRoles() {
-    await requireSuperAdmin();
+    const user = await requireSuperAdmin();
+    await assertPermission(user, "roles:manage");
     for (const role of DEFAULT_ROLES) {
         await db
             .insert(roles)
@@ -64,6 +66,7 @@ export async function updateRole(
     data: { label: string; description: string; color: string }
 ) {
     const user = await requireSuperAdmin();
+    await assertPermission(user, "roles:manage");
     await db
         .update(roles)
         .set({ ...data, updatedAt: new Date() })
@@ -83,7 +86,8 @@ export async function updateRole(
 }
 
 export async function backfillPendingPayments() {
-    await requireSuperAdmin();
+    const user = await requireSuperAdmin();
+    await assertPermission(user, "settings:manage");
 
     const missingPayments = await db
         .select({
@@ -127,6 +131,7 @@ export async function backfillPendingPayments() {
 }
 
 export async function exportFullDatabase() {
-    await requireSuperAdmin();
+    const user = await requireSuperAdmin();
+    await assertPermission(user, "settings:manage");
     return exportFullDatabaseData();
 }

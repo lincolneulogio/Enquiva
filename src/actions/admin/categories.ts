@@ -6,6 +6,7 @@ import type { Category } from "@/lib/db/schema";
 import { eq, asc, and, sql as sqlExpr } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAdminOrSuper } from "./users";
+import { assertPermission } from "@/lib/auth/permission-guards";
 import {
   resolveAdminScopeForUser,
   scopeCategoryCondition,
@@ -45,6 +46,7 @@ export async function createCategory(input: {
     sortOrder?: number;
 }) {
     const user = await requireAdminOrSuper();
+    await assertPermission(user, "categories:manage");
     const scope = await resolveAdminScopeForUser(user.id, user.role);
     const slug = normalizeCategorySlug(input.slug);
     if (!slug) throw new Error("El slug es obligatorio y solo puede usar letras minúsculas, números y guiones bajos");
@@ -97,6 +99,7 @@ export async function updateCategory(id: string, input: {
     isActive?: boolean;
 }) {
     const user = await requireAdminOrSuper();
+    await assertPermission(user, "categories:manage");
     const { cat } = await assertCategoryAccess(id, user.id, user.role);
     await db.update(categories).set({
         ...(input.label !== undefined && { label: input.label.trim() }),
@@ -120,6 +123,7 @@ export async function updateCategory(id: string, input: {
 
 export async function deleteCategory(id: string) {
     const user = await requireAdminOrSuper();
+    await assertPermission(user, "categories:manage");
     const { cat } = await assertCategoryAccess(id, user.id, user.role);
     const [{ cnt }] = await db
         .select({ cnt: sqlExpr<number>`count(*)::int` })
@@ -146,6 +150,7 @@ export async function deleteCategory(id: string) {
 
 export async function reorderCategories(orderedIds: string[]) {
     const user = await requireAdminOrSuper();
+    await assertPermission(user, "categories:manage");
     const scope = await resolveAdminScopeForUser(user.id, user.role);
 
     if (!orderedIds.length) {

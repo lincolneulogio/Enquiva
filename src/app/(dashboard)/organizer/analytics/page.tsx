@@ -5,6 +5,7 @@ import { getAdminDashboardStats, type AdminStatsRange } from "@/lib/analytics/ad
 import { getI18n } from "@/lib/i18n/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { hasEffectivePermission } from "@/lib/auth/effective-permissions";
 
 const RANGE_OPTIONS: AdminStatsRange[] = ["30d", "90d", "12m", "all"];
 
@@ -28,6 +29,10 @@ export default async function OrganizerAnalyticsPage({
   const role = session.user.role;
   if (role !== "organizer" && role !== "super_admin") {
     redirect(role === "admin" ? "/admin" : "/member");
+  }
+
+  if (role !== "super_admin" && !(await hasEffectivePermission(role, "analytics:view:own"))) {
+    redirect("/organizer");
   }
 
   const { t } = await getI18n();

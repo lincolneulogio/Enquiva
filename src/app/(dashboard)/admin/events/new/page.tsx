@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Users } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -13,25 +13,6 @@ export default async function AdminNewEventPage() {
     const role = normalizeRole(session?.user?.role);
     const staffBase = await getStaffBaseFromRequest();
     const eventsPath = staffDashboardPath(staffBase, "events");
-    const teamPath = staffDashboardPath(staffBase, "team");
-
-    if (role === "admin") {
-        return (
-            <div className="mx-auto max-w-lg space-y-6 rounded-2xl border border-border bg-card p-8 text-center">
-                <Users className="mx-auto h-10 w-10 text-primary" />
-                <h1 className="font-display text-2xl font-semibold text-foreground">
-                    {t("auth.adminCannotCreateEventsTitle")}
-                </h1>
-                <p className="text-sm text-muted-foreground">{t("auth.adminCannotCreateEventsBody")}</p>
-                <Link
-                    href={teamPath}
-                    className="inline-flex rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-                >
-                    {t("auth.adminGoToTeam")}
-                </Link>
-            </div>
-        );
-    }
 
     const { EventForm } = await import("@/components/events/EventForm");
     const { getCategories } = await import("@/actions/events");

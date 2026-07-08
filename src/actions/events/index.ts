@@ -17,8 +17,7 @@ import { events, broadcastLogs, categories } from "@/lib/db/schema";
 import { eq, and, asc, desc } from "drizzle-orm";
 import { assertEventInAdminScope, resolveAdminScope, scopeEventCondition } from "@/lib/organizations/admin-scope";
 import {
-  requireAuth,
-  requireApprovedOrganizer,
+  requireApprovedEventManager,
   requireOrganizerWithApprovalState,
 } from "@/lib/auth/guards";
 import { normalizeRole } from "@/lib/auth/rbac";
@@ -65,7 +64,7 @@ export async function getCategories(): Promise<Pick<Category, "slug" | "label" |
 // ─── Create Event ─────────────────────────────────────────────────────────────
 
 export async function createEvent(input: CreateEventInput) {
-  const user = await requireApprovedOrganizer();
+  const user = await requireApprovedEventManager();
   await assertPermission(user, "events:create");
   await assertCanCreateEvent(user.id, user.role);
   await assertEventPayloadWithinPlan(user.id, user.role, {
@@ -100,7 +99,7 @@ export async function createEvent(input: CreateEventInput) {
 // ─── Update Event ─────────────────────────────────────────────────────────────
 
 export async function updateEvent(eventId: string, input: UpdateEventInput) {
-  const user = await requireApprovedOrganizer();
+  const user = await requireApprovedEventManager();
 
   const [existing] = await db
     .select({
@@ -164,7 +163,7 @@ export async function updateEvent(eventId: string, input: UpdateEventInput) {
 // ─── Delete Event ─────────────────────────────────────────────────────────────
 
 export async function deleteEvent(eventId: string) {
-  const user = await requireApprovedOrganizer();
+  const user = await requireApprovedEventManager();
   const scope = await assertEventInAdminScope(eventId, user.id, user.role);
   await assertOwnOrAnyPermission(user, {
     anyPermission: "events:delete:any",
@@ -250,7 +249,7 @@ export async function sendBroadcastAction(input: {
   recipientStatus: "all" | "registered" | "checked_in" | "waitlisted";
   channels?: Partial<MassCommunicationChannels>;
 }) {
-  const user = await requireApprovedOrganizer();
+  const user = await requireApprovedEventManager();
 
   if (!input.eventId || !input.subject || !input.message) {
     throw new Error("Missing required fields");
@@ -266,6 +265,11 @@ export async function sendBroadcastAction(input: {
     throw new Error("Event not found");
   }
 
+  await assertOwnOrAnyPermission(user, {
+    anyPermission: "broadcasts:send:any",
+    ownPermission: "broadcasts:send:own",
+    isOwner: event.organizerId === user.id,
+  });
   await assertEventInAdminScope(input.eventId, user.id, user.role);
 
   const locale = await getLocale();

@@ -1,6 +1,8 @@
 import { hasEffectivePermission } from "./effective-permissions";
 import type { Permission } from "./rbac";
-import type { SessionUser } from "./guards";
+
+/** Sujeto mínimo para evaluar permisos: solo se necesita el rol. */
+type PermissionSubject = { role?: string | null };
 
 /**
  * Error de autorización basado en la matriz de permisos efectiva (rol + overrides en BD).
@@ -17,7 +19,7 @@ export class PermissionError extends Error {
 
 /** `true` si el usuario tiene el permiso efectivo (super_admin siempre `true`). */
 export async function can(
-  user: Pick<SessionUser, "role">,
+  user: PermissionSubject,
   permission: Permission,
 ): Promise<boolean> {
   return hasEffectivePermission(user.role, permission);
@@ -25,7 +27,7 @@ export async function can(
 
 /** `true` si el usuario tiene al menos uno de los permisos. */
 export async function canAny(
-  user: Pick<SessionUser, "role">,
+  user: PermissionSubject,
   permissions: Permission[],
 ): Promise<boolean> {
   for (const permission of permissions) {
@@ -36,7 +38,7 @@ export async function canAny(
 
 /** Lanza `PermissionError` si el usuario no tiene el permiso efectivo. */
 export async function assertPermission(
-  user: Pick<SessionUser, "role">,
+  user: PermissionSubject,
   permission: Permission,
   message?: string,
 ): Promise<void> {
@@ -47,7 +49,7 @@ export async function assertPermission(
 
 /** Lanza si el usuario no tiene ninguno de los permisos indicados. */
 export async function assertAnyPermission(
-  user: Pick<SessionUser, "role">,
+  user: PermissionSubject,
   permissions: Permission[],
   message?: string,
 ): Promise<void> {
@@ -63,7 +65,7 @@ export async function assertAnyPermission(
  * - En cualquier otro caso lanza `PermissionError`.
  */
 export async function assertOwnOrAnyPermission(
-  user: Pick<SessionUser, "role">,
+  user: PermissionSubject,
   opts: {
     anyPermission: Permission;
     ownPermission: Permission;

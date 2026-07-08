@@ -98,6 +98,22 @@ export async function requireApprovedOrganizer(): Promise<SessionUser> {
   return user;
 }
 
+/**
+ * Gestión de eventos: organizer (aprobado) | admin de entidad | super_admin.
+ * Permite al administrador de entidad gestionar eventos de su alcance, pero
+ * sigue bloqueando a organizadores con membresía pendiente de aprobación.
+ * El alcance por entidad y los permisos finos se validan aparte
+ * (assertEventInAdminScope + matriz de permisos).
+ */
+export async function requireApprovedEventManager(): Promise<SessionUser> {
+  const user = await requireOrganizerOrHigher();
+  if (normalizeRole(user.role) === "organizer") {
+    const pending = await getOrganizerPendingApproval(user);
+    if (pending) throw new Error("ORGANIZER_APPROVAL_PENDING");
+  }
+  return user;
+}
+
 /** organizer | super_admin — medios de pago del organizador (sin admin de entidad). */
 export async function requireOrganizerRole(): Promise<SessionUser> {
   const user = await requireAuth();

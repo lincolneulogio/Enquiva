@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { OrganizationService } from "@/lib/organizations/organization.service";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { requireAuth } from "@/lib/auth/guards";
+import { assertPermission } from "@/lib/auth/permission-guards";
 
 export async function getMyOrganization() {
   const user = await requireAuth();
@@ -24,6 +25,7 @@ export async function getMyPendingOrganizerRequest() {
 
 export async function approveOrganizerRequest(targetUserId: string) {
   const user = await requireAuth();
+  await assertPermission(user, "team:manage");
   const result = await OrganizationService.approveOrganizerRequest({
     actorId: user.id,
     actorRole: user.role,
@@ -65,6 +67,7 @@ export async function approveOrganizerRequest(targetUserId: string) {
 
 export async function rejectOrganizerRequest(targetUserId: string) {
   const user = await requireAuth();
+  await assertPermission(user, "team:manage");
   const result = await OrganizationService.rejectOrganizerRequest({
     actorId: user.id,
     actorRole: user.role,
@@ -104,6 +107,7 @@ export async function rejectOrganizerRequest(targetUserId: string) {
 
 export async function promoteOrgMember(targetUserId: string, newRole: "organizer" | "member") {
   const user = await requireAuth();
+  await assertPermission(user, "team:manage");
   await OrganizationService.promoteUserInOrg({
     actorId: user.id,
     actorRole: user.role,
@@ -139,6 +143,7 @@ export async function createMyOrganization(orgName: string) {
 
 export async function saveEntitySettingsAction(input: { name: string }) {
   const user = await requireAuth();
+  await assertPermission(user, "team:manage");
   const role = normalizeRole(user.role);
   if (role !== "admin" && role !== "super_admin") {
     throw new Error("No autorizado");
