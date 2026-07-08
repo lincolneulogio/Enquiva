@@ -3,6 +3,7 @@ export {
   deleteUser,
   getPermissionMatrix,
   updateRolePermission,
+  resetRolePermissions,
 } from "./admin/users";
 export {
   getAllCategories,

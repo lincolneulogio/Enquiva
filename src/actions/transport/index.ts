@@ -10,6 +10,7 @@ import {
   requireAuth,
   requireOrganizerOrHigher,
 } from "@/lib/auth/guards";
+import { assertAnyPermission } from "@/lib/auth/permission-guards";
 import { logAdminAction } from "@/lib/analytics/log-admin-action";
 
 // ─── Validators ───────────────────────────────────────────────────────────────
@@ -157,6 +158,7 @@ export async function getTransportBookingsForEvent(eventId: string) {
 
 export async function approveTransportPayment(paymentId: string) {
     const user = await requireOrganizerOrHigher();
+    await assertAnyPermission(user, ["payments:update:any", "payments:update:own"]);
     await TransportService.approveTransportPayment(paymentId, user.id, user.role ?? "member");
 
     revalidatePath("/admin/payments");
@@ -167,6 +169,7 @@ export async function approveTransportPayment(paymentId: string) {
 
 export async function rejectTransportPayment(paymentId: string, reason?: string) {
     const user = await requireOrganizerOrHigher();
+    await assertAnyPermission(user, ["payments:update:any", "payments:update:own"]);
     await TransportService.rejectTransportPayment(paymentId, user.id, user.role ?? "member", reason);
 
     revalidatePath("/admin/payments");

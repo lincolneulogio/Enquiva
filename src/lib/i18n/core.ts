@@ -177,12 +177,41 @@ const translations: Record<Locale, TranslationDictionary> = {
             "attendees:checkin": "Hacer check-in a asistentes",
             "payments:view:any": "Ver todos los pagos",
             "payments:view:own": "Ver pagos de mis eventos",
-            "payments:update:any": "Actualizar estado de pagos",
+            "payments:update:any": "Actualizar estado de pagos (todos)",
+            "payments:update:own": "Actualizar pagos de mis eventos",
             "permissions:view": "Ver permisos",
             "docs:view:admin": "Ver Docs: Administrador",
             "docs:view:organizer": "Ver Docs: Organizador",
             "docs:view:member": "Ver Docs: Miembro",
             "docs:view:dev": "Ver Docs: Desarrollador",
+        },
+        permissionGroups: {
+            events: "Eventos",
+            people: "Usuarios y roles",
+            registrations: "Inscripciones y acceso",
+            payments: "Pagos",
+            docs: "Documentación",
+        },
+        permissionDescriptions: {
+            "events:create": "Crear nuevos eventos en la plataforma.",
+            "events:update:any": "Editar cualquier evento, sin importar quién lo creó.",
+            "events:update:own": "Editar únicamente los eventos creados por el propio usuario.",
+            "events:delete:any": "Eliminar cualquier evento de la plataforma.",
+            "events:delete:own": "Eliminar solo los eventos propios.",
+            "users:manage": "Ver, editar y cambiar el rol de otros usuarios.",
+            "roles:manage": "Editar roles (etiqueta, descripción y color).",
+            "registrations:view:any": "Ver las inscripciones de todos los eventos.",
+            "registrations:view:own": "Ver las inscripciones solo de los eventos propios.",
+            "attendees:checkin": "Registrar el ingreso (check-in) de asistentes con QR.",
+            "payments:view:any": "Ver los pagos de todos los eventos.",
+            "payments:view:own": "Ver los pagos solo de los eventos propios.",
+            "payments:update:any": "Aprobar o rechazar el estado de los pagos de cualquier evento.",
+            "payments:update:own": "Aprobar o rechazar pagos solo de los eventos propios.",
+            "permissions:view": "Ver la matriz de permisos por rol.",
+            "docs:view:admin": "Acceder a la documentación del administrador.",
+            "docs:view:organizer": "Acceder a la documentación del organizador.",
+            "docs:view:member": "Acceder a la documentación del miembro.",
+            "docs:view:dev": "Acceder a la documentación técnica para desarrolladores.",
         },
         dashboard: {
             sidebar: {
@@ -391,6 +420,13 @@ const translations: Record<Locale, TranslationDictionary> = {
                 permission: "Permiso",
                 canEditPermissions: "Puedes modificar los permisos con las casillas inferiores (Superadministrador siempre tiene acceso total y queda bloqueado).",
                 readOnlyPermissions: "Vista de solo lectura. Solo los superadministradores pueden modificar permisos.",
+                permissionsLegendModified: "Modificado respecto al valor por defecto",
+                permissionsModifiedBadge: "Modificado",
+                permissionsDefaultBadge: "Por defecto",
+                permissionsResetRole: "Restablecer",
+                permissionsResetRoleConfirm: "¿Restablecer todos los permisos de {role} a sus valores por defecto?",
+                permissionsResetDone: "Permisos restablecidos a los valores por defecto.",
+                permissionsGroupColumn: "Categoría",
                 paymentsIntro: "Revisa y aprueba pagos de inscripciones y transporte en la plataforma.",
                 showingPayments: "Mostrando {count} pagos",
                 updatePaymentStatus: "Estado de pago actualizado",
@@ -1663,12 +1699,41 @@ const translations: Record<Locale, TranslationDictionary> = {
             "attendees:checkin": "Check-in attendees",
             "payments:view:any": "View all payments",
             "payments:view:own": "View own-event payments",
-            "payments:update:any": "Update payment status",
+            "payments:update:any": "Update payment status (all)",
+            "payments:update:own": "Update own-event payment status",
             "permissions:view": "View permissions",
             "docs:view:admin": "View Docs: Admin",
             "docs:view:organizer": "View Docs: Organizer",
             "docs:view:member": "View Docs: Member",
             "docs:view:dev": "View Docs: Developer",
+        },
+        permissionGroups: {
+            events: "Events",
+            people: "Users & roles",
+            registrations: "Registrations & access",
+            payments: "Payments",
+            docs: "Documentation",
+        },
+        permissionDescriptions: {
+            "events:create": "Create new events on the platform.",
+            "events:update:any": "Edit any event, regardless of who created it.",
+            "events:update:own": "Edit only events created by the user.",
+            "events:delete:any": "Delete any event on the platform.",
+            "events:delete:own": "Delete only the user's own events.",
+            "users:manage": "View, edit, and change the role of other users.",
+            "roles:manage": "Edit roles (label, description, and color).",
+            "registrations:view:any": "View registrations for all events.",
+            "registrations:view:own": "View registrations only for own events.",
+            "attendees:checkin": "Check in attendees via QR.",
+            "payments:view:any": "View payments for all events.",
+            "payments:view:own": "View payments only for own events.",
+            "payments:update:any": "Approve or reject payment status for any event.",
+            "payments:update:own": "Approve or reject payments only for own events.",
+            "permissions:view": "View the per-role permission matrix.",
+            "docs:view:admin": "Access the administrator documentation.",
+            "docs:view:organizer": "Access the organizer documentation.",
+            "docs:view:member": "Access the member documentation.",
+            "docs:view:dev": "Access the technical documentation for developers.",
         },
         dashboard: {
             sidebar: {
@@ -1889,6 +1954,13 @@ const translations: Record<Locale, TranslationDictionary> = {
                 permission: "Permission",
                 canEditPermissions: "You can modify permissions using the checkboxes below (Super Admin always has full access and remains locked).",
                 readOnlyPermissions: "Read-only view. Only super admins can modify permissions.",
+                permissionsLegendModified: "Changed from the default value",
+                permissionsModifiedBadge: "Changed",
+                permissionsDefaultBadge: "Default",
+                permissionsResetRole: "Reset",
+                permissionsResetRoleConfirm: "Reset all {role} permissions to their default values?",
+                permissionsResetDone: "Permissions reset to default values.",
+                permissionsGroupColumn: "Category",
                 paymentsIntro: "Review and approve registration and transport payments across the platform.",
                 showingPayments: "Showing {count} payments",
                 updatePaymentStatus: "Payment status updated",
@@ -3025,6 +3097,16 @@ export function getRoleLabel(role: string | null | undefined, locale: Locale): s
 
 export function getPermissionLabel(permission: string, locale: Locale): string {
     return translate(locale, `permissions.${permission}`);
+}
+
+export function getPermissionDescription(permission: string, locale: Locale): string {
+    const key = `permissionDescriptions.${permission}`;
+    const value = translate(locale, key);
+    return value === key ? "" : value;
+}
+
+export function getPermissionGroupLabel(groupId: string, locale: Locale): string {
+    return translate(locale, `permissionGroups.${groupId}`);
 }
 
 export function getCategoryLabel(category: string, locale: Locale): string {

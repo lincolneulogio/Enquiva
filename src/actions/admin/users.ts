@@ -22,6 +22,7 @@ import {
     requireSuperAdmin,
     requireAdminOrSuper,
 } from "@/lib/auth/guards";
+import { assertPermission } from "@/lib/auth/permission-guards";
 import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
 
 export { requireSuperAdmin, requireAdminOrSuper };
@@ -31,6 +32,7 @@ export async function updateUserRole(
     role: "member" | "organizer" | "admin" | "super_admin"
 ) {
     const currentUser = await requireAdminOrSuper();
+    await assertPermission(currentUser, "users:manage");
     const actorRole = normalizeRole(currentUser.role);
     const hdrs = await headers();
     const ipAddress = hdrs.get("x-forwarded-for") ?? hdrs.get("x-real-ip") ?? "unknown";
@@ -194,6 +196,32 @@ export async function updateRolePermission(input: {
     });
 
     revalidatePath("/admin/permissions");
+    revalidatePath("/superadmin/permissions");
+
+    return { success: true };
+}
+
+/** Elimina todos los overrides de un rol, restaurando sus permisos por defecto. */
+export async function resetRolePermissions(input: { role: AppRole }) {
+    const currentUser = await requireSuperAdmin();
+
+    if (input.role === "super_admin") {
+        throw new Error("Super Admin permissions are fixed and cannot be changed");
+    }
+
+    await db.delete(rolePermissions).where(eq(rolePermissions.roleName, input.role));
+
+    await logAdminAction({
+        actorId: currentUser.id,
+        actorName: currentUser.name ?? currentUser.email,
+        action: "permission.update",
+        entityType: "permission",
+        entityId: `${input.role}:reset`,
+        details: `Permisos del rol ${input.role} restablecidos a los valores por defecto.`,
+    });
+
+    revalidatePath("/admin/permissions");
+    revalidatePath("/superadmin/permissions");
 
     return { success: true };
 }

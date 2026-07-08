@@ -14,6 +14,7 @@ export const PERMISSIONS = [
     "payments:view:any",
     "payments:view:own",
     "payments:update:any",
+    "payments:update:own",
     "permissions:view",
     "docs:view:admin",
     "docs:view:organizer",
@@ -22,6 +23,68 @@ export const PERMISSIONS = [
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
+
+/** Categorías para agrupar la matriz de permisos en el panel superadmin. */
+export type PermissionGroupId =
+    | "events"
+    | "people"
+    | "registrations"
+    | "payments"
+    | "docs";
+
+export const PERMISSION_GROUPS: ReadonlyArray<{
+    id: PermissionGroupId;
+    permissions: readonly Permission[];
+}> = [
+    {
+        id: "events",
+        permissions: [
+            "events:create",
+            "events:update:any",
+            "events:update:own",
+            "events:delete:any",
+            "events:delete:own",
+        ],
+    },
+    {
+        id: "people",
+        permissions: ["users:manage", "roles:manage", "permissions:view"],
+    },
+    {
+        id: "registrations",
+        permissions: [
+            "registrations:view:any",
+            "registrations:view:own",
+            "attendees:checkin",
+        ],
+    },
+    {
+        id: "payments",
+        permissions: [
+            "payments:view:any",
+            "payments:view:own",
+            "payments:update:any",
+            "payments:update:own",
+        ],
+    },
+    {
+        id: "docs",
+        permissions: [
+            "docs:view:admin",
+            "docs:view:organizer",
+            "docs:view:member",
+            "docs:view:dev",
+        ],
+    },
+] as const;
+
+/** Devuelve la categoría a la que pertenece un permiso (o `null` si no está agrupado). */
+export function getPermissionGroupId(permission: Permission): PermissionGroupId | null {
+    for (const group of PERMISSION_GROUPS) {
+        if (group.permissions.includes(permission)) return group.id;
+    }
+    return null;
+}
 
 export const PERMISSION_LABELS: Record<Permission, string> = {
     "events:create": "Create events",
@@ -36,7 +99,8 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
     "attendees:checkin": "Check-in attendees",
     "payments:view:any": "View all payments",
     "payments:view:own": "View own-event payments",
-    "payments:update:any": "Update payment status",
+    "payments:update:any": "Update payment status (all)",
+    "payments:update:own": "Update payment status (own events)",
     "permissions:view": "View permissions",
     "docs:view:admin": "Ver Docs: Administrador",
     "docs:view:organizer": "Ver Docs: Organizador",
@@ -94,6 +158,7 @@ export const PERMISSIONS_BY_ROLE: Record<AppRole, Permission[]> = {
         "registrations:view:own",
         "attendees:checkin",
         "payments:view:own",
+        "payments:update:own",
         "docs:view:organizer",
         "docs:view:member",
     ],

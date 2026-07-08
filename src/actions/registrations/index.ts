@@ -7,6 +7,7 @@ import { RegistrationService } from "@/services/registrations/registration.servi
 import { registrationRatelimit } from "@/lib/redis";
 import { assertEventInAdminScope } from "@/lib/organizations/admin-scope";
 import { requireAuth } from "@/lib/auth/guards";
+import { assertPermission, assertAnyPermission } from "@/lib/auth/permission-guards";
 
 /**
  * Controller Server Action: Registra a un asistente en un evento.
@@ -63,6 +64,7 @@ export async function checkInAttendee(input: unknown) {
   if (user.role !== "organizer" && user.role !== "super_admin" && user.role !== "admin") {
     throw new Error("Only organizers or administrators can check in attendees");
   }
+  await assertPermission(user, "attendees:checkin");
 
   const validated = checkInSchema.parse(input);
   await assertEventInAdminScope(validated.eventId, user.id, user.role);
@@ -87,6 +89,7 @@ export async function getEventAttendees(eventId: string) {
   if (user.role !== "organizer" && user.role !== "super_admin" && user.role !== "admin") {
     throw new Error("Unauthorized");
   }
+  await assertAnyPermission(user, ["registrations:view:any", "registrations:view:own"]);
 
   await assertEventInAdminScope(eventId, user.id, user.role);
 
@@ -115,6 +118,7 @@ export async function registerOfflineAttendeeAction(input: {
   if (user.role !== "organizer" && user.role !== "super_admin" && user.role !== "admin") {
     throw new Error("Solo los organizadores o administradores pueden registrar asistentes manualmente.");
   }
+  await assertPermission(user, "attendees:checkin");
 
   await assertEventInAdminScope(input.eventId, user.id, user.role);
 
@@ -142,6 +146,7 @@ export async function searchPreRegisteredAttendeesAction(eventId: string, queryT
   if (user.role !== "organizer" && user.role !== "super_admin" && user.role !== "admin") {
     throw new Error("Unauthorized");
   }
+  await assertAnyPermission(user, ["attendees:checkin", "registrations:view:any", "registrations:view:own"]);
 
   if (!eventId) {
     return { success: true, attendees: [] };

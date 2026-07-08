@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { EventService } from "@/services/events/event.service";
 import { assertCanCreateEvent, assertCanSendBroadcast, assertEventPayloadWithinPlan } from "@/lib/billing/enforce";
+import { assertPermission, assertOwnOrAnyPermission } from "@/lib/auth/permission-guards";
 import type { Category } from "@/lib/db/schema";
 import {
   type CreateEventInput,
@@ -65,6 +66,7 @@ export async function getCategories(): Promise<Pick<Category, "slug" | "label" |
 
 export async function createEvent(input: CreateEventInput) {
   const user = await requireApprovedOrganizer();
+  await assertPermission(user, "events:create");
   await assertCanCreateEvent(user.id, user.role);
   await assertEventPayloadWithinPlan(user.id, user.role, {
     hasTransport: input.hasTransport,
@@ -114,6 +116,11 @@ export async function updateEvent(eventId: string, input: UpdateEventInput) {
 
   if (!existing) throw new Error("Event not found");
   await assertEventInAdminScope(eventId, user.id, user.role);
+  await assertOwnOrAnyPermission(user, {
+    anyPermission: "events:update:any",
+    ownPermission: "events:update:own",
+    isOwner: existing.organizerId === user.id,
+  });
 
   const planUserId = existing.organizerId;
   const planRole = existing.organizerId === user.id ? user.role : "organizer";
@@ -158,8 +165,13 @@ export async function updateEvent(eventId: string, input: UpdateEventInput) {
 
 export async function deleteEvent(eventId: string) {
   const user = await requireApprovedOrganizer();
-  await assertEventInAdminScope(eventId, user.id, user.role);
-  
+  const scope = await assertEventInAdminScope(eventId, user.id, user.role);
+  await assertOwnOrAnyPermission(user, {
+    anyPermission: "events:delete:any",
+    ownPermission: "events:delete:own",
+    isOwner: scope.organizerId === user.id,
+  });
+
   const hdrs = await headers();
   const ipAddress = hdrs.get("x-forwarded-for") ?? hdrs.get("x-real-ip") ?? "unknown";
   const userAgent = hdrs.get("user-agent") ?? "unknown";
