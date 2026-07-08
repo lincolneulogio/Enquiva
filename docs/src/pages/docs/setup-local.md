@@ -1,10 +1,10 @@
 ---
 title: "Setup Local y Entorno de Desarrollo"
-description: "Guía paso a paso para clonar, configurar y ejecutar Eventia en tu máquina local."
+description: "Guía paso a paso para clonar, configurar y ejecutar Evora en tu máquina local."
 layout: "../../layouts/DocLayout.astro"
 ---
 
-Esta guía está diseñada para desarrolladores que desean contribuir al código base de Eventia. El proyecto utiliza **Next.js 16**, **Drizzle ORM**, **pnpm 11** y **PostgreSQL en Docker**.
+Esta guía está diseñada para desarrolladores que desean contribuir al código base de Evora. El proyecto utiliza **Next.js 16**, **Drizzle ORM**, **pnpm 11** y **PostgreSQL en Docker**.
 
 ---
 

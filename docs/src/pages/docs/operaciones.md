@@ -40,7 +40,7 @@ SMTP_PORT=465
 SMTP_USER="resend"
 SMTP_PASS="re_xxxxxxxx"
 MAIL_FROM_EMAIL="noreply@tudominio.com"
-MAIL_FROM_NAME="Eventia"
+MAIL_FROM_NAME="Evora"
 ```
 
 ### SendGrid

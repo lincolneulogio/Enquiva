@@ -87,7 +87,7 @@ async function writeOgImage() {
       </linearGradient>
     </defs>
     <rect width="${width}" height="${height}" fill="url(#bg)"/>
-    <text x="520" y="300" font-family="Arial, Helvetica, sans-serif" font-size="72" font-weight="700" fill="#402a14">Eventia</text>
+    <text x="520" y="300" font-family="Arial, Helvetica, sans-serif" font-size="72" font-weight="700" fill="#402a14">Evora</text>
     <text x="520" y="370" font-family="Arial, Helvetica, sans-serif" font-size="30" fill="#6b4a2e">Plataforma de gestión de eventos</text>
   </svg>`;
 

@@ -22,8 +22,8 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   title: {
-    default: "Eventia — Plataforma de gestión de eventos",
-    template: "%s | Eventia",
+    default: "Evora — Plataforma de gestión de eventos",
+    template: "%s | Evora",
   },
   description:
     "Crea, gestiona y descubre eventos de todo tipo. Inscripciones, tickets QR, pagos y transporte en un solo lugar.",
@@ -40,14 +40,14 @@ export const metadata: Metadata = {
     type: "website",
     locale: "es_PE",
     siteName: BRAND.name,
-    title: "Eventia — Plataforma de gestión de eventos",
+    title: "Evora — Plataforma de gestión de eventos",
     description:
       "Crea, gestiona y descubre eventos de todo tipo. Inscripciones, tickets QR, pagos y transporte en un solo lugar.",
-    images: [{ url: "/images/og-image.png", width: 1200, height: 630, alt: "Eventia" }],
+    images: [{ url: "/images/og-image.png", width: 1200, height: 630, alt: "Evora" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Eventia — Plataforma de gestión de eventos",
+    title: "Evora — Plataforma de gestión de eventos",
     description:
       "Crea, gestiona y descubre eventos de todo tipo. Inscripciones, tickets QR, pagos y transporte en un solo lugar.",
     images: ["/images/og-image.png"],

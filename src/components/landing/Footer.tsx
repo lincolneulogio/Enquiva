@@ -88,11 +88,11 @@ export function Footer({ t }: FooterProps) {
 
             <div className="space-y-2.5 text-sm">
               <a
-                href="mailto:hola@eventia.app"
+                href="mailto:hola@evora.app"
                 className="inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
               >
                 <Mail className="h-4 w-4 text-primary" />
-                hola@eventia.app
+                hola@evora.app
               </a>
               <p className="inline-flex items-center gap-2 text-muted-foreground">
                 <MapPin className="h-4 w-4 text-primary" />
@@ -126,7 +126,7 @@ export function Footer({ t }: FooterProps) {
         </div>
 
         <div className="flex flex-col gap-3 border-t border-border/80 bg-background/70 px-6 py-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-10">
-          <p>© {new Date().getFullYear()} Eventia. {t("public.home.footerBuilt")}</p>
+          <p>© {new Date().getFullYear()} Evora. {t("public.home.footerBuilt")}</p>
           <Link
             href="#top"
             className="inline-flex items-center gap-1 self-start rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground transition-colors hover:bg-secondary sm:self-auto"

@@ -36,10 +36,10 @@ interface Frontmatter {
 interface Props extends MarkdownLayoutProps<Frontmatter> {}
 
 const { frontmatter, headings = [] } = Astro.props;
-const title = frontmatter?.title || "Eventia Docs";
+const title = frontmatter?.title || "Evora Docs";
 const description =
   frontmatter?.description ||
-  "Portal de documentación oficial de Eventia";
+  "Portal de documentación oficial de Evora";
 const currentPath = Astro.url.pathname;
 
 const rawMainAppUrl =
@@ -135,7 +135,7 @@ const nextPage =
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
-    <title>{title} – Eventia Docs</title>
+    <title>{title} – Evora Docs</title>
     <ViewTransitions />
 
     <!-- Theme Script to prevent flash of wrong mode -->
@@ -219,7 +219,7 @@ const nextPage =
             <span
               class="font-display text-lg font-bold tracking-tight text-foreground transition-opacity hover:opacity-90 flex items-center"
             >
-              <span class="hidden sm:inline">Eventia</span>
+              <span class="hidden sm:inline">Evora</span>
               <span
                 class="text-[10px] sm:text-xs font-semibold bg-[#cb6916]/10 text-[#cb6916] border border-[#cb6916]/20 px-2 py-0.5 rounded-full ml-1"
                 >Docs</span
@@ -434,7 +434,7 @@ const nextPage =
       >
         <span>
           © {new Date().getFullYear()}
-          <strong class="text-[#cb6916] font-bold">Eventia</strong>.
+          <strong class="text-[#cb6916] font-bold">Evora</strong>.
           Gestión premium de eventos y transporte comunitario.
         </span>
         <span class="text-[10px] opacity-75 font-medium"

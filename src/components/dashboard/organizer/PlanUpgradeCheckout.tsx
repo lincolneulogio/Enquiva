@@ -136,7 +136,7 @@ export function PlanUpgradeCheckout({
     try {
       const checkoutResult = await openCulqiCheckout({
         publicKey: culqiPublicKey,
-        title: "Eventia",
+        title: "Evora",
         amount,
         email: checkoutEmail,
       });

@@ -4,7 +4,7 @@ description: "Modelado relacional, tablas Drizzle ORM y respaldos del sistema."
 layout: "../../layouts/DocLayout.astro"
 ---
 
-La plataforma Eventia utiliza **PostgreSQL** administrado a través de **Drizzle ORM** para garantizar tipado estricto desde la base de datos hasta el cliente React.
+La plataforma Evora utiliza **PostgreSQL** administrado a través de **Drizzle ORM** para garantizar tipado estricto desde la base de datos hasta el cliente React.
 
 ---
 

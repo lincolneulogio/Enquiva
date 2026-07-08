@@ -4,7 +4,7 @@ description: "Cómo evolucionar el esquema: db:push, drizzle-kit y scripts migra
 layout: "../../layouts/DocLayout.astro"
 ---
 
-Eventia acumuló varios métodos de migración. Esta guía unifica el criterio para nuevos cambios.
+Evora acumuló varios métodos de migración. Esta guía unifica el criterio para nuevos cambios.
 
 ---
 

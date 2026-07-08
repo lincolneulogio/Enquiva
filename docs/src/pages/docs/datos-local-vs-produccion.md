@@ -4,7 +4,7 @@ description: "Dónde viven los datos, cómo se aíslan los entornos y por qué G
 layout: "../../layouts/DocLayout.astro"
 ---
 
-Eventia separa **código** (Git) y **datos** (PostgreSQL). Entender esta diferencia evita confusiones al ver eventos en tu dominio que no existen en tu máquina local.
+Evora separa **código** (Git) y **datos** (PostgreSQL). Entender esta diferencia evita confusiones al ver eventos en tu dominio que no existen en tu máquina local.
 
 ---
 

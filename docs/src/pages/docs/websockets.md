@@ -4,7 +4,7 @@ description: "Sincronización instantánea de pagos y escaneos de puerta usando 
 layout: "../../layouts/DocLayout.astro"
 ---
 
-Para ofrecer una experiencia inmersiva y evitar que los organizadores tengan que recargar la página constantemente, Eventia utiliza **Pusher** (WebSockets) para transmitir eventos críticos en milisegundos.
+Para ofrecer una experiencia inmersiva y evitar que los organizadores tengan que recargar la página constantemente, Evora utiliza **Pusher** (WebSockets) para transmitir eventos críticos en milisegundos.
 
 ---
 

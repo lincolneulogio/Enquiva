@@ -89,12 +89,12 @@ export function HeroSection({ t, locale, signals, features }: HeroSectionProps) 
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/images/logo-mark-xs.png"
-                  alt="Eventia"
+                  alt="Evora"
                   height={18}
                   className="object-contain"
                   style={{ height: "18px", width: "auto" }}
                 />
-                Eventia
+                Evora
               </span>
               <span className="text-xs text-muted-foreground">Live</span>
             </div>

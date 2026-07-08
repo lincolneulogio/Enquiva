@@ -4,7 +4,7 @@ description: "Cómo funciona Better-Auth, el inicio de sesión y los distintos n
 layout: "../../layouts/DocLayout.astro"
 ---
 
-Para mantener los datos de nuestra comunidad seguros, Eventia utiliza **Better-Auth**, una librería moderna para manejar sesiones mediante cookies HTTP-Only y validaciones criptográficas.
+Para mantener los datos de nuestra comunidad seguros, Evora utiliza **Better-Auth**, una librería moderna para manejar sesiones mediante cookies HTTP-Only y validaciones criptográficas.
 
 ---
 

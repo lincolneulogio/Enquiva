@@ -2,9 +2,9 @@ import { test, expect } from "@playwright/test";
 import { selectors } from "./helpers/selectors";
 
 test.describe("Páginas públicas", () => {
-  test("home carga con marca Eventia", async ({ page }) => {
+  test("home carga con marca Evora", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveTitle(/Eventia/i);
+    await expect(page).toHaveTitle(/Evora/i);
     await expect(page.getByRole("link", { name: /eventos|events/i }).first()).toBeVisible();
   });
 

@@ -52,7 +52,7 @@ export function FeaturesSection({ t, locale }: FeaturesSectionProps) {
               <div className="relative z-10 flex h-full flex-col justify-between rounded-3xl border border-white/60 bg-white/45 p-5 backdrop-blur-md sm:p-6">
                 <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/70 bg-white/80 px-3 py-1 text-xs font-medium text-[#9a4d1e]">
                   <Users className="h-3.5 w-3.5" />
-                  Eventia Comunidad
+                  Evora Comunidad
                 </div>
 
                 <div className="space-y-3">

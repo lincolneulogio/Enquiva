@@ -1,10 +1,10 @@
 ---
 title: "Inventario de Módulos"
-description: "Mapa completo de Eventia: pantallas, APIs, estado y mejoras."
+description: "Mapa completo de Evora: pantallas, APIs, estado y mejoras."
 layout: "../../layouts/DocLayout.astro"
 ---
 
-Resumen técnico del ecosistema **Eventia** (actualizado desde el código).
+Resumen técnico del ecosistema **Evora** (actualizado desde el código).
 
 | Métrica | Cantidad |
 |---------|----------|

@@ -7,8 +7,8 @@ async function main() {
   });
 
   const pong = await redis.ping();
-  await redis.set("Eventia:healthcheck", "ok", { ex: 60 });
-  const value = await redis.get("Eventia:healthcheck");
+  await redis.set("Evora:healthcheck", "ok", { ex: 60 });
+  const value = await redis.get("Evora:healthcheck");
 
   console.log("Upstash Redis conectado:", pong);
   console.log("Test read/write:", value);

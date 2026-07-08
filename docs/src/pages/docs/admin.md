@@ -65,7 +65,7 @@ La sección **Configuración** de nivel `super_admin` cuenta con una potente con
 
 ### 1. Perfil e Identidad de la Organización
 Permite cambiar la identidad y el pie de firma que viaja en todas las comunicaciones del ecosistema:
-* **Nombre de la Organización:** Modifica el título principal (ej: `Eventia`) que se muestra en los correos y en el encabezado del pase de entrada digital.
+* **Nombre de la Organización:** Modifica el título principal (ej: `Evora`) que se muestra en los correos y en el encabezado del pase de entrada digital.
 * **Correo de Soporte:** Configura la dirección directa que reciben los feligreses si tienen dudas sobre sus pagos.
 * Todos los cambios se persisten de manera sumamente veloz mediante operaciones seguras JSON en el servidor Next.js.
 

@@ -1,6 +1,6 @@
 ---
 title: "Guía de Despliegue"
-description: "Desplegar Eventia en Vercel con PostgreSQL en Neon o Supabase."
+description: "Desplegar Evora en Vercel con PostgreSQL en Neon o Supabase."
 layout: "../../layouts/DocLayout.astro"
 ---
 

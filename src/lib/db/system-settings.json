@@ -1,6 +1,6 @@
 {
-  "organizationName": "Eventia",
-  "supportEmail": "soporte@eventia.app",
+  "organizationName": "Evora",
+  "supportEmail": "soporte@evora.app",
   "alertNewPayments": true,
   "alertTransportCapacity": true,
   "alertDailyFinanceSummary": true
