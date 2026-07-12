@@ -12,7 +12,7 @@ import { ExportDataPanel } from "@/components/dashboard";
 import { getExportEventOptions } from "@/actions/exports";
 import { getCategories } from "@/actions/events";
 import { Suspense } from "react";
-import { resolveAdminScope, scopeEventCondition } from "@/lib/organizations/admin-scope";
+import { resolveAdminScope, scopeEventCondition, canMutateEventRecord } from "@/lib/organizations/admin-scope";
 import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
 import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
 import { auth } from "@/lib/auth";
@@ -42,6 +42,7 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
     const staffBase = await getStaffBaseFromRequest();
     const eventsPath = staffDashboardPath(staffBase, "events");
     const adminScope = await resolveAdminScope();
+    const entityOrgId = adminScope.mode === "org" ? adminScope.organizationId : null;
     const orgEventFilter = scopeEventCondition(adminScope);
     const params = await searchParams;
     const requestedPage = Number(params.page ?? "1");
@@ -106,6 +107,8 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
             date: events.date,
             price: events.price,
             capacity: events.capacity,
+            organizerId: events.organizerId,
+            organizationId: events.organizationId,
             organizerName: users.name,
         })
         .from(events)
@@ -226,6 +229,18 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                             <tbody className="divide-y divide-border">
                                 {allEvents.map((event, index) => {
                                     const regCount = regCountsMap.get(event.id) ?? 0;
+                                    const canMutate = Boolean(
+                                        session?.user &&
+                                            canMutateEventRecord(
+                                                {
+                                                    organizerId: event.organizerId,
+                                                    organizationId: event.organizationId,
+                                                },
+                                                session.user.id,
+                                                role,
+                                                entityOrgId,
+                                            ),
+                                    );
                                     return (
                                         <tr key={event.id} className="hover:bg-muted/30 transition-colors">
                                             <td className="px-4 py-4 text-muted-foreground">{rowStart + index + 1}</td>
@@ -272,13 +287,17 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                                                     >
                                                         {t("common.view")}
                                                     </Link>
-                                                    <Link
-                                                        href={`${eventsPath}/${event.id}`}
-                                                        className="text-blue-600 hover:underline dark:text-blue-400 font-semibold"
-                                                    >
-                                                        {t("common.edit")}
-                                                    </Link>
-                                                    <DeleteEventButton eventId={event.id} />
+                                                    {canMutate ? (
+                                                        <>
+                                                            <Link
+                                                                href={`${eventsPath}/${event.id}`}
+                                                                className="text-blue-600 hover:underline dark:text-blue-400 font-semibold"
+                                                            >
+                                                                {t("common.edit")}
+                                                            </Link>
+                                                            <DeleteEventButton eventId={event.id} />
+                                                        </>
+                                                    ) : null}
                                                 </div>
                                             </td>
                                         </tr>

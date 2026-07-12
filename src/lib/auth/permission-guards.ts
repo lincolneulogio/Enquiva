@@ -1,5 +1,5 @@
 import { hasEffectivePermission } from "./effective-permissions";
-import type { Permission } from "./rbac";
+import { normalizeRole, type Permission } from "./rbac";
 
 /** Sujeto mínimo para evaluar permisos: solo se necesita el rol. */
 type PermissionSubject = { role?: string | null };
@@ -60,9 +60,8 @@ export async function assertAnyPermission(
 
 /**
  * Autoriza una acción sobre un recurso que puede ser "propio" o "de cualquiera".
- * - Con `anyPermission` → autorizado (el alcance por entidad se valida por separado).
- * - Sin él, pero con `ownPermission` y siendo dueño → autorizado.
- * - En cualquier otro caso lanza `PermissionError`.
+ * - admin/organizer: `anyPermission` o (`ownPermission` + dueño)
+ * - super_admin: solo si es dueño (ve plataforma; muta solo lo que creó)
  */
 export async function assertOwnOrAnyPermission(
   user: PermissionSubject,
@@ -73,6 +72,16 @@ export async function assertOwnOrAnyPermission(
     message?: string;
   },
 ): Promise<void> {
+  const role = normalizeRole(user.role);
+
+  if (role === "super_admin") {
+    if (opts.isOwner) return;
+    throw new PermissionError(
+      opts.message ??
+        "Como superadmin solo puedes modificar recursos de eventos que creaste.",
+    );
+  }
+
   if (await hasEffectivePermission(user.role, opts.anyPermission)) return;
   if (opts.isOwner && (await hasEffectivePermission(user.role, opts.ownPermission))) {
     return;

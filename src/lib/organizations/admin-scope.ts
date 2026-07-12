@@ -244,6 +244,31 @@ export type EventScopeRecord = {
   organizationId: string | null;
 };
 
+/**
+ * ¿Puede mutar (CRUD / pagos / check-in / transporte) este evento?
+ * - organizer / super_admin: solo si son el creador (`organizerId`)
+ * - admin de entidad: eventos de su organización
+ * Superadmin sigue viendo todo a nivel plataforma; la mutación es solo de lo propio.
+ */
+export function canMutateEventRecord(
+  event: Pick<EventScopeRecord, "organizerId" | "organizationId">,
+  userId: string,
+  role: string | null | undefined,
+  entityOrganizationId: string | null = null,
+): boolean {
+  const normalized = normalizeRole(role);
+
+  if (normalized === "super_admin" || normalized === "organizer") {
+    return event.organizerId === userId;
+  }
+
+  if (normalized === "admin") {
+    return Boolean(entityOrganizationId && event.organizationId === entityOrganizationId);
+  }
+
+  return false;
+}
+
 export async function getEventScopeRecord(eventId: string): Promise<EventScopeRecord | null> {
   const [event] = await db
     .select({
@@ -257,18 +282,23 @@ export async function getEventScopeRecord(eventId: string): Promise<EventScopeRe
   return event ?? null;
 }
 
-/** Valida que el usuario pueda gestionar un evento (organizer propio, admin de entidad o super_admin). */
+/**
+ * Valida mutación de un evento:
+ * organizer/super_admin → solo eventos propios;
+ * admin de entidad → eventos de su org.
+ */
 export async function assertCanManageEvent(
   event: EventScopeRecord,
   userId: string,
   role: string | null | undefined,
 ): Promise<void> {
   const normalized = normalizeRole(role);
-  if (normalized === "super_admin") return;
 
-  if (normalized === "organizer") {
+  if (normalized === "super_admin" || normalized === "organizer") {
     if (event.organizerId !== userId) {
-      throw new Error("No tienes permisos para gestionar este evento");
+      throw new Error(
+        "Solo puedes modificar eventos que creaste. Los de otras entidades los gestiona su administrador u organizador.",
+      );
     }
     return;
   }

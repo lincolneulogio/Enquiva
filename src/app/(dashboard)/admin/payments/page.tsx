@@ -23,9 +23,13 @@ import { getCategories } from "@/actions/events";
 import { categoryLabel } from "@/lib/utils";
 import { Suspense } from "react";
 import { PaymentNotesButton } from "@/components/payments/PaymentNotesButton";
-import { resolveAdminScope, scopeEventCondition } from "@/lib/organizations/admin-scope";
+import { resolveAdminScope, scopeEventCondition, canMutateEventRecord } from "@/lib/organizations/admin-scope";
 import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
 import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { normalizeRole } from "@/lib/auth/rbac";
 
 function getPaymentDynamicCaption(
   notes: string | null,
@@ -115,6 +119,10 @@ export default async function AdminPaymentsPage({
   searchParams,
 }: AdminPaymentsPageProps) {
   const { locale, t } = await getI18n();
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) redirect("/login");
+
+  const role = normalizeRole(session.user.role);
   const staffBase = await getStaffBaseFromRequest();
   const params = await searchParams;
   const exportEventOptions = await getExportEventOptions("admin");
@@ -139,6 +147,7 @@ export default async function AdminPaymentsPage({
       : 1;
 
   const adminScope = await resolveAdminScope();
+  const entityOrgId = adminScope.mode === "org" ? adminScope.organizationId : null;
   const orgEventFilter = scopeEventCondition(adminScope);
 
   // Build filter conditions
@@ -333,7 +342,18 @@ export default async function AdminPaymentsPage({
                         transportRoute,
                       },
                       index,
-                    ) => (
+                    ) => {
+                      const canUpdateStatus = canMutateEventRecord(
+                        {
+                          organizerId: event.organizerId,
+                          organizationId: event.organizationId,
+                        },
+                        session.user.id,
+                        role,
+                        entityOrgId,
+                      );
+
+                      return (
                       <tr
                         key={payment.id}
                         className="hover:bg-muted/30 transition-colors"
@@ -443,10 +463,16 @@ export default async function AdminPaymentsPage({
                           <PaymentStatusBadge status={payment.status} />
                         </td>
                         <td className="px-4 py-4 max-w-[170px]">
-                          <PaymentStatusSelect
-                            paymentId={payment.id}
-                            currentStatus={payment.status}
-                          />
+                          {canUpdateStatus ? (
+                            <PaymentStatusSelect
+                              paymentId={payment.id}
+                              currentStatus={payment.status}
+                            />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">
+                              {locale === "en" ? "View only" : "Solo lectura"}
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-4">
                           <div className="flex flex-col gap-1 items-start">
@@ -481,7 +507,8 @@ export default async function AdminPaymentsPage({
                           </div>
                         </td>
                       </tr>
-                    ),
+                      );
+                    },
                   )}
                 </tbody>
               </table>

@@ -11,9 +11,10 @@ import { formatEventDateShort, eventStatusLabel, statusColor } from "@/lib/utils
 import { getIntlLocale } from "@/lib/i18n/core";
 import { TablePagination } from "@/components/dashboard";
 import { ToggleEventTransportButton } from "@/components/dashboard";
-import { resolveAdminScope, scopeEventCondition } from "@/lib/organizations/admin-scope";
+import { resolveAdminScope, scopeEventCondition, canMutateEventRecord } from "@/lib/organizations/admin-scope";
 import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
 import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
+import { normalizeRole } from "@/lib/auth/rbac";
 
 interface AdminTransportPageProps {
     searchParams: Promise<{
@@ -37,6 +38,8 @@ export default async function AdminTransportOverviewPage({ searchParams }: Admin
     const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
 
     const adminScope = await resolveAdminScope();
+    const entityOrgId = adminScope.mode === "org" ? adminScope.organizationId : null;
+    const role = normalizeRole(session.user.role);
     const orgEventFilter = scopeEventCondition(adminScope);
     const eventConditions: SQL[] = [];
     if (orgEventFilter) eventConditions.push(orgEventFilter);
@@ -73,6 +76,8 @@ export default async function AdminTransportOverviewPage({ searchParams }: Admin
             status: events.status,
             date: events.date,
             hasTransport: events.hasTransport,
+            organizerId: events.organizerId,
+            organizationId: events.organizationId,
             organizerName: users.name,
             routesCount: sql<number>`(
                 SELECT count(*)::int
@@ -187,7 +192,17 @@ export default async function AdminTransportOverviewPage({ searchParams }: Admin
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
-                                    {allEvents.map((event) => (
+                                    {allEvents.map((event) => {
+                                        const canMutate = canMutateEventRecord(
+                                            {
+                                                organizerId: event.organizerId,
+                                                organizationId: event.organizationId,
+                                            },
+                                            session.user.id,
+                                            role,
+                                            entityOrgId,
+                                        );
+                                        return (
                                         <tr key={event.id} className="hover:bg-muted/30 transition-colors">
                                             <td className="px-4 py-4 font-semibold text-foreground truncate" title={event.title}>
                                                 {event.title}
@@ -234,24 +249,33 @@ export default async function AdminTransportOverviewPage({ searchParams }: Admin
                                             </td>
                                             <td className="px-4 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-3">
-                                                    <ToggleEventTransportButton
-                                                        eventId={event.id}
-                                                        initialHasTransport={event.hasTransport}
-                                                        className="scale-90"
-                                                    />
-                                                    {event.hasTransport && (
-                                                        <Link
-                                                            href={`/admin/events/${event.id}/transport`}
-                                                            className="inline-flex items-center gap-1.5 rounded-xl bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary/80 transition-colors border border-border/50 active:scale-95"
-                                                        >
-                                                            {t("dashboard.admin.transportRoutesBtn")}
-                                                            <ArrowRight className="h-3.5 w-3.5" />
-                                                        </Link>
+                                                    {canMutate ? (
+                                                        <>
+                                                            <ToggleEventTransportButton
+                                                                eventId={event.id}
+                                                                initialHasTransport={event.hasTransport}
+                                                                className="scale-90"
+                                                            />
+                                                            {event.hasTransport && (
+                                                                <Link
+                                                                    href={staffDashboardPath(staffBase, `/events/${event.id}/transport`)}
+                                                                    className="inline-flex items-center gap-1.5 rounded-xl bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary/80 transition-colors border border-border/50 active:scale-95"
+                                                                >
+                                                                    {t("dashboard.admin.transportRoutesBtn")}
+                                                                    <ArrowRight className="h-3.5 w-3.5" />
+                                                                </Link>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {locale === "en" ? "View only" : "Solo lectura"}
+                                                        </span>
                                                     )}
                                                 </div>
                                             </td>
                                         </tr>
-                                    ))}
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
