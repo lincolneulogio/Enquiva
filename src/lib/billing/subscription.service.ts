@@ -8,7 +8,7 @@ import {
   type Plan,
 } from "@/lib/db/schema";
 import { and, count, desc, eq, gt, gte, inArray, isNull, lt, ne, or, sql, type SQL } from "drizzle-orm";
-import { DEFAULT_PLAN_DEFINITIONS, mapPlanRow, UNLIMITED_PLAN } from "./plans";
+import { DEFAULT_PLAN_DEFINITIONS, FREE_PLAN_DEFINITION, mapPlanRow, PENDING_PLATFORM_SETUP_PLAN, UNLIMITED_PLAN, isPendingPlatformSetupPlan } from "./plans";
 import type { PlanUsage, PlanChangePreview, ResolvedPlan, SubscriptionInfo } from "./types";
 import { isOrganizerSubscriptionBlocked } from "./subscription-auto-renew.service";
 import { clearRenewalTrackingFields } from "./subscription-renewal.service";
@@ -58,9 +58,9 @@ export class SubscriptionService {
 
     if (existing) return existing.id;
 
-    const freePlan = await this.getPlanBySlug("free");
+    const freePlan =
+      (await this.getPlanBySlug("free")) ?? (await this.ensureFreePlanExists());
     if (!freePlan) {
-      // Alta de entidad permitida aunque el superadmin aún no haya creado planes.
       return null;
     }
 
@@ -90,9 +90,57 @@ export class SubscriptionService {
       .limit(1);
 
     if (!row || row.status !== "active") {
-      return this.getFreePlan();
+      return (
+        (await this.getPlanBySlug("free")) ??
+        (await this.ensureFreePlanExists()) ??
+        PENDING_PLATFORM_SETUP_PLAN
+      );
     }
     return mapPlanRow(row.plan);
+  }
+
+  private static planUpsertFields(definition: (typeof DEFAULT_PLAN_DEFINITIONS)[number]) {
+    return {
+      name: definition.name,
+      description: definition.description,
+      priceMonthly: definition.priceMonthly,
+      maxActiveEvents: definition.maxActiveEvents,
+      maxAttendeesPerEvent: definition.maxAttendeesPerEvent,
+      commissionPercent: definition.commissionPercent,
+      maxBroadcastsPerMonth: definition.maxBroadcastsPerMonth,
+      maxAiMessagesPerMonth: definition.maxAiMessagesPerMonth,
+      maxOrganizers: definition.maxOrganizers,
+      featureCulqi: definition.featureCulqi,
+      featureTransport: definition.featureTransport,
+      featureAi: definition.featureAi,
+      featureExports: definition.featureExports,
+      featureCustomBranding: definition.featureCustomBranding,
+      sortOrder: definition.sortOrder,
+      updatedAt: new Date(),
+    };
+  }
+
+  /** Sincroniza la definición canónica del plan free (scripts de bootstrap / deploy). */
+  static async syncFreePlanDefinition() {
+    await db
+      .insert(plans)
+      .values(FREE_PLAN_DEFINITION)
+      .onConflictDoUpdate({
+        target: plans.slug,
+        set: this.planUpsertFields(FREE_PLAN_DEFINITION),
+      });
+  }
+
+  /**
+   * Crea el plan free solo si no existe (no pisa personalizaciones del superadmin).
+   * Auto-cura BDs sin seed o con el plan borrado por error.
+   */
+  static async ensureFreePlanExists(): Promise<ResolvedPlan | null> {
+    const existing = await this.getPlanBySlug("free");
+    if (existing) return existing;
+
+    await db.insert(plans).values(FREE_PLAN_DEFINITION).onConflictDoNothing();
+    return this.getPlanBySlug("free");
   }
 
   static async ensureDefaultPlans() {
@@ -102,24 +150,7 @@ export class SubscriptionService {
         .values(definition)
         .onConflictDoUpdate({
           target: plans.slug,
-          set: {
-            name: definition.name,
-            description: definition.description,
-            priceMonthly: definition.priceMonthly,
-            maxActiveEvents: definition.maxActiveEvents,
-            maxAttendeesPerEvent: definition.maxAttendeesPerEvent,
-            commissionPercent: definition.commissionPercent,
-            maxBroadcastsPerMonth: definition.maxBroadcastsPerMonth,
-            maxAiMessagesPerMonth: definition.maxAiMessagesPerMonth,
-            maxOrganizers: definition.maxOrganizers,
-            featureCulqi: definition.featureCulqi,
-            featureTransport: definition.featureTransport,
-            featureAi: definition.featureAi,
-            featureExports: definition.featureExports,
-            featureCustomBranding: definition.featureCustomBranding,
-            sortOrder: definition.sortOrder,
-            updatedAt: new Date(),
-          },
+          set: this.planUpsertFields(definition),
         });
     }
   }
@@ -130,10 +161,11 @@ export class SubscriptionService {
   }
 
   static async getFreePlan(): Promise<ResolvedPlan> {
-    const plan = await this.getPlanBySlug("free");
+    const plan =
+      (await this.getPlanBySlug("free")) ?? (await this.ensureFreePlanExists());
     if (!plan) {
       throw new Error(
-        "Plan free no encontrado. Créalo desde el panel superadmin (Planes) o ejecuta pnpm db:sync:plans si quieres el seed opcional.",
+        "Plan free no encontrado. Ejecuta pnpm db:seed:bootstrap o pnpm db:sync:plans.",
       );
     }
     return plan;
@@ -225,6 +257,7 @@ export class SubscriptionService {
         accessBlocked: false,
         billingScope: "platform",
         canManageBilling: true,
+        plansConfigured: true,
       };
     }
 
@@ -244,11 +277,27 @@ export class SubscriptionService {
       return this.buildSubscriptionInfo(userId, role, ctx, existing.subscription, existing.plan);
     }
 
-    const freePlan = await this.getPlanBySlug("free");
+    const freePlan =
+      (await this.getPlanBySlug("free")) ?? (await this.ensureFreePlanExists());
     if (!freePlan) {
-      throw new Error(
-        "PLANS_NOT_CONFIGURED: Aún no hay planes. El superadmin debe crear el plan free (u otros) antes de activar suscripciones.",
-      );
+      // Último recurso: panel usable sin tumbar el layout (p. ej. fallo de BD).
+      return {
+        id: "pending-setup",
+        status: "pending_setup",
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(),
+        plan: PENDING_PLATFORM_SETUP_PLAN,
+        usage: await this.getUsage(userId, ctx),
+        renewalAlert: null,
+        daysUntilRenewal: null,
+        autoRenewEnabled: false,
+        hasSavedCard: false,
+        accessBlocked: false,
+        billingScope: ctx.mode === "organization" ? "organization" : "user",
+        canManageBilling: canManageSubscriptionBilling(userId, role, ctx),
+        organizationName: ctx.mode === "organization" ? ctx.organizationName : null,
+        plansConfigured: false,
+      };
     }
     const periodEnd = addOneMonth();
     const billingUserId = getBillingUserId(ctx)!;
@@ -296,7 +345,12 @@ export class SubscriptionService {
     }
 
     const effectivePlan =
-      subscription.status === "past_due" ? await this.getFreePlan() : billedPlan;
+      subscription.status === "past_due"
+        ? ((await this.getPlanBySlug("free")) ??
+          (await this.ensureFreePlanExists()) ??
+          PENDING_PLATFORM_SETUP_PLAN)
+        : billedPlan;
+    const plansConfigured = !isPendingPlatformSetupPlan(effectivePlan);
 
     return {
       id: subscription.id,
@@ -320,6 +374,7 @@ export class SubscriptionService {
       billingScope: ctx.mode === "organization" ? "organization" : "user",
       canManageBilling: canManageSubscriptionBilling(userId, role, ctx),
       organizationName: ctx.mode === "organization" ? ctx.organizationName : null,
+      plansConfigured,
     };
   }
 

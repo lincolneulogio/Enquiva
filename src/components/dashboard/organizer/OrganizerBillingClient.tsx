@@ -88,14 +88,15 @@ export function OrganizerBillingClient({
   const [openingCheckout, setOpeningCheckout] = useState(false);
   const { plan, usage, billedPlan, renewalAlert, daysUntilRenewal } = subscription;
   const displayPlanName = billedPlan?.name ?? plan.name;
+  const plansReady = subscription.plansConfigured !== false;
 
   // Precarga Culqi para que el primer “Pagar” no espere el script.
   useEffect(() => {
-    if (!culqiPublicKey || !culqiAvailable) return;
+    if (!culqiPublicKey || !culqiAvailable || !plansReady) return;
     void loadCulqiCheckoutScript().catch(() => {
       /* se reintenta al pagar */
     });
-  }, [culqiPublicKey, culqiAvailable]);
+  }, [culqiPublicKey, culqiAvailable, plansReady]);
 
   useEffect(() => {
     if (prevPathname.current === pathname) return;
@@ -158,6 +159,21 @@ export function OrganizerBillingClient({
   const historyWithoutActivePending = paymentHistory.filter(
     (row) => !(row.payment.status === "pending" && pendingPayment?.payment.id === row.payment.id),
   );
+
+  if (!plansReady) {
+    return (
+      <div className="rounded-2xl border border-sky-200/70 bg-sky-50/80 p-6 dark:border-sky-900/40 dark:bg-sky-950/25">
+        <h2 className="text-lg font-semibold text-foreground">
+          {t("billing.organizer.plansPendingTitle")}
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {pageVariant === "entity"
+            ? t("billing.organizer.plansPendingBodyAdmin")
+            : t("billing.organizer.plansPendingBodyOrganizer")}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

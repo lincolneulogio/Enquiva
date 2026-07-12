@@ -1,6 +1,7 @@
 /**
- * Upserts Free / Pro / Enterprise from DEFAULT_PLAN_DEFINITIONS (incluye featureCulqi).
- * Uso post-deploy o local: pnpm run db:sync:plans
+ * Upserts Free / Pro / Enterprise from DEFAULT_PLAN_DEFINITIONS.
+ * Bootstrap local usa solo plan free (`db:seed:bootstrap`).
+ * Uso post-deploy: pnpm run db:sync:plans
  */
 import { SubscriptionService } from "../src/lib/billing/subscription.service";
 

@@ -2,6 +2,7 @@ import { redis } from "@/lib/redis";
 import { resolveSubscriptionBillingContext } from "@/lib/billing/subscription-context";
 import { SubscriptionService } from "@/lib/billing/subscription.service";
 import { getResolvedPlanForUser, PlanLimitError } from "@/lib/billing/enforce";
+import { isPendingPlatformSetupPlan } from "@/lib/billing/plans";
 
 export type AiChatUsage = {
   used: number;
@@ -58,6 +59,11 @@ export async function assertAiChatMessageAllowed(userId: string, role?: string |
   if (SubscriptionService.isPlatformStaff(role)) return;
 
   const plan = await getResolvedPlanForUser(userId, role);
+  if (isPendingPlatformSetupPlan(plan)) {
+    throw new PlanLimitError(
+      "La plataforma aún está configurando los planes de suscripción. Cuando estén disponibles, podrás usar todas las funciones de tu cuenta.",
+    );
+  }
   const limit = plan.maxAiMessagesPerMonth;
   if (limit == null) return;
 

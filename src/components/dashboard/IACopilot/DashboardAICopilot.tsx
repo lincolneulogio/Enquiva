@@ -7,8 +7,14 @@ type DashboardAICopilotProps = {
 };
 
 export async function DashboardAICopilot({ userId, role }: DashboardAICopilotProps) {
-  const { plan, isUnlimited } = await getOrganizerPlanSummary(userId, role);
-  const enabled = planIncludesFeature(plan, "ai", isUnlimited);
-  if (!enabled) return null;
-  return <AICopilot enabled />;
+  try {
+    const summary = await getOrganizerPlanSummary(userId, role);
+    if (!summary.plansConfigured) return null;
+    const enabled = planIncludesFeature(summary.plan, "ai", summary.isUnlimited);
+    if (!enabled) return null;
+    return <AICopilot enabled />;
+  } catch {
+    // Nunca tumbar el layout por el copiloto (p. ej. planes aún no publicados).
+    return null;
+  }
 }

@@ -75,6 +75,9 @@ export const DEFAULT_PLAN_DEFINITIONS: Array<{
   },
 ];
 
+/** Definición canónica del plan gratuito (único seed obligatorio en arranque). */
+export const FREE_PLAN_DEFINITION = DEFAULT_PLAN_DEFINITIONS.find((d) => d.slug === "free")!;
+
 export const UNLIMITED_PLAN: ResolvedPlan = {
   id: "platform-unlimited",
   slug: "enterprise",
@@ -96,6 +99,36 @@ export const UNLIMITED_PLAN: ResolvedPlan = {
     customBranding: true,
   },
 };
+
+/**
+ * Placeholder mientras el superadmin aún no publica planes.
+ * No se persiste en BD; solo evita romper el dashboard.
+ */
+export const PENDING_PLATFORM_SETUP_PLAN: ResolvedPlan = {
+  id: "pending-platform-setup",
+  slug: "__pending_setup__",
+  name: "Configuración pendiente",
+  description: null,
+  priceMonthly: 0,
+  currency: "PEN",
+  maxActiveEvents: 0,
+  maxAttendeesPerEvent: 0,
+  commissionPercent: 0,
+  maxBroadcastsPerMonth: 0,
+  maxAiMessagesPerMonth: 0,
+  maxOrganizers: 0,
+  features: {
+    culqi: false,
+    transport: false,
+    ai: false,
+    exports: false,
+    customBranding: false,
+  },
+};
+
+export function isPendingPlatformSetupPlan(plan: Pick<ResolvedPlan, "slug" | "id">) {
+  return plan.slug === "__pending_setup__" || plan.id === "pending-platform-setup";
+}
 
 export function mapPlanRow(plan: Plan): ResolvedPlan {
   return {

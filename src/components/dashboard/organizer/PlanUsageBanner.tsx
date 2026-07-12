@@ -18,6 +18,7 @@ export function PlanUsageBanner({ summary, className, showFeatures = false }: Pl
   const t = useTranslations();
 
   if (summary.isUnlimited) return null;
+  if (summary.plansConfigured === false) return null;
 
   const { plan, usage } = summary;
   const eventsLabel =

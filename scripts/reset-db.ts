@@ -1,6 +1,6 @@
 /**
  * Reset total de la BD (drop tablas + enums).
- * Después: pnpm db:push && pnpm db:seed:roles
+ * Después: pnpm db:push && pnpm db:seed:bootstrap
  * o usa: pnpm db:fresh
  */
 import postgres from "postgres";
@@ -51,7 +51,7 @@ async function reset() {
     }
 
     console.log("Database reset complete! Everything is clean.");
-    console.log("Next: pnpm db:push && pnpm db:seed:roles   (or pnpm db:fresh)");
+    console.log("Next: pnpm db:push && pnpm db:seed:bootstrap   (or pnpm db:fresh)");
   } catch (err) {
     console.error("Failed to reset database:", err);
     process.exit(1);

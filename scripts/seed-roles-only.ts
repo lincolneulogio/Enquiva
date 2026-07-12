@@ -1,6 +1,5 @@
 /**
- * Seed único permitido tras un reset: los 4 roles de plataforma.
- * No crea planes, categorías, usuarios ni datos de demo.
+ * Seed solo roles (legacy). Preferir: pnpm db:seed:bootstrap (roles + plan free).
  */
 import { db } from "@/lib/db";
 import { roles } from "@/lib/db/schema";

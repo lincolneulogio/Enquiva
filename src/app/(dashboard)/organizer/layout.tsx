@@ -6,6 +6,7 @@ import { getOrganizerPlanSummary, planIncludesBroadcasts, planIncludesFeature } 
 import { getEffectivePermissionsForRole } from "@/lib/auth/effective-permissions";
 import { getMySubscription } from "@/actions/billing";
 import { OrganizerSubscriptionBlockedBanner } from "@/components/dashboard/organizer/OrganizerSubscriptionGate";
+import { PlatformPlansPendingBanner } from "@/components/dashboard/billing/PlatformPlansPendingBanner";
 import { SessionKeepAlive } from "@/components/auth/SessionKeepAlive";
 import { DashboardAICopilot } from "@/components/dashboard/IACopilot/DashboardAICopilot";
 import { OrganizationService } from "@/lib/organizations/organization.service";
@@ -106,6 +107,9 @@ export default async function OrganizerLayout({
         <main className="min-w-0 flex-1 overflow-x-hidden p-4 pt-[calc(env(safe-area-inset-top)+5.75rem)] sm:p-6 sm:pt-[calc(env(safe-area-inset-top)+6.25rem)] lg:p-8 lg:pt-8">
           {subscription?.accessBlocked ? (
             <OrganizerSubscriptionBlockedBanner subscription={subscription} />
+          ) : null}
+          {!planSummary.plansConfigured ? (
+            <PlatformPlansPendingBanner audience="organizer" />
           ) : null}
           {children}
         </main>

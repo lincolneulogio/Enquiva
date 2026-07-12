@@ -1580,6 +1580,11 @@ const translations: Record<Locale, TranslationDictionary> = {
                 blockedContactAdmin:
                     "El plan de {org} lo gestiona el administrador de la entidad. Pídele que renueve o mejore el plan.",
                 blockedFooter: "Sin pago, el acceso al panel permanece limitado.",
+                plansPendingTitle: "Planes en configuración",
+                plansPendingBodyOrganizer:
+                    "Tu cuenta ya está activa. El administrador de Evora aún está publicando los planes de suscripción. En cuanto estén listos, podrás crear eventos y usar todas las funciones de tu plan.",
+                plansPendingBodyAdmin:
+                    "Tu entidad ya está creada. El administrador de la plataforma aún está configurando los planes. Cuando estén disponibles, podrás gestionar la facturación y los límites de tu equipo.",
                 daysRemainingLabel: "días restantes",
                 dayRemaining: "día restante",
                 daysExpired: "Plan vencido",
@@ -3279,6 +3284,11 @@ const translations: Record<Locale, TranslationDictionary> = {
                 blockedContactAdmin:
                     "The plan for {org} is managed by the entity administrator. Ask them to renew or upgrade the plan.",
                 blockedFooter: "Without payment, panel access stays limited.",
+                plansPendingTitle: "Plans being configured",
+                plansPendingBodyOrganizer:
+                    "Your account is already active. Evora’s admin is still publishing subscription plans. As soon as they’re ready, you’ll be able to create events and use all features in your plan.",
+                plansPendingBodyAdmin:
+                    "Your organization is set up. The platform admin is still configuring plans. When they’re available, you’ll be able to manage billing and your team’s limits.",
                 daysRemainingLabel: "days remaining",
                 dayRemaining: "day remaining",
                 daysExpired: "Plan expired",

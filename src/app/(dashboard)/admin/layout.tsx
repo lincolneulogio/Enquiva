@@ -11,6 +11,8 @@ import {
 } from "@/lib/organizations/admin-scope";
 import { mapAdminPathToSuperadmin } from "@/lib/navigation/dashboard-paths";
 import { DashboardAICopilot } from "@/components/dashboard/IACopilot/DashboardAICopilot";
+import { PlatformPlansPendingBanner } from "@/components/dashboard/billing/PlatformPlansPendingBanner";
+import { getOrganizerPlanSummary } from "@/lib/billing/enforce";
 import { redirectIfAccountDisabled } from "@/lib/auth/redirect-if-disabled";
 
 export default async function AdminLayout({
@@ -52,6 +54,7 @@ export default async function AdminLayout({
     : "entity_admin";
 
   const allowedPermissions = await getEffectivePermissionsForRole(role);
+  const planSummary = await getOrganizerPlanSummary(session.user.id, role);
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -66,7 +69,12 @@ export default async function AdminLayout({
       />
       <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
         <DashboardTopbar user={session.user} />
-        <main className="min-w-0 flex-1 overflow-x-hidden p-4 pt-[calc(env(safe-area-inset-top)+5.75rem)] sm:p-6 sm:pt-[calc(env(safe-area-inset-top)+6.25rem)] lg:p-8 lg:pt-8">{children}</main>
+        <main className="min-w-0 flex-1 overflow-x-hidden p-4 pt-[calc(env(safe-area-inset-top)+5.75rem)] sm:p-6 sm:pt-[calc(env(safe-area-inset-top)+6.25rem)] lg:p-8 lg:pt-8">
+          {!planSummary.plansConfigured ? (
+            <PlatformPlansPendingBanner audience="admin" />
+          ) : null}
+          {children}
+        </main>
       </div>
       <DashboardAICopilot userId={session.user.id} role={role} />
     </div>

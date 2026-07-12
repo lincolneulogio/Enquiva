@@ -8,6 +8,7 @@ import {
   canManageSubscriptionBilling,
   resolveSubscriptionBillingContext,
 } from "./subscription-context";
+import { isPendingPlatformSetupPlan } from "./plans";
 
 export class PlanLimitError extends Error {
   code = "PLAN_LIMIT";
@@ -19,7 +20,16 @@ export class PlanLimitError extends Error {
   }
 }
 
+const PLANS_PENDING_MESSAGE =
+  "La plataforma aún está configurando los planes de suscripción. Cuando estén disponibles, podrás usar todas las funciones de tu cuenta.";
+
 type FeatureKey = keyof PlanFeatures;
+
+function assertPlansConfigured(plan: ResolvedPlan) {
+  if (isPendingPlatformSetupPlan(plan)) {
+    throw new PlanLimitError(PLANS_PENDING_MESSAGE);
+  }
+}
 
 export async function getResolvedPlanForUser(userId: string, role?: string | null) {
   const info = await SubscriptionService.getOrCreateSubscription(userId, role);
@@ -34,6 +44,7 @@ export async function requirePlanFeature(
   if (SubscriptionService.isPlatformStaff(role)) return;
 
   const plan = await getResolvedPlanForUser(userId, role);
+  assertPlansConfigured(plan);
   if (!plan.features[feature]) {
     const labels: Record<FeatureKey, string> = {
       culqi: "pasarela de pago Culqi",
@@ -53,6 +64,7 @@ export async function assertCanCreateEvent(userId: string, role?: string | null)
 
   const info = await SubscriptionService.getOrCreateSubscription(userId, role);
   const { plan, usage } = info;
+  assertPlansConfigured(plan);
 
   if (plan.maxActiveEvents != null && usage.activeEvents >= plan.maxActiveEvents) {
     throw new PlanLimitError(
@@ -69,6 +81,7 @@ export async function assertCanRegisterAttendee(
   if (SubscriptionService.isPlatformStaff(organizerRole)) return;
 
   const plan = await getResolvedPlanForUser(organizerId, organizerRole);
+  assertPlansConfigured(plan);
   if (plan.maxAttendeesPerEvent == null) return;
 
   const [row] = await db
@@ -93,6 +106,7 @@ export async function assertCanSendBroadcast(userId: string, role?: string | nul
 
   const info = await SubscriptionService.getOrCreateSubscription(userId, role);
   const { plan, usage } = info;
+  assertPlansConfigured(plan);
 
   if (plan.maxBroadcastsPerMonth != null && usage.broadcastsThisMonth >= plan.maxBroadcastsPerMonth) {
     throw new PlanLimitError(
@@ -148,6 +162,7 @@ export async function getOrganizerPlanSummary(userId: string, role?: string | nu
   const info = await SubscriptionService.getOrCreateSubscription(userId, role);
   const { plan, usage } = info;
   const isUnlimited = SubscriptionService.isPlatformStaff(role);
+  const plansConfigured = info.plansConfigured !== false && !isPendingPlatformSetupPlan(plan);
   const aiUsage = await getAiChatUsage(userId, role);
   const billingCtx = await resolveSubscriptionBillingContext(userId, role);
   const canManageBilling = canManageSubscriptionBilling(userId, role, billingCtx);
@@ -156,17 +171,21 @@ export async function getOrganizerPlanSummary(userId: string, role?: string | nu
     plan,
     usage: { ...usage, aiMessagesThisMonth: aiUsage.used },
     isUnlimited,
+    plansConfigured,
     aiChatLimit: aiUsage.limit,
     canSendAiChat:
-      isUnlimited || aiUsage.limit == null || aiUsage.used < aiUsage.limit,
+      plansConfigured &&
+      (isUnlimited || aiUsage.limit == null || aiUsage.used < aiUsage.limit),
     canCreateEvent:
-      isUnlimited ||
-      plan.maxActiveEvents == null ||
-      usage.activeEvents < plan.maxActiveEvents,
+      plansConfigured &&
+      (isUnlimited ||
+        plan.maxActiveEvents == null ||
+        usage.activeEvents < plan.maxActiveEvents),
     canSendBroadcast:
-      isUnlimited ||
-      plan.maxBroadcastsPerMonth == null ||
-      usage.broadcastsThisMonth < plan.maxBroadcastsPerMonth,
+      plansConfigured &&
+      (isUnlimited ||
+        plan.maxBroadcastsPerMonth == null ||
+        usage.broadcastsThisMonth < plan.maxBroadcastsPerMonth),
     features: plan.features,
     canManageBilling,
     organizationName:

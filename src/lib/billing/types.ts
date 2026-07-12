@@ -60,4 +60,6 @@ export type SubscriptionInfo = {
   billingScope?: "organization" | "user" | "platform";
   canManageBilling?: boolean;
   organizationName?: string | null;
+  /** false cuando el superadmin aún no creó el plan free (u otros). */
+  plansConfigured?: boolean;
 };
