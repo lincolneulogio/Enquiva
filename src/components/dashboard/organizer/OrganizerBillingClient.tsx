@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { requestPlanUpgrade } from "@/actions/billing";
 import { Check, Crown, Loader2, Sparkles, Clock, AlertTriangle, History } from "lucide-react";
@@ -12,6 +13,7 @@ import { PlanChangeConfirmDialog } from "@/components/dashboard/organizer/PlanCh
 import { AutoRenewSettings } from "@/components/dashboard/organizer/AutoRenewSettings";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import type { PlanChangePreview } from "@/lib/billing/types";
+import { closeActiveCulqiCheckout } from "@/lib/culqi/open-checkout";
 
 interface PendingPayment {
   payment: {
@@ -67,6 +69,8 @@ export function OrganizerBillingClient({
 }: OrganizerBillingClientProps) {
   const t = useTranslations();
   const { locale } = useLocale();
+  const pathname = usePathname();
+  const prevPathname = useRef(pathname);
   const [isPending, startTransition] = useTransition();
   const [checkoutPlan, setCheckoutPlan] = useState<{
     plan: Plan;
@@ -78,6 +82,14 @@ export function OrganizerBillingClient({
   } | null>(null);
   const { plan, usage, billedPlan, renewalAlert, daysUntilRenewal } = subscription;
   const displayPlanName = billedPlan?.name ?? plan.name;
+
+  useEffect(() => {
+    if (prevPathname.current === pathname) return;
+    prevPathname.current = pathname;
+    closeActiveCulqiCheckout();
+    setCheckoutPlan(null);
+    setPlanChangeConfirm(null);
+  }, [pathname]);
 
   const proceedPlanChange = (target: Plan, confirmed: boolean) => {
     startTransition(async () => {

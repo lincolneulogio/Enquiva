@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CreditCard, Loader2, ShieldCheck } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
-import { loadCulqiCheckoutScript, openCulqiCheckout } from "@/lib/culqi/open-checkout";
+import { loadCulqiCheckoutScript, openCulqiCheckout, closeActiveCulqiCheckout, isCulqiCheckoutCancelled } from "@/lib/culqi/open-checkout";
 import { CULQI_ORDER_MIN_AMOUNT_PEN } from "@/lib/culqi/constants";
 import { useSession } from "@/lib/auth/client";
 import { PaymentBrandMark } from "@/components/payments/PaymentBrandMark";
@@ -48,6 +48,12 @@ export function CulqiPaymentForm({
       mounted = false;
     };
   }, [t]);
+
+  useEffect(() => {
+    return () => {
+      closeActiveCulqiCheckout();
+    };
+  }, []);
 
   const openCheckout = async () => {
     if (!scriptReady) {
@@ -103,6 +109,7 @@ export function CulqiPaymentForm({
       router.push("/member/tickets");
       router.refresh();
     } catch (error) {
+      if (isCulqiCheckoutCancelled(error)) return;
       toast.error(error instanceof Error ? error.message : t("payments.culqi.failed"));
     } finally {
       setIsLoading(false);

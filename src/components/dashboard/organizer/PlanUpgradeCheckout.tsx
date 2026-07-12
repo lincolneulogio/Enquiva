@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { CreditCard, Loader2, X, ShieldCheck, DollarSign } from "lucide-react";
 import type { PaymentMethod, Plan } from "@/lib/db/schema";
 import { useTranslations, useLocale } from "@/components/providers/LocaleProvider";
-import { loadCulqiCheckoutScript, openCulqiCheckout } from "@/lib/culqi/open-checkout";
+import { loadCulqiCheckoutScript, openCulqiCheckout, closeActiveCulqiCheckout, isCulqiCheckoutCancelled } from "@/lib/culqi/open-checkout";
 import { CULQI_ORDER_MIN_AMOUNT_PEN } from "@/lib/culqi/constants";
 import { useSession } from "@/lib/auth/client";
 import { CheckoutStepper } from "@/components/payments/CheckoutStepper";
@@ -57,6 +57,13 @@ export function PlanUpgradeCheckout({
       .then(() => setScriptReady(true))
       .catch(() => toast.error(t("billing.planCheckout.culqiLoadFailed")));
   }, [culqiPublicKey, t]);
+
+  // Culqi inyecta el modal fuera de React: al salir de la página o cerrar, hay que cerrarlo.
+  useEffect(() => {
+    return () => {
+      closeActiveCulqiCheckout();
+    };
+  }, []);
 
   const processCulqiCharge = async (sourceId: string) => {
     const response = await fetch("/api/billing/culqi/charge", {
@@ -128,6 +135,7 @@ export function PlanUpgradeCheckout({
 
       await processCulqiCharge(checkoutResult.tokenId);
     } catch (e) {
+      if (isCulqiCheckoutCancelled(e)) return;
       toast.error(e instanceof Error ? e.message : t("billing.planCheckout.culqiPayFailed"));
     } finally {
       setIsSaving(false);
@@ -157,7 +165,10 @@ export function PlanUpgradeCheckout({
             </div>
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => {
+                closeActiveCulqiCheckout();
+                onClose();
+              }}
               className="rounded-lg p-2 text-muted-foreground hover:bg-muted"
             >
               <X className="h-5 w-5" />
