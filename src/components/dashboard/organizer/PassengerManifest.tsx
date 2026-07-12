@@ -3,8 +3,6 @@
 import { useEffect, useState, useTransition } from "react";
 import { getEventPassengerManifest } from "@/actions/transport";
 import { Bus, Users, Search, Download, AlertCircle, FileText, CheckCircle2, MapPin } from "lucide-react";
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
 
 interface BookingItem {
   id: string;
@@ -62,8 +60,13 @@ export function PassengerManifest({ eventId }: PassengerManifestProps) {
     );
   });
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
     if (bookings.length === 0) return;
+
+    const [{ jsPDF }, { default: autoTable }] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
 
     const doc = new jsPDF();
 

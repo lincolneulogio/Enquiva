@@ -21,6 +21,7 @@ const publicRoutes = new Set([
 const publicPatterns = [
   "/reset-password/",
   "/events/",
+  "/ticket/",
   "/_next/",
   "/api/",
   "/favicon.ico",
@@ -30,6 +31,8 @@ const publicPatterns = [
 function isPublicRoute(pathname: string): boolean {
   if (publicRoutes.has(pathname)) return true;
   if (pathname.startsWith("/verify-account")) return true;
+  // Ticket QR compartido: la página valida HMAC (?s=), no la sesión.
+  if (pathname === "/ticket" || pathname.startsWith("/ticket/")) return true;
   return publicPatterns.some((p) => pathname.startsWith(p));
 }
 

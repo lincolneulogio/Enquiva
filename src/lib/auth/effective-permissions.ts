@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { db } from "@/lib/db";
 import { rolePermissions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -26,8 +27,8 @@ export function applyOverrides(
   }
 }
 
-/** Matriz completa con overrides de BD (pantalla /admin/permissions). */
-export async function getFullEffectivePermissionMatrix(): Promise<PermissionMatrix> {
+/** Matriz completa con overrides de BD — cacheada por request (React cache). */
+export const getFullEffectivePermissionMatrix = cache(async (): Promise<PermissionMatrix> => {
   const matrix = getDefaultPermissionMatrix();
   const overrides = await db
     .select({
@@ -39,9 +40,19 @@ export async function getFullEffectivePermissionMatrix(): Promise<PermissionMatr
 
   applyOverrides(matrix, overrides);
   return matrix;
-}
+});
 
-/** Comprueba un permiso aplicando overrides guardados en BD. */
+const getOverridesForRole = cache(async (role: string) => {
+  return db
+    .select({
+      permission: rolePermissions.permission,
+      allowed: rolePermissions.allowed,
+    })
+    .from(rolePermissions)
+    .where(eq(rolePermissions.roleName, role));
+});
+
+/** Comprueba un permiso aplicando overrides guardados en BD (1 query cacheada por rol/request). */
 export async function hasEffectivePermission(
   roleInput: string | null | undefined,
   permission: Permission,
@@ -50,13 +61,7 @@ export async function hasEffectivePermission(
   if (role === "super_admin") return true;
 
   const matrix = getDefaultPermissionMatrix();
-  const overrides = await db
-    .select({
-      permission: rolePermissions.permission,
-      allowed: rolePermissions.allowed,
-    })
-    .from(rolePermissions)
-    .where(eq(rolePermissions.roleName, role));
+  const overrides = await getOverridesForRole(role);
 
   for (const row of overrides) {
     const p = row.permission as Permission;
@@ -68,7 +73,9 @@ export async function hasEffectivePermission(
   return matrix[role][permission] ?? false;
 }
 
-export async function getEffectivePermissionsForRole(roleInput: string | null | undefined): Promise<Permission[]> {
+export async function getEffectivePermissionsForRole(
+  roleInput: string | null | undefined,
+): Promise<Permission[]> {
   const matrix = await getFullEffectivePermissionMatrix();
   const role = normalizeRole(roleInput);
   return PERMISSIONS.filter((permission) => matrix[role][permission]);

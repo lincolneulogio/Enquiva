@@ -16,14 +16,20 @@ function parseTrustedOriginsEnv(): string[] {
     .filter(Boolean);
 }
 
-function getRequestOriginFromHost(request?: Request): string | undefined {
-  if (!request) return undefined;
-
-  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
-  if (!host) return undefined;
-
-  const protocol = request.headers.get("x-forwarded-proto") ?? "http";
-  return `${protocol}://${host}`;
+/** Solo allowlist fija — nunca el Host del request (spoofable vía x-forwarded-host). */
+function getTrustedOrigins(): string[] {
+  return Array.from(
+    new Set(
+      [
+        env.NEXT_PUBLIC_APP_URL,
+        env.NEXT_PUBLIC_DOCS_URL,
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        ...parseTrustedOriginsEnv(),
+      ].filter(Boolean) as string[],
+    ),
+  );
 }
 
 export const auth = betterAuth({
@@ -38,21 +44,7 @@ export const auth = betterAuth({
   }),
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.NEXT_PUBLIC_APP_URL,
-  trustedOrigins: async (request) => {
-    const configured = [
-      env.NEXT_PUBLIC_APP_URL,
-      env.NEXT_PUBLIC_DOCS_URL,
-      "http://localhost:3000",
-      "http://127.0.0.1:3000",
-      "http://localhost:3001",
-      ...parseTrustedOriginsEnv(),
-    ].filter(Boolean) as string[];
-
-    const requestHostOrigin = getRequestOriginFromHost(request);
-    if (requestHostOrigin) configured.push(requestHostOrigin);
-
-    return Array.from(new Set(configured));
-  },
+  trustedOrigins: getTrustedOrigins(),
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
@@ -79,6 +71,11 @@ export const auth = betterAuth({
       bio: {
         type: "string",
         required: false,
+      },
+      isActive: {
+        type: "boolean",
+        defaultValue: true,
+        input: false,
       },
     },
   },

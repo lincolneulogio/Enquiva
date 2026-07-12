@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { createRegistrationSchema, checkInSchema } from "@/lib/validations";
 import { RegistrationService } from "@/services/registrations/registration.service";
-import { registrationRatelimit } from "@/lib/redis";
+import { registrationRatelimit, enforceRateLimit } from "@/lib/redis";
 import { assertEventInAdminScope } from "@/lib/organizations/admin-scope";
 import { requireAuth } from "@/lib/auth/guards";
 import { assertPermission, assertAnyPermission } from "@/lib/auth/permission-guards";
@@ -16,14 +16,11 @@ export async function registerForEvent(input: unknown) {
   const sessionUser = await requireAuth();
   const validated = createRegistrationSchema.parse(input);
 
-  // Rate Limiting (Capa Controladora de Red)
   const headersList = await headers();
   const ip = headersList.get("x-forwarded-for") ?? "anonymous";
-  try {
-    const { success } = await registrationRatelimit.limit(ip);
-    if (!success) throw new Error("Too many requests. Please try again later.");
-  } catch (error) {
-    console.error("Registration rate limit unavailable, continuing without enforcement", error);
+  const rate = await enforceRateLimit(registrationRatelimit, ip);
+  if (!rate.ok) {
+    throw new Error("Too many requests. Please try again later.");
   }
 
   // Invocar al servicio de negocio

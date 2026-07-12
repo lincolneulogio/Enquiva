@@ -7,7 +7,7 @@ import { buildTools } from "./tools";
 import { streamWithFallback } from "./providers";
 import { requirePlanFeature, PlanLimitError } from "@/lib/billing/enforce";
 import { assertAiChatMessageAllowed } from "@/lib/billing/ai-chat-usage";
-import { chatRatelimit } from "@/lib/redis";
+import { chatRatelimit, enforceRateLimit } from "@/lib/redis";
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
@@ -21,19 +21,17 @@ export async function POST(req: Request) {
 
     await requirePlanFeature(userId, userRole, "ai");
 
-    try {
-      const { success } = await chatRatelimit.limit(userId);
-      if (!success) {
-        return NextResponse.json(
-          {
-            error:
-              "Has alcanzado el límite de mensajes del Copilot. Espera unos minutos antes de continuar.",
-          },
-          { status: 429 },
-        );
-      }
-    } catch (error) {
-      console.error("Chat rate limit unavailable, continuing without enforcement", error);
+    const rate = await enforceRateLimit(chatRatelimit, userId);
+    if (!rate.ok) {
+      return NextResponse.json(
+        {
+          error:
+            rate.reason === "unavailable"
+              ? "El servicio de Copilot no está disponible temporalmente. Intenta de nuevo en unos minutos."
+              : "Has alcanzado el límite de mensajes del Copilot. Espera unos minutos antes de continuar.",
+        },
+        { status: 429 },
+      );
     }
 
     await assertAiChatMessageAllowed(userId, userRole);

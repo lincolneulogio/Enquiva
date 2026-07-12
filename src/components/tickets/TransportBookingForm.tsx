@@ -9,7 +9,7 @@ import { useLocale, useTranslations } from "@/components/providers/LocaleProvide
 import { getIntlLocale } from "@/lib/i18n/core";
 import { UploadDropzone } from "@/lib/uploadthing/components";
 import Image from "next/image";
-import Swal from "sweetalert2";
+import Swal from "@/lib/ui/swal-client";
 import { confirmDeleteAction } from "@/lib/ui/confirm";
 import { usePersistedFormFields } from "@/hooks/useFormPersistence";
 import { formStorageKey } from "@/lib/form-persistence";

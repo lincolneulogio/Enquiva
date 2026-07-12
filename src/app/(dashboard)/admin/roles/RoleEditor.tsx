@@ -69,11 +69,11 @@ const isStandardRole = (name: string): name is AppRole => {
 export function RoleEditor({ role }: { role: Role }) {
   const t = useTranslations();
   const { locale } = useLocale();
-  const isStd = isStandardRole(role.name);
+  const stdRole = isStandardRole(role.name) ? role.name : null;
 
-  const localizedLabel = isStd ? getRoleLabel(role.name, locale) : role.label;
-  const localizedDescription = isStd
-    ? getRoleDescription(role.name, locale) || role.description
+  const localizedLabel = stdRole ? getRoleLabel(stdRole, locale) : role.label;
+  const localizedDescription = stdRole
+    ? getRoleDescription(stdRole, locale) || role.description
     : role.description;
 
   const [editing, setEditing] = useState(false);
@@ -82,7 +82,7 @@ export function RoleEditor({ role }: { role: Role }) {
   const [color, setColor] = useState(role.color);
   const [isPending, startTransition] = useTransition();
 
-  const RoleIcon = isStd ? roleIcons[role.name] : null;
+  const RoleIcon = stdRole ? roleIcons[stdRole] : null;
 
   const startEditing = () => {
     setLabel(localizedLabel);
@@ -171,8 +171,8 @@ export function RoleEditor({ role }: { role: Role }) {
               <div className="flex items-center gap-2">
                 <span
                   className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${
-                    isStd
-                      ? ROLE_BADGE_STYLES[role.name]
+                    stdRole
+                      ? ROLE_BADGE_STYLES[stdRole]
                       : (colorClass[role.color] ?? colorClass.gray)
                   }`}
                 >

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AdminStatsCharts } from "./AdminStatsCharts";
+import { AdminStatsChartsLazy as AdminStatsCharts } from "./AdminStatsChartsLazy";
 import { AdminStatsSectionHeader } from "./AdminStatsSectionHeader";
 import { AdminOwnEventsEmptyState } from "./AdminOwnEventsEmptyState";
 import { AdminAnalyticsExportBar } from "@/components/dashboard/admin/AdminAnalyticsExportBar";

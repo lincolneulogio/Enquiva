@@ -4,6 +4,9 @@ on:
   push:
     branches: [main, master, develop]
   pull_request:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
 
 jobs:
   quality:
@@ -30,3 +33,31 @@ jobs:
 
       - name: Lint
         run: pnpm run lint
+
+  e2e:
+    runs-on: ubuntu-latest
+    # Corre en schedule/manual, o en PR/push si E2E_BASE_URL está configurado.
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || vars.E2E_BASE_URL != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.12.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run e2e
+        env:
+          E2E_BASE_URL: ${{ vars.E2E_BASE_URL }}
+          E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+        run: pnpm run test:e2e

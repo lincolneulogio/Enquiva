@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { registerForEvent, cancelRegistration } from "@/actions/registrations";
-import Swal from "sweetalert2";
+import Swal from "@/lib/ui/swal-client";
 import { 
   Loader2, 
   CheckCircle, 

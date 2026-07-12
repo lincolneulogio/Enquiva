@@ -11,6 +11,7 @@ import {
 } from "@/lib/organizations/admin-scope";
 import { mapAdminPathToSuperadmin } from "@/lib/navigation/dashboard-paths";
 import { DashboardAICopilot } from "@/components/dashboard/IACopilot/DashboardAICopilot";
+import { redirectIfAccountDisabled } from "@/lib/auth/redirect-if-disabled";
 
 export default async function AdminLayout({
   children,
@@ -25,6 +26,7 @@ export default async function AdminLayout({
   }
 
   if (!session?.user) redirect("/login");
+  await redirectIfAccountDisabled(session.user);
 
   const role = normalizeRole(session.user.role);
   const requestHeaders = await headers();

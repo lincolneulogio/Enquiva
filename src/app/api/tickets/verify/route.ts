@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireApiRole, apiAuthErrorResponse } from "@/lib/auth/api-guards";
-import { ticketVerifyRatelimit } from "@/lib/redis";
+import { ticketVerifyRatelimit, enforceRateLimit } from "@/lib/redis";
 import { assertCanManageEvent } from "@/lib/organizations/admin-scope";
 import { db } from "@/lib/db";
 import { tickets, registrations, events } from "@/lib/db/schema";
@@ -20,13 +20,9 @@ export async function POST(req: Request) {
     const providedSignature = String(body.signature ?? body.s ?? "").trim();
 
     const ip = hdrs.get("x-forwarded-for") ?? hdrs.get("x-real-ip") ?? "unknown";
-    try {
-      const { success } = await ticketVerifyRatelimit.limit(ip);
-      if (!success) {
-        return NextResponse.json({ success: false, error: "Too many requests" }, { status: 429 });
-      }
-    } catch (error) {
-      console.error("Ticket verify rate limit unavailable, continuing without enforcement", error);
+    const rate = await enforceRateLimit(ticketVerifyRatelimit, ip);
+    if (!rate.ok) {
+      return NextResponse.json({ success: false, error: "Too many requests" }, { status: 429 });
     }
 
     if (code) {

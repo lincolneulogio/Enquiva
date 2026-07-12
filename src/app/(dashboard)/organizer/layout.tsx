@@ -10,6 +10,7 @@ import { OrganizerApprovalPendingGate } from "@/components/dashboard/organizer/O
 import { SessionKeepAlive } from "@/components/auth/SessionKeepAlive";
 import { DashboardAICopilot } from "@/components/dashboard/IACopilot/DashboardAICopilot";
 import { OrganizationService } from "@/lib/organizations/organization.service";
+import { redirectIfAccountDisabled } from "@/lib/auth/redirect-if-disabled";
 
 export default async function OrganizerLayout({
   children,
@@ -24,6 +25,7 @@ export default async function OrganizerLayout({
   }
 
   if (!session?.user) redirect("/login");
+  await redirectIfAccountDisabled(session.user);
   const role = session.user.role;
   if (role !== "organizer" && role !== "super_admin") {
     if (role === "admin") redirect("/admin");

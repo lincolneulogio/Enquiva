@@ -1,6 +1,7 @@
 export {
   updateUserRole,
   deleteUser,
+  setUserActive,
   getPermissionMatrix,
   updateRolePermission,
   resetRolePermissions,

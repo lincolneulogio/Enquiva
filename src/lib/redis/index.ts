@@ -120,3 +120,27 @@ export async function invalidateCachePattern(pattern: string): Promise<void> {
     console.error(`[redis] SCAN/DEL pattern failed pattern=${pattern}:`, error);
   }
 }
+
+export type RateLimitEnforceResult =
+  | { ok: true }
+  | { ok: false; reason: "limited" | "unavailable" };
+
+/**
+ * Aplica rate limit. Por defecto fail-closed: si Redis cae, se deniega la operación.
+ */
+export async function enforceRateLimit(
+  limiter: Ratelimit,
+  key: string,
+  options?: { failClosed?: boolean },
+): Promise<RateLimitEnforceResult> {
+  const failClosed = options?.failClosed !== false;
+  try {
+    const { success } = await limiter.limit(key);
+    if (!success) return { ok: false, reason: "limited" };
+    return { ok: true };
+  } catch (error) {
+    console.error(`[redis] rate limit unavailable key=${key}:`, error);
+    if (failClosed) return { ok: false, reason: "unavailable" };
+    return { ok: true };
+  }
+}

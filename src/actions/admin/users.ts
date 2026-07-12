@@ -22,11 +22,73 @@ import { assertCanAssignSuperAdmin } from "@/lib/auth/platform-bootstrap";
 import {
     requireSuperAdmin,
     requireAdminOrSuper,
+    revokeUserSessions,
 } from "@/lib/auth/guards";
 import { assertPermission } from "@/lib/auth/permission-guards";
 import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
 
 export { requireSuperAdmin, requireAdminOrSuper };
+
+/** Activa o suspende una cuenta; al suspender invalida todas las sesiones. */
+export async function setUserActive(userId: string, isActive: boolean) {
+    const currentUser = await requireAdminOrSuper();
+    await assertPermission(currentUser, "users:manage");
+
+    if (currentUser.id === userId && !isActive) {
+        throw new Error("No puedes suspender tu propia cuenta");
+    }
+
+    const [target] = await db
+        .select({ id: users.id, role: users.role, name: users.name, email: users.email, isActive: users.isActive })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+    if (!target) throw new Error("User not found");
+
+    if (normalizeRole(currentUser.role) === "admin") {
+        if (normalizeRole(target.role) === "super_admin" || normalizeRole(target.role) === "admin") {
+            throw new Error("No puedes cambiar el estado de este usuario");
+        }
+    }
+
+    if (target.role === "super_admin" && !isActive) {
+        const [{ count: superAdminCount }] = await db
+            .select({ count: count() })
+            .from(users)
+            .where(and(eq(users.role, "super_admin"), eq(users.isActive, true)));
+
+        if (superAdminCount <= 1) {
+            throw new Error("Cannot suspend the last active super admin");
+        }
+    }
+
+    await db
+        .update(users)
+        .set({ isActive, updatedAt: new Date() })
+        .where(eq(users.id, userId));
+
+    if (!isActive) {
+        await revokeUserSessions(userId);
+    }
+
+    const hdrs = await headers();
+    await LogService.log({
+        actorId: currentUser.id,
+        actorName: currentUser.name ?? currentUser.email,
+        action: isActive ? "user.activate" : "user.suspend",
+        entityType: "user",
+        entityId: userId,
+        details: `Usuario ${isActive ? "activado" : "suspendido"}: ${target.name ?? ""} (${target.email})`,
+        ipAddress: hdrs.get("x-forwarded-for") ?? hdrs.get("x-real-ip") ?? "unknown",
+        userAgent: hdrs.get("user-agent") ?? "unknown",
+    });
+
+    revalidatePath("/admin/users");
+    revalidatePath("/superadmin/users");
+    await broadcastTableRefresh({ resource: "users", userId });
+    return { success: true };
+}
 
 export async function updateUserRole(
     userId: string,

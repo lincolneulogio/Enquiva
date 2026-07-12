@@ -32,20 +32,28 @@ export function LenisProvider({ children }: LenisProviderProps) {
             return;
         }
 
-        const lenis = new Lenis({
-            autoRaf: true,
-            smoothWheel: true,
-            gestureOrientation: "vertical",
-            anchors: true,
+        let cancelled = false;
+        let lenis: Lenis | null = null;
+
+        void import("lenis/dist/lenis.css").then(() => {
+            if (cancelled) return;
+
+            lenis = new Lenis({
+                autoRaf: true,
+                smoothWheel: true,
+                gestureOrientation: "vertical",
+                anchors: true,
+            });
+
+            lenisRef.current = lenis;
+            if (typeof window !== "undefined") {
+                window.__evoraLenis = lenis;
+            }
         });
 
-        lenisRef.current = lenis;
-        if (typeof window !== "undefined") {
-            window.__evoraLenis = lenis;
-        }
-
         return () => {
-            lenis.destroy();
+            cancelled = true;
+            lenis?.destroy();
             if (lenisRef.current === lenis) {
                 lenisRef.current = null;
             }

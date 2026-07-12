@@ -5,6 +5,7 @@ import { DashboardSidebar, DashboardTopbar } from "@/components/dashboard";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";
 import { DashboardAICopilot } from "@/components/dashboard/IACopilot/DashboardAICopilot";
+import { redirectIfAccountDisabled } from "@/lib/auth/redirect-if-disabled";
 
 export default async function MemberLayout({
   children,
@@ -19,6 +20,7 @@ export default async function MemberLayout({
   }
 
   if (!session?.user) redirect("/login");
+  await redirectIfAccountDisabled(session.user);
 
   const role = normalizeRole(session.user.role);
   if (role === "super_admin" || role === "admin") redirect(getStaffDashboardHome(role));

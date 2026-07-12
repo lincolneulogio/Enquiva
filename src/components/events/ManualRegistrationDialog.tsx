@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import Swal from "sweetalert2";
+import Swal from "@/lib/ui/swal-client";
 import { registerOfflineAttendeeAction } from "@/actions/registrations";
 import { Plus, X, User, Phone, FileText, Loader2 } from "lucide-react";
 import { usePersistedFormFields } from "@/hooks/useFormPersistence";

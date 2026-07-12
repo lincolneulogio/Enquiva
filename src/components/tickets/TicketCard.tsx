@@ -11,7 +11,7 @@ import {
 } from "@/components/providers/LocaleProvider";
 import { useState, useEffect } from "react";
 import { getPusherClient, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/client";
-import Swal from "sweetalert2";
+import Swal from "@/lib/ui/swal-client";
 import { toast } from "sonner";
 import {
   Ticket as TicketIcon,

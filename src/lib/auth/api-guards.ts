@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { normalizeRole, type AppRole } from "@/lib/auth/rbac";
 import type { SessionUser } from "@/lib/auth/guards";
@@ -19,6 +22,24 @@ export class ApiAuthError extends Error {
   }
 }
 
+async function assertApiUserActive(user: SessionUser): Promise<SessionUser> {
+  if (user.isActive === false) {
+    throw new ApiAuthError("Cuenta suspendida", 403);
+  }
+  if (user.isActive === true) return user;
+
+  const [row] = await db
+    .select({ isActive: users.isActive })
+    .from(users)
+    .where(eq(users.id, user.id))
+    .limit(1);
+
+  if (row && row.isActive === false) {
+    throw new ApiAuthError("Cuenta suspendida", 403);
+  }
+  return user;
+}
+
 /** Sesión válida para Route Handlers; lanza ApiAuthError(401) si no hay sesión. */
 export async function requireApiSession(): Promise<ApiSession> {
   const requestHeaders = await headers();
@@ -26,7 +47,8 @@ export async function requireApiSession(): Promise<ApiSession> {
   if (!session?.user) {
     throw new ApiAuthError("No autorizado", 401);
   }
-  return { user: session.user, headers: requestHeaders };
+  const user = await assertApiUserActive(session.user);
+  return { user, headers: requestHeaders };
 }
 
 /** Sesión + rol permitido; lanza ApiAuthError(403) si el rol no está en la lista. */

@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { RoleSelector } from "./RoleSelector";
 import { DeleteUserButton } from "./DeleteUserButton";
+import { ToggleUserActiveButton } from "./ToggleUserActiveButton";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale, getRoleLabel } from "@/lib/i18n/core";
 import { TablePagination } from "@/components/dashboard";
@@ -378,7 +379,14 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                                 <OrganizerApprovalButtons userId={user.id} />
                                             )}
                                         </div>
-                                        <div className="self-end pb-0.5">
+                                        <div className="flex flex-col items-end gap-1 self-end pb-0.5">
+                                            {canManageRoles && (
+                                                <ToggleUserActiveButton
+                                                    userId={user.id}
+                                                    isActive={user.isActive}
+                                                    isSelf={user.id === currentUserId}
+                                                />
+                                            )}
                                             {isPlatformScope && (
                                                 <DeleteUserButton userId={user.id} isSelf={user.id === currentUserId} />
                                             )}
@@ -502,9 +510,18 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3.5">
-                                                {isPlatformScope && (
-                                                    <DeleteUserButton userId={user.id} isSelf={user.id === currentUserId} />
-                                                )}
+                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                    {canManageRoles && (
+                                                        <ToggleUserActiveButton
+                                                            userId={user.id}
+                                                            isActive={user.isActive}
+                                                            isSelf={user.id === currentUserId}
+                                                        />
+                                                    )}
+                                                    {isPlatformScope && (
+                                                        <DeleteUserButton userId={user.id} isSelf={user.id === currentUserId} />
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     );

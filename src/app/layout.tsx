@@ -9,9 +9,6 @@ import { getLocale } from "@/lib/i18n/server";
 import { AccentColorInitializer } from "@/components/dashboard/admin/AccentColorInitializer";
 import { BRAND } from "@/lib/brand";
 import "./globals.css";
-import "aos/dist/aos.css";
-import "lenis/dist/lenis.css";
-import "sweetalert2/dist/sweetalert2.min.css";
 
 const outfit = Outfit({
   subsets: ["latin"],

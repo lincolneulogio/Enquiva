@@ -5,29 +5,47 @@ import { usePathname } from "next/navigation";
 import AOS from "aos";
 
 interface AOSProviderProps {
-    children: ReactNode;
+  children: ReactNode;
+}
+
+const DASHBOARD_PREFIXES = ["/dashboard", "/admin", "/superadmin", "/member", "/organizer"];
+
+function isDashboardPath(pathname: string): boolean {
+  return DASHBOARD_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
 }
 
 export function AOSProvider({ children }: AOSProviderProps) {
-    const pathname = usePathname();
+  const pathname = usePathname();
 
-    useEffect(() => {
-        AOS.init({
-            once: true,
-            duration: 700,
-            easing: "ease-out-cubic",
-            offset: 60,
-            anchorPlacement: "top-bottom",
-        });
-    }, []);
+  useEffect(() => {
+    if (isDashboardPath(pathname ?? "/")) return;
 
-    useEffect(() => {
-        const id = window.requestAnimationFrame(() => {
-            AOS.refreshHard();
-        });
+    let cancelled = false;
+    void import("aos/dist/aos.css").then(() => {
+      if (cancelled) return;
+      AOS.init({
+        once: true,
+        duration: 700,
+        easing: "ease-out-cubic",
+        offset: 60,
+        anchorPlacement: "top-bottom",
+      });
+    });
 
-        return () => window.cancelAnimationFrame(id);
-    }, [pathname]);
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
 
-    return <>{children}</>;
+  useEffect(() => {
+    if (isDashboardPath(pathname ?? "/")) return;
+    const id = window.requestAnimationFrame(() => {
+      AOS.refreshHard();
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [pathname]);
+
+  return <>{children}</>;
 }
