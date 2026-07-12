@@ -14,6 +14,7 @@ import {
   canManageSubscriptionBilling,
   getBillingUserId,
 } from "@/lib/billing/subscription-context";
+import { logCulqi, logCulqiFailure } from "@/lib/culqi/observability";
 
 /**
  * Confirma una orden Culqi pagada (Yape / billeteras) y activa el plan.
@@ -77,6 +78,13 @@ export async function POST(req: Request) {
     const amount = Number(plan.priceMonthly);
     const expectedCents = Math.round(amount * 100);
     if (typeof order.amount === "number" && order.amount !== expectedCents) {
+      logCulqi("error", {
+        scope: "billing",
+        action: "confirm_order.amount_mismatch",
+        ok: false,
+        status: 400,
+        meta: { planId, orderId, expectedCents, gotCents: order.amount },
+      });
       return NextResponse.json(
         {
           error: `El monto pagado (S/ ${(order.amount / 100).toFixed(2)}) no coincide con el plan ${plan.name} (S/ ${amount.toFixed(2)}).`,
@@ -94,6 +102,13 @@ export async function POST(req: Request) {
       method: "yape",
     });
 
+    logCulqi("info", {
+      scope: "billing",
+      action: "confirm_order.fulfilled",
+      ok: true,
+      meta: { planId, orderId, idempotent: result.idempotent },
+    });
+
     return NextResponse.json({
       success: true,
       orderId,
@@ -103,7 +118,7 @@ export async function POST(req: Request) {
   } catch (error) {
     const authResponse = apiAuthErrorResponse(error);
     if (authResponse) return authResponse;
-    console.error("[Billing Culqi confirm-order]", error);
+    logCulqiFailure("billing", "confirm_order", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Error al confirmar orden" },
       { status: 500 },

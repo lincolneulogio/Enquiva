@@ -17,6 +17,7 @@ import {
   canManageSubscriptionBilling,
   getBillingUserId,
 } from "@/lib/billing/subscription-context";
+import { logCulqi, logCulqiFailure } from "@/lib/culqi/observability";
 
 export async function POST(req: Request) {
   try {
@@ -114,16 +115,29 @@ export async function POST(req: Request) {
     const orderAmountCents =
       typeof order.amount === "number" ? order.amount : Math.round(amount * 100);
     if (orderAmountCents !== Math.round(amount * 100)) {
-      console.error("[Billing Culqi order] amount mismatch", {
-        planId: plan.id,
-        expected: Math.round(amount * 100),
-        got: orderAmountCents,
+      logCulqi("error", {
+        scope: "billing",
+        action: "order.amount_mismatch",
+        ok: false,
+        status: 502,
+        meta: {
+          planId: plan.id,
+          expectedCents: Math.round(amount * 100),
+          gotCents: orderAmountCents,
+        },
       });
       return NextResponse.json(
         { error: "El monto de la orden Culqi no coincide con el plan. Intenta de nuevo." },
         { status: 502 },
       );
     }
+
+    logCulqi("info", {
+      scope: "billing",
+      action: "order.created",
+      ok: true,
+      meta: { planId: plan.id, orderId: order.id, amountCents: orderAmountCents },
+    });
 
     return NextResponse.json({
       success: true,
@@ -137,7 +151,7 @@ export async function POST(req: Request) {
   } catch (error) {
     const authResponse = apiAuthErrorResponse(error);
     if (authResponse) return authResponse;
-    console.error("[Billing Culqi order]", error);
+    logCulqiFailure("billing", "order.create", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Error al crear orden Culqi" },
       { status: 500 },

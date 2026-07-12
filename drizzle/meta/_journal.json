@@ -29,6 +29,13 @@
       "when": 1773700000000,
       "tag": "0003_schema_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1773800000000,
+      "tag": "0004_sync_free_plan_culqi",
+      "breakpoints": true
     }
   ]
 }

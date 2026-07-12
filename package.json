@@ -41,8 +41,14 @@
     "db:setup:phones": "node --env-file=.env ./scripts/add-phone-columns.mjs",
     "doctor": "npx react-doctor@latest",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "db:sync:plans": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/ensure-default-plans.ts",
+    "db:detach:legacy-wallets": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/detach-legacy-wallet-event-methods.ts",
     "generate:brand": "tsx scripts/generate-brand-assets.ts",
-    "setup:local": "pnpm run db:migrate"
+    "setup:local": "pnpm run db:migrate && pnpm run db:sync:plans"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.80",
@@ -96,6 +102,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4.3.0",
     "@types/node": "^25.9.1",
     "@types/nodemailer": "^8.0.0",
@@ -112,7 +119,8 @@
     "sharp": "^0.35.3",
     "tailwindcss": "^4.3.0",
     "tsx": "^4.22.4",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^3.2.6"
   },
   "packageManager": "pnpm@11.12.0+sha512.820a6fbd0d9f04c226638002aead1e45340a9139dd5dc077c1d83ef44aa2481c8eb6637b4c9aa696a3c7e35ba818e49cf27213e5f2b91138d09b7a3e26e898ba"
 }

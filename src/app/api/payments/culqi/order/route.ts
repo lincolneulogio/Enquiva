@@ -9,6 +9,7 @@ import { mergeSessionCulqiProfile } from "@/lib/culqi/customer-data";
 import { getCulqiCredentialsForEvent } from "@/lib/culqi/capabilities";
 import { requirePlanFeature, getOrganizerPlanForEvent } from "@/lib/billing/enforce";
 import { CulqiEventPaymentService } from "@/lib/culqi/event-payment.service";
+import { logCulqiFailure } from "@/lib/culqi/observability";
 
 export async function POST(req: Request) {
   try {
@@ -99,7 +100,7 @@ export async function POST(req: Request) {
   } catch (error) {
     const authResponse = apiAuthErrorResponse(error);
     if (authResponse) return authResponse;
-    console.error("[Culqi order]", error);
+    logCulqiFailure("event", "order.create", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Error al crear orden Culqi" },
       { status: 500 },

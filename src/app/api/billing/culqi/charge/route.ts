@@ -14,6 +14,7 @@ import {
   getBillingUserId,
 } from "@/lib/billing/subscription-context";
 import { SubscriptionService } from "@/lib/billing/subscription.service";
+import { logCulqiFailure } from "@/lib/culqi/observability";
 
 export async function POST(req: Request) {
   try {
@@ -148,7 +149,7 @@ export async function POST(req: Request) {
   } catch (error) {
     const authResponse = apiAuthErrorResponse(error);
     if (authResponse) return authResponse;
-    console.error("[Billing Culqi charge]", error);
+    logCulqiFailure("billing", "charge.create", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Error al procesar pago" },
       { status: 500 },

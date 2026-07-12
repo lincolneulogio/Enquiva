@@ -4,7 +4,7 @@ import { useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { createPaymentMethod, updatePaymentMethod, deletePaymentMethod, type PaymentMethodScope } from "@/actions/payment-methods";
+import { createPaymentMethod, updatePaymentMethod, deletePaymentMethod, detachLegacyWalletMethodsFromEvents, type PaymentMethodScope } from "@/actions/payment-methods";
 import { Loader2, Plus, Trash2, QrCode, Smartphone, Wallet, Upload, X, CreditCard, Crown, Info } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import Image from "next/image";
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import type { PaymentMethod } from "@/lib/db/schema";
 import { usePersistedFormFields } from "@/hooks/useFormPersistence";
 import { formStorageKey } from "@/lib/form-persistence";
+import { assertOrganizerCulqiKeys, parseCulqiPublicKey, parseCulqiSecretKey } from "@/lib/culqi/keys";
 
 const TYPE_ICONS = { yape: Smartphone, plin: QrCode, cash: Wallet, culqi: CreditCard };
 const TYPE_LABELS = { yape: "Yape", plin: "Plin", cash: "Efectivo", culqi: "Tarjeta (Culqi)" };
@@ -89,6 +90,7 @@ interface Props {
   subscriptionPastDue?: boolean;
   culqiConfigured: boolean;
   hasCulqiMethod: boolean;
+  legacyEventLinkCount?: number;
   role: string;
   isStaff: boolean;
   canManageBilling?: boolean;
@@ -103,6 +105,7 @@ export function PaymentMethodsManager({
   subscriptionPastDue = false,
   culqiConfigured,
   hasCulqiMethod,
+  legacyEventLinkCount = 0,
   role,
   isStaff,
   canManageBilling = true,
@@ -116,7 +119,7 @@ export function PaymentMethodsManager({
   const { values, setValue, setValues, clear } = usePersistedFormFields(
     formStorageKey(`payment-methods.${scope}.v3`),
     {
-      type: (scope === "platform" ? "culqi" : "cash") as "cash" | "culqi",
+      type: (scope === "platform" ? "culqi" : "cash") as "yape" | "plin" | "cash" | "culqi",
       label: scope === "platform" ? "Tarjeta de crédito/débito" : "",
       holderName: "",
       phone: "",
@@ -194,6 +197,29 @@ export function PaymentMethodsManager({
       return;
     }
 
+    if (isCulqiType && !isPlatform) {
+      try {
+        if (!editingId) {
+          assertOrganizerCulqiKeys(culqiPublicKey, culqiSecretKey);
+        } else {
+          if (culqiPublicKey.trim()) {
+            const pub = parseCulqiPublicKey(culqiPublicKey);
+            if (!pub.ok) throw new Error(pub.error);
+          }
+          if (culqiSecretKey.trim()) {
+            const sec = parseCulqiSecretKey(culqiSecretKey);
+            if (!sec.ok) throw new Error(sec.error);
+            if (culqiPublicKey.trim()) {
+              assertOrganizerCulqiKeys(culqiPublicKey, culqiSecretKey);
+            }
+          }
+        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Llaves Culqi inválidas");
+        return;
+      }
+    }
+
     startTransition(async () => {
       try {
         const data = {
@@ -223,10 +249,31 @@ export function PaymentMethodsManager({
   };
 
   const remove = (id: string) => {
+    const method = methods.find((m) => m.id === id);
     startTransition(async () => {
       try {
-        await deletePaymentMethod(scope, id);
-        toast.success("Medio de pago eliminado");
+        const result = await deletePaymentMethod(scope, id);
+        if (method?.type === "culqi" && result.detachedEventCount > 0) {
+          toast.success(
+            t("payments.config.culqiDeletedWithEvents", { count: result.detachedEventCount }),
+          );
+        } else if (result.detachedEventCount > 0) {
+          toast.success(t("payments.config.methodDeletedWithEvents", { count: result.detachedEventCount }));
+        } else {
+          toast.success(t("payments.config.methodDeleted"));
+        }
+        router.refresh();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Error");
+      }
+    });
+  };
+
+  const detachLegacyFromEvents = () => {
+    startTransition(async () => {
+      try {
+        const result = await detachLegacyWalletMethodsFromEvents();
+        toast.success(t("payments.config.legacyDetached", { count: result.detached }));
         router.refresh();
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Error");
@@ -388,6 +435,9 @@ export function PaymentMethodsManager({
           {isCulqiType && (
             <div className="rounded-xl border border-violet-200/60 bg-violet-50/50 p-4 text-sm text-violet-900 dark:border-violet-900/30 dark:bg-violet-950/20 dark:text-violet-200">
               {isPlatform ? t("payments.config.platformCulqiHelp") : t("payments.config.culqiHelp")}
+              {!isPlatform && (
+                <p className="mt-2 text-xs opacity-90">{t("payments.config.culqiSingleMethodHelp")}</p>
+              )}
             </div>
           )}
 
@@ -404,7 +454,7 @@ export function PaymentMethodsManager({
                   type="text"
                   value={culqiPublicKey}
                   onChange={(e) => setValue("culqiPublicKey", e.target.value)}
-                  placeholder="pk_test_..."
+                  placeholder="pk_test_... o pk_live_..."
                   className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-mono placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
@@ -416,11 +466,12 @@ export function PaymentMethodsManager({
                   type="password"
                   value={culqiSecretKey}
                   onChange={(e) => setValue("culqiSecretKey", e.target.value)}
-                  placeholder={editingId ? t("payments.config.culqiSecretKeyKeep") : "sk_test_..."}
+                  placeholder={editingId ? t("payments.config.culqiSecretKeyKeep") : "sk_test_... o sk_live_..."}
                   className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-mono placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   autoComplete="new-password"
                 />
               </div>
+              <p className="sm:col-span-2 text-xs text-muted-foreground">{t("payments.config.culqiKeyEnvHint")}</p>
             </div>
           )}
 
@@ -517,11 +568,29 @@ export function PaymentMethodsManager({
 
       <div className="max-w-2xl space-y-3">
         {legacyWalletMethods.length > 0 && (
-          <p className="rounded-xl border border-amber-200/60 bg-amber-50/50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-200">
-            {isPlatform
-              ? t("payments.config.platformLegacyHint")
-              : t("payments.config.organizerLegacyHint")}
-          </p>
+          <div className="space-y-2 rounded-xl border border-amber-200/60 bg-amber-50/50 px-3 py-3 text-xs text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-200">
+            <p>
+              {isPlatform
+                ? t("payments.config.platformLegacyHint")
+                : t("payments.config.organizerLegacyHint")}
+            </p>
+            {!isPlatform && legacyEventLinkCount > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <p>{t("payments.config.legacyEventLinks", { count: legacyEventLinkCount })}</p>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={detachLegacyFromEvents}
+                  className="rounded-lg border border-amber-300 bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-amber-900 transition-colors hover:bg-white disabled:opacity-50 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
+                >
+                  {t("payments.config.detachLegacyFromEvents")}
+                </button>
+              </div>
+            )}
+            {!isPlatform && !hasCulqiMethod && planIncludesCulqi && (
+              <p className="font-medium">{t("payments.config.migrateToCulqiBanner")}</p>
+            )}
+          </div>
         )}
         {visibleMethods.length === 0 && (
           <p className="text-sm text-muted-foreground">{t("payments.config.empty")}</p>

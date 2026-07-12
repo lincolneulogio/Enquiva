@@ -20,6 +20,8 @@ import {
   requireOrganizerRole,
   requireEventManager,
 } from "@/lib/auth/guards";
+import { assertOrganizerCulqiKeys } from "@/lib/culqi/keys";
+import { assertAllowedPaymentMethodType, isLegacyWalletType } from "@/lib/payments/allowed-types";
 
 function sanitizeMethodsForClient(methods: PaymentMethod[]): PaymentMethod[] {
   return methods.map(({ culqiSecretKey: _secret, ...method }) => ({
@@ -82,17 +84,8 @@ async function assertNoDuplicateCulqi(scope: PaymentMethodScope, organizerId: st
   }
 }
 
-async function assertAllowedTypeForScope(scope: PaymentMethodScope, type: string) {
-  if (scope === "platform" && type !== "culqi") {
-    throw new Error(
-      "Los cobros de plataforma solo usan Culqi. Tarjeta, Yape y billeteras se ofrecen en el mismo checkout.",
-    );
-  }
-  if (scope === "organizer" && type !== "culqi" && type !== "cash") {
-    throw new Error(
-      "Solo puedes crear Efectivo o Tarjeta (Culqi). Yape y billeteras se pagan dentro de Culqi.",
-    );
-  }
+function assertAllowedTypeForScope(scope: PaymentMethodScope, type: string) {
+  assertAllowedPaymentMethodType(scope, type);
 }
 
 export async function getPaymentMethodsPageContext(scope: PaymentMethodScope) {
@@ -113,6 +106,7 @@ export async function getPaymentMethodsPageContext(scope: PaymentMethodScope) {
       subscriptionPastDue: false,
       culqiConfigured,
       hasCulqiMethod: methods.some((m) => m.type === "culqi" && m.isActive),
+      legacyEventLinkCount: 0,
       role: user.role ?? "super_admin",
       isStaff: true,
     };
@@ -135,6 +129,16 @@ export async function getPaymentMethodsPageContext(scope: PaymentMethodScope) {
   const organizerCulqiConfigured = await isOrganizerCulqiConfigured(ownerId);
   const canUseCulqi = planIncludesCulqi;
 
+  const legacyIds = methods.filter((m) => isLegacyWalletType(m.type)).map((m) => m.id);
+  let legacyEventLinkCount = 0;
+  if (legacyIds.length > 0) {
+    const links = await db
+      .select({ eventId: eventPaymentMethods.eventId })
+      .from(eventPaymentMethods)
+      .where(inArray(eventPaymentMethods.paymentMethodId, legacyIds));
+    legacyEventLinkCount = links.length;
+  }
+
   return {
     methods: sanitizeMethodsForClient(methods),
     canUseCulqi,
@@ -143,6 +147,7 @@ export async function getPaymentMethodsPageContext(scope: PaymentMethodScope) {
     subscriptionPastDue,
     culqiConfigured: organizerCulqiConfigured,
     hasCulqiMethod: methods.some((m) => m.type === "culqi" && m.isActive),
+    legacyEventLinkCount,
     role: user.role ?? "organizer",
     isStaff: false,
     canManageBilling: subscription.canManageBilling ?? true,
@@ -228,16 +233,20 @@ export async function createPaymentMethod(
 
   assertAllowedTypeForScope(scope, input.type);
 
+  let culqiPublicKey: string | null = null;
+  let culqiSecretKey: string | null = null;
+
   if (input.type === "culqi") {
     await assertCanManageCulqi(scope, user.id, user.role);
     await assertNoDuplicateCulqi(scope, organizerId);
 
     if (scope === "organizer") {
-      const publicKey = input.culqiPublicKey?.trim();
-      const secretKey = input.culqiSecretKey?.trim();
-      if (!publicKey || !secretKey) {
-        throw new Error("Ingresa tu llave pública y secreta de Culqi (cuenta de comercio de tu entidad).");
-      }
+      const keys = assertOrganizerCulqiKeys(
+        input.culqiPublicKey ?? "",
+        input.culqiSecretKey ?? "",
+      );
+      culqiPublicKey = keys.publicKey;
+      culqiSecretKey = keys.secretKey;
     }
   }
 
@@ -247,10 +256,8 @@ export async function createPaymentMethod(
     qrCodeUrl: input.qrCodeUrl ?? null,
     phone: input.phone ?? null,
     holderName: input.holderName,
-    culqiPublicKey:
-      input.type === "culqi" && scope === "organizer" ? input.culqiPublicKey?.trim() ?? null : null,
-    culqiSecretKey:
-      input.type === "culqi" && scope === "organizer" ? input.culqiSecretKey?.trim() ?? null : null,
+    culqiPublicKey,
+    culqiSecretKey,
     organizerId,
     isActive: true,
   });
@@ -307,9 +314,10 @@ export async function updatePaymentMethod(
       throw new Error("El medio Culqi requiere llave pública y secreta de tu comercio.");
     }
 
-    patch.culqiPublicKey = nextPublic;
+    const keys = assertOrganizerCulqiKeys(nextPublic, nextSecret);
+    patch.culqiPublicKey = keys.publicKey;
     if (input.culqiSecretKey?.trim()) {
-      patch.culqiSecretKey = input.culqiSecretKey.trim();
+      patch.culqiSecretKey = keys.secretKey;
     }
   }
 
@@ -332,13 +340,50 @@ export async function deletePaymentMethod(scope: PaymentMethodScope, id: string)
   const organizerId = scope === "platform" ? null : user.id;
   await getOwnedMethod(id, scope, organizerId);
 
+  const linked = await db
+    .select({ eventId: eventPaymentMethods.eventId })
+    .from(eventPaymentMethods)
+    .where(eq(eventPaymentMethods.paymentMethodId, id));
+
+  // ON DELETE CASCADE quita el medio de event_payment_methods; si era Culqi,
+  // esos eventos dejan de ofrecer tarjeta/Yape/billeteras hasta asignar uno nuevo.
   await db
     .delete(paymentMethods)
     .where(and(eq(paymentMethods.id, id), scopeCondition(scope, organizerId)));
 
   revalidatePaymentMethodPaths(scope);
-  return { success: true };
+  return { success: true, detachedEventCount: linked.length };
 }
+
+export async function detachLegacyWalletMethodsFromEvents() {
+  const user = await requireOrganizerRole();
+
+  const legacy = await db
+    .select({ id: paymentMethods.id })
+    .from(paymentMethods)
+    .where(
+      and(
+        eq(paymentMethods.organizerId, user.id),
+        inArray(paymentMethods.type, ["yape", "plin"]),
+      ),
+    );
+
+  if (legacy.length === 0) {
+    return { success: true, detached: 0 };
+  }
+
+  const ids = legacy.map((m) => m.id);
+  await db
+    .delete(eventPaymentMethods)
+    .where(inArray(eventPaymentMethods.paymentMethodId, ids));
+
+  revalidatePath("/organizer/payment-methods");
+  revalidatePath("/organizer/events");
+  return { success: true, detached: ids.length };
+}
+
+/** @internal for tests / UI */
+export { isLegacyWalletType };
 
 export async function setEventPaymentMethods(eventId: string, methodIds: string[]) {
   const user = await requireEventManager();

@@ -32,6 +32,8 @@ interface PaymentCheckoutFormProps {
   hideInlineSummary?: boolean;
 }
 
+type CheckoutGroup = "card" | "cash" | "legacy";
+
 export function PaymentCheckoutForm({
   registrationId,
   paymentId,
@@ -45,18 +47,17 @@ export function PaymentCheckoutForm({
   hideInlineSummary = false,
 }: PaymentCheckoutFormProps) {
   const t = useTranslations();
-  const manualMethods = eventMethods.filter((m) => m.type !== "culqi");
-  const walletMethods = manualMethods.filter((m) => m.type === "yape" || m.type === "plin");
-  const cashMethods = manualMethods.filter((m) => m.type === "cash");
+  const cashMethods = eventMethods.filter((m) => m.type === "cash");
+  const legacyWalletMethods = eventMethods.filter((m) => m.type === "yape" || m.type === "plin");
   const culqiMethod = eventMethods.find((m) => m.type === "culqi");
   const showCulqi = Boolean(culqiAvailable && culqiMethod && culqiPublicKey);
-  const showManual = manualMethods.length > 0;
+  const showCash = cashMethods.length > 0;
+  const showLegacy = legacyWalletMethods.length > 0;
 
-  const [group, setGroup] = useState<"wallets" | "card">(
-    showManual ? "wallets" : "card",
-  );
+  const defaultGroup: CheckoutGroup = showCulqi ? "card" : showCash ? "cash" : "legacy";
+  const [group, setGroup] = useState<CheckoutGroup>(defaultGroup);
 
-  if (!showManual && !showCulqi) {
+  if (!showCash && !showCulqi && !showLegacy) {
     return (
       <div className="fe-glass rounded-3xl p-6 text-center text-sm text-muted-foreground">
         {t("payments.checkout.noMethods")}
@@ -97,53 +98,42 @@ export function PaymentCheckoutForm({
         </h3>
 
         <div className="space-y-2">
-          {showManual && (
-            <PaymentMethodOption
-              selected={group === "wallets"}
-              onSelect={() => setGroup("wallets")}
-              label={t("payments.checkout.groupWallets")}
-              description={
-                [
-                  walletMethods.some((m) => m.type === "yape") ? "Yape" : null,
-                  walletMethods.some((m) => m.type === "plin") ? "Plin" : null,
-                  cashMethods.length > 0 ? t("payments.checkout.groupCash") : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ") || undefined
-              }
-              brands={[
-                ...(walletMethods.some((m) => m.type === "yape") ? (["yape"] as const) : []),
-                ...(walletMethods.some((m) => m.type === "plin") ? (["plin"] as const) : []),
-                ...(cashMethods.length > 0 ? (["cash"] as const) : []),
-              ]}
-            />
-          )}
-
           {showCulqi && (
             <PaymentMethodOption
               selected={group === "card"}
               onSelect={() => setGroup("card")}
               label={t("payments.checkout.groupCard")}
-              description="Visa · Mastercard · Culqi"
-              brands={["visa", "mastercard", "culqi"]}
+              description={t("payments.checkout.groupCardDesc")}
+              brands={["visa", "mastercard", "yape", "culqi"]}
+            />
+          )}
+
+          {showCash && (
+            <PaymentMethodOption
+              selected={group === "cash"}
+              onSelect={() => setGroup("cash")}
+              label={t("payments.checkout.groupCash")}
+              description={t("payments.checkout.groupCashDesc")}
+              brands={["cash"]}
+            />
+          )}
+
+          {showLegacy && (
+            <PaymentMethodOption
+              selected={group === "legacy"}
+              onSelect={() => setGroup("legacy")}
+              label={t("payments.checkout.groupLegacy")}
+              description={t("payments.checkout.groupLegacyDesc")}
+              brands={[
+                ...(legacyWalletMethods.some((m) => m.type === "yape") ? (["yape"] as const) : []),
+                ...(legacyWalletMethods.some((m) => m.type === "plin") ? (["plin"] as const) : []),
+              ]}
             />
           )}
         </div>
       </section>
 
       <div className={cn("rounded-2xl border border-border bg-card p-4 sm:p-5")}>
-        {showManual && group === "wallets" && (
-          <ManualPaymentMethodForm
-            registrationId={registrationId}
-            eventTitle={eventTitle}
-            eventSlug={eventSlug}
-            defaultAmount={defaultAmount}
-            existingMethod={existingMethod}
-            eventMethods={manualMethods}
-            embedded
-          />
-        )}
-
         {showCulqi && group === "card" && (
           <CulqiPaymentForm
             paymentId={paymentId}
@@ -153,6 +143,35 @@ export function PaymentCheckoutForm({
             holderName={culqiMethod?.holderName}
           />
         )}
+
+        {showCash && group === "cash" && (
+          <ManualPaymentMethodForm
+            registrationId={registrationId}
+            eventTitle={eventTitle}
+            eventSlug={eventSlug}
+            defaultAmount={defaultAmount}
+            existingMethod={existingMethod}
+            eventMethods={cashMethods}
+            embedded
+          />
+        )}
+
+        {showLegacy && group === "legacy" && (
+          <div className="space-y-3">
+            <p className="rounded-xl border border-amber-200/60 bg-amber-50/50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-200">
+              {t("payments.checkout.legacyHint")}
+            </p>
+            <ManualPaymentMethodForm
+              registrationId={registrationId}
+              eventTitle={eventTitle}
+              eventSlug={eventSlug}
+              defaultAmount={defaultAmount}
+              existingMethod={existingMethod}
+              eventMethods={legacyWalletMethods}
+              embedded
+            />
+          </div>
+        )}
       </div>
 
       <p className="text-xs text-muted-foreground">*{t("payments.checkout.reviewBeforePay")}</p>
@@ -161,6 +180,7 @@ export function PaymentCheckoutForm({
         <div className="flex items-center justify-center gap-2 opacity-80">
           <PaymentBrandMark brand="visa" size="sm" />
           <PaymentBrandMark brand="mastercard" size="sm" />
+          <PaymentBrandMark brand="yape" size="sm" />
           <PaymentBrandMark brand="culqi" size="sm" />
         </div>
       )}

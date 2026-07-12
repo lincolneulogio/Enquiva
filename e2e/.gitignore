@@ -1,0 +1,7 @@
+# Playwright auth state
+e2e/.auth/
+
+# Playwright reports
+playwright-report/
+test-results/
+blob-report/

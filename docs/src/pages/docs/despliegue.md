@@ -15,7 +15,7 @@ El repositorio incluye CI (typecheck, lint) pero **no** despliega automáticamen
 1. Crea un proyecto en [neon.tech](https://neon.tech).
 2. Copia la connection string (`postgresql://...?sslmode=require`).
 3. En local, una vez: `pnpm run db:migrate` contra esa URL para crear/actualizar tablas (fuente de verdad: `drizzle/`).
-4. Tras el primer deploy: `pnpm run db:migrate` en la BD de producción (o desde CI). Inicializa roles desde superadmin y planes desde Admin → Planes.
+4. Tras el primer deploy: `pnpm run db:migrate` y `pnpm run db:sync:plans` en la BD de producción (sincroniza Free/Pro/Enterprise, incluido `feature_culqi`). También puedes abrir Admin → Planes (dispara el mismo upsert).
 
 ### Supabase
 
@@ -44,6 +44,8 @@ El repositorio incluye CI (typecheck, lint) pero **no** despliega automáticamen
 | `CRON_SECRET` | **Obligatorio** en producción (≥16 caracteres) |
 | `NEXT_PUBLIC_APP_URL` | `https://tudominio.com` |
 | SMTP | Resend, SendGrid o similar (no Mailtrap) |
+| `CULQI_SECRET_KEY` / `NEXT_PUBLIC_CULQI_PUBLIC_KEY` | Cobros de **licencias** (plataforma). Distintos a las llaves del organizador. |
+| `CULQI_WEBHOOK_SECRET` | Firma del webhook `/api/webhooks/culqi` (obligatorio en prod si Culqi está activo) |
 
 ---
 
@@ -71,10 +73,12 @@ curl -H "Authorization: Bearer TU_CRON_SECRET" https://tudominio.com/api/cron/ev
 ## 4. Post-deploy
 
 1. Registra el primer super admin (flujo de registro + asignación de rol `super_admin` en BD o botón **Inicializar roles** en superadmin).
-2. Verifica correo OTP con SMTP de producción.
-3. Revisa logs de Vercel tras el primer cron.
-4. Configura dominio personalizado en Vercel.
-5. Comprueba salud: `GET https://tudominio.com/api/health`
+2. `pnpm run db:sync:plans` (o Admin → Planes) para asegurar `feature_culqi` en Free/Pro/Enterprise.
+3. Activa Culqi de plataforma en **Admin → Medios de pago** (cobros de suscripción).
+4. Verifica correo OTP con SMTP de producción.
+5. Revisa logs de Vercel: busca el prefijo `[culqi]` en fallos de orden/confirm/webhook.
+6. Configura dominio personalizado en Vercel.
+7. Comprueba salud: `GET https://tudominio.com/api/health`
 
 ---
 

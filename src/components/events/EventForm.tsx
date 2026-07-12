@@ -9,7 +9,7 @@ import { createEvent, updateEvent } from "@/actions/events";
 import { getPaymentMethodsForEventForm, setEventPaymentMethods } from "@/actions/payment-methods";
 import { UploadDropzone } from "@/lib/uploadthing/components";
 import { toast } from "sonner";
-import { Loader2, ImageIcon, MapPin, Video, Star, Bus, Smartphone, QrCode, Wallet } from "lucide-react";
+import { Loader2, ImageIcon, MapPin, Video, Star, Bus, Smartphone, QrCode, Wallet, CreditCard } from "lucide-react";
 import { EventCoverFrame } from "@/components/events/EventCoverFrame";
 import type { Event } from "@/lib/db/schema";
 import type { FieldErrors } from "react-hook-form";
@@ -585,8 +585,14 @@ export function EventForm({
                             <div className="flex flex-wrap gap-2">
                                 {selectablePaymentMethods.map((pm) => {
                                     const selected = selectedPaymentMethodIds.includes(pm.id);
-                                    const IconMap: Record<string, React.ComponentType<{ className?: string }>> = { yape: Smartphone, plin: QrCode, cash: Wallet };
+                                    const IconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+                                        yape: Smartphone,
+                                        plin: QrCode,
+                                        cash: Wallet,
+                                        culqi: CreditCard,
+                                    };
                                     const PmIcon = IconMap[pm.type] ?? Wallet;
+                                    const isLegacy = pm.type === "yape" || pm.type === "plin";
                                     return (
                                         <button
                                             key={pm.id}
@@ -605,6 +611,9 @@ export function EventForm({
                                         >
                                             <PmIcon className="h-4 w-4 shrink-0" />
                                             <span className="truncate">{pm.label}</span>
+                                            {isLegacy && (
+                                                <span className="text-[10px] uppercase text-amber-700">Legacy</span>
+                                            )}
                                             <span className="text-xs text-muted-foreground">({pm.holderName})</span>
                                         </button>
                                     );

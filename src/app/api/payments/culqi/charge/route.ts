@@ -9,6 +9,7 @@ import { mergeSessionCulqiProfile } from "@/lib/culqi/customer-data";
 import { getCulqiCredentialsForEvent } from "@/lib/culqi/capabilities";
 import { requirePlanFeature, getOrganizerPlanForEvent, getPlatformFee } from "@/lib/billing/enforce";
 import { CulqiEventPaymentService } from "@/lib/culqi/event-payment.service";
+import { logCulqi, logCulqiFailure } from "@/lib/culqi/observability";
 
 export async function POST(req: Request) {
   try {
@@ -85,7 +86,13 @@ export async function POST(req: Request) {
           });
         }
       } catch (reconcileError) {
-        console.warn("[Culqi charge] reconcile existing charge failed", reconcileError);
+        logCulqi("warn", {
+          scope: "event",
+          action: "charge.reconcile_failed",
+          ok: false,
+          message: reconcileError instanceof Error ? reconcileError.message : String(reconcileError),
+          meta: { paymentId: payment.id },
+        });
       }
     }
 
@@ -132,7 +139,7 @@ export async function POST(req: Request) {
   } catch (error) {
     const authResponse = apiAuthErrorResponse(error);
     if (authResponse) return authResponse;
-    console.error("[Culqi charge]", error);
+    logCulqiFailure("event", "charge.create", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Error al procesar pago" },
       { status: 500 },
