@@ -754,15 +754,18 @@ const translations: Record<Locale, TranslationDictionary> = {
                 pendingApprovalTitle: "Solicitud pendiente en {entity}",
                 pendingApprovalBody:
                     "Tu cuenta es de organizador, pero el administrador debe aprobar tu acceso antes de que puedas crear eventos para esta entidad.",
+                pendingApprovalBadge: "Acceso pendiente",
                 pendingApprovalModalTitle: "Esperando aprobación de {entity}",
                 pendingApprovalModalBody:
-                    "Iniciaste sesión correctamente, pero el administrador de la entidad aún no ha aprobado tu solicitud como organizador.",
+                    "Tu cuenta ya está verificada. El administrador de la entidad debe aceptar tu solicitud antes de que puedas usar el panel de organizador.",
                 pendingApprovalModalHint:
-                    "No podrás crear eventos ni usar las herramientas del panel hasta que te aprueben.",
+                    "Mientras tanto no podrás crear eventos ni acceder a las herramientas del panel.",
                 pendingApprovalModalWait:
-                    "Te avisaremos por correo cuando tu acceso esté activo.",
+                    "Te avisaremos por correo cuando tu acceso esté activo. Esta pantalla se actualizará sola.",
                 pendingApprovalModalFooter:
-                    "Puedes cerrar esta ventana; el panel seguirá bloqueado hasta la aprobación.",
+                    "Si entraste por error, puedes cerrar sesión y volver más tarde.",
+                pendingApprovalChecking: "Comprobando si ya te aprobaron…",
+                pendingApprovalAutoRefresh: "Se revisa automáticamente cada pocos segundos",
                 joinEntityError: "No se pudo vincular la entidad. Verifica el código.",
                 linkedEntity: "Entidad vinculada",
                 analyticsTitle: "Analítica de tus eventos",
@@ -2462,15 +2465,18 @@ const translations: Record<Locale, TranslationDictionary> = {
                 pendingApprovalTitle: "Pending request for {entity}",
                 pendingApprovalBody:
                     "Your account is an organizer, but the administrator must approve your access before you can create events for this entity.",
+                pendingApprovalBadge: "Access pending",
                 pendingApprovalModalTitle: "Waiting for approval from {entity}",
                 pendingApprovalModalBody:
-                    "You signed in successfully, but the entity administrator has not approved your organizer request yet.",
+                    "Your account is verified. The entity administrator must accept your request before you can use the organizer panel.",
                 pendingApprovalModalHint:
-                    "You cannot create events or use panel tools until you are approved.",
+                    "Until then you cannot create events or access panel tools.",
                 pendingApprovalModalWait:
-                    "We will email you when your access is active.",
+                    "We’ll email you when access is active. This screen updates automatically.",
                 pendingApprovalModalFooter:
-                    "You can close this window; the panel stays locked until approval.",
+                    "If you joined by mistake, you can sign out and come back later.",
+                pendingApprovalChecking: "Checking if you’ve been approved…",
+                pendingApprovalAutoRefresh: "Checks automatically every few seconds",
                 joinEntityError: "Could not link the entity. Check the code.",
                 linkedEntity: "Linked entity",
                 analyticsTitle: "Your events analytics",

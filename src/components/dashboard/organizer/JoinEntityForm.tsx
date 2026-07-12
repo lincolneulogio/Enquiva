@@ -28,6 +28,7 @@ export function JoinEntityForm() {
         }
         clearInviteCode();
         router.push("/organizer");
+        router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : t("dashboard.organizer.joinEntityError"));
       }

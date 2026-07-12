@@ -9,10 +9,19 @@ import { categoryLabel, eventStatusLabel, formatEventDateShort, statusColor } fr
 import { cn } from "@/lib/utils";
 import { OrganizerGettingStarted } from "@/components/dashboard/organizer/OrganizerGettingStarted";
 import { getI18n } from "@/lib/i18n/server";
+import { OrganizationService } from "@/lib/organizations/organization.service";
 
 export default async function OrganizerDashboardPage() {
-  const { locale, t } = await getI18n();
   const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) return null;
+
+  // Evita cargar datos del panel mientras el layout muestra el modal de espera.
+  const pending = await OrganizationService.getPendingOrganizerMembershipForUser(
+    session.user.id,
+  );
+  if (pending) return null;
+
+  const { locale, t } = await getI18n();
   const organizerEvents = await getOrganizerEvents();
   const categories = await getCategories();
   const planSummary = await getMyPlanSummary();
