@@ -3,7 +3,6 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { getAllPlans, getOrganizersForPlanAssignment } from "@/actions/admin/plans";
 import { PlansManager } from "@/components/dashboard/admin/PlansManager";
-import { SubscriptionService } from "@/lib/billing/subscription.service";
 import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";
 import { getI18n } from "@/lib/i18n/server";
 
@@ -12,7 +11,6 @@ export default async function AdminPlansPage() {
   if (session?.user?.role !== "super_admin") redirect(getStaffDashboardHome(session?.user?.role));
 
   const { t } = await getI18n();
-  await SubscriptionService.ensureDefaultPlans();
   const [plans, organizers] = await Promise.all([getAllPlans(), getOrganizersForPlanAssignment()]);
 
   return (

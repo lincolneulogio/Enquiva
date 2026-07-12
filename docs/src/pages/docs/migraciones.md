@@ -36,12 +36,13 @@ Ejemplos ya registrados:
 - `db:migrate:subscriptions-organization`
 - `db:migrate:events-view-count`
 
-Si restauras desde cero:
+Si restauras desde cero (solo roles, sin planes ni demo):
 
 ```bash
-pnpm run db:reset
-pnpm run db:push
+pnpm run db:fresh
 ```
+
+Eso hace: `db:reset` → `db:push` → `db:seed:roles`. Los planes se crean desde el panel superadmin (o `pnpm db:sync:plans` solo si quieres el seed opcional).
 
 ---
 

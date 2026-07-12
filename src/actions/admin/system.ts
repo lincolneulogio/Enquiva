@@ -21,33 +21,7 @@ import { requireSuperAdmin } from "./users";
 import { requireAuth } from "@/lib/auth/guards";
 import { logAdminAction } from "@/lib/analytics/log-admin-action";
 import { assertPermission } from "@/lib/auth/permission-guards";
-
-const DEFAULT_ROLES = [
-    {
-        name: "super_admin",
-        label: "Super Admin",
-        description: "Full platform access: manage users, events and all settings.",
-        color: "purple",
-    },
-    {
-        name: "admin",
-        label: "Admin",
-        description: "Oversee operations, payments and participant workflows.",
-        color: "rose",
-    },
-    {
-        name: "organizer",
-        label: "Organizer",
-        description: "Create and manage events, view attendees and analytics.",
-        color: "blue",
-    },
-    {
-        name: "member",
-        label: "Member",
-        description: "Browse and register for events in the community.",
-        color: "green",
-    },
-] as const;
+import { DEFAULT_ROLES } from "@/lib/auth/default-roles";
 
 /** Inserta los 4 roles de plataforma si faltan (idempotente). Solo super_admin. */
 export async function ensureDefaultRoles() {

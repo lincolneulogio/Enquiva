@@ -44,7 +44,6 @@ export async function getMyPlanSummary() {
 }
 
 export async function getPublicPlans() {
-  await SubscriptionService.ensureDefaultPlans();
   const all = await SubscriptionService.listAllPlans();
   return all.filter((p) => p.isActive);
 }

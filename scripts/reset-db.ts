@@ -1,3 +1,8 @@
+/**
+ * Reset total de la BD (drop tablas + enums).
+ * Después: pnpm db:push && pnpm db:seed:roles
+ * o usa: pnpm db:fresh
+ */
 import postgres from "postgres";
 
 const connectionString = process.env.DATABASE_URL;
@@ -15,42 +20,41 @@ const sql = postgres(connectionString, isLocal ? {} : { ssl: "require" });
 
 async function reset() {
   try {
-    // 1. Get all tables in public schema
     const tables = await sql`
       SELECT table_name 
       FROM information_schema.tables 
       WHERE table_schema = 'public' 
-        AND table_type = 'BASE TABLE';
+        AND table_type = 'BASE TABLE'
     `;
 
     console.log(`Found ${tables.length} tables. Dropping...`);
 
-    // 2. Drop all tables with CASCADE
     for (const table of tables) {
-      const tableName = table.table_name;
+      const tableName = table.table_name as string;
       console.log(`Dropping table: ${tableName}`);
       await sql.unsafe(`DROP TABLE IF EXISTS "${tableName}" CASCADE`);
     }
 
-    // 3. Drop all custom types/enums
     const types = await sql`
       SELECT t.typname
       FROM pg_type t
       JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
       WHERE n.nspname = 'public'
-        AND t.typtype = 'e';
+        AND t.typtype = 'e'
     `;
 
     console.log(`Found ${types.length} custom types. Dropping...`);
     for (const type of types) {
-      const typeName = type.typname;
+      const typeName = type.typname as string;
       console.log(`Dropping type: ${typeName}`);
       await sql.unsafe(`DROP TYPE IF EXISTS "${typeName}" CASCADE`);
     }
 
     console.log("Database reset complete! Everything is clean.");
+    console.log("Next: pnpm db:push && pnpm db:seed:roles   (or pnpm db:fresh)");
   } catch (err) {
     console.error("Failed to reset database:", err);
+    process.exit(1);
   } finally {
     await sql.end();
   }

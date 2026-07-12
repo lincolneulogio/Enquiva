@@ -40,6 +40,9 @@ App: `http://localhost:3000` · Docs: `cd docs && pnpm run dev` → `http://loca
 | `pnpm run dev` | Servidor de desarrollo |
 | `pnpm run db:push` | Sincronizar esquema Drizzle |
 | `pnpm run db:reset` | Borrar todas las tablas (empezar de cero) |
+| `pnpm run db:fresh` | Reset + schema + **solo roles** (sin planes ni demo) |
+| `pnpm run db:seed:roles` | Insertar los 4 roles de plataforma |
+| `pnpm run db:sync:plans` | Seed opcional de planes (no se usa en fresh) |
 | `pnpm run db:backup` | Export JSON completo a `backups/` |
 | `pnpm run typecheck` | Verificación TypeScript |
 

@@ -15,6 +15,8 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:reset": "npx tsx --env-file=.env ./scripts/reset-db.ts",
+    "db:seed:roles": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/seed-roles-only.ts",
+    "db:fresh": "pnpm run db:reset && pnpm run db:push && pnpm run db:seed:roles",
     "db:backup": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/backup-database.ts",
     "db:migrate:payment-methods": "node -e \"console.warn('[deprecated] Use pnpm db:migrate')\" && tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-payment-methods-scope.ts",
     "db:migrate:categories-org": "node -e \"console.warn('[deprecated] Use pnpm db:migrate')\" && tsx --env-file=.env --tsconfig tsconfig.json ./scripts/migrate-categories-organization.ts",
@@ -52,7 +54,7 @@
     "db:sync:plans": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/ensure-default-plans.ts",
     "db:detach:legacy-wallets": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/detach-legacy-wallet-event-methods.ts",
     "generate:brand": "tsx scripts/generate-brand-assets.ts",
-    "setup:local": "pnpm run db:migrate && pnpm run db:sync:plans"
+    "setup:local": "pnpm run db:fresh"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.80",

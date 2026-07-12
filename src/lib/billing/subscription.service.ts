@@ -50,7 +50,6 @@ export class SubscriptionService {
   }
 
   static async ensureOrganizationSubscription(organizationId: string, billingUserId: string) {
-    await this.ensureDefaultPlans();
     const [existing] = await db
       .select({ id: subscriptions.id })
       .from(subscriptions)
@@ -126,9 +125,12 @@ export class SubscriptionService {
   }
 
   static async getFreePlan(): Promise<ResolvedPlan> {
-    await this.ensureDefaultPlans();
     const plan = await this.getPlanBySlug("free");
-    if (!plan) throw new Error("Plan free no encontrado. Inicializa planes desde el panel superadmin.");
+    if (!plan) {
+      throw new Error(
+        "Plan free no encontrado. Créalo desde el panel superadmin (Planes) o ejecuta pnpm db:sync:plans si quieres el seed opcional.",
+      );
+    }
     return plan;
   }
 
@@ -221,7 +223,6 @@ export class SubscriptionService {
       };
     }
 
-    await this.ensureDefaultPlans();
     await this.syncSubscriptionForContext(ctx);
 
     const [existing] = await db
@@ -418,7 +419,6 @@ export class SubscriptionService {
    * Ejecutar diariamente vía cron o script.
    */
   static async processSubscriptionLifecycle() {
-    await this.ensureDefaultPlans();
     const now = new Date();
 
     const { SubscriptionRenewalService } = await import("./subscription-renewal.service");
@@ -475,8 +475,6 @@ export class SubscriptionService {
     targetPlanSlug: string,
     role?: string | null,
   ): Promise<PlanChangePreview | null> {
-    await this.ensureDefaultPlans();
-
     const [targetPlan] = await db
       .select()
       .from(plans)

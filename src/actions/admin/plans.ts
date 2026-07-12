@@ -11,7 +11,6 @@ import { assertPermission } from "@/lib/auth/permission-guards";
 
 export async function getAllPlans() {
   await requireSuperAdmin();
-  await SubscriptionService.ensureDefaultPlans();
   return db.select().from(plans).orderBy(asc(plans.sortOrder));
 }
 
