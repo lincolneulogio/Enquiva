@@ -6,7 +6,6 @@ import {
   createPlan,
   updatePlan,
   deletePlan,
-  assignUserPlan,
 } from "@/actions/admin/plans";
 import { Loader2, Plus, Trash2, Pencil, Crown, List, FilePenLine } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,19 +15,14 @@ import { formStorageKey } from "@/lib/form-persistence";
 import { confirmDeleteAction } from "@/lib/ui/confirm";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 
-type OrganizerOption = { id: string; name: string; email: string };
 type PlansTab = "list" | "editor";
 
 interface PlansManagerProps {
   initialPlans: Plan[];
-  organizers: OrganizerOption[];
 }
 
 const inputClass =
   "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60";
-
-const selectClass =
-  "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground transition focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary";
 
 const cardClass = "rounded-2xl border border-border bg-card p-6 shadow-sm";
 
@@ -56,14 +50,12 @@ const emptyForm = {
   featureCustomBranding: false,
 };
 
-export function PlansManager({ initialPlans, organizers }: PlansManagerProps) {
+export function PlansManager({ initialPlans }: PlansManagerProps) {
   const t = useTranslations();
   const [tab, setTab] = useState<PlansTab>("list");
   const [plans, setPlans] = useState(initialPlans);
   const [form, setForm, clearForm] = usePersistedState(formStorageKey("admin.plans.form"), emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [assignUserId, setAssignUserId] = usePersistedState(formStorageKey("admin.plans.assign-user"), "");
-  const [assignPlanId, setAssignPlanId] = usePersistedState(formStorageKey("admin.plans.assign-plan"), "");
   const [isPending, startTransition] = useTransition();
 
   const resetForm = () => {
@@ -162,21 +154,6 @@ export function PlansManager({ initialPlans, organizers }: PlansManagerProps) {
     })();
   };
 
-  const onAssign = () => {
-    if (!assignUserId || !assignPlanId) {
-      toast.error(t("dashboard.admin.plansAssignSelectError"));
-      return;
-    }
-    startTransition(async () => {
-      try {
-        await assignUserPlan(assignUserId, assignPlanId);
-        toast.success(t("dashboard.admin.plansAssigned"));
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : t("dashboard.admin.plansAssignError"));
-      }
-    });
-  };
-
   const cancelEditor = () => {
     resetForm();
     setTab("list");
@@ -251,38 +228,6 @@ export function PlansManager({ initialPlans, organizers }: PlansManagerProps) {
 
       {tab === "list" ? (
         <div className="space-y-6">
-          <div className={cardClass}>
-            <h2 className="mb-4 border-b border-border/50 pb-3 text-lg font-semibold text-foreground">
-              {t("dashboard.admin.plansAssignTitle")}
-            </h2>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <select className={selectClass} value={assignUserId} onChange={(e) => setAssignUserId(e.target.value)}>
-                <option value="">{t("dashboard.admin.plansSelectOrganizer")}</option>
-                {organizers.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.name} ({o.email})
-                  </option>
-                ))}
-              </select>
-              <select className={selectClass} value={assignPlanId} onChange={(e) => setAssignPlanId(e.target.value)}>
-                <option value="">{t("dashboard.admin.plansSelectPlan")}</option>
-                {plans.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={onAssign}
-                disabled={isPending}
-                className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50 dark:bg-emerald-700 dark:hover:bg-emerald-600"
-              >
-                {t("dashboard.admin.plansAssignAction")}
-              </button>
-            </div>
-          </div>
-
           <div className="space-y-3">
             {plans.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border bg-card/50 p-10 text-center">
@@ -318,10 +263,14 @@ export function PlansManager({ initialPlans, organizers }: PlansManagerProps) {
                       </div>
                       <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
                       <p className="mt-2 text-sm font-medium text-foreground">
-                        {t("dashboard.admin.plansPriceLine", {
-                          price: String(plan.priceMonthly),
-                          commission: String(plan.commissionPercent),
-                        })}
+                        {Number(plan.commissionPercent) > 0
+                          ? t("dashboard.admin.plansPriceLineWithCommission", {
+                              price: String(plan.priceMonthly),
+                              commission: String(plan.commissionPercent),
+                            })
+                          : t("dashboard.admin.plansPriceLineNoCommission", {
+                              price: String(plan.priceMonthly),
+                            })}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {t("dashboard.admin.plansLimitsLine", {

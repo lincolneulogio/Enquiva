@@ -599,6 +599,9 @@ const translations: Record<Locale, TranslationDictionary> = {
                 plansEditAria: "Editar plan",
                 plansDeleteAria: "Eliminar plan",
                 plansPriceLine: "S/ {price}/mes · Comisión {commission}%",
+                plansPriceLineNoCommission: "S/ {price}/mes · Sin comisión por entradas",
+                plansPriceLineWithCommission:
+                    "S/ {price}/mes · Comisión {commission}% por venta de entradas",
                 plansLimitsLine:
                     "Eventos: {events} · Asistentes: {attendees} · Broadcasts: {broadcasts} · IA: {ai}/mes",
                 plansTabList: "Ver planes",
@@ -609,7 +612,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                 plansEmptyList: "Aún no hay planes. Crea el primero en la pestaña Crear / editar.",
                 plansPageTitle: "Planes y suscripciones",
                 plansPageIntro:
-                    "Administra los planes SaaS, límites, funcionalidades y asignaciones a organizadores.",
+                    "Administra los planes SaaS, límites y funcionalidades. Los organizadores eligen y pagan su plan desde Mi plan.",
                 scanPageIntro:
                     "Valida firmas digitales y confirma asistencia en la plataforma escaneando códigos QR.",
                 scanPageTitleMeta: "Escaneo de tickets — Administrador",
@@ -2304,6 +2307,9 @@ const translations: Record<Locale, TranslationDictionary> = {
                 plansEditAria: "Edit plan",
                 plansDeleteAria: "Delete plan",
                 plansPriceLine: "S/ {price}/mo · Commission {commission}%",
+                plansPriceLineNoCommission: "S/ {price}/mo · No commission on ticket sales",
+                plansPriceLineWithCommission:
+                    "S/ {price}/mo · {commission}% commission on ticket sales",
                 plansLimitsLine:
                     "Events: {events} · Attendees: {attendees} · Broadcasts: {broadcasts} · AI: {ai}/mo",
                 plansTabList: "View plans",
@@ -2314,7 +2320,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                 plansEmptyList: "No plans yet. Create the first one in the Create / edit tab.",
                 plansPageTitle: "Plans & subscriptions",
                 plansPageIntro:
-                    "Manage SaaS plans, limits, features, and assignments to organizers.",
+                    "Manage SaaS plans, limits, and features. Organizers choose and pay for their plan in My plan.",
                 scanPageIntro:
                     "Validate digital signatures and confirm attendance by scanning QR codes.",
                 scanPageTitleMeta: "Ticket scan — Admin",

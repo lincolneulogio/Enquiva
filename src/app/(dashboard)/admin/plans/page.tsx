@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { getAllPlans, getOrganizersForPlanAssignment } from "@/actions/admin/plans";
+import { getAllPlans } from "@/actions/admin/plans";
 import { PlansManager } from "@/components/dashboard/admin/PlansManager";
 import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";
 import { getI18n } from "@/lib/i18n/server";
@@ -11,7 +11,7 @@ export default async function AdminPlansPage() {
   if (session?.user?.role !== "super_admin") redirect(getStaffDashboardHome(session?.user?.role));
 
   const { t } = await getI18n();
-  const [plans, organizers] = await Promise.all([getAllPlans(), getOrganizersForPlanAssignment()]);
+  const plans = await getAllPlans();
 
   return (
     <div className="space-y-6">
@@ -21,7 +21,7 @@ export default async function AdminPlansPage() {
         </h1>
         <p className="mt-1 text-muted-foreground">{t("dashboard.admin.plansPageIntro")}</p>
       </div>
-      <PlansManager initialPlans={plans} organizers={organizers} />
+      <PlansManager initialPlans={plans} />
     </div>
   );
 }

@@ -612,23 +612,6 @@ export class SubscriptionService {
     );
   }
 
-  static async assignPlanToUser(userId: string, planId: string, actorRole: string) {
-    if (normalizeRole(actorRole) !== "super_admin") throw new Error("Forbidden");
-
-    const [user] = await db
-      .select({ role: users.role })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-    const ctx = await resolveSubscriptionBillingContext(userId, user?.role);
-    const billingUserId = getBillingUserId(ctx);
-    if (!billingUserId) throw new Error("Contexto de facturación inválido");
-
-    return db.transaction(async (tx) =>
-      this.assignPlanToContextTx(tx, ctx, planId, billingUserId),
-    );
-  }
-
   static async assignPlanForPaymentUserTx(
     tx: DBTransaction,
     paymentUserId: string,

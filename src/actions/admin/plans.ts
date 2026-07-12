@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { plans, subscriptions, users } from "@/lib/db/schema";
+import { plans, subscriptions } from "@/lib/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireSuperAdmin } from "@/actions/admin/users";
@@ -162,34 +162,6 @@ export async function deletePlan(id: string) {
 
   revalidatePath("/admin/plans");
   return { success: true };
-}
-
-export async function assignUserPlan(userId: string, planId: string) {
-  const actor = await requireSuperAdmin();
-  await assertPermission(actor, "plans:manage");
-  await SubscriptionService.assignPlanToUser(userId, planId, actor.role ?? "super_admin");
-
-  await logAdminAction({
-    actorId: actor.id,
-    actorName: actor.name ?? actor.email,
-    action: "plan.assign",
-    entityType: "plan",
-    entityId: planId,
-    details: `Plan asignado al usuario ${userId}`,
-  });
-
-  revalidatePath("/admin/plans");
-  revalidatePath("/admin/billing");
-  revalidatePath("/organizer/billing");
-  return { success: true };
-}
-
-export async function getOrganizersForPlanAssignment() {
-  await requireSuperAdmin();
-  return db
-    .select({ id: users.id, name: users.name, email: users.email, role: users.role })
-    .from(users)
-    .where(eq(users.role, "organizer"));
 }
 
 export async function getPlatformRevenue() {

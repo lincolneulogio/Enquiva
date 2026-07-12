@@ -26,7 +26,7 @@ export const DEFAULT_PLAN_DEFINITIONS: Array<{
     priceMonthly: "0",
     maxActiveEvents: 1,
     maxAttendeesPerEvent: 100,
-    commissionPercent: "5",
+    commissionPercent: "0",
     maxBroadcastsPerMonth: 0,
     maxAiMessagesPerMonth: 0,
     maxOrganizers: 1,

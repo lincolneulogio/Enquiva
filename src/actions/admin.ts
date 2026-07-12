@@ -19,7 +19,5 @@ export {
   createPlan,
   updatePlan,
   deletePlan,
-  assignUserPlan,
-  getOrganizersForPlanAssignment,
   getPlatformRevenue,
 } from "./admin/plans";
