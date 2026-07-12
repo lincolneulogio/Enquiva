@@ -140,11 +140,11 @@ async function prepareFreshCheckout() {
 
   scrubCulqiBodyClass();
 
-  const elapsed = Date.now() - lastClosedAt;
-  const waitMs =
-    lastClosedAt > 0 ? Math.max(CULQI_REOPEN_DELAY_MS - elapsed, 0) : CULQI_REOPEN_DELAY_MS;
-  // Siempre un respiro mínimo antes de new CulqiCheckout + open().
-  await delay(Math.max(waitMs, 50));
+  // Solo esperar al reabrir; el primer open no debe “parpadear” por delay artificial.
+  if (lastClosedAt > 0) {
+    const waitMs = Math.max(CULQI_REOPEN_DELAY_MS - (Date.now() - lastClosedAt), 0);
+    if (waitMs > 0) await delay(waitMs);
+  }
 }
 
 export async function openCulqiCheckout(params: OpenCulqiCheckoutParams): Promise<CulqiCheckoutResult> {

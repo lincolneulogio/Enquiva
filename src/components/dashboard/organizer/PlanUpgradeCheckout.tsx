@@ -46,6 +46,7 @@ export function PlanUpgradeCheckout({
     : null;
 
   const [isSaving, setIsSaving] = useState(false);
+  const [culqiOpen, setCulqiOpen] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
   const [enableAutoRenew, setEnableAutoRenew] = useState(true);
   const { data: session } = useSession();
@@ -127,6 +128,7 @@ export function PlanUpgradeCheckout({
         enableYape = Boolean(orderData.enableYape && orderId);
       }
 
+      setCulqiOpen(true);
       const checkoutResult = await openCulqiCheckout({
         publicKey: culqiPublicKey,
         title: "Evora",
@@ -146,6 +148,7 @@ export function PlanUpgradeCheckout({
       if (isCulqiCheckoutCancelled(e)) return;
       toast.error(e instanceof Error ? e.message : t("billing.planCheckout.culqiPayFailed"));
     } finally {
+      setCulqiOpen(false);
       setIsSaving(false);
     }
   };
@@ -153,9 +156,20 @@ export function PlanUpgradeCheckout({
   return (
     <div
       data-checkout-overlay
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
+      className={
+        culqiOpen
+          ? "pointer-events-none fixed inset-0 z-40 bg-transparent"
+          : "fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
+      }
+      aria-hidden={culqiOpen}
     >
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-card shadow-xl">
+      <div
+        className={
+          culqiOpen
+            ? "hidden"
+            : "max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-card shadow-xl"
+        }
+      >
         <div className="sticky top-0 z-10 space-y-3 border-b border-border bg-card px-5 py-4">
           <div className="flex items-start justify-between gap-3">
             <div>

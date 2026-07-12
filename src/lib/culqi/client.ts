@@ -176,6 +176,11 @@ type CulqiOrderInput = {
   customer: CulqiUserProfile;
   metadata?: Record<string, string>;
   expirationHours?: number;
+  /**
+   * false (default): Checkout confirma al pagar Yape/billeteras (Generar QR).
+   * true: solo si confirmas tú vía API; rompe "Generar QR" en Checkout.
+   */
+  confirm?: boolean;
 };
 
 export async function createCulqiOrder(
@@ -206,7 +211,8 @@ export async function createCulqiOrder(
         email: input.email,
         phone_number: customer.antifraud.phone_number,
       },
-      confirm: true,
+      // Checkout (Yape / billeteras / PagoEfectivo) confirma la orden al generar QR.
+      confirm: input.confirm ?? false,
       metadata: input.metadata,
     }),
   });

@@ -75,6 +75,7 @@ export function OrganizerBillingClient({
   const [checkoutPlan, setCheckoutPlan] = useState<{
     plan: Plan;
     newPeriodEnd: string | null;
+    nonce: number;
   } | null>(null);
   const [planChangeConfirm, setPlanChangeConfirm] = useState<{
     target: Plan;
@@ -97,10 +98,10 @@ export function OrganizerBillingClient({
     closeActiveCulqiCheckout();
     resetCulqiCheckoutUi();
     setPlanChangeConfirm(null);
-    // Fuerza remount del modal aunque sea el mismo plan (reintento tras cerrar Culqi).
-    setCheckoutPlan(null);
-    queueMicrotask(() => {
-      setCheckoutPlan({ plan: target, newPeriodEnd });
+    setCheckoutPlan({
+      plan: target,
+      newPeriodEnd,
+      nonce: Date.now(),
     });
   };
 
@@ -410,6 +411,7 @@ export function OrganizerBillingClient({
 
       {checkoutPlan && (
         <PlanUpgradeCheckout
+          key={checkoutPlan.nonce}
           plan={checkoutPlan.plan}
           newPeriodEnd={checkoutPlan.newPeriodEnd}
           platformMethods={platformMethods}
