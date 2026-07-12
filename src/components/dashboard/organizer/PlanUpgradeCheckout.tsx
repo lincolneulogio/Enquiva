@@ -111,7 +111,15 @@ export function PlanUpgradeCheckout({
 
     setIsSaving(true);
     try {
+      // Cierra cualquier Culqi/orden previa ANTES de crear la orden del plan actual.
+      // Evita reutilizar un QR de otro plan (ej. Pro S/49 al pagar Enterprise).
+      closeActiveCulqiCheckout();
+      resetCulqiCheckoutUi();
+      setCulqiOpen(true);
+      await new Promise<void>((r) => window.setTimeout(r, 350));
+
       let orderId: string | null = null;
+      let checkoutAmount = amount;
       let enableYape = false;
 
       if (yapeAvailable) {
@@ -126,13 +134,23 @@ export function PlanUpgradeCheckout({
         }
         orderId = orderData.orderId ?? null;
         enableYape = Boolean(orderData.enableYape && orderId);
+        if (typeof orderData.amount === "number") {
+          checkoutAmount = orderData.amount;
+        }
+        if (Math.abs(checkoutAmount - amount) > 0.009) {
+          throw new Error(
+            t("billing.planCheckout.amountMismatch", {
+              plan: amount.toFixed(2),
+              order: checkoutAmount.toFixed(2),
+            }),
+          );
+        }
       }
 
-      setCulqiOpen(true);
       const checkoutResult = await openCulqiCheckout({
         publicKey: culqiPublicKey,
-        title: "Evora",
-        amount,
+        title: `Evora · ${plan.name}`,
+        amount: checkoutAmount,
         email: checkoutEmail,
         orderId,
         enableYape,

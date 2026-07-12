@@ -75,6 +75,16 @@ export async function POST(req: Request) {
     }
 
     const amount = Number(plan.priceMonthly);
+    const expectedCents = Math.round(amount * 100);
+    if (typeof order.amount === "number" && order.amount !== expectedCents) {
+      return NextResponse.json(
+        {
+          error: `El monto pagado (S/ ${(order.amount / 100).toFixed(2)}) no coincide con el plan ${plan.name} (S/ ${amount.toFixed(2)}).`,
+        },
+        { status: 400 },
+      );
+    }
+
     const result = await SubscriptionPaymentService.fulfillCulqiSubscriptionCharge({
       userId: billingUserId,
       planId: plan.id,

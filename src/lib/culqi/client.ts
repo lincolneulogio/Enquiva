@@ -197,7 +197,7 @@ export async function createCulqiOrder(
     Date.now() / 1000 + (input.expirationHours ?? 24) * 3600,
   );
 
-  return culqiApiRequest<{ id: string; state?: string }>("/orders", credentials, {
+  return culqiApiRequest<{ id: string; state?: string; amount?: number }>("/orders", credentials, {
     method: "POST",
     body: JSON.stringify({
       amount: amountCents,
@@ -227,9 +227,10 @@ export async function getCulqiCharge(chargeId: string, credentials: CulqiCredent
 }
 
 export async function getCulqiOrder(orderId: string, credentials: CulqiCredentials) {
-  return culqiApiRequest<{ id: string; state?: string; metadata?: Record<string, string> }>(
-    `/orders/${orderId}`,
-    credentials,
-    { method: "GET" },
-  );
+  return culqiApiRequest<{
+    id: string;
+    state?: string;
+    amount?: number;
+    metadata?: Record<string, string>;
+  }>(`/orders/${orderId}`, credentials, { method: "GET" });
 }

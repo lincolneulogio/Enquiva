@@ -91,7 +91,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const orderNumber = `sub${billingUserId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 10)}${Date.now()}`
+    const orderNumber = `sub${plan.slug.replace(/[^a-zA-Z0-9]/g, "").slice(0, 12)}${Date.now()}`
       .slice(0, 36);
 
     const order = await createCulqiOrder(
@@ -104,15 +104,34 @@ export async function POST(req: Request) {
         metadata: {
           userId: billingUserId,
           planId: plan.id,
+          planSlug: plan.slug,
           type: "subscription",
         },
       },
       platformCulqi,
     );
 
+    const orderAmountCents =
+      typeof order.amount === "number" ? order.amount : Math.round(amount * 100);
+    if (orderAmountCents !== Math.round(amount * 100)) {
+      console.error("[Billing Culqi order] amount mismatch", {
+        planId: plan.id,
+        expected: Math.round(amount * 100),
+        got: orderAmountCents,
+      });
+      return NextResponse.json(
+        { error: "El monto de la orden Culqi no coincide con el plan. Intenta de nuevo." },
+        { status: 502 },
+      );
+    }
+
     return NextResponse.json({
       success: true,
       orderId: order.id,
+      amount,
+      amountCents: orderAmountCents,
+      planId: plan.id,
+      planName: plan.name,
       enableYape: true,
     });
   } catch (error) {
