@@ -13,7 +13,7 @@ import { PlanChangeConfirmDialog } from "@/components/dashboard/organizer/PlanCh
 import { AutoRenewSettings } from "@/components/dashboard/organizer/AutoRenewSettings";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import type { PlanChangePreview } from "@/lib/billing/types";
-import { closeActiveCulqiCheckout } from "@/lib/culqi/open-checkout";
+import { closeActiveCulqiCheckout, resetCulqiCheckoutUi } from "@/lib/culqi/open-checkout";
 
 interface PendingPayment {
   payment: {
@@ -80,6 +80,7 @@ export function OrganizerBillingClient({
     target: Plan;
     preview: PlanChangePreview;
   } | null>(null);
+  const [openingCheckout, setOpeningCheckout] = useState(false);
   const { plan, usage, billedPlan, renewalAlert, daysUntilRenewal } = subscription;
   const displayPlanName = billedPlan?.name ?? plan.name;
 
@@ -87,11 +88,24 @@ export function OrganizerBillingClient({
     if (prevPathname.current === pathname) return;
     prevPathname.current = pathname;
     closeActiveCulqiCheckout();
+    resetCulqiCheckoutUi();
     setCheckoutPlan(null);
     setPlanChangeConfirm(null);
   }, [pathname]);
 
+  const openCheckoutForPlan = (target: Plan, newPeriodEnd: string | null) => {
+    closeActiveCulqiCheckout();
+    resetCulqiCheckoutUi();
+    setPlanChangeConfirm(null);
+    // Fuerza remount del modal aunque sea el mismo plan (reintento tras cerrar Culqi).
+    setCheckoutPlan(null);
+    queueMicrotask(() => {
+      setCheckoutPlan({ plan: target, newPeriodEnd });
+    });
+  };
+
   const proceedPlanChange = (target: Plan, confirmed: boolean) => {
+    setOpeningCheckout(true);
     startTransition(async () => {
       try {
         const res = await requestPlanUpgrade(target.slug, confirmed);
@@ -104,14 +118,12 @@ export function OrganizerBillingClient({
           toast.success(t("billing.organizer.planUpdated"));
           window.location.reload();
         } else if (res.mode === "checkout") {
-          setPlanChangeConfirm(null);
-          setCheckoutPlan({
-            plan: target,
-            newPeriodEnd: res.preview?.newPeriodEnd ?? null,
-          });
+          openCheckoutForPlan(target, res.preview?.newPeriodEnd ?? null);
         }
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t("billing.organizer.planChangeFailed"));
+      } finally {
+        setOpeningCheckout(false);
       }
     });
   };
@@ -122,6 +134,7 @@ export function OrganizerBillingClient({
       toast.info(t("billing.organizer.pendingExists"));
       return;
     }
+    resetCulqiCheckoutUi();
     proceedPlanChange(target, false);
   };
 
@@ -359,7 +372,7 @@ export function OrganizerBillingClient({
               </ul>
               <button
                 type="button"
-                disabled={isCurrent || isPending || !!pendingPayment}
+                disabled={isCurrent || isPending || openingCheckout || !!pendingPayment}
                 onClick={() => onSelectPlan(p)}
                 className={cn(
                   "mt-5 w-full rounded-xl px-4 py-2.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50",
@@ -368,7 +381,7 @@ export function OrganizerBillingClient({
                     : "bg-primary text-primary-foreground hover:bg-primary/90",
                 )}
               >
-                {isPending ? (
+                {isPending || openingCheckout ? (
                   <Loader2 className="mx-auto h-4 w-4 animate-spin" />
                 ) : isCurrent ? (
                   t("billing.organizer.currentPlanBtn")
@@ -402,8 +415,17 @@ export function OrganizerBillingClient({
           platformMethods={platformMethods}
           culqiPublicKey={culqiPublicKey}
           userEmail={userEmail}
-          onClose={() => setCheckoutPlan(null)}
-          onSuccess={() => window.location.reload()}
+          onClose={() => {
+            closeActiveCulqiCheckout();
+            resetCulqiCheckoutUi();
+            setCheckoutPlan(null);
+          }}
+          onSuccess={() => {
+            closeActiveCulqiCheckout();
+            resetCulqiCheckoutUi();
+            setCheckoutPlan(null);
+            window.location.reload();
+          }}
         />
       )}
         </>

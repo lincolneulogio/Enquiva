@@ -48,6 +48,10 @@ declare global {
         cuotealo?: boolean;
       };
     };
+    /** Presente en versiones recientes de checkout-js */
+    onClose?: () => void;
+    onToken?: (token: CulqiToken) => void;
+    onError?: (error: CulqiError) => void;
   }
 
   interface Window {

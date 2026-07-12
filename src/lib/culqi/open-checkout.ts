@@ -2,6 +2,10 @@
 
 const CULQI_SCRIPT = "https://js.culqi.com/checkout-js";
 const CULQI_READY_TIMEOUT_MS = 8000;
+/** Espera tras cerrar: Culqi necesita liberar el modal antes de un nuevo open(). */
+const CULQI_REOPEN_DELAY_MS = 300;
+/** Ignora onClose disparado en el mismo tick que open(). */
+const CULQI_CLOSE_GRACE_MS = 200;
 
 interface CulqiCheckoutWithState extends CulqiCheckoutInstance {
   token?: { id: string };
@@ -43,27 +47,43 @@ export function isCulqiCheckoutCancelled(error: unknown): boolean {
 }
 
 type ActiveSession = {
+  id: number;
   checkout: CulqiCheckoutWithState;
-  cancel: (reason?: string) => void;
+  cancel: () => void;
 };
 
+let sessionSeq = 0;
 let activeSession: ActiveSession | null = null;
+/** Última vez que se cerró un checkout (para esperar antes de reabrir). */
+let lastClosedAt = 0;
 
 function scrubCulqiBodyClass() {
   document.body.classList.remove("culqi-checkout-open");
 }
 
+/** Limpia la clase body de Culqi (seguro llamar desde botones de la UI). */
+export function resetCulqiCheckoutUi() {
+  scrubCulqiBodyClass();
+}
+
+function delay(ms: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
 /**
- * Cierra el checkout Culqi activo (navegación atrás, unmount, X del modal app).
- * Seguro de llamar varias veces.
+ * Cierra el checkout activo.
+ * Importante: no eliminar nodos del DOM de Culqi manualmente — corrompe el SDK
+ * hasta recargar la página (open() deja de mostrar el modal).
  */
-export function closeActiveCulqiCheckout(reason = "CHECKOUT_CANCELLED") {
+export function closeActiveCulqiCheckout() {
   const session = activeSession;
   if (!session) {
     scrubCulqiBodyClass();
     return;
   }
-  session.cancel(reason);
+  session.cancel();
 }
 
 function waitForCulqiCheckout(): Promise<void> {
@@ -103,6 +123,30 @@ export async function loadCulqiCheckoutScript(): Promise<void> {
   await waitForCulqiCheckout();
 }
 
+async function prepareFreshCheckout() {
+  if (activeSession) {
+    const prev = activeSession;
+    try {
+      prev.checkout.close();
+    } catch {
+      /* ignore */
+    }
+    try {
+      prev.cancel();
+    } catch {
+      /* ignore */
+    }
+  }
+
+  scrubCulqiBodyClass();
+
+  const elapsed = Date.now() - lastClosedAt;
+  const waitMs =
+    lastClosedAt > 0 ? Math.max(CULQI_REOPEN_DELAY_MS - elapsed, 0) : CULQI_REOPEN_DELAY_MS;
+  // Siempre un respiro mínimo antes de new CulqiCheckout + open().
+  await delay(Math.max(waitMs, 50));
+}
+
 export async function openCulqiCheckout(params: OpenCulqiCheckoutParams): Promise<CulqiCheckoutResult> {
   await loadCulqiCheckoutScript();
 
@@ -115,30 +159,52 @@ export async function openCulqiCheckout(params: OpenCulqiCheckoutParams): Promis
     throw new Error("No se encontró el correo de tu cuenta para el pago.");
   }
 
-  // Evita dos checkouts a la vez (p. ej. doble clic / remount).
-  closeActiveCulqiCheckout();
+  await prepareFreshCheckout();
 
   const CulqiCheckoutCtor = window.CulqiCheckout;
   const yapeEnabled = Boolean(params.orderId && params.enableYape);
+  const sessionId = ++sessionSeq;
 
   return new Promise((resolve, reject) => {
     let settled = false;
+    let acceptClose = false;
     let timeoutId: number | undefined;
+    let graceId: number | undefined;
+    let checkout: CulqiCheckoutWithState;
+
+    const stopWatchers = () => {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      if (graceId !== undefined) window.clearTimeout(graceId);
+      window.removeEventListener("popstate", onNavigateAway);
+      window.removeEventListener("pagehide", onNavigateAway);
+      window.removeEventListener("keydown", onEscape);
+    };
 
     const finish = (fn: () => void) => {
       if (settled) return;
       settled = true;
-      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
-      window.removeEventListener("popstate", onNavigateAway);
-      window.removeEventListener("pagehide", onNavigateAway);
-      if (activeSession?.checkout === checkout) {
+      stopWatchers();
+      if (activeSession?.id === sessionId) {
         activeSession = null;
       }
+      lastClosedAt = Date.now();
       scrubCulqiBodyClass();
       fn();
     };
 
-    let checkout: CulqiCheckoutWithState;
+    const softClose = () => {
+      try {
+        checkout.close();
+      } catch {
+        /* ignore */
+      }
+    };
+
+    const cancel = () => {
+      if (settled || sessionId !== sessionSeq) return;
+      softClose();
+      finish(() => reject(new CulqiCheckoutCancelledError()));
+    };
 
     try {
       checkout = new CulqiCheckoutCtor(params.publicKey, {
@@ -165,32 +231,33 @@ export async function openCulqiCheckout(params: OpenCulqiCheckoutParams): Promis
             cuotealo: false,
           },
         },
-      }) as CulqiCheckoutWithState;
+        // Solo después de la gracia: evita cancelar el open() al reintentar.
+        // Siempre limpia la clase body para que el modal Evora vuelva a ser usable.
+        onClose: () => {
+          scrubCulqiBodyClass();
+          if (acceptClose) cancel();
+        },
+      } as CulqiCheckoutConfig) as CulqiCheckoutWithState;
     } catch (error) {
-      throw error instanceof Error ? error : new Error("Configuración de Culqi inválida");
+      scrubCulqiBodyClass();
+      reject(error instanceof Error ? error : new Error("Configuración de Culqi inválida"));
+      return;
     }
 
-    const cancel = (reason = "CHECKOUT_CANCELLED") => {
-      try {
-        checkout.close();
-      } catch {
-        /* ignore */
-      }
-      finish(() => reject(new CulqiCheckoutCancelledError(reason)));
+    const onNavigateAway = () => cancel();
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") cancel();
     };
 
-    const onNavigateAway = () => cancel("CHECKOUT_CANCELLED");
-
     const handleCulqi = () => {
+      if (settled || sessionId !== sessionSeq) return;
+
       const instance = checkout as CulqiCheckoutWithState;
       const tokenId = instance.token?.id ?? window.Culqi?.token?.id;
 
       if (tokenId) {
-        try {
-          checkout.close();
-        } catch {
-          /* ignore */
-        }
+        acceptClose = false;
+        softClose();
         finish(() => resolve({ type: "token", tokenId }));
         return;
       }
@@ -198,24 +265,18 @@ export async function openCulqiCheckout(params: OpenCulqiCheckoutParams): Promis
       const orderState = instance.order?.state;
       const orderId = instance.order?.id ?? params.orderId;
       if (orderId && orderState === "paid") {
-        try {
-          checkout.close();
-        } catch {
-          /* ignore */
-        }
+        acceptClose = false;
+        softClose();
         finish(() => resolve({ type: "order_paid", orderId }));
         return;
       }
 
       const err = instance.error ?? window.Culqi?.error;
       if (err) {
+        acceptClose = false;
         const message =
           err.user_message ?? err.merchant_message ?? "Pago rechazado por Culqi";
-        try {
-          checkout.close();
-        } catch {
-          /* ignore */
-        }
+        softClose();
         finish(() => reject(new Error(message)));
       }
     };
@@ -223,24 +284,24 @@ export async function openCulqiCheckout(params: OpenCulqiCheckoutParams): Promis
     checkout.culqi = handleCulqi;
     window.culqi = handleCulqi;
 
-    activeSession = { checkout, cancel };
+    activeSession = { id: sessionId, checkout, cancel };
 
     timeoutId = window.setTimeout(() => {
-      try {
-        checkout.close();
-      } catch {
-        /* ignore */
-      }
+      if (settled || sessionId !== sessionSeq) return;
+      softClose();
       finish(() => reject(new Error("Tiempo de espera agotado. Intenta de nuevo.")));
     }, 5 * 60 * 1000);
 
-    // Atrás del navegador / cambio de historial: el DOM de Culqi no es de React.
     window.addEventListener("popstate", onNavigateAway);
     window.addEventListener("pagehide", onNavigateAway);
+    window.addEventListener("keydown", onEscape);
 
     try {
       document.body.classList.add("culqi-checkout-open");
       checkout.open();
+      graceId = window.setTimeout(() => {
+        acceptClose = true;
+      }, CULQI_CLOSE_GRACE_MS);
     } catch (error) {
       finish(() =>
         reject(error instanceof Error ? error : new Error("No se pudo abrir Culqi")),

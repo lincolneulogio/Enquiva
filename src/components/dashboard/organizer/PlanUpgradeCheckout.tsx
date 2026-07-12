@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { CreditCard, Loader2, X, ShieldCheck, DollarSign } from "lucide-react";
 import type { PaymentMethod, Plan } from "@/lib/db/schema";
 import { useTranslations, useLocale } from "@/components/providers/LocaleProvider";
-import { loadCulqiCheckoutScript, openCulqiCheckout, closeActiveCulqiCheckout, isCulqiCheckoutCancelled } from "@/lib/culqi/open-checkout";
+import { loadCulqiCheckoutScript, openCulqiCheckout, closeActiveCulqiCheckout, resetCulqiCheckoutUi, isCulqiCheckoutCancelled } from "@/lib/culqi/open-checkout";
 import { CULQI_ORDER_MIN_AMOUNT_PEN } from "@/lib/culqi/constants";
 import { useSession } from "@/lib/auth/client";
 import { CheckoutStepper } from "@/components/payments/CheckoutStepper";
@@ -60,8 +60,10 @@ export function PlanUpgradeCheckout({
 
   // Culqi inyecta el modal fuera de React: al salir de la página o cerrar, hay que cerrarlo.
   useEffect(() => {
+    resetCulqiCheckoutUi();
     return () => {
       closeActiveCulqiCheckout();
+      resetCulqiCheckoutUi();
     };
   }, []);
 
@@ -98,6 +100,12 @@ export function PlanUpgradeCheckout({
     if (!checkoutEmail) {
       toast.error(t("billing.planCheckout.culqiEmailRequired"));
       return;
+    }
+
+    // Si un intento anterior quedó colgado (cerrar X de Culqi), libera y reintenta.
+    if (isSaving) {
+      closeActiveCulqiCheckout();
+      setIsSaving(false);
     }
 
     setIsSaving(true);
@@ -167,6 +175,7 @@ export function PlanUpgradeCheckout({
               type="button"
               onClick={() => {
                 closeActiveCulqiCheckout();
+                resetCulqiCheckoutUi();
                 onClose();
               }}
               className="rounded-lg p-2 text-muted-foreground hover:bg-muted"
@@ -241,7 +250,7 @@ export function PlanUpgradeCheckout({
               <button
                 type="button"
                 onClick={openCulqi}
-                disabled={isSaving || !scriptReady}
+                disabled={!scriptReady}
                 className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
               >
                 {isSaving || !scriptReady ? (

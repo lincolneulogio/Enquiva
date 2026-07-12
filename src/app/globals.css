@@ -390,12 +390,9 @@ main {
   opacity: 1;
 }
 
-/* Culqi checkout must sit above in-app modals (z-50) */
-body.culqi-checkout-open [data-checkout-overlay] {
-  opacity: 0;
-  pointer-events: none;
-}
-
+/* Culqi por encima de modales de la app (z-50).
+   No ocultar overlays con opacity/pointer-events: si la clase body
+   queda pegada al cerrar Culqi, el checkout de Evora deja de responder. */
 body.culqi-checkout-open [class*="Culqi-"] {
   z-index: 2147483646 !important;
 }

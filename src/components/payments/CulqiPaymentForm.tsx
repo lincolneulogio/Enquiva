@@ -68,6 +68,9 @@ export function CulqiPaymentForm({
 
     setIsLoading(true);
     try {
+      // Reintento si un checkout previo quedó colgado al cerrar la X de Culqi.
+      closeActiveCulqiCheckout();
+
       const orderResponse = await fetch("/api/payments/culqi/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -152,7 +155,7 @@ export function CulqiPaymentForm({
       <button
         type="button"
         onClick={openCheckout}
-        disabled={isLoading || !scriptReady}
+        disabled={!scriptReady}
         className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-violet-700 dark:hover:bg-violet-600"
       >
         {isLoading || !scriptReady ? (
