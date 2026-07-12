@@ -17,7 +17,8 @@ const TYPE_ICONS = { yape: Smartphone, plin: QrCode, cash: Wallet, culqi: Credit
 const TYPE_LABELS = { yape: "Yape", plin: "Plin", cash: "Efectivo", culqi: "Tarjeta (Culqi)" };
 
 const ORGANIZER_MANUAL_TYPES = ["yape", "plin", "cash"] as const;
-const PLATFORM_ONLINE_TYPES = ["yape", "plin"] as const;
+/** Plataforma: solo Culqi (incluye tarjeta, Yape y billeteras en el checkout). */
+const PLATFORM_TYPES = ["culqi"] as const;
 
 function UploadQRDropzone({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -114,8 +115,8 @@ export function PaymentMethodsManager({
   const { values, setValue, setValues, clear } = usePersistedFormFields(
     formStorageKey(`payment-methods.${scope}`),
     {
-      type: "yape" as "yape" | "plin" | "cash" | "culqi",
-      label: "",
+      type: (scope === "platform" ? "culqi" : "yape") as "yape" | "plin" | "cash" | "culqi",
+      label: scope === "platform" ? "Tarjeta de crédito/débito" : "",
       holderName: "",
       phone: "",
       qrPreview: null as string | null,
@@ -131,13 +132,30 @@ export function PaymentMethodsManager({
     ? canUseCulqi && !hasCulqiMethod
     : planIncludesCulqi && !hasCulqiMethod;
   const availableTypes = isPlatform
-    ? [...PLATFORM_ONLINE_TYPES, ...(canAddCulqiType ? (["culqi"] as const) : [])]
+    ? canAddCulqiType
+      ? [...PLATFORM_TYPES]
+      : []
     : [...ORGANIZER_MANUAL_TYPES, ...(canAddCulqiType ? (["culqi"] as const) : [])];
 
   const resetForm = () => {
     clear();
     setEditingId(null);
     setShowForm(false);
+  };
+
+  const openCreateForm = () => {
+    if (isPlatform) {
+      setValues({
+        type: "culqi",
+        label: "Tarjeta de crédito/débito",
+        holderName: "",
+        phone: "",
+        qrPreview: null,
+        culqiPublicKey: "",
+        culqiSecretKey: "",
+      });
+    }
+    setShowForm(true);
   };
 
   const edit = (m: PaymentMethod) => {
@@ -155,6 +173,10 @@ export function PaymentMethodsManager({
   };
 
   const visibleMethods = isPlatform ? methods.filter((m) => m.type !== "cash") : methods;
+  const legacyPlatformMethods = isPlatform
+    ? visibleMethods.filter((m) => m.type !== "culqi")
+    : [];
+  const canCreate = availableTypes.length > 0;
 
   const submit = () => {
     if (!label.trim() || !holderName.trim()) {
@@ -295,19 +317,29 @@ export function PaymentMethodsManager({
       )}
 
       {!showForm ? (
-        <button
-          onClick={() => setShowForm(true)}
-          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          <Plus className="h-4 w-4" />
-          {t("payments.config.addMethod")}
-        </button>
+        canCreate ? (
+          <button
+            type="button"
+            onClick={openCreateForm}
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            <Plus className="h-4 w-4" />
+            {isPlatform ? t("payments.config.addCulqiMethod") : t("payments.config.addMethod")}
+          </button>
+        ) : isPlatform && hasCulqiMethod ? (
+          <p className="text-sm text-muted-foreground">{t("payments.config.platformCulqiAlreadyActive")}</p>
+        ) : null
       ) : (
         <div className="max-w-2xl space-y-5 rounded-2xl border border-border bg-card p-6 shadow-sm">
           <h3 className="font-semibold text-foreground">
-            {editingId ? t("payments.config.editMethod") : t("payments.config.newMethod")}
+            {editingId
+              ? t("payments.config.editMethod")
+              : isPlatform
+                ? t("payments.config.newCulqiMethod")
+                : t("payments.config.newMethod")}
           </h3>
 
+          {(!isPlatform || editingId) && (
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">{t("payments.config.type")}</label>
             <div className="flex flex-wrap gap-2">
@@ -334,6 +366,14 @@ export function PaymentMethodsManager({
               })}
             </div>
           </div>
+          )}
+
+          {isPlatform && !editingId && (
+            <div className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-sm font-medium text-foreground">
+              <CreditCard className="h-4 w-4 text-primary" />
+              {TYPE_LABELS.culqi}
+            </div>
+          )}
 
           {isCulqiType && (
             <div className="rounded-xl border border-violet-200/60 bg-violet-50/50 p-4 text-sm text-violet-900 dark:border-violet-900/30 dark:bg-violet-950/20 dark:text-violet-200">
@@ -466,11 +506,17 @@ export function PaymentMethodsManager({
       )}
 
       <div className="max-w-2xl space-y-3">
+        {legacyPlatformMethods.length > 0 && (
+          <p className="rounded-xl border border-amber-200/60 bg-amber-50/50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-200">
+            {t("payments.config.platformLegacyHint")}
+          </p>
+        )}
         {visibleMethods.length === 0 && (
           <p className="text-sm text-muted-foreground">{t("payments.config.empty")}</p>
         )}
         {visibleMethods.map((m) => {
           const Icon = TYPE_ICONS[m.type];
+          const isLegacy = isPlatform && m.type !== "culqi";
           return (
             <div key={m.id} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
               <div className="rounded-lg bg-primary/10 p-2.5">
@@ -484,6 +530,11 @@ export function PaymentMethodsManager({
                       Instantáneo
                     </span>
                   )}
+                  {isLegacy && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                      Legacy
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {TYPE_LABELS[m.type]} · {m.holderName}
@@ -494,13 +545,17 @@ export function PaymentMethodsManager({
                 <Image src={m.qrCodeUrl} alt="QR" width={48} height={48} className="shrink-0 rounded border" />
               )}
               <div className="flex shrink-0 gap-1">
+                {!isLegacy && (
+                  <button
+                    type="button"
+                    onClick={() => edit(m)}
+                    className="rounded-lg border border-border px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                  >
+                    {t("common.edit")}
+                  </button>
+                )}
                 <button
-                  onClick={() => edit(m)}
-                  className="rounded-lg border border-border px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                >
-                  {t("common.edit")}
-                </button>
-                <button
+                  type="button"
                   onClick={() => remove(m.id)}
                   className="rounded-lg border border-destructive/30 px-3 py-1 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"
                 >

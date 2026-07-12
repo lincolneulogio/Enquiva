@@ -83,8 +83,10 @@ async function assertNoDuplicateCulqi(scope: PaymentMethodScope, organizerId: st
 }
 
 async function assertAllowedTypeForScope(scope: PaymentMethodScope, type: string) {
-  if (scope === "platform" && type === "cash") {
-    throw new Error("Efectivo no aplica para cobros de plataforma. Usa Yape, Plin o tarjeta.");
+  if (scope === "platform" && type !== "culqi") {
+    throw new Error(
+      "Los cobros de plataforma solo usan Culqi. Tarjeta, Yape y billeteras se ofrecen en el mismo checkout.",
+    );
   }
 }
 
@@ -177,7 +179,7 @@ export async function getPaymentMethodsForEventForm(eventOrganizerId?: string | 
   return getActivePaymentMethodsForEventOrganizer(organizerId);
 }
 
-/** Medios activos de la plataforma (licencias SaaS) */
+/** Medios activos de la plataforma (licencias SaaS) — solo Culqi. */
 export async function getPlatformPaymentMethods() {
   return db
     .select()
@@ -186,7 +188,7 @@ export async function getPlatformPaymentMethods() {
       and(
         isNull(paymentMethods.organizerId),
         eq(paymentMethods.isActive, true),
-        ne(paymentMethods.type, "cash"),
+        eq(paymentMethods.type, "culqi"),
       ),
     )
     .orderBy(paymentMethods.createdAt);

@@ -1311,12 +1311,20 @@ const translations: Record<Locale, TranslationDictionary> = {
                 title: "Medios de pago aceptados",
                 description: "Configura cómo pueden pagar los asistentes a tus eventos. Luego selecciónalos en cada evento con precio.",
                 platformTitle: "Cobros de licencia (plataforma)",
-                platformDescription: "Solo pagos en línea: Yape, Plin o tarjeta (Culqi). Los organizadores usan estos medios para pagarte el plan Pro/Enterprise.",
+                platformDescription:
+                    "Solo Culqi: los organizadores pagan el plan con tarjeta, Yape o billeteras en el mismo checkout. Ya no hace falta crear Yape/Plin manuales.",
                 platformPageTitle: "Cobros de plataforma",
-                platformPageIntro: "Configura cómo recibirás los pagos de suscripción SaaS (licencias de uso de Evora).",
-                platformCulqiHelp: "Los organizadores podrán pagar su plan con tarjeta. El cobro va a tu cuenta Culqi de plataforma.",
+                platformPageIntro: "Activa Culqi para recibir pagos de suscripción SaaS (licencias Evora).",
+                platformCulqiHelp:
+                    "Con un solo medio Culqi, el checkout ofrece tarjeta, Yape y billeteras. El cobro va a tu cuenta Culqi de plataforma (llaves en el servidor).",
+                platformCulqiAlreadyActive:
+                    "Culqi de plataforma ya está activo. Edítalo o elimínalo abajo si necesitas cambiarlo.",
+                platformLegacyHint:
+                    "Medios Yape/Plin manuales antiguos: ya no se usan para planes. Puedes eliminarlos; el cobro de licencias es solo por Culqi.",
                 adminIntro: "Catálogo global de medios de pago. Los organizadores los asignan por evento en el formulario de creación.",
                 organizerIntro: "Tus medios de pago personales (Yape, Plin, efectivo o Culqi). Actívalos en cada evento de pago.",
+                addCulqiMethod: "Activar Culqi (tarjeta / Yape / billeteras)",
+                newCulqiMethod: "Activar Culqi de plataforma",
                 addMethod: "Nuevo medio de pago",
                 newMethod: "Nuevo medio de pago",
                 editMethod: "Editar medio de pago",
@@ -2964,12 +2972,20 @@ const translations: Record<Locale, TranslationDictionary> = {
                 title: "Accepted payment methods",
                 description: "Configure how attendees pay for your events. Then enable them on each paid event.",
                 platformTitle: "License payments (platform)",
-                platformDescription: "Online payments only: Yape, Plin, or card (Culqi). Organizers use these to pay you for Pro/Enterprise plans.",
+                platformDescription:
+                    "Culqi only: organizers pay for plans with card, Yape, or wallets in the same checkout. Manual Yape/Plin entries are no longer needed.",
                 platformPageTitle: "Platform billing",
-                platformPageIntro: "Configure how you receive SaaS subscription payments (Evora licenses).",
-                platformCulqiHelp: "Organizers can pay their plan by card. Charges go to your platform Culqi account.",
+                platformPageIntro: "Enable Culqi to receive SaaS subscription payments (Evora licenses).",
+                platformCulqiHelp:
+                    "With one Culqi method, checkout offers card, Yape, and wallets. Charges go to your platform Culqi account (server env keys).",
+                platformCulqiAlreadyActive:
+                    "Platform Culqi is already active. Edit or delete it below if you need to change it.",
+                platformLegacyHint:
+                    "Legacy manual Yape/Plin methods are no longer used for plans. You can delete them; license billing is Culqi-only.",
                 adminIntro: "Global payment method catalog. Organizers assign them per event in the event form.",
                 organizerIntro: "Your personal payment methods (Yape, Plin, cash, or Culqi). Enable them on each paid event.",
+                addCulqiMethod: "Enable Culqi (card / Yape / wallets)",
+                newCulqiMethod: "Enable platform Culqi",
                 addMethod: "New payment method",
                 newMethod: "New payment method",
                 editMethod: "Edit payment method",
