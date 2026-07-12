@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { DashboardSidebar, DashboardTopbar } from "@/components/dashboard";
 import { normalizeRole } from "@/lib/auth/rbac";
+import { getEffectivePermissionsForRole } from "@/lib/auth/effective-permissions";
 import { mapSuperadminPathToAdmin } from "@/lib/navigation/dashboard-paths";
 import { DashboardAICopilot } from "@/components/dashboard/IACopilot/DashboardAICopilot";
 
@@ -33,11 +34,14 @@ export default async function SuperadminLayout({
     redirect("/organizer");
   }
 
+  const allowedPermissions = await getEffectivePermissionsForRole(role);
+
   return (
     <div className="flex min-h-screen bg-background">
       <DashboardSidebar
         role={session.user.role ?? "super_admin"}
         user={session.user}
+        allowedPermissions={allowedPermissions}
         adminNav={{
           variant: "super_admin",
           showEntityTeam: false,

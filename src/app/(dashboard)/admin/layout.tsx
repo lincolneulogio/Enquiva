@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { DashboardSidebar, DashboardTopbar } from "@/components/dashboard";
 import { normalizeRole } from "@/lib/auth/rbac";
+import { getEffectivePermissionsForRole } from "@/lib/auth/effective-permissions";
 import {
   resolveAdminScope,
   isPathAllowedForUnassignedAdmin,
@@ -48,11 +49,14 @@ export default async function AdminLayout({
     ? "entity_admin_unassigned"
     : "entity_admin";
 
+  const allowedPermissions = await getEffectivePermissionsForRole(role);
+
   return (
     <div className="flex min-h-screen bg-background">
       <DashboardSidebar
         role={session.user.role ?? "admin"}
         user={session.user}
+        allowedPermissions={allowedPermissions}
         adminNav={{
           variant: adminNavVariant,
           showEntityTeam: adminScope.mode === "org",

@@ -209,6 +209,10 @@ export async function updateRolePermission(input: {
 
     revalidatePath("/admin/permissions");
     revalidatePath("/superadmin/permissions");
+    // Sidebar de cada rol depende de la matriz efectiva.
+    revalidatePath("/admin", "layout");
+    revalidatePath("/superadmin", "layout");
+    revalidatePath("/organizer", "layout");
 
     return { success: true };
 }
@@ -234,6 +238,9 @@ export async function resetRolePermissions(input: { role: AppRole }) {
 
     revalidatePath("/admin/permissions");
     revalidatePath("/superadmin/permissions");
+    revalidatePath("/admin", "layout");
+    revalidatePath("/superadmin", "layout");
+    revalidatePath("/organizer", "layout");
 
     return { success: true };
 }

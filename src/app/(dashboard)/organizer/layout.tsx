@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { DashboardSidebar, DashboardTopbar } from "@/components/dashboard";
 import { getOrganizerPlanSummary, planIncludesBroadcasts, planIncludesFeature } from "@/lib/billing/enforce";
+import { getEffectivePermissionsForRole } from "@/lib/auth/effective-permissions";
 import { getMySubscription } from "@/actions/billing";
 import { OrganizerSubscriptionGate } from "@/components/dashboard/organizer/OrganizerSubscriptionGate";
 import { OrganizerApprovalPendingGate } from "@/components/dashboard/organizer/OrganizerApprovalPendingGate";
@@ -39,12 +40,15 @@ export default async function OrganizerLayout({
   const subscription =
     role === "organizer" && !pendingApproval ? await getMySubscription() : null;
 
+  const allowedPermissions = await getEffectivePermissionsForRole(role);
+
   return (
     <div className="flex min-h-screen bg-background">
       <SessionKeepAlive />
       <DashboardSidebar
         role="organizer"
         user={session.user}
+        allowedPermissions={allowedPermissions}
         organizerNav={{
           showBroadcasts: planIncludesBroadcasts(plan, isUnlimited),
           showTransport: planIncludesFeature(plan, "transport", isUnlimited),

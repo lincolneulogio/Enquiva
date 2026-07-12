@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -32,7 +32,8 @@ import { signOut } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
 import { isNavItemActive } from "@/lib/navigation/is-nav-active";
 import Image from "next/image";
-import { normalizeRole } from "@/lib/auth/rbac";
+import { normalizeRole, type Permission } from "@/lib/auth/rbac";
+import { filterNavItemsByPermissions } from "@/lib/navigation/sidebar-permissions";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import { BrandLogo } from "@/components/shared/BrandLogo";
 
@@ -40,6 +41,8 @@ interface NavItem {
   labelKey: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
+  /** Si se define, el ítem solo aparece si el rol tiene al menos uno de estos permisos efectivos. */
+  permissions?: readonly Permission[];
 }
 
 interface NavSection {
@@ -50,6 +53,20 @@ interface NavSection {
 const compactSections = (sections: NavSection[]): NavSection[] =>
   sections.filter((section) => section.items.length > 0);
 
+function applyPermissionFilter(
+  sections: NavSection[],
+  allowedPermissions: readonly Permission[] | null | undefined,
+): NavSection[] {
+  if (!allowedPermissions) return sections;
+  const allowed = new Set(allowedPermissions);
+  return compactSections(
+    sections.map((section) => ({
+      ...section,
+      items: filterNavItemsByPermissions(section.items, allowed),
+    })),
+  );
+}
+
 type OrganizerNavOptions = {
   showBroadcasts: boolean;
   showTransport: boolean;
@@ -59,52 +76,107 @@ type OrganizerNavOptions = {
 
 const organizerSections = (options: OrganizerNavOptions): NavSection[] =>
   compactSections([
-  {
-    titleKey: "dashboard.sidebar.groups.core",
-    items: [
-      { labelKey: "dashboard.sidebar.organizer.overview", href: "/organizer", icon: LayoutDashboard },
-      { labelKey: "dashboard.sidebar.organizer.notifications", href: "/organizer/notifications", icon: Bell },
-    ]
-  },
-  {
-    titleKey: "dashboard.sidebar.groups.management",
-    items: [
-      { labelKey: "dashboard.sidebar.organizer.myEvents", href: "/organizer/events", icon: Calendar },
-      { labelKey: "dashboard.sidebar.organizer.attendees", href: "/organizer/attendees", icon: Users },
-      ...(options.showBroadcasts
-        ? [{ labelKey: "dashboard.sidebar.organizer.broadcasts", href: "/organizer/broadcasts", icon: Megaphone }]
-        : []),
-    ]
-  },
-  {
-    titleKey: "dashboard.sidebar.groups.finances",
-    items: [
-      { labelKey: "dashboard.sidebar.organizer.payments", href: "/organizer/payments", icon: CreditCard },
-      { labelKey: "dashboard.sidebar.organizer.paymentMethods", href: "/organizer/payment-methods", icon: Wallet },
-      { labelKey: "dashboard.sidebar.organizer.billing", href: "/organizer/billing", icon: Crown },
-      ...(options.showTransport
-        ? [{ labelKey: "dashboard.sidebar.organizer.transport", href: "/organizer/transport", icon: Bus }]
-        : []),
-    ]
-  },
-  {
-    titleKey: "dashboard.sidebar.groups.tools",
-    items: [
-      { labelKey: "dashboard.sidebar.organizer.analytics", href: "/organizer/analytics", icon: BarChart3 },
-      { labelKey: "dashboard.sidebar.organizer.scan", href: "/organizer/scan", icon: QrCode },
-      ...(options.showExports
-        ? [{ labelKey: "dashboard.sidebar.organizer.exports", href: "/organizer/exports", icon: FileSpreadsheet }]
-        : []),
-    ]
-  },
-  {
-    titleKey: "dashboard.sidebar.groups.account",
-    items: [
-      { labelKey: "dashboard.sidebar.organizer.profile", href: "/organizer/profile", icon: User },
-      { labelKey: "dashboard.sidebar.organizer.settings", href: "/organizer/settings", icon: Settings },
-    ]
-  },
-]);
+    {
+      titleKey: "dashboard.sidebar.groups.core",
+      items: [
+        { labelKey: "dashboard.sidebar.organizer.overview", href: "/organizer", icon: LayoutDashboard },
+        { labelKey: "dashboard.sidebar.organizer.notifications", href: "/organizer/notifications", icon: Bell },
+      ],
+    },
+    {
+      titleKey: "dashboard.sidebar.groups.management",
+      items: [
+        {
+          labelKey: "dashboard.sidebar.organizer.myEvents",
+          href: "/organizer/events",
+          icon: Calendar,
+          permissions: ["events:create", "events:update:own", "events:delete:own"],
+        },
+        {
+          labelKey: "dashboard.sidebar.organizer.attendees",
+          href: "/organizer/attendees",
+          icon: Users,
+          permissions: ["registrations:view:own"],
+        },
+        ...(options.showBroadcasts
+          ? [
+              {
+                labelKey: "dashboard.sidebar.organizer.broadcasts",
+                href: "/organizer/broadcasts",
+                icon: Megaphone,
+                permissions: ["broadcasts:send:own"] as const,
+              },
+            ]
+          : []),
+      ],
+    },
+    {
+      titleKey: "dashboard.sidebar.groups.finances",
+      items: [
+        {
+          labelKey: "dashboard.sidebar.organizer.payments",
+          href: "/organizer/payments",
+          icon: CreditCard,
+          permissions: ["payments:view:own", "payments:update:own"],
+        },
+        ...(options.showCulqi
+          ? [
+              {
+                labelKey: "dashboard.sidebar.organizer.paymentMethods",
+                href: "/organizer/payment-methods",
+                icon: Wallet,
+                permissions: ["payments:view:own", "payments:update:own"] as const,
+              },
+            ]
+          : []),
+        { labelKey: "dashboard.sidebar.organizer.billing", href: "/organizer/billing", icon: Crown },
+        ...(options.showTransport
+          ? [
+              {
+                labelKey: "dashboard.sidebar.organizer.transport",
+                href: "/organizer/transport",
+                icon: Bus,
+                permissions: ["transport:manage:own"] as const,
+              },
+            ]
+          : []),
+      ],
+    },
+    {
+      titleKey: "dashboard.sidebar.groups.tools",
+      items: [
+        {
+          labelKey: "dashboard.sidebar.organizer.analytics",
+          href: "/organizer/analytics",
+          icon: BarChart3,
+          permissions: ["analytics:view:own"],
+        },
+        {
+          labelKey: "dashboard.sidebar.organizer.scan",
+          href: "/organizer/scan",
+          icon: QrCode,
+          permissions: ["attendees:checkin"],
+        },
+        ...(options.showExports
+          ? [
+              {
+                labelKey: "dashboard.sidebar.organizer.exports",
+                href: "/organizer/exports",
+                icon: FileSpreadsheet,
+                permissions: ["data:export"] as const,
+              },
+            ]
+          : []),
+      ],
+    },
+    {
+      titleKey: "dashboard.sidebar.groups.account",
+      items: [
+        { labelKey: "dashboard.sidebar.organizer.profile", href: "/organizer/profile", icon: User },
+        { labelKey: "dashboard.sidebar.organizer.settings", href: "/organizer/settings", icon: Settings },
+      ],
+    },
+  ]);
 
 type AdminNavOptions = {
   variant: "super_admin" | "entity_admin" | "entity_admin_unassigned";
@@ -143,96 +215,179 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
   const isEntityAdmin = options.variant === "entity_admin";
 
   return compactSections([
-  {
-    titleKey: "dashboard.sidebar.groups.core",
-    items: [
-      { labelKey: "dashboard.sidebar.admin.overview", href: p(""), icon: LayoutDashboard },
-      ...(isSuperAdmin
-        ? [
-            {
-              labelKey: "dashboard.sidebar.admin.analyticsGlobal",
-              href: p("/analytics"),
-              icon: BarChart3,
-            },
-            {
-              labelKey: "dashboard.sidebar.admin.analyticsOwn",
-              href: p("/my-events/analytics"),
-              icon: LineChart,
-            },
-          ]
-        : [
-            {
-              labelKey: "dashboard.sidebar.admin.analytics",
-              href: p("/analytics"),
-              icon: BarChart3,
-            },
-          ]),
-      { labelKey: "dashboard.sidebar.admin.notifications", href: p("/notifications"), icon: Bell },
-    ],
-  },
-  {
-    titleKey: "dashboard.sidebar.groups.management",
-    items: [
-      {
-        labelKey: isEntityAdmin
-          ? "dashboard.sidebar.admin.entityEvents"
-          : "dashboard.sidebar.admin.allEvents",
-        href: p("/events"),
-        icon: Calendar,
-      },
-      { labelKey: "dashboard.sidebar.admin.categories", href: p("/categories"), icon: ClipboardList },
-      { labelKey: "dashboard.sidebar.admin.users", href: p("/users"), icon: UserCog },
-      ...(options.showEntityTeam
-        ? [{ labelKey: "dashboard.sidebar.admin.myEntity", href: "/admin/team", icon: Users }]
-        : []),
-      ...(isSuperAdmin
-        ? [{ labelKey: "dashboard.sidebar.admin.roles", href: p("/roles"), icon: Shield }]
-        : []),
-      { labelKey: "dashboard.sidebar.admin.registrations", href: p("/registrations"), icon: ClipboardList },
-      ...(isEntityAdmin || isSuperAdmin
-        ? [{ labelKey: "dashboard.sidebar.admin.broadcasts", href: p("/broadcasts"), icon: Megaphone }]
-        : []),
-    ],
-  },
-  {
-    titleKey: "dashboard.sidebar.groups.finances",
-    items: [
-      { labelKey: "dashboard.sidebar.admin.payments", href: p("/payments"), icon: CreditCard },
-      ...(isSuperAdmin
-        ? [{ labelKey: "dashboard.sidebar.admin.platformPayments", href: p("/payment-methods"), icon: Wallet }]
-        : []),
-      { labelKey: "dashboard.sidebar.admin.transport", href: p("/transport"), icon: Bus },
-      ...(isSuperAdmin
-        ? [
-            { labelKey: "dashboard.sidebar.admin.plans", href: p("/plans"), icon: Crown },
-            { labelKey: "dashboard.sidebar.admin.platformBilling", href: p("/billing"), icon: BarChart3 },
-          ]
-        : isEntityAdmin
-          ? [{ labelKey: "dashboard.sidebar.admin.entityPlan", href: "/admin/plan", icon: Crown }]
+    {
+      titleKey: "dashboard.sidebar.groups.core",
+      items: [
+        { labelKey: "dashboard.sidebar.admin.overview", href: p(""), icon: LayoutDashboard },
+        ...(isSuperAdmin
+          ? [
+              {
+                labelKey: "dashboard.sidebar.admin.analyticsGlobal",
+                href: p("/analytics"),
+                icon: BarChart3,
+                permissions: ["analytics:view:any"] as const,
+              },
+              {
+                labelKey: "dashboard.sidebar.admin.analyticsOwn",
+                href: p("/my-events/analytics"),
+                icon: LineChart,
+                permissions: ["analytics:view:own"] as const,
+              },
+            ]
+          : [
+              {
+                labelKey: "dashboard.sidebar.admin.analytics",
+                href: p("/analytics"),
+                icon: BarChart3,
+                permissions: ["analytics:view:any"] as const,
+              },
+            ]),
+        { labelKey: "dashboard.sidebar.admin.notifications", href: p("/notifications"), icon: Bell },
+      ],
+    },
+    {
+      titleKey: "dashboard.sidebar.groups.management",
+      items: [
+        {
+          labelKey: isEntityAdmin
+            ? "dashboard.sidebar.admin.entityEvents"
+            : "dashboard.sidebar.admin.allEvents",
+          href: p("/events"),
+          icon: Calendar,
+          permissions: [
+            "events:create",
+            "events:update:any",
+            "events:update:own",
+            "events:delete:any",
+            "events:delete:own",
+          ],
+        },
+        {
+          labelKey: "dashboard.sidebar.admin.categories",
+          href: p("/categories"),
+          icon: ClipboardList,
+          permissions: ["categories:manage"],
+        },
+        {
+          labelKey: "dashboard.sidebar.admin.users",
+          href: p("/users"),
+          icon: UserCog,
+          permissions: ["users:manage"],
+        },
+        ...(options.showEntityTeam
+          ? [
+              {
+                labelKey: "dashboard.sidebar.admin.myEntity",
+                href: "/admin/team",
+                icon: Users,
+                permissions: ["team:manage"] as const,
+              },
+            ]
           : []),
-    ]
-  },
-  {
-    titleKey: "dashboard.sidebar.groups.tools",
-    items: [
-      { labelKey: "dashboard.sidebar.admin.scan", href: p("/scan"), icon: QrCode },
-      ...(isSuperAdmin
-        ? [
-            { labelKey: "dashboard.sidebar.admin.audit", href: p("/audit"), icon: Shield },
-            { labelKey: "dashboard.sidebar.admin.permissions", href: p("/permissions"), icon: KeyRound },
-          ]
-        : isEntityAdmin
-          ? [{ labelKey: "dashboard.sidebar.admin.audit", href: p("/audit"), icon: Shield }]
+        ...(isSuperAdmin
+          ? [
+              {
+                labelKey: "dashboard.sidebar.admin.roles",
+                href: p("/roles"),
+                icon: Shield,
+                permissions: ["roles:manage"] as const,
+              },
+            ]
           : []),
-    ],
-  },
-  {
-    titleKey: "dashboard.sidebar.groups.account",
-    items: [
-      { labelKey: "dashboard.sidebar.admin.profile", href: p("/profile"), icon: User },
-      { labelKey: "dashboard.sidebar.admin.settings", href: p("/settings"), icon: Settings },
-    ],
-  },
+        {
+          labelKey: "dashboard.sidebar.admin.registrations",
+          href: p("/registrations"),
+          icon: ClipboardList,
+          permissions: ["registrations:view:any"],
+        },
+        ...(isEntityAdmin || isSuperAdmin
+          ? [
+              {
+                labelKey: "dashboard.sidebar.admin.broadcasts",
+                href: p("/broadcasts"),
+                icon: Megaphone,
+                permissions: ["broadcasts:send:any"] as const,
+              },
+            ]
+          : []),
+      ],
+    },
+    {
+      titleKey: "dashboard.sidebar.groups.finances",
+      items: [
+        {
+          labelKey: "dashboard.sidebar.admin.payments",
+          href: p("/payments"),
+          icon: CreditCard,
+          permissions: ["payments:view:any", "payments:update:any"],
+        },
+        ...(isSuperAdmin
+          ? [
+              {
+                labelKey: "dashboard.sidebar.admin.platformPayments",
+                href: p("/payment-methods"),
+                icon: Wallet,
+                permissions: ["platform:billing:view", "settings:manage"] as const,
+              },
+            ]
+          : []),
+        {
+          labelKey: "dashboard.sidebar.admin.transport",
+          href: p("/transport"),
+          icon: Bus,
+          permissions: ["transport:manage:any"],
+        },
+        ...(isSuperAdmin
+          ? [
+              {
+                labelKey: "dashboard.sidebar.admin.plans",
+                href: p("/plans"),
+                icon: Crown,
+                permissions: ["plans:manage"] as const,
+              },
+              {
+                labelKey: "dashboard.sidebar.admin.platformBilling",
+                href: p("/billing"),
+                icon: BarChart3,
+                permissions: ["platform:billing:view"] as const,
+              },
+            ]
+          : isEntityAdmin
+            ? [{ labelKey: "dashboard.sidebar.admin.entityPlan", href: "/admin/plan", icon: Crown }]
+            : []),
+      ],
+    },
+    {
+      titleKey: "dashboard.sidebar.groups.tools",
+      items: [
+        {
+          labelKey: "dashboard.sidebar.admin.scan",
+          href: p("/scan"),
+          icon: QrCode,
+          permissions: ["attendees:checkin"],
+        },
+        ...(isSuperAdmin
+          ? [
+              { labelKey: "dashboard.sidebar.admin.audit", href: p("/audit"), icon: Shield },
+              {
+                labelKey: "dashboard.sidebar.admin.permissions",
+                href: p("/permissions"),
+                icon: KeyRound,
+                permissions: ["permissions:view"] as const,
+              },
+            ]
+          : isEntityAdmin
+            ? [{ labelKey: "dashboard.sidebar.admin.audit", href: p("/audit"), icon: Shield }]
+            : []),
+      ],
+    },
+    {
+      titleKey: "dashboard.sidebar.groups.account",
+      items: [
+        { labelKey: "dashboard.sidebar.admin.profile", href: p("/profile"), icon: User },
+        { labelKey: "dashboard.sidebar.admin.settings", href: p("/settings"), icon: Settings },
+      ],
+    },
   ]);
 };
 
@@ -243,7 +398,7 @@ const memberSections: NavSection[] = compactSections([
       { labelKey: "dashboard.sidebar.member.discover", href: "/member", icon: LayoutDashboard },
       { labelKey: "dashboard.sidebar.member.myEvents", href: "/member/events", icon: Calendar },
       { labelKey: "dashboard.sidebar.member.notifications", href: "/member/notifications", icon: Bell },
-    ]
+    ],
   },
   {
     titleKey: "dashboard.sidebar.groups.finances",
@@ -251,7 +406,7 @@ const memberSections: NavSection[] = compactSections([
       { labelKey: "dashboard.sidebar.member.transport", href: "/member/transport", icon: Bus },
       { labelKey: "dashboard.sidebar.member.payments", href: "/member/payments", icon: CreditCard },
       { labelKey: "dashboard.sidebar.member.tickets", href: "/member/tickets", icon: Ticket },
-    ]
+    ],
   },
   {
     titleKey: "dashboard.sidebar.groups.account",
@@ -274,35 +429,54 @@ interface DashboardSidebarProps {
   organizerNav?: OrganizerNavOptions;
   /** Solo panel admin: diferencia super_admin vs admin de entidad */
   adminNav?: AdminNavOptions;
+  /**
+   * Permisos efectivos del rol (defaults + overrides de `/superadmin/permissions`).
+   * Si se omite (p. ej. member), no se filtra por matriz.
+   */
+  allowedPermissions?: readonly Permission[];
 }
 
-export function DashboardSidebar({ role, user, organizerNav, adminNav }: DashboardSidebarProps) {
+export function DashboardSidebar({
+  role,
+  user,
+  organizerNav,
+  adminNav,
+  allowedPermissions,
+}: DashboardSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const t = useTranslations();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const normalizedRole = normalizeRole(role);
-  const sections =
-    normalizedRole === "super_admin"
-      ? adminSections({
-          variant: "super_admin",
-          showEntityTeam: adminNav?.showEntityTeam ?? false,
-        })
-      : normalizedRole === "admin"
+
+  const sections = useMemo(() => {
+    const roleSections =
+      normalizedRole === "super_admin"
         ? adminSections({
-            variant: adminNav?.variant ?? "entity_admin",
-            showEntityTeam: adminNav?.showEntityTeam ?? true,
+            variant: "super_admin",
+            showEntityTeam: adminNav?.showEntityTeam ?? false,
           })
-        : normalizedRole === "organizer"
-          ? organizerSections(
-              organizerNav ?? {
-                showBroadcasts: true,
-                showTransport: true,
-                showCulqi: true,
-                showExports: true,
-              },
-            )
-          : memberSections;
+        : normalizedRole === "admin"
+          ? adminSections({
+              variant: adminNav?.variant ?? "entity_admin",
+              showEntityTeam: adminNav?.showEntityTeam ?? true,
+            })
+          : normalizedRole === "organizer"
+            ? organizerSections(
+                organizerNav ?? {
+                  showBroadcasts: true,
+                  showTransport: true,
+                  showCulqi: true,
+                  showExports: true,
+                },
+              )
+            : memberSections;
+
+    // Member: navegación de producto, sin matriz staff.
+    if (normalizedRole === "member") return roleSections;
+
+    return applyPermissionFilter(roleSections, allowedPermissions);
+  }, [normalizedRole, adminNav, organizerNav, allowedPermissions]);
 
   useEffect(() => {
     const openSidebar = () => setIsMobileOpen(true);
@@ -333,7 +507,7 @@ export function DashboardSidebar({ role, user, organizerNav, adminNav }: Dashboa
       <div
         className={cn(
           "fixed inset-0 z-40 bg-black/40 transition-opacity lg:hidden",
-          isMobileOpen ? "opacity-100" : "pointer-events-none opacity-0"
+          isMobileOpen ? "opacity-100" : "pointer-events-none opacity-0",
         )}
         onClick={() => setIsMobileOpen(false)}
       />
@@ -341,7 +515,7 @@ export function DashboardSidebar({ role, user, organizerNav, adminNav }: Dashboa
       <aside
         className={cn(
           "fixed left-0 top-0 z-50 flex h-[100dvh] max-h-[100dvh] w-72 max-w-[85vw] transform flex-col overflow-hidden bg-sidebar pb-[env(safe-area-inset-bottom)] shadow-xl transition-transform duration-200 ease-out lg:hidden",
-          isMobileOpen ? "translate-x-0" : "-translate-x-full"
+          isMobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <div className="border-b border-sidebar-border px-4 py-4">
@@ -382,7 +556,7 @@ export function DashboardSidebar({ role, user, organizerNav, adminNav }: Dashboa
                       "flex snap-start items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
                       isActive
                         ? "bg-sidebar-accent text-sidebar-primary"
-                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
                     )}
                   >
                     <Icon className="h-4 w-4" />
@@ -406,9 +580,7 @@ export function DashboardSidebar({ role, user, organizerNav, adminNav }: Dashboa
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="truncate text-sm font-medium text-sidebar-foreground">
-                {user.name}
-              </p>
+              <p className="truncate text-sm font-medium text-sidebar-foreground">{user.name}</p>
               <p className="truncate text-xs text-sidebar-foreground/50">{user.email}</p>
             </div>
           </div>
@@ -423,16 +595,10 @@ export function DashboardSidebar({ role, user, organizerNav, adminNav }: Dashboa
       </aside>
 
       <aside className="hidden w-64 shrink-0 flex-col bg-sidebar lg:fixed lg:inset-y-0 lg:left-0 lg:z-20 lg:flex lg:h-screen lg:overflow-hidden">
-        {/* Logo */}
         <div className="border-b border-sidebar-border px-6 py-5">
-          <BrandLogo
-            href="/"
-            size="md"
-            textClassName="text-sidebar-foreground"
-          />
+          <BrandLogo href="/" size="md" textClassName="text-sidebar-foreground" />
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
           {sections.map((section, secIdx) => (
             <div key={`desktop-sec-${section.titleKey || secIdx}`} className="space-y-1">
@@ -451,7 +617,7 @@ export function DashboardSidebar({ role, user, organizerNav, adminNav }: Dashboa
                       "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
                       isActive
                         ? "bg-sidebar-accent text-sidebar-primary"
-                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
                     )}
                   >
                     <Icon className="h-4 w-4" />
@@ -463,7 +629,6 @@ export function DashboardSidebar({ role, user, organizerNav, adminNav }: Dashboa
           ))}
         </nav>
 
-        {/* User */}
         <div className="shrink-0 border-t border-sidebar-border p-4">
           <div className="mb-3 flex items-center gap-3">
             <div className="relative h-8 w-8 overflow-hidden rounded-full bg-sidebar-accent">
@@ -476,9 +641,7 @@ export function DashboardSidebar({ role, user, organizerNav, adminNav }: Dashboa
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="truncate text-sm font-medium text-sidebar-foreground">
-                {user.name}
-              </p>
+              <p className="truncate text-sm font-medium text-sidebar-foreground">{user.name}</p>
               <p className="truncate text-xs text-sidebar-foreground/50">{user.email}</p>
             </div>
           </div>
