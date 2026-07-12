@@ -31,6 +31,9 @@ export async function createPayment(input: CreatePaymentInput) {
   revalidatePath(`/member/payments/new/${validated.registrationId}`);
   revalidatePath("/organizer/payments");
   revalidatePath("/admin/payments");
+  revalidatePath("/superadmin/payments");
+  revalidatePath("/admin");
+  revalidatePath("/superadmin");
 
   return result;
 }
@@ -78,7 +81,10 @@ export async function updatePaymentStatus(input: UpdatePaymentStatusInput) {
   revalidatePath(`/events/${context.event.slug}`);
   revalidatePath("/organizer/payments");
   revalidatePath("/admin/payments");
+  revalidatePath("/superadmin/payments");
   revalidatePath("/member/payments");
+  revalidatePath("/admin");
+  revalidatePath("/superadmin");
 
   return result;
 }

@@ -20,7 +20,7 @@ import {
   transportBookingForOrganizerCondition,
   andWithScope,
 } from "@/lib/organizations/admin-scope";
-import { getCached, setCached, CACHE_KEYS, CACHE_TTL } from "@/lib/redis";
+import { getCached, setCached, invalidateCachePattern, CACHE_KEYS, CACHE_TTL } from "@/lib/redis";
 import { sumEventViews } from "@/lib/analytics/event-views";
 import {
   computePercentChange,
@@ -29,6 +29,11 @@ import {
 } from "@/lib/analytics/comparison";
 
 export type AdminStatsRange = "30d" | "90d" | "12m" | "all";
+
+/** Invalida stats del resumen admin/superadmin (banner de pagos pendientes, métricas). */
+export async function invalidateAdminDashboardStatsCache() {
+  await invalidateCachePattern("admin:stats:*");
+}
 
 const RANGE_TO_DAYS: Record<Exclude<AdminStatsRange, "all">, number> = {
   "30d": 30,

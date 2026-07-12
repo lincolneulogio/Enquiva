@@ -5,6 +5,7 @@ import { PaymentService } from "@/services/payments/payment.service";
 import { getCulqiCredentialsForEvent } from "@/lib/culqi/capabilities";
 import { getOrganizerPlanForEvent, getPlatformFee } from "@/lib/billing/enforce";
 import { SubscriptionService } from "@/lib/billing/subscription.service";
+import { invalidateAdminDashboardStatsCache } from "@/lib/analytics/admin";
 
 export type CulqiChargePayload = {
   id: string;
@@ -173,6 +174,7 @@ export class CulqiEventPaymentService {
       })
       .where(eq(payments.id, payment.id));
 
+    await invalidateAdminDashboardStatsCache();
     return { handled: true, paymentId: payment.id };
   }
 
@@ -220,6 +222,7 @@ export class CulqiEventPaymentService {
         .where(eq(tickets.registrationId, payment.registrationId));
     });
 
+    await invalidateAdminDashboardStatsCache();
     return { handled: true, paymentId: payment.id };
   }
 

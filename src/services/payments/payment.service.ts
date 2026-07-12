@@ -30,6 +30,7 @@ import {
 import { NotificationService, type NotificationPayload } from "@/lib/notifications/notification.service";
 import { getEntityStaffUserIds } from "@/lib/notifications/notification-targets";
 import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
+import { invalidateAdminDashboardStatsCache } from "@/lib/analytics/admin";
 
 export class PaymentService {
   /**
@@ -164,6 +165,7 @@ export class PaymentService {
       organizationId: event?.organizationId ?? undefined,
       userId,
     });
+    await invalidateAdminDashboardStatsCache();
 
     return { success: true };
   }
@@ -425,6 +427,9 @@ export class PaymentService {
       });
 
       return { success: true, payment: updated };
+    }).then(async (result) => {
+      await invalidateAdminDashboardStatsCache();
+      return result;
     });
   }
 
