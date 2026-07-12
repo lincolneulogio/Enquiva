@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 import { toast } from "sonner";
 import { CreditCard, Loader2, X, ShieldCheck, DollarSign, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -56,6 +57,7 @@ export function PlanUpgradeCheckout({
   const [scriptReady, setScriptReady] = useState(false);
   const [enableAutoRenew, setEnableAutoRenew] = useState(true);
   const [entered, setEntered] = useState(false);
+  const [culqiOpen, setCulqiOpen] = useState(false);
   const { data: session } = useSession();
   const checkoutEmail = userEmail ?? session?.user?.email ?? null;
 
@@ -153,8 +155,8 @@ export function PlanUpgradeCheckout({
         }
       }
 
-      // Culqi se monta por encima (z-index alto). No ocultamos Evora antes:
-      // eso provocaba un frame negro vacío mientras cargaba Culqi.
+      // Ocultar el modal Evora solo cuando Culqi ya va a montarse (onOpen),
+      // para no dejar un frame vacío negro durante la creación de la orden.
       const checkoutResult = await openCulqiCheckout({
         publicKey: culqiPublicKey,
         title: `Evora · ${plan.name}`,
@@ -162,6 +164,9 @@ export function PlanUpgradeCheckout({
         email: checkoutEmail,
         orderId,
         enableYape,
+        onOpen: () => {
+          flushSync(() => setCulqiOpen(true));
+        },
       });
 
       if (checkoutResult.type === "order_paid") {
@@ -174,6 +179,7 @@ export function PlanUpgradeCheckout({
       if (isCulqiCheckoutCancelled(e)) return;
       toast.error(e instanceof Error ? e.message : t("billing.planCheckout.culqiPayFailed"));
     } finally {
+      setCulqiOpen(false);
       setIsSaving(false);
     }
   };
@@ -188,9 +194,11 @@ export function PlanUpgradeCheckout({
   return (
     <div
       data-checkout-overlay
+      aria-hidden={culqiOpen}
       className={cn(
         "fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 transition-opacity duration-200 sm:items-center",
         entered ? "opacity-100" : "opacity-0",
+        culqiOpen && "pointer-events-none opacity-0",
       )}
     >
       <div

@@ -24,6 +24,8 @@ export interface OpenCulqiCheckoutParams {
   orderId?: string | null;
   /** Habilitar Yape en checkout (requiere orderId y monto >= S/ 6) */
   enableYape?: boolean;
+  /** Se llama justo antes de `checkout.open()` (p. ej. para ocultar el modal Evora). */
+  onOpen?: () => void;
 }
 
 export type CulqiCheckoutResult =
@@ -298,6 +300,7 @@ export async function openCulqiCheckout(params: OpenCulqiCheckoutParams): Promis
 
     try {
       document.body.classList.add("culqi-checkout-open");
+      params.onOpen?.();
       checkout.open();
       graceId = window.setTimeout(() => {
         acceptClose = true;
