@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { events, users, registrations } from "@/lib/db/schema";
+import { events, users, registrations, eventStatusEnum } from "@/lib/db/schema";
 import { count, desc, eq, and, gte, lte, inArray, type SQL } from "drizzle-orm";
 import Link from "next/link";
 import { Calendar, Plus, ClipboardList } from "lucide-react";
@@ -71,7 +71,10 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
         conditions.push(eq(events.category, params.category));
     }
     if (params.status && params.status !== "all") {
-        conditions.push(eq(events.status, params.status as any));
+        const status = eventStatusEnum.enumValues.find((value) => value === params.status);
+        if (status) {
+            conditions.push(eq(events.status, status));
+        }
     }
     if (params.fromDate) {
         conditions.push(gte(events.date, new Date(`${params.fromDate}T00:00:00.000`)));

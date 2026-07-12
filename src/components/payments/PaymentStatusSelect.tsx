@@ -56,6 +56,8 @@ export function PaymentStatusSelect({ paymentId, currentStatus }: PaymentStatusS
 
   return (
     <select
+      data-testid="payment-status-select"
+      data-payment-id={paymentId}
       value={currentStatus}
       onChange={(event) => {
         void handleChange(event.target.value);

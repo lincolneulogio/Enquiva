@@ -28,13 +28,13 @@ export default async function AdminMyEventsAnalyticsPage({
 }: AdminMyEventsAnalyticsPageProps) {
   const session = await auth.api.getSession({ headers: await headers() });
   const adminScope = await resolveAdminScope();
+  const staffBase = await getStaffBaseFromRequest();
 
   if (
     adminScope.mode !== "platform" ||
     session?.user?.role !== "super_admin" ||
     !session.user.id
   ) {
-    const staffBase = await getStaffBaseFromRequest();
     redirect(staffDashboardPath(staffBase, "analytics"));
   }
 
@@ -65,7 +65,7 @@ export default async function AdminMyEventsAnalyticsPage({
         mode="own"
         stats={stats}
         selectedRange={selectedRange}
-        rangeBasePath="/admin/my-events/analytics"
+        rangeBasePath={staffDashboardPath(staffBase, "/my-events/analytics")}
         exportTitle={t("dashboard.admin.analyticsOwnTitle")}
         showExport
       />

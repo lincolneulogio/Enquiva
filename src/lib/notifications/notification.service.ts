@@ -1,4 +1,4 @@
-import { db, type DBTransaction } from "@/lib/db";
+import { db, type DBClient } from "@/lib/db";
 import { notifications } from "@/lib/db/schema";
 import { triggerPusher } from "@/lib/pusher/server";
 import { PUSHER_CHANNELS, PUSHER_EVENTS, type TableRefreshPayload } from "@/lib/pusher/shared";
@@ -29,12 +29,12 @@ export type NotificationPayload = {
 };
 
 export class NotificationService {
-  static async create(payload: NotificationPayload, tx?: DBTransaction) {
+  static async create(payload: NotificationPayload, tx?: DBClient) {
     const rows = await this.createMany([payload], tx);
     return rows[0] ?? null;
   }
 
-  static async createMany(payloads: NotificationPayload[], tx?: DBTransaction) {
+  static async createMany(payloads: NotificationPayload[], tx?: DBClient) {
     if (payloads.length === 0) return [];
 
     const executor = tx ?? db;
@@ -74,6 +74,18 @@ export class NotificationService {
           message: payload.message,
           type: payload.type,
           ...payload.metadata,
+        }),
+      ),
+    );
+
+    const { sendWebPushToUser } = await import("@/lib/push/web-push");
+    await Promise.all(
+      payloads.map((payload) =>
+        sendWebPushToUser(payload.userId, {
+          title: payload.title,
+          body: payload.message,
+        }).catch((error) => {
+          console.error("[web-push] deliver failed", error);
         }),
       ),
     );

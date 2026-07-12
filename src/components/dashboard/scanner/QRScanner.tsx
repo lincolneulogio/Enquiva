@@ -5,7 +5,7 @@ import { BrowserMultiFormatReader } from "@zxing/library";
 
 interface QRScannerProps {
   onResult: (code: string) => void;
-  onError?: (error: any) => void;
+  onError?: (error: unknown) => void;
   onScanStart?: () => void;
 }
 
@@ -23,17 +23,17 @@ export default function QRScanner({ onResult, onError, onScanStart }: QRScannerP
     const origWarn = console.warn;
     const origError = console.error;
 
-    console.log = (...args: any[]) => {
+    console.log = (...args: unknown[]) => {
       if (typeof args[0] === "string" && args[0].includes("MultiFormatReader")) return;
-      origLog.apply(console, args);
+      origLog.apply(console, args as Parameters<typeof console.log>);
     };
-    console.warn = (...args: any[]) => {
+    console.warn = (...args: unknown[]) => {
       if (typeof args[0] === "string" && (args[0].includes("MultiFormatReader") || args[0].includes("non-ReaderException"))) return;
-      origWarn.apply(console, args);
+      origWarn.apply(console, args as Parameters<typeof console.warn>);
     };
-    console.error = (...args: any[]) => {
+    console.error = (...args: unknown[]) => {
       if (typeof args[0] === "string" && args[0].includes("MultiFormatReader")) return;
-      origError.apply(console, args);
+      origError.apply(console, args as Parameters<typeof console.error>);
     };
 
     async function startScanning() {

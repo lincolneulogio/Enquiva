@@ -7,6 +7,7 @@ import {
   users,
   transportBookings,
   transportRoutes,
+  paymentStatusEnum,
 } from "@/lib/db/schema";
 import { eq, desc, and, gte, lte, count, type SQL } from "drizzle-orm";
 import { PaymentStatusBadge } from "@/components/payments/PaymentStatusBadge";
@@ -23,6 +24,8 @@ import { categoryLabel } from "@/lib/utils";
 import { Suspense } from "react";
 import { PaymentNotesButton } from "@/components/payments/PaymentNotesButton";
 import { resolveAdminScope, scopeEventCondition } from "@/lib/organizations/admin-scope";
+import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
+import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
 
 function getPaymentDynamicCaption(
   notes: string | null,
@@ -112,6 +115,7 @@ export default async function AdminPaymentsPage({
   searchParams,
 }: AdminPaymentsPageProps) {
   const { locale, t } = await getI18n();
+  const staffBase = await getStaffBaseFromRequest();
   const params = await searchParams;
   const exportEventOptions = await getExportEventOptions("admin");
   const exportCategoryOptions = (await getCategories()).map((category) => ({
@@ -149,7 +153,10 @@ export default async function AdminPaymentsPage({
     conditions.push(eq(events.category, params.category));
   }
   if (params.status && params.status !== "all") {
-    conditions.push(eq(payments.status, params.status as any));
+    const status = paymentStatusEnum.enumValues.find((value) => value === params.status);
+    if (status) {
+      conditions.push(eq(payments.status, status));
+    }
   }
   if (params.fromDate) {
     conditions.push(
@@ -481,7 +488,7 @@ export default async function AdminPaymentsPage({
             </div>
 
             <TablePagination
-              basePath="/admin/payments"
+              basePath={staffDashboardPath(staffBase, "/payments")}
               currentPage={safePage}
               totalPages={totalPages}
               totalItems={total}

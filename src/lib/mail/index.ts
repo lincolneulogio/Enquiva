@@ -17,6 +17,10 @@ import { getSystemSettings } from "@/lib/settings";
 import { mailGreeting, welcomeLoginPath, type MailLocale, type WelcomeAccountType } from "./locale-strings";
 import { env } from "@/env";
 
+import type { Attachment } from "nodemailer/lib/mailer";
+
+type MailAttachment = Attachment;
+
 async function safeSendMail(options: Parameters<typeof transporter.sendMail>[0]) {
   try {
     return await transporter.sendMail({
@@ -219,7 +223,7 @@ export async function sendTicketEmail(input: {
     orgName: organizationName,
   });
 
-  const attachments: any[] = [];
+  const attachments: MailAttachment[] = [];
   if (input.qrDataUrl && input.qrDataUrl.startsWith("data:image/")) {
     const base64Data = input.qrDataUrl.replace(/^data:image\/\w+;base64,/, "");
     attachments.push({
@@ -265,7 +269,7 @@ export async function sendTicketEmailWithPdf(input: {
     orgName: organizationName,
   });
 
-  const attachments: any[] = [
+  const attachments: MailAttachment[] = [
     { filename: `${input.eventTitle}-ticket.pdf`, content: pdfBuffer },
   ];
 

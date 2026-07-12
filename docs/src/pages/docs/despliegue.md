@@ -4,7 +4,7 @@ description: "Desplegar Evora en Vercel con PostgreSQL en Neon o Supabase."
 layout: "../../layouts/DocLayout.astro"
 ---
 
-El repositorio incluye CI (typecheck, tests, lint) pero **no** despliega automáticamente. Sigue estos pasos para publicar en producción.
+El repositorio incluye CI (typecheck, lint) pero **no** despliega automáticamente. Sigue estos pasos para publicar en producción.
 
 ---
 
@@ -14,14 +14,14 @@ El repositorio incluye CI (typecheck, tests, lint) pero **no** despliega automá
 
 1. Crea un proyecto en [neon.tech](https://neon.tech).
 2. Copia la connection string (`postgresql://...?sslmode=require`).
-3. En local, una vez: `pnpm run db:push` contra esa URL (o ejecuta migraciones) para crear tablas.
-4. Tras el primer deploy: `pnpm run db:push` en la BD de producción (o desde CI). Inicializa roles desde superadmin y planes desde Admin → Planes.
+3. En local, una vez: `pnpm run db:migrate` contra esa URL para crear/actualizar tablas (fuente de verdad: `drizzle/`).
+4. Tras el primer deploy: `pnpm run db:migrate` en la BD de producción (o desde CI). Inicializa roles desde superadmin y planes desde Admin → Planes.
 
 ### Supabase
 
 1. Crea proyecto en [supabase.com](https://supabase.com).
 2. Settings → Database → Connection string (URI).
-3. Misma lógica: `db:push` o migraciones contra la URL remota.
+3. Misma lógica: `pnpm run db:migrate` contra la URL remota.
 
 > Neon y Supabase incluyen **backups automáticos**. Actívalos en el panel del proveedor.
 
@@ -80,7 +80,7 @@ curl -H "Authorization: Bearer TU_CRON_SECRET" https://tudominio.com/api/cron/ev
 
 ## 5. Deploy automático (GitHub Actions)
 
-El workflow `.github/workflows/deploy.yml` ejecuta typecheck, tests y despliega a Vercel en push a `main`.
+El workflow `.github/workflows/deploy.yml` ejecuta typecheck y despliega a Vercel en push a `main`.
 
 Secrets requeridos en GitHub → Settings → Secrets:
 

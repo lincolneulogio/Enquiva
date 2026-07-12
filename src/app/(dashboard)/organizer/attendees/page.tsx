@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { registrations, events, users } from "@/lib/db/schema";
+import { registrations, events, users, registrationStatusEnum } from "@/lib/db/schema";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { eq, desc, and, gte, lte, count } from "drizzle-orm";
@@ -54,7 +54,10 @@ export default async function OrganizerAttendeesPage({
     conditions.push(eq(events.category, params.category));
   }
   if (params.status && params.status !== "all") {
-    conditions.push(eq(registrations.status, params.status as any));
+    const status = registrationStatusEnum.enumValues.find((value) => value === params.status);
+    if (status) {
+      conditions.push(eq(registrations.status, status));
+    }
   }
   if (params.fromDate) {
     conditions.push(

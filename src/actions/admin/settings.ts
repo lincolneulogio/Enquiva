@@ -65,10 +65,10 @@ export async function testMailConnectionAction() {
             port: env.SMTP_PORT,
             latencyMs: duration
         };
-    } catch (error: any) {
+    } catch (error: unknown) {
         return { 
             success: false, 
-            error: error?.message ?? "Error desconocido al conectar con el servidor SMTP." 
+            error: error instanceof Error ? error.message : "Error desconocido al conectar con el servidor SMTP." 
         };
     }
 }
@@ -132,10 +132,10 @@ export async function sendTestEmailAction(email: string) {
         
         const latencyMs = Date.now() - start;
         return { success: true, latencyMs };
-    } catch (error: any) {
+    } catch (error: unknown) {
         return { 
             success: false, 
-            error: error?.message ?? "Error desconocido al intentar enviar el correo de prueba." 
+            error: error instanceof Error ? error.message : "Error desconocido al intentar enviar el correo de prueba." 
         };
     }
 }

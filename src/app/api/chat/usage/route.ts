@@ -1,5 +1,4 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { requireApiSession, apiAuthErrorResponse } from "@/lib/auth/api-guards";
 import { NextResponse } from "next/server";
 import { getAiChatUsage } from "@/lib/billing/ai-chat-usage";
 import { requirePlanFeature } from "@/lib/billing/enforce";
@@ -7,17 +6,16 @@ import { normalizeRole } from "@/lib/auth/rbac";
 
 export async function GET() {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
+    const { user } = await requireApiSession();
 
-    const userRole = normalizeRole(session.user.role ?? "member");
-    await requirePlanFeature(session.user.id, userRole, "ai");
+    const userRole = normalizeRole(user.role ?? "member");
+    await requirePlanFeature(user.id, userRole, "ai");
 
-    const usage = await getAiChatUsage(session.user.id, userRole);
+    const usage = await getAiChatUsage(user.id, userRole);
     return NextResponse.json(usage);
   } catch (error: unknown) {
+    const authResponse = apiAuthErrorResponse(error);
+    if (authResponse) return authResponse;
     const message = error instanceof Error ? error.message : "Error al consultar uso de IA";
     return NextResponse.json({ error: message }, { status: 500 });
   }

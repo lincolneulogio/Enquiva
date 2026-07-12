@@ -10,6 +10,8 @@ import { getRoutesByEvent } from "@/actions/transport";
 import { TransportRoutesManager, PassengerManifest } from "@/components/dashboard";
 import { getI18n } from "@/lib/i18n/server";
 import { assertEventInAdminScope } from "@/lib/organizations/admin-scope";
+import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
+import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
 
 interface Props {
     params: Promise<{ eventId: string }>;
@@ -17,6 +19,7 @@ interface Props {
 
 export default async function AdminEventTransportPage({ params }: Props) {
     const { t } = await getI18n();
+  const staffBase = await getStaffBaseFromRequest();
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user || !["admin", "super_admin"].includes(session.user.role ?? "")) {
         redirect("/login");
@@ -44,7 +47,7 @@ export default async function AdminEventTransportPage({ params }: Props) {
         <div className="space-y-8">
             <div>
                 <Link
-                    href="/admin/transport"
+                    href={staffDashboardPath(staffBase, "/transport")}
                     className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                     <ArrowLeft className="h-3.5 w-3.5" />

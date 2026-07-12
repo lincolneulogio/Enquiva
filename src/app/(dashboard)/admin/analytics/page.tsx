@@ -10,6 +10,8 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { hasEffectivePermission } from "@/lib/auth/effective-permissions";
+import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
+import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
 
 const RANGE_OPTIONS: AdminStatsRange[] = ["30d", "90d", "12m", "all"];
 
@@ -45,6 +47,7 @@ interface AdminAnalyticsPageProps {
 
 export default async function AdminAnalyticsPage({ searchParams }: AdminAnalyticsPageProps) {
   const { t } = await getI18n();
+  const staffBase = await getStaffBaseFromRequest();
   const session = await auth.api.getSession({ headers: await headers() });
   const role = session?.user?.role;
 
@@ -106,7 +109,7 @@ export default async function AdminAnalyticsPage({ searchParams }: AdminAnalytic
         mode={isEntityScope ? "entity" : "global"}
         stats={stats}
         selectedRange={selectedRange}
-        rangeBasePath="/admin/analytics"
+        rangeBasePath={staffDashboardPath(staffBase, "/analytics")}
         exportTitle={exportTitle}
         showExport
       />

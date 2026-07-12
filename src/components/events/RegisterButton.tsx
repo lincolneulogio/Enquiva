@@ -139,21 +139,21 @@ export function RegisterButton({
     if (isModalOpen) {
       html.style.overflow = "hidden";
       body.style.overflow = "hidden";
-      if (typeof window !== "undefined" && (window as any).lenis) {
-        (window as any).lenis.stop();
+      if (typeof window !== "undefined" && window.__evoraLenis) {
+        window.__evoraLenis.stop();
       }
     } else {
       html.style.overflow = "";
       body.style.overflow = "";
-      if (typeof window !== "undefined" && (window as any).lenis) {
-        (window as any).lenis.start();
+      if (typeof window !== "undefined" && window.__evoraLenis) {
+        window.__evoraLenis.start();
       }
     }
     return () => {
       html.style.overflow = "";
       body.style.overflow = "";
-      if (typeof window !== "undefined" && (window as any).lenis) {
-        (window as any).lenis.start();
+      if (typeof window !== "undefined" && window.__evoraLenis) {
+        window.__evoraLenis.start();
       }
     };
   }, [isModalOpen]);

@@ -12,6 +12,8 @@ import { getIntlLocale } from "@/lib/i18n/core";
 import { TablePagination } from "@/components/dashboard";
 import { ToggleEventTransportButton } from "@/components/dashboard";
 import { resolveAdminScope, scopeEventCondition } from "@/lib/organizations/admin-scope";
+import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
+import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
 
 interface AdminTransportPageProps {
     searchParams: Promise<{
@@ -23,6 +25,7 @@ const PAGE_SIZE = 10;
 
 export default async function AdminTransportOverviewPage({ searchParams }: AdminTransportPageProps) {
     const { locale, t } = await getI18n();
+  const staffBase = await getStaffBaseFromRequest();
     const session = await auth.api.getSession({ headers: await headers() });
 
     if (!session?.user || !["admin", "super_admin"].includes(session.user.role ?? "")) {
@@ -254,7 +257,7 @@ export default async function AdminTransportOverviewPage({ searchParams }: Admin
                         </div>
                         
                         <TablePagination
-                            basePath="/admin/transport"
+                            basePath={staffDashboardPath(staffBase, "/transport")}
                             currentPage={safePage}
                             totalPages={totalPages}
                             totalItems={total}

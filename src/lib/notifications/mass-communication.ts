@@ -5,6 +5,8 @@ import {
   chunkRecipients,
   resolveBroadcastBatchSize,
 } from "@/lib/notifications/broadcast-batch";
+import { sendBroadcastEmail } from "@/lib/mail";
+import { db } from "@/lib/db";
 
 export type MassCommunicationNotificationType =
   | "event_published"

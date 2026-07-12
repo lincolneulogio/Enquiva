@@ -1,5 +1,4 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { requireApiSession, apiAuthErrorResponse } from "@/lib/auth/api-guards";
 import { NextResponse } from "next/server";
 import { convertToModelMessages } from "ai";
 import { normalizeRole } from "@/lib/auth/rbac";
@@ -13,16 +12,12 @@ export const maxDuration = 30;
 
 export async function POST(req: Request) {
   try {
-    // 1. Autenticación
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
+    const { user } = await requireApiSession();
 
     const { messages } = await req.json();
-    const userRole = normalizeRole(session.user.role ?? "member");
-    const userName = session.user.name ?? "Usuario";
-    const userId = session.user.id;
+    const userRole = normalizeRole(user.role ?? "member");
+    const userName = user.name ?? "Usuario";
+    const userId = user.id;
 
     await requirePlanFeature(userId, userRole, "ai");
 
@@ -59,6 +54,8 @@ export async function POST(req: Request) {
     );
     return response;
   } catch (error: unknown) {
+    const authResponse = apiAuthErrorResponse(error);
+    if (authResponse) return authResponse;
     console.error("Error in Chat API Route:", error);
     if (error instanceof PlanLimitError) {
       return NextResponse.json(

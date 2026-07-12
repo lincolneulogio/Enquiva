@@ -167,7 +167,7 @@ export function PassengerManifest({ eventId }: PassengerManifestProps) {
         margin: { left: 14, right: 14 },
       });
 
-      currentY = (doc as any).lastAutoTable.finalY + 12;
+      currentY = (doc.lastAutoTable?.finalY ?? currentY) + 12;
     });
 
     // Signature lines

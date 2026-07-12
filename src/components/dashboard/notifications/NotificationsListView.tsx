@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { markNotificationsAsRead } from "@/actions/notifications";
 import { MarkAllReadButton } from "@/components/dashboard/notifications/MarkAllReadButton";
+import { WebPushToggle } from "@/components/dashboard/notifications/WebPushToggle";
 import { TablePagination } from "@/components/dashboard/shared/TablePagination";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { getIntlLocale, translateNotification } from "@/lib/i18n/core";
@@ -235,6 +236,7 @@ export function NotificationsListView({
             </span>
           )}
           {unread > 0 && <MarkAllReadButton />}
+          <WebPushToggle />
         </div>
       </div>
 

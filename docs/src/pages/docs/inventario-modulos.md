@@ -91,8 +91,6 @@ Resumen técnico del ecosistema **Evora** (actualizado desde el código).
 - Workflow **Deploy** en GitHub Actions (requiere secrets Vercel)
 - `BROADCAST_BATCH_SIZE` configurable
 - Validación mail producción (alerta si Mailtrap)
-- Tests: broadcasts, billing renewal, mail config
-- **E2E Playwright** — registro, login, inscripción, pagos (`pnpm test:e2e`)
 
 ---
 
@@ -100,7 +98,7 @@ Resumen técnico del ecosistema **Evora** (actualizado desde el código).
 
 **Alta:** SMTP Resend/SendGrid en prod, verificar crons en Vercel, Culqi en vivo, secrets deploy en GitHub.
 
-**Media:** más tests E2E, migraciones unificadas, analytics ampliado, IA Copilot por plan.
+**Media:** migraciones unificadas, analytics ampliado, IA Copilot por plan.
 
 **Baja:** transporte móvil, videotutoriales con video real, push notifications.
 

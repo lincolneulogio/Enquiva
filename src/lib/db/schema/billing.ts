@@ -13,7 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
-import { payments } from "./transport";
+import { payments } from "./payments";
 import { organizations } from "./organizations";
 
 export const subscriptionStatusEnum = pgEnum("subscription_status", [

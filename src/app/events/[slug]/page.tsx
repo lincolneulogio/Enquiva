@@ -14,7 +14,7 @@ import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
 import { incrementEventViewCount } from "@/lib/analytics/event-views";
 import { db } from "@/lib/db";
-import { transportRoutes, transportBookings, transportStops } from "@/lib/db/schema";
+import { transportRoutes, transportBookings, transportStops, type TransportRoute } from "@/lib/db/schema";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import {
   Calendar,
@@ -34,6 +34,27 @@ import {
   CheckCircle2,
   Info,
 } from "lucide-react";
+
+type SerializedTransportStop = {
+  id: string;
+  name: string;
+  latitude: string | null;
+  longitude: string | null;
+};
+
+type SerializedTransportRoute = {
+  id: string;
+  eventId: string;
+  name: string;
+  departurePoint: string;
+  departureTime: string;
+  returnTime: string | null;
+  pricePerSeat: string;
+  totalSeats: number;
+  description: string | null;
+  isActive: boolean;
+  stops: SerializedTransportStop[];
+};
 
 interface EventPageProps {
   params: Promise<{
@@ -58,8 +79,8 @@ export default async function EventDetailPage({ params }: EventPageProps) {
   }
 
   // Fetch active transport routes if transport is enabled
-  let routes: any[] = [];
-  let serializedRoutes: any[] = [];
+  let routes: TransportRoute[] = [];
+  let serializedRoutes: SerializedTransportRoute[] = [];
   let totalTransportSeats = 0;
   let totalBookedTransportSeats = 0;
   if (event.hasTransport) {

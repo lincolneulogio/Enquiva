@@ -1,57 +1,62 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pusherServer } from "@/lib/pusher/server";
 import { isPusherServerConfigured } from "@/lib/pusher/config";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { requireApiSession, apiAuthErrorResponse } from "@/lib/auth/api-guards";
 
 export async function POST(request: NextRequest) {
-  if (!isPusherServerConfigured()) {
-    return NextResponse.json({ error: "Pusher not configured" }, { status: 503 });
-  }
+  try {
+    if (!isPusherServerConfigured()) {
+      return NextResponse.json({ error: "Pusher not configured" }, { status: 503 });
+    }
 
-  const session = await auth.api.getSession({ headers: await headers() });
+    const { user } = await requireApiSession();
 
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+    const body = await request.text();
+    const params = new URLSearchParams(body);
+    const socketId = params.get("socket_id");
+    const channelName = params.get("channel_name");
 
-  const body = await request.text();
-  const params = new URLSearchParams(body);
-  const socketId = params.get("socket_id")!;
-  const channelName = params.get("channel_name")!;
+    if (!socketId || !channelName) {
+      return NextResponse.json({ error: "socket_id y channel_name son requeridos" }, { status: 400 });
+    }
 
-  // 1. Only allow users to subscribe to their own private user channels
-  if (
-    channelName.startsWith("private-user-") &&
-    !channelName.includes(session.user.id)
-  ) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+    // 1. Only allow users to subscribe to their own private user channels
+    if (channelName.startsWith("private-user-") && !channelName.includes(user.id)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
-  // 2. Restrict the private admin dashboard channel to admin/super_admin/organizer roles
-  if (
-    channelName === "private-admin-dashboard" &&
-    session.user.role !== "admin" &&
-    session.user.role !== "super_admin" &&
-    session.user.role !== "organizer"
-  ) {
-    return NextResponse.json({ error: "Forbidden: No tienes permisos para este canal" }, { status: 403 });
-  }
+    // 2. Restrict the private admin dashboard channel to admin/super_admin/organizer roles
+    if (
+      channelName === "private-admin-dashboard" &&
+      user.role !== "admin" &&
+      user.role !== "super_admin" &&
+      user.role !== "organizer"
+    ) {
+      return NextResponse.json(
+        { error: "Forbidden: No tienes permisos para este canal" },
+        { status: 403 },
+      );
+    }
 
-  const presenceData =
-    channelName.startsWith("presence-") ?
-      {
-        user_id: session.user.id,
-        user_info: {
-          name: session.user.name,
-          image: session.user.image,
-        },
-      }
+    const presenceData = channelName.startsWith("presence-")
+      ? {
+          user_id: user.id,
+          user_info: {
+            name: user.name,
+            image: user.image,
+          },
+        }
       : undefined;
 
-  const authResponse = presenceData
-    ? pusherServer.authorizeChannel(socketId, channelName, presenceData)
-    : pusherServer.authorizeChannel(socketId, channelName);
+    const authResponse = presenceData
+      ? pusherServer.authorizeChannel(socketId, channelName, presenceData)
+      : pusherServer.authorizeChannel(socketId, channelName);
 
-  return NextResponse.json(authResponse);
+    return NextResponse.json(authResponse);
+  } catch (error) {
+    const authResponse = apiAuthErrorResponse(error);
+    if (authResponse) return authResponse;
+    console.error("[pusher/auth]", error);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }

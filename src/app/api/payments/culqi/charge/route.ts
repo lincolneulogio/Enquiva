@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { requireApiSession, apiAuthErrorResponse } from "@/lib/auth/api-guards";
 import { db } from "@/lib/db";
 import { payments, registrations, events } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -13,10 +12,7 @@ import { CulqiEventPaymentService } from "@/lib/culqi/event-payment.service";
 
 export async function POST(req: Request) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
+    const { user } = await requireApiSession();
 
     const body = await req.json();
     const paymentId = String(body.paymentId ?? "");
@@ -27,7 +23,7 @@ export async function POST(req: Request) {
     }
 
     const [payment] = await db.select().from(payments).where(eq(payments.id, paymentId)).limit(1);
-    if (!payment || payment.userId !== session.user.id) {
+    if (!payment || payment.userId !== user.id) {
       return NextResponse.json({ error: "Pago no encontrado" }, { status: 404 });
     }
 
@@ -96,8 +92,8 @@ export async function POST(req: Request) {
     const amount = Number(payment.amount);
     const platformFee = organizerPlan ? getPlatformFee(amount, organizerPlan) : 0;
 
-    const dbProfile = await getUserCulqiProfile(session.user.id);
-    const customer = mergeSessionCulqiProfile(session.user, dbProfile);
+    const dbProfile = await getUserCulqiProfile(user.id);
+    const customer = mergeSessionCulqiProfile(user, dbProfile);
 
     const charge = await createCulqiCharge(
       {
@@ -134,6 +130,8 @@ export async function POST(req: Request) {
       idempotent: result.idempotent ?? false,
     });
   } catch (error) {
+    const authResponse = apiAuthErrorResponse(error);
+    if (authResponse) return authResponse;
     console.error("[Culqi charge]", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Error al procesar pago" },

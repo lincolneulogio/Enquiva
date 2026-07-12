@@ -53,7 +53,7 @@ export function ExpressCheckInConsole({ events }: ExpressCheckInConsoleProps) {
       try {
         const res = await searchPreRegisteredAttendeesAction(selectedEventId, query);
         if (res.success) {
-          setAttendees(res.attendees as any[] || []);
+          setAttendees(res.attendees ?? []);
         }
       } catch (error) {
         console.error(error);

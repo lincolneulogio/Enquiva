@@ -300,7 +300,7 @@ export function MemberTransportClient({ options, myBookings }: MemberTransportCl
                           <div className="flex items-center gap-2 text-xs">
                             <span className="text-muted-foreground font-semibold uppercase tracking-wider text-[10px]">{t("dashboard.member.paymentLabel")}:</span>
                             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${PAYMENT_STATUS_STYLES[payStatus] ?? PAYMENT_STATUS_STYLES.pending}`}>
-                              {getPaymentStatusLabel(payStatus, locale as any)}
+                              {getPaymentStatusLabel(payStatus, locale)}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 text-xs">

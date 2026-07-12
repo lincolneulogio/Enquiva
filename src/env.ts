@@ -35,6 +35,9 @@ export const env = createEnv({
       process.env.NODE_ENV === "production"
         ? z.string().min(16)
         : z.string().min(16).optional(),
+    VAPID_PUBLIC_KEY: z.string().min(1).optional(),
+    VAPID_PRIVATE_KEY: z.string().min(1).optional(),
+    VAPID_SUBJECT: z.string().min(1).optional(),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().url(),
@@ -71,6 +74,9 @@ export const env = createEnv({
     CRON_SECRET: process.env.CRON_SECRET,
     BROADCAST_BATCH_SIZE: process.env.BROADCAST_BATCH_SIZE,
     PLATFORM_BOOTSTRAP_SECRET: process.env.PLATFORM_BOOTSTRAP_SECRET,
+    VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY,
+    VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
+    VAPID_SUBJECT: process.env.VAPID_SUBJECT,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_DOCS_URL: process.env.NEXT_PUBLIC_DOCS_URL,
     NEXT_PUBLIC_PUSHER_KEY: process.env.NEXT_PUBLIC_PUSHER_KEY,
@@ -78,4 +84,23 @@ export const env = createEnv({
     NEXT_PUBLIC_UPLOADTHING_APP_ID: process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID,
     NEXT_PUBLIC_CULQI_PUBLIC_KEY: process.env.NEXT_PUBLIC_CULQI_PUBLIC_KEY,
   },
+  /**
+   * En producción, si Culqi está habilitado (secret key), el webhook secret es obligatorio.
+   */
+  createFinalSchema: (shape, isServer) =>
+    z.object(shape).superRefine((data, ctx) => {
+      if (!isServer) return;
+      if (
+        process.env.NODE_ENV === "production" &&
+        data.CULQI_SECRET_KEY &&
+        !data.CULQI_WEBHOOK_SECRET
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["CULQI_WEBHOOK_SECRET"],
+          message:
+            "CULQI_WEBHOOK_SECRET es obligatorio en producción cuando CULQI_SECRET_KEY está configurada",
+        });
+      }
+    }),
 });

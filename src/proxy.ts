@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+/**
+ * Gate de páginas autenticadas.
+ * Las rutas `/api/*` quedan fuera del matcher: cada Route Handler debe
+ * autenticarse con `requireApiSession` / cron secret / webhook secret.
+ */
 const publicRoutes = new Set([
   "/",
   "/login",

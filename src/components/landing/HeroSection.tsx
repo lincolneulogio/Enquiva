@@ -1,16 +1,16 @@
 import Link from "next/link";
-import { Sparkles, ArrowRight, Compass } from "lucide-react";
+import { Sparkles, ArrowRight, Compass, type LucideIcon } from "lucide-react";
 
 interface HeroSectionProps {
   t: (key: string) => string;
   locale: string;
   signals: Array<{
-    icon: any;
+    icon: LucideIcon;
     value: string;
     label: string;
   }>;
   features: Array<{
-    icon: any;
+    icon: LucideIcon;
     title: string;
     desc: string;
   }>;

@@ -1,6 +1,7 @@
 export * from "./auth";
 export * from "./events";
 export * from "./registrations";
+export * from "./payments";
 export * from "./transport";
 export * from "./logs";
 export * from "./billing";

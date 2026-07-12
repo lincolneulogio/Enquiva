@@ -13,7 +13,7 @@ function getVisibleText(message: Message): string | null {
   if (message.parts && message.parts.length > 0) {
     const text = message.parts
       .filter((p) => p.type === "text")
-      .map((p) => (p as any).text)
+      .map((p) => ("text" in p ? p.text : ""))
       .join("");
     return text.trim() || null;
   }

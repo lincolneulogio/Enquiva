@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { registrations, events, users, payments, transportBookings, transportRoutes } from "@/lib/db/schema";
+import { registrations, events, users, payments, transportBookings, transportRoutes, registrationStatusEnum } from "@/lib/db/schema";
 import { eq, desc, count, and, gte, lte, sql, inArray, type SQL } from "drizzle-orm";
 import { ClipboardList, Bus, CreditCard } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
@@ -12,6 +12,8 @@ import { getExportEventOptions } from "@/actions/exports";
 import { getCategories } from "@/actions/events";
 import { Suspense } from "react";
 import { resolveAdminScope, scopeEventCondition } from "@/lib/organizations/admin-scope";
+import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
+import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
 
 interface AdminRegistrationsPageProps {
   searchParams: Promise<{
@@ -35,6 +37,7 @@ const statusColor: Record<string, string> = {
 
 export default async function AdminRegistrationsPage({ searchParams }: AdminRegistrationsPageProps) {
   const { locale, t } = await getI18n();
+  const staffBase = await getStaffBaseFromRequest();
   const params = await searchParams;
   const requestedPage = Number(params.page ?? "1");
   const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
@@ -64,7 +67,10 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
     conditions.push(eq(events.category, params.category));
   }
   if (params.status && params.status !== "all") {
-    conditions.push(eq(registrations.status, params.status as any));
+    const status = registrationStatusEnum.enumValues.find((value) => value === params.status);
+    if (status) {
+      conditions.push(eq(registrations.status, status));
+    }
   }
   if (params.fromDate) {
     conditions.push(gte(registrations.registeredAt, new Date(`${params.fromDate}T00:00:00.000`)));
@@ -419,7 +425,7 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
             </table>
           </div>
           <TablePagination
-            basePath="/admin/registrations"
+            basePath={staffDashboardPath(staffBase, "/registrations")}
             currentPage={safePage}
             totalPages={totalPages}
             totalItems={total}

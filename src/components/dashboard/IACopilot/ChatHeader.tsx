@@ -29,7 +29,7 @@ export function ChatHeader({ userRole, locale, RoleIcon, roleBadgeStyle, aiUsage
           </h3>
           <span className={cn("inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-normal shadow-sm mt-1", roleBadgeStyle)}>
             <RoleIcon className="h-2.5 w-2.5" />
-            {getRoleLabel(userRole as any, locale)}
+            {getRoleLabel(userRole, locale)}
           </span>
           {aiUsage?.limit != null && (
             <p className="mt-1 text-[10px] text-muted-foreground">

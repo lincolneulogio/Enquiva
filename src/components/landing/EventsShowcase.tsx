@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { EventCard } from "@/components/events/EventCard";
+import type { Event } from "@/lib/db/schema";
 
 interface EventsShowcaseProps {
-  events: any[];
+  events: Array<Event & { attendeeCount?: number }>;
   t: (key: string) => string;
 }
 

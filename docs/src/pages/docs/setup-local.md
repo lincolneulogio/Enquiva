@@ -79,7 +79,6 @@ pnpm run dev
 |---------|-------------|
 | `pnpm run db:studio` | UI Drizzle para inspeccionar tablas |
 | `pnpm run db:backup` | Export JSON a carpeta `backups/` |
-| `pnpm test` | Tests unitarios |
 | `pnpm run typecheck` | Verificación TypeScript |
 
 ---

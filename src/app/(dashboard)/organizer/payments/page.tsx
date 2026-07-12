@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { payments as paymentsTable, registrations, events, users, transportBookings, transportRoutes } from "@/lib/db/schema";
+import { payments as paymentsTable, registrations, events, users, transportBookings, transportRoutes, paymentStatusEnum } from "@/lib/db/schema";
 import { eq, desc, and, gte, lte, count } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -123,7 +123,10 @@ export default async function OrganizerPaymentsPage({ searchParams }: PageProps)
     conditions.push(eq(events.category, params.category));
   }
   if (params.status && params.status !== "all") {
-    conditions.push(eq(paymentsTable.status, params.status as any));
+    const status = paymentStatusEnum.enumValues.find((value) => value === params.status);
+    if (status) {
+      conditions.push(eq(paymentsTable.status, status));
+    }
   }
   if (params.fromDate) {
     conditions.push(gte(paymentsTable.createdAt, new Date(`${params.fromDate}T00:00:00.000`)));

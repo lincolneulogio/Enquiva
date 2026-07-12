@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { requireApiRole, apiAuthErrorResponse } from "@/lib/auth/api-guards";
 import { db } from "@/lib/db";
 import { plans } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -18,20 +17,13 @@ import { SubscriptionService } from "@/lib/billing/subscription.service";
 
 export async function POST(req: Request) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
-
-    if (!["organizer", "admin", "super_admin"].includes(session.user.role ?? "")) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const { user } = await requireApiRole(["organizer", "admin", "super_admin"]);
 
     const billingCtx = await resolveSubscriptionBillingContext(
-      session.user.id,
-      session.user.role,
+      user.id,
+      user.role,
     );
-    if (!canManageSubscriptionBilling(session.user.id, session.user.role, billingCtx)) {
+    if (!canManageSubscriptionBilling(user.id, user.role, billingCtx)) {
       return NextResponse.json(
         { error: "El plan de tu entidad lo gestiona el administrador." },
         { status: 403 },
@@ -56,7 +48,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "planId y sourceId son requeridos" }, { status: 400 });
     }
 
-    if (!session.user.email) {
+    if (!user.email) {
       return NextResponse.json({ error: "Tu cuenta necesita un email para pagar" }, { status: 400 });
     }
 
@@ -78,8 +70,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Este plan es gratuito" }, { status: 400 });
     }
 
-    const dbProfile = await getUserCulqiProfile(session.user.id);
-    const customer = mergeSessionCulqiProfile(session.user, dbProfile);
+    const dbProfile = await getUserCulqiProfile(user.id);
+    const customer = mergeSessionCulqiProfile(user, dbProfile);
 
     const localPhone = formatCulqiPhone(customer.phone);
     if (!/^9\d{8}$/.test(localPhone)) {
@@ -89,7 +81,10 @@ export async function POST(req: Request) {
       );
     }
 
-    const platformCulqi = getPlatformCulqiCredentials()!;
+    const platformCulqi = getPlatformCulqiCredentials();
+    if (!platformCulqi) {
+      return NextResponse.json({ error: "Culqi no está configurado" }, { status: 503 });
+    }
     let chargeSourceId = sourceId;
     let useRecurrent = false;
 
@@ -98,11 +93,11 @@ export async function POST(req: Request) {
         billingUserId,
         customer,
         sourceId,
-        session.user.role,
+        user.role,
       );
       const sub = await SubscriptionService.findSubscriptionForBillingUser(
         billingUserId,
-        session.user.role,
+        user.role,
       );
 
       if (!sub?.culqiCardId) {
@@ -124,7 +119,7 @@ export async function POST(req: Request) {
         customer,
         description: `Suscripción ${plan.name} - Evora`,
         metadata: {
-          userId: session.user.id,
+          userId: billingUserId,
           planId: plan.id,
           type: "subscription",
         },
@@ -151,6 +146,8 @@ export async function POST(req: Request) {
       subscriptionId: result.subscriptionId,
     });
   } catch (error) {
+    const authResponse = apiAuthErrorResponse(error);
+    if (authResponse) return authResponse;
     console.error("[Billing Culqi charge]", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Error al procesar pago" },

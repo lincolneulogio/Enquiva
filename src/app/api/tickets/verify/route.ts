@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { requireApiRole, apiAuthErrorResponse } from "@/lib/auth/api-guards";
 import { ticketVerifyRatelimit } from "@/lib/redis";
 import { assertCanManageEvent } from "@/lib/organizations/admin-scope";
 import { db } from "@/lib/db";
@@ -10,24 +9,16 @@ import { TicketCheckInService } from "@/lib/tickets/check-in";
 
 export async function POST(req: Request) {
   try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
-
-    const role = session.user.role;
-    if (role !== "admin" && role !== "super_admin" && role !== "organizer") {
-      return NextResponse.json(
-        { success: false, error: "Forbidden: No tienes permisos para escanear tickets" },
-        { status: 403 },
-      );
-    }
+    const { user, headers: hdrs } = await requireApiRole(
+      ["admin", "super_admin", "organizer"],
+      "Forbidden: No tienes permisos para escanear tickets",
+    );
+    const role = user.role;
 
     const body = await req.json().catch(() => ({}));
     const code = String(body.code ?? "").trim();
     const providedSignature = String(body.signature ?? body.s ?? "").trim();
 
-    const hdrs = await headers();
     const ip = hdrs.get("x-forwarded-for") ?? hdrs.get("x-real-ip") ?? "unknown";
     try {
       const { success } = await ticketVerifyRatelimit.limit(ip);
@@ -62,7 +53,7 @@ export async function POST(req: Request) {
                   organizerId: eventRecord.organizerId,
                   organizationId: eventRecord.organizationId,
                 },
-                session.user.id,
+                user.id,
                 role,
               );
             } catch {
@@ -82,7 +73,7 @@ export async function POST(req: Request) {
     const result = await TicketCheckInService.checkInByTicketCode(
       { code, signature: providedSignature },
       {
-        scannedByUserId: session.user.id,
+        scannedByUserId: user.id,
         scanLog: {
           ipAddress: ip,
           userAgent: hdrs.get("user-agent") ?? undefined,
@@ -108,6 +99,13 @@ export async function POST(req: Request) {
       event: result.event,
     });
   } catch (err) {
+    const authResponse = apiAuthErrorResponse(err);
+    if (authResponse) {
+      return NextResponse.json(
+        { success: false, error: err instanceof Error ? err.message : "Unauthorized" },
+        { status: authResponse.status },
+      );
+    }
     console.error(err);
     return NextResponse.json({ success: false, error: "Server error" }, { status: 500 });
   }

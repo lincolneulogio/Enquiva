@@ -1,5 +1,6 @@
 import { readFileSync } from "fs";
 import path from "path";
+import type { Attachment } from "nodemailer/lib/mailer";
 import { BRAND } from "@/lib/brand";
 import { env } from "@/env";
 
@@ -11,14 +12,10 @@ export function emailAssetUrl(assetPath: string) {
   return `${base}${assetPath}`;
 }
 
-let cachedLogoAttachment: {
-  filename: string;
-  content: Buffer;
-  cid: string;
-} | null | undefined;
+let cachedLogoAttachment: Attachment | null | undefined;
 
 /** Adjunto inline del logo para clientes de correo (no depende de URL pública). */
-export function getEmailBrandLogoAttachment() {
+export function getEmailBrandLogoAttachment(): Attachment | null {
   if (cachedLogoAttachment !== undefined) return cachedLogoAttachment;
 
   try {
@@ -37,16 +34,10 @@ export function getEmailBrandLogoAttachment() {
   return cachedLogoAttachment;
 }
 
-type EmailAttachment = {
-  filename?: string;
-  content?: Buffer | string;
-  cid?: string;
-};
-
 export function appendEmailBrandLogoAttachment(
-  attachments: EmailAttachment | EmailAttachment[] | undefined = [],
-) {
-  const list = Array.isArray(attachments) ? attachments : attachments ? [attachments] : [];
+  attachments: Attachment | Attachment[] | undefined = [],
+): Attachment[] {
+  const list = Array.isArray(attachments) ? [...attachments] : attachments ? [attachments] : [];
   const logo = getEmailBrandLogoAttachment();
   if (!logo) return list;
 

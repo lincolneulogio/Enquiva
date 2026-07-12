@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { tickets, registrations, users, events } from "@/lib/db/schema";
-import { auth } from "@/lib/auth";
+import { requireApiSession, apiAuthErrorResponse } from "@/lib/auth/api-guards";
 import { eq } from "drizzle-orm";
 import { sendTicketEmailWithPdf } from "@/lib/mail";
 import { buildTicketPublicUrl, resolveTicketQrDataUrl } from "@/lib/tickets";
 import { env } from "@/env";
-import { headers } from "next/headers";
 import { z } from "zod";
 
 const resendSchema = z.object({
@@ -25,15 +24,14 @@ export async function POST(req: Request) {
     const { registrationId } = validation.data;
 
     // 2. Authenticate the requester
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    const { user } = await requireApiSession();
 
     const [registration] = await db.select().from(registrations).where(eq(registrations.id, registrationId)).limit(1);
     if (!registration) return NextResponse.json({ success: false, error: "Registration not found" }, { status: 404 });
 
     // 3. Authorize: el dueño del ticket o staff con permiso sobre el evento
-    const userId = session.user.id;
-    const role = session.user.role;
+    const userId = user.id;
+    const role = user.role;
 
     if (registration.userId !== userId) {
       const { assertEventInAdminScope } = await import("@/lib/organizations/admin-scope");
@@ -71,6 +69,13 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
+    const authResponse = apiAuthErrorResponse(err);
+    if (authResponse) {
+      return NextResponse.json(
+        { success: false, error: err instanceof Error ? err.message : "Unauthorized" },
+        { status: authResponse.status },
+      );
+    }
     console.error(err);
     return NextResponse.json({ success: false, error: "Server error" }, { status: 500 });
   }
