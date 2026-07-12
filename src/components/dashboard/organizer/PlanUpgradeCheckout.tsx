@@ -3,9 +3,16 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CreditCard, Loader2, X, ShieldCheck, DollarSign, Info } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { PaymentMethod, Plan } from "@/lib/db/schema";
 import { useTranslations, useLocale } from "@/components/providers/LocaleProvider";
-import { loadCulqiCheckoutScript, openCulqiCheckout, closeActiveCulqiCheckout, resetCulqiCheckoutUi, isCulqiCheckoutCancelled } from "@/lib/culqi/open-checkout";
+import {
+  loadCulqiCheckoutScript,
+  openCulqiCheckout,
+  closeActiveCulqiCheckout,
+  resetCulqiCheckoutUi,
+  isCulqiCheckoutCancelled,
+} from "@/lib/culqi/open-checkout";
 import { CULQI_ORDER_MIN_AMOUNT_PEN } from "@/lib/culqi/constants";
 import { useSession } from "@/lib/auth/client";
 import { CheckoutStepper } from "@/components/payments/CheckoutStepper";
@@ -46,11 +53,16 @@ export function PlanUpgradeCheckout({
     : null;
 
   const [isSaving, setIsSaving] = useState(false);
-  const [culqiOpen, setCulqiOpen] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
   const [enableAutoRenew, setEnableAutoRenew] = useState(true);
+  const [entered, setEntered] = useState(false);
   const { data: session } = useSession();
   const checkoutEmail = userEmail ?? session?.user?.email ?? null;
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   useEffect(() => {
     if (!culqiPublicKey) return;
@@ -59,9 +71,7 @@ export function PlanUpgradeCheckout({
       .catch(() => toast.error(t("billing.planCheckout.culqiLoadFailed")));
   }, [culqiPublicKey, t]);
 
-  // Culqi inyecta el modal fuera de React: al salir de la página o cerrar, hay que cerrarlo.
   useEffect(() => {
-    resetCulqiCheckoutUi();
     return () => {
       closeActiveCulqiCheckout();
       resetCulqiCheckoutUi();
@@ -103,29 +113,16 @@ export function PlanUpgradeCheckout({
       return;
     }
 
-    // Si un intento anterior quedó colgado (cerrar X de Culqi), libera y reintenta.
     if (isSaving) {
       closeActiveCulqiCheckout();
       setIsSaving(false);
-    }
-
-    if (yapeAvailable) {
-      toast.message(t("billing.planCheckout.payHintToastTitle"), {
-        description: t("billing.planCheckout.payHintToastBody", {
-          amount: amount.toFixed(2),
-        }),
-        duration: 6000,
-      });
+      return;
     }
 
     setIsSaving(true);
     try {
-      // Cierra cualquier Culqi/orden previa ANTES de crear la orden del plan actual.
-      // Evita reutilizar un QR de otro plan (ej. Pro S/49 al pagar Enterprise).
       closeActiveCulqiCheckout();
       resetCulqiCheckoutUi();
-      setCulqiOpen(true);
-      await new Promise<void>((r) => window.setTimeout(r, 350));
 
       let orderId: string | null = null;
       let checkoutAmount = amount;
@@ -156,6 +153,8 @@ export function PlanUpgradeCheckout({
         }
       }
 
+      // Culqi se monta por encima (z-index alto). No ocultamos Evora antes:
+      // eso provocaba un frame negro vacío mientras cargaba Culqi.
       const checkoutResult = await openCulqiCheckout({
         publicKey: culqiPublicKey,
         title: `Evora · ${plan.name}`,
@@ -175,27 +174,30 @@ export function PlanUpgradeCheckout({
       if (isCulqiCheckoutCancelled(e)) return;
       toast.error(e instanceof Error ? e.message : t("billing.planCheckout.culqiPayFailed"));
     } finally {
-      setCulqiOpen(false);
       setIsSaving(false);
     }
+  };
+
+  const handleClose = () => {
+    if (isSaving) return;
+    closeActiveCulqiCheckout();
+    resetCulqiCheckoutUi();
+    onClose();
   };
 
   return (
     <div
       data-checkout-overlay
-      className={
-        culqiOpen
-          ? "pointer-events-none fixed inset-0 z-40 bg-transparent"
-          : "fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
-      }
-      aria-hidden={culqiOpen}
+      className={cn(
+        "fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 transition-opacity duration-200 sm:items-center",
+        entered ? "opacity-100" : "opacity-0",
+      )}
     >
       <div
-        className={
-          culqiOpen
-            ? "hidden"
-            : "max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-card shadow-xl"
-        }
+        className={cn(
+          "max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-card shadow-xl transition-[opacity,transform] duration-200",
+          entered ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
+        )}
       >
         <div className="sticky top-0 z-10 space-y-3 border-b border-border bg-card px-5 py-4">
           <div className="flex items-start justify-between gap-3">
@@ -214,12 +216,9 @@ export function PlanUpgradeCheckout({
             </div>
             <button
               type="button"
-              onClick={() => {
-                closeActiveCulqiCheckout();
-                resetCulqiCheckoutUi();
-                onClose();
-              }}
-              className="rounded-lg p-2 text-muted-foreground hover:bg-muted"
+              onClick={handleClose}
+              disabled={isSaving}
+              className="rounded-lg p-2 text-muted-foreground transition hover:bg-muted disabled:opacity-50"
             >
               <X className="h-5 w-5" />
             </button>
@@ -297,8 +296,8 @@ export function PlanUpgradeCheckout({
               <button
                 type="button"
                 onClick={openCulqi}
-                disabled={!scriptReady}
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                disabled={!scriptReady || isSaving}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:opacity-50"
               >
                 {isSaving || !scriptReady ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

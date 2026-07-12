@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect, useRef } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { requestPlanUpgrade } from "@/actions/billing";
 import { Check, Crown, Loader2, Sparkles, Clock, AlertTriangle, History } from "lucide-react";
@@ -13,7 +13,11 @@ import { PlanChangeConfirmDialog } from "@/components/dashboard/organizer/PlanCh
 import { AutoRenewSettings } from "@/components/dashboard/organizer/AutoRenewSettings";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import type { PlanChangePreview } from "@/lib/billing/types";
-import { closeActiveCulqiCheckout, resetCulqiCheckoutUi } from "@/lib/culqi/open-checkout";
+import {
+  closeActiveCulqiCheckout,
+  resetCulqiCheckoutUi,
+  loadCulqiCheckoutScript,
+} from "@/lib/culqi/open-checkout";
 
 interface PendingPayment {
   payment: {
@@ -69,13 +73,13 @@ export function OrganizerBillingClient({
 }: OrganizerBillingClientProps) {
   const t = useTranslations();
   const { locale } = useLocale();
+  const router = useRouter();
   const pathname = usePathname();
   const prevPathname = useRef(pathname);
   const [isPending, startTransition] = useTransition();
   const [checkoutPlan, setCheckoutPlan] = useState<{
     plan: Plan;
     newPeriodEnd: string | null;
-    nonce: number;
   } | null>(null);
   const [planChangeConfirm, setPlanChangeConfirm] = useState<{
     target: Plan;
@@ -84,6 +88,14 @@ export function OrganizerBillingClient({
   const [openingCheckout, setOpeningCheckout] = useState(false);
   const { plan, usage, billedPlan, renewalAlert, daysUntilRenewal } = subscription;
   const displayPlanName = billedPlan?.name ?? plan.name;
+
+  // Precarga Culqi para que el primer “Pagar” no espere el script.
+  useEffect(() => {
+    if (!culqiPublicKey || !culqiAvailable) return;
+    void loadCulqiCheckoutScript().catch(() => {
+      /* se reintenta al pagar */
+    });
+  }, [culqiPublicKey, culqiAvailable]);
 
   useEffect(() => {
     if (prevPathname.current === pathname) return;
@@ -94,15 +106,17 @@ export function OrganizerBillingClient({
     setPlanChangeConfirm(null);
   }, [pathname]);
 
+  const refreshBillingQuietly = () => {
+    startTransition(() => {
+      router.refresh();
+    });
+  };
+
   const openCheckoutForPlan = (target: Plan, newPeriodEnd: string | null) => {
     closeActiveCulqiCheckout();
     resetCulqiCheckoutUi();
     setPlanChangeConfirm(null);
-    setCheckoutPlan({
-      plan: target,
-      newPeriodEnd,
-      nonce: Date.now(),
-    });
+    setCheckoutPlan({ plan: target, newPeriodEnd });
   };
 
   const proceedPlanChange = (target: Plan, confirmed: boolean) => {
@@ -117,7 +131,7 @@ export function OrganizerBillingClient({
         if (res.mode === "assigned") {
           setPlanChangeConfirm(null);
           toast.success(t("billing.organizer.planUpdated"));
-          window.location.reload();
+          refreshBillingQuietly();
         } else if (res.mode === "checkout") {
           openCheckoutForPlan(target, res.preview?.newPeriodEnd ?? null);
         }
@@ -411,7 +425,6 @@ export function OrganizerBillingClient({
 
       {checkoutPlan && (
         <PlanUpgradeCheckout
-          key={checkoutPlan.nonce}
           plan={checkoutPlan.plan}
           newPeriodEnd={checkoutPlan.newPeriodEnd}
           platformMethods={platformMethods}
@@ -426,7 +439,7 @@ export function OrganizerBillingClient({
             closeActiveCulqiCheckout();
             resetCulqiCheckoutUi();
             setCheckoutPlan(null);
-            window.location.reload();
+            refreshBillingQuietly();
           }}
         />
       )}

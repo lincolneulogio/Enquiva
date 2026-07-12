@@ -3,7 +3,7 @@
 const CULQI_SCRIPT = "https://js.culqi.com/checkout-js";
 const CULQI_READY_TIMEOUT_MS = 8000;
 /** Espera tras cerrar: Culqi necesita liberar el modal antes de un nuevo open(). */
-const CULQI_REOPEN_DELAY_MS = 300;
+const CULQI_REOPEN_DELAY_MS = 180;
 /** Ignora onClose disparado en el mismo tick que open(). */
 const CULQI_CLOSE_GRACE_MS = 200;
 
