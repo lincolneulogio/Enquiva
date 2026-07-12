@@ -6,6 +6,7 @@ export type AuthErrorKind =
     | "email_already_in_use"
     | "invalid_credentials"
     | "account_not_verified"
+    | "account_already_verified"
     | "verification_code_expired"
     | "verification_code_invalid"
     | "verification_code_not_found"
@@ -86,6 +87,10 @@ export function getAuthErrorKind(rawMessage: string | undefined): AuthErrorKind 
         return "organizer_approval_pending";
     }
 
+    if (normalized.includes("ya está verificada") || normalized.includes("already verified")) {
+        return "account_already_verified";
+    }
+
     if (normalized.includes("plan_limit") || normalized.includes("plan ") && normalized.includes("organizador")) {
         return "plan_limit";
     }
@@ -103,6 +108,7 @@ export function getAuthErrorMessage(rawMessage: string | undefined, t: Translate
     if (errorKind === "email_already_in_use") return t("auth.emailAlreadyInUse");
     if (errorKind === "invalid_credentials") return t("auth.invalidCredentials");
     if (errorKind === "account_not_verified") return t("auth.accountNotVerified");
+    if (errorKind === "account_already_verified") return t("auth.accountAlreadyVerifiedGoLogin");
     if (errorKind === "verification_code_expired") return t("auth.verificationCodeExpired");
     if (errorKind === "verification_code_invalid") return t("auth.verificationCodeInvalid");
     if (errorKind === "verification_code_not_found") return t("auth.verificationCodeNotFound");

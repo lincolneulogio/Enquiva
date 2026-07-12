@@ -64,7 +64,9 @@ export function VerifyAccountForm({
       try {
         const result = await confirmVerificationCode(data);
         const messageKey =
-          result.accountType === "platform_owner"
+          result.alreadyVerified
+            ? "auth.accountAlreadyVerifiedGoLogin"
+            : result.accountType === "platform_owner"
             ? "auth.accountVerifiedSuperAdmin"
             : result.accountType === "entity_admin"
             ? "auth.accountVerifiedEntityAdmin"
@@ -95,7 +97,13 @@ export function VerifyAccountForm({
 
     startResendTransition(async () => {
       try {
-        await resendVerificationCode({ email });
+        const result = await resendVerificationCode({ email });
+        if (result.alreadyVerified) {
+          toast.success(t("auth.accountAlreadyVerifiedGoLogin"));
+          clearDraft();
+          router.replace(result.loginPath ?? (flow === "superadmin" ? "/superadmin/login" : "/login"));
+          return;
+        }
         toast.success(t("auth.verificationCodeSent"));
         setHasCode(true);
       } catch (error) {

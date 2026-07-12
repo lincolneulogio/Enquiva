@@ -58,7 +58,12 @@ export class SubscriptionService {
 
     if (existing) return existing.id;
 
-    const freePlan = await this.getFreePlan();
+    const freePlan = await this.getPlanBySlug("free");
+    if (!freePlan) {
+      // Alta de entidad permitida aunque el superadmin aún no haya creado planes.
+      return null;
+    }
+
     const periodEnd = addOneMonth();
 
     const [created] = await db
@@ -239,7 +244,12 @@ export class SubscriptionService {
       return this.buildSubscriptionInfo(userId, role, ctx, existing.subscription, existing.plan);
     }
 
-    const freePlan = await this.getFreePlan();
+    const freePlan = await this.getPlanBySlug("free");
+    if (!freePlan) {
+      throw new Error(
+        "PLANS_NOT_CONFIGURED: Aún no hay planes. El superadmin debe crear el plan free (u otros) antes de activar suscripciones.",
+      );
+    }
     const periodEnd = addOneMonth();
     const billingUserId = getBillingUserId(ctx)!;
 

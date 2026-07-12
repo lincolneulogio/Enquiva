@@ -1111,6 +1111,8 @@ const translations: Record<Locale, TranslationDictionary> = {
             inviteCodePlaceholder: "Ej. AB12CD34",
             inviteCodeHelp: "Pídelo al administrador de tu entidad.",
             accountVerifiedEntityAdmin: "Entidad creada. Inicia sesión para administrar tu equipo.",
+            accountAlreadyVerifiedGoLogin:
+                "Esta cuenta ya está verificada. Continúa iniciando sesión.",
             accountNotVerified: "Tu cuenta todavía no está verificada. Revisa tu correo e ingresa el código de 6 dígitos.",
             verifyAccount: "Verificar cuenta",
             verifyAccountHint: "Ingresa el correo y el código de 6 dígitos que le enviamos por esta misma",
@@ -2808,6 +2810,8 @@ const translations: Record<Locale, TranslationDictionary> = {
             inviteCodePlaceholder: "E.g. AB12CD34",
             inviteCodeHelp: "Ask your entity administrator for this code.",
             accountVerifiedEntityAdmin: "Entity created. Sign in to manage your team.",
+            accountAlreadyVerifiedGoLogin:
+                "This account is already verified. Continue by signing in.",
             accountNotVerified: "Your account is not verified yet. Check your email and enter the 6-digit code.",
             verifyAccount: "Verify account",
             verifyAccountHint: "Enter the email and the 6-digit code we sent through Mailtrap.",

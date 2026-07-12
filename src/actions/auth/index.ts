@@ -8,6 +8,7 @@ import { env } from "@/env";
 import { users, verifications } from "@/lib/db/schema";
 import { sendPasswordChangedEmail, sendVerificationCodeEmail, sendWelcomeEmail } from "@/lib/mail";
 import { getLocale } from "@/lib/i18n/server";
+import type { Locale } from "@/lib/i18n/core";
 
 const authIdentitySchema = z.object({
     email: z.string().trim().toLowerCase().email(),
@@ -53,6 +54,21 @@ async function storeSignupIntent(email: string, payload: SignupIntentPayload) {
     });
 }
 
+async function peekSignupIntent(email: string): Promise<SignupIntentPayload> {
+    const identifier = signupIntentIdentifier(email);
+    const [row] = await db
+        .select()
+        .from(verifications)
+        .where(eq(verifications.identifier, identifier))
+        .limit(1);
+
+    if (!row || row.expiresAt < new Date()) {
+        return { type: "member" };
+    }
+
+    return OrganizationService.parseSignupIntent(row.value);
+}
+
 async function consumeSignupIntent(email: string): Promise<SignupIntentPayload> {
     const identifier = signupIntentIdentifier(email);
     const [row] = await db
@@ -68,6 +84,74 @@ async function consumeSignupIntent(email: string): Promise<SignupIntentPayload> 
 
     await db.delete(verifications).where(eq(verifications.identifier, identifier));
     return OrganizationService.parseSignupIntent(row.value);
+}
+
+function resolveAccountType(signupIntent: SignupIntentPayload) {
+    const hasOrganizerInvite =
+        signupIntent.type === "organizer" && Boolean(signupIntent.inviteCode?.trim());
+
+    if (signupIntent.type === "platform_owner") return "platform_owner" as const;
+    if (signupIntent.type === "entity_admin") return "entity_admin" as const;
+    if (signupIntent.type === "organizer") {
+        return hasOrganizerInvite ? ("organizer_pending" as const) : ("organizer" as const);
+    }
+    return "member" as const;
+}
+
+async function applySignupIntent(input: {
+    userId: string;
+    userRole: string | null;
+    userName: string | null;
+    email: string;
+    signupIntent: SignupIntentPayload;
+    locale: Locale;
+}) {
+    const { userId, userRole, userName, email, signupIntent, locale } = input;
+    let joinedOrg: Awaited<
+        ReturnType<typeof OrganizationService.requestJoinOrganizationAsOrganizer>
+    > | null = null;
+
+    if (signupIntent.type === "platform_owner") {
+        await claimPlatformOwner(userId);
+    } else if (userRole === "member" || userRole === "admin" || userRole === "organizer") {
+        // member = alta fresca; admin/organizer = reintento tras fallo parcial
+        if (signupIntent.type === "entity_admin") {
+            const [existing] = await db
+                .select({ organizationId: users.organizationId, role: users.role })
+                .from(users)
+                .where(eq(users.id, userId))
+                .limit(1);
+
+            if (!existing?.organizationId || existing.role !== "admin") {
+                await OrganizationService.createOrganizationForAdmin({
+                    name: signupIntent.orgName,
+                    ownerUserId: userId,
+                });
+            }
+        } else if (signupIntent.type === "organizer" && userRole === "member") {
+            const inviteCode = signupIntent.inviteCode?.trim();
+            if (inviteCode) {
+                joinedOrg = await OrganizationService.requestJoinOrganizationAsOrganizer({
+                    userId,
+                    inviteCode,
+                });
+            } else {
+                await OrganizationService.activateIndependentOrganizer({ userId });
+            }
+        }
+    }
+
+    if (joinedOrg) {
+        const { notifyEntityAdminOfOrganizerRequest } = await import(
+            "@/lib/organizations/organizer-request-notifications"
+        );
+        await notifyEntityAdminOfOrganizerRequest({
+            org: joinedOrg,
+            requesterName: userName ?? email,
+            requesterEmail: email,
+            locale,
+        });
+    }
 }
 
 const passwordResetSchema = z.object({
@@ -210,6 +294,63 @@ export async function confirmVerificationCode(input: { email: string; code: stri
     const validated = verificationCodeSchema.parse(input);
     const identifier = verificationIdentifier(validated.email);
     const normalizedCode = validated.code.trim();
+    const locale = await getLocale();
+
+    const [existingUser] = await db
+        .select({
+            id: users.id,
+            role: users.role,
+            name: users.name,
+            emailVerified: users.emailVerified,
+            organizationId: users.organizationId,
+        })
+        .from(users)
+        .where(eq(users.email, validated.email))
+        .limit(1);
+
+    if (!existingUser) {
+        throw new Error("No encontramos una cuenta con ese correo.");
+    }
+
+    // Idempotente: ya verificada → completar onboarding pendiente si hace falta y mandar a login.
+    if (existingUser.emailVerified) {
+        const leftoverIntent = await peekSignupIntent(validated.email);
+        try {
+            await applySignupIntent({
+                userId: existingUser.id,
+                userRole: existingUser.role,
+                userName: existingUser.name,
+                email: validated.email,
+                signupIntent: leftoverIntent,
+                locale,
+            });
+            await consumeSignupIntent(validated.email);
+        } catch {
+            // Si ya tiene entidad/rol, el leftover puede fallar — no bloquear el login.
+        }
+
+        const [fresh] = await db
+            .select({ role: users.role })
+            .from(users)
+            .where(eq(users.id, existingUser.id))
+            .limit(1);
+
+        const accountType =
+            fresh?.role === "super_admin"
+                ? ("platform_owner" as const)
+                : fresh?.role === "admin"
+                  ? ("entity_admin" as const)
+                  : fresh?.role === "organizer"
+                    ? ("organizer" as const)
+                    : resolveAccountType(leftoverIntent);
+
+        return {
+            verified: true,
+            alreadyVerified: true,
+            accountType,
+            loginPath: accountType === "platform_owner" ? "/superadmin/login" : "/login",
+        };
+    }
 
     const [verification] = await db
         .select()
@@ -229,7 +370,17 @@ export async function confirmVerificationCode(input: { email: string; code: stri
         throw new Error("VERIFICATION_CODE_INVALID");
     }
 
-    const signupIntent = await consumeSignupIntent(validated.email);
+    const signupIntent = await peekSignupIntent(validated.email);
+
+    // Primero onboarding (org/rol). Solo si OK, marcar email verificado.
+    await applySignupIntent({
+        userId: existingUser.id,
+        userRole: existingUser.role,
+        userName: existingUser.name,
+        email: validated.email,
+        signupIntent,
+        locale,
+    });
 
     await db.transaction(async (trx) => {
         await trx
@@ -238,88 +389,55 @@ export async function confirmVerificationCode(input: { email: string; code: stri
             .where(eq(users.email, validated.email));
 
         await trx.delete(verifications).where(eq(verifications.identifier, identifier));
+        await trx
+            .delete(verifications)
+            .where(eq(verifications.identifier, signupIntentIdentifier(validated.email)));
     });
 
-    const [user] = await db
-        .select({ id: users.id, role: users.role, name: users.name })
-        .from(users)
-        .where(eq(users.email, validated.email))
-        .limit(1);
+    const accountType = resolveAccountType(signupIntent);
 
-    const locale = await getLocale();
-
-    if (user) {
-        let joinedOrg: Awaited<ReturnType<typeof OrganizationService.requestJoinOrganizationAsOrganizer>> | null =
-            null;
-
-        if (signupIntent.type === "platform_owner") {
-            await claimPlatformOwner(user.id);
-        } else if (user.role === "member") {
-            if (signupIntent.type === "entity_admin") {
-                await OrganizationService.createOrganizationForAdmin({
-                    name: signupIntent.orgName,
-                    ownerUserId: user.id,
-                });
-            } else if (signupIntent.type === "organizer") {
-                const inviteCode = signupIntent.inviteCode?.trim();
-                if (inviteCode) {
-                    joinedOrg = await OrganizationService.requestJoinOrganizationAsOrganizer({
-                        userId: user.id,
-                        inviteCode,
-                    });
-                } else {
-                    await OrganizationService.activateIndependentOrganizer({
-                        userId: user.id,
-                    });
-                }
-            }
-        }
-
-        if (joinedOrg) {
-            const { notifyEntityAdminOfOrganizerRequest } = await import(
-                "@/lib/organizations/organizer-request-notifications"
-            );
-            await notifyEntityAdminOfOrganizerRequest({
-                org: joinedOrg,
-                requesterName: user.name,
-                requesterEmail: validated.email,
-                locale,
-            });
-        }
-    }
-
-    const hasOrganizerInvite =
-        signupIntent.type === "organizer" && Boolean(signupIntent.inviteCode?.trim());
-
-    const accountType =
-        signupIntent.type === "platform_owner"
-            ? "platform_owner"
-            : signupIntent.type === "entity_admin"
-              ? "entity_admin"
-              : signupIntent.type === "organizer"
-                ? hasOrganizerInvite
-                  ? "organizer_pending"
-                  : "organizer"
-                : "member";
-
-    if (user) {
+    try {
         await sendWelcomeEmail({
             email: validated.email,
-            name: user.name,
+            name: existingUser.name,
             accountType,
             locale,
         });
+    } catch {
+        // El alta ya quedó; no fallar la verificación por el correo de bienvenida.
     }
 
     return {
         verified: true,
+        alreadyVerified: false,
         accountType,
         loginPath: signupIntent.type === "platform_owner" ? "/superadmin/login" : "/login",
     };
 }
 
 export async function resendVerificationCode(input: { email: string }) {
-    return sendVerificationCode(input);
+    const validated = authIdentitySchema.parse(input);
+
+    const [user] = await db
+        .select({ emailVerified: users.emailVerified, role: users.role })
+        .from(users)
+        .where(eq(users.email, validated.email))
+        .limit(1);
+
+    if (!user) {
+        throw new Error("No encontramos una cuenta con ese correo.");
+    }
+
+    if (user.emailVerified) {
+        return {
+            sent: false,
+            alreadyVerified: true as const,
+            loginPath: user.role === "super_admin" ? "/superadmin/login" : "/login",
+        };
+    }
+
+    await sendVerificationCode(input);
+    return { sent: true as const, alreadyVerified: false as const };
 }
 
 export async function requestPasswordReset(input: { email: string }) {

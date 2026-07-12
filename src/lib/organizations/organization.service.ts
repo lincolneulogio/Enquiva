@@ -87,42 +87,60 @@ export class OrganizationService {
     let slug = baseSlug;
     let inviteCode = randomInviteCode();
     let attempts = 0;
+    let lastError: unknown;
 
     while (attempts < 10) {
       try {
-        const [org] = await db
-          .insert(organizations)
-          .values({
-            name: input.name.trim(),
-            slug,
-            inviteCode,
-            ownerId: input.ownerUserId,
-          })
-          .returning();
+        const org = await db.transaction(async (trx) => {
+          const [created] = await trx
+            .insert(organizations)
+            .values({
+              name: input.name.trim(),
+              slug,
+              inviteCode,
+              ownerId: input.ownerUserId,
+            })
+            .returning();
 
-        await db.insert(organizationMembers).values({
-          organizationId: org.id,
-          userId: input.ownerUserId,
-          role: "owner",
+          await trx.insert(organizationMembers).values({
+            organizationId: created.id,
+            userId: input.ownerUserId,
+            role: "owner",
+          });
+
+          await trx
+            .update(users)
+            .set({ organizationId: created.id, role: "admin", updatedAt: new Date() })
+            .where(eq(users.id, input.ownerUserId));
+
+          return created;
         });
-
-        await db
-          .update(users)
-          .set({ organizationId: org.id, role: "admin", updatedAt: new Date() })
-          .where(eq(users.id, input.ownerUserId));
 
         const { SubscriptionService } = await import("@/lib/billing/subscription.service");
         await SubscriptionService.ensureOrganizationSubscription(org.id, input.ownerUserId);
 
         return org;
-      } catch {
+      } catch (error) {
+        lastError = error;
+        const pgCode =
+          typeof error === "object" && error && "code" in error
+            ? String((error as { code?: string }).code)
+            : "";
+        const isUniqueConflict = pgCode === "23505";
+        if (!isUniqueConflict) {
+          throw error instanceof Error
+            ? error
+            : new Error("No se pudo crear la organización. Intenta de nuevo.");
+        }
         attempts += 1;
         slug = `${baseSlug}-${attempts}`;
         inviteCode = randomInviteCode();
       }
     }
 
-    throw new Error("No se pudo crear la organización. Intenta con otro nombre.");
+    throw lastError instanceof Error
+      ? lastError
+      : new Error("No se pudo crear la organización. Intenta con otro nombre.");
   }
 
   static async requestJoinOrganizationAsOrganizer(input: {
@@ -333,7 +351,15 @@ export class OrganizationService {
       .set({ role: "organizer", updatedAt: new Date() })
       .where(eq(users.id, input.userId));
 
-    await SubscriptionService.getOrCreateSubscription(input.userId, "organizer");
+    try {
+      await SubscriptionService.getOrCreateSubscription(input.userId, "organizer");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (!message.includes("PLANS_NOT_CONFIGURED") && !message.includes("Plan free")) {
+        throw error;
+      }
+      // Sin planes aún: el rol organizer ya quedó activo; la suscripción se crea después.
+    }
 
     return { success: true };
   }
