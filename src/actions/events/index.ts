@@ -18,6 +18,8 @@ import { eq, and, asc, desc } from "drizzle-orm";
 import { assertEventInAdminScope, resolveAdminScope, scopeEventCondition } from "@/lib/organizations/admin-scope";
 import {
   requireApprovedEventManager,
+  requireOrganizerOrHigher,
+  getOrganizerPendingApproval,
   requireOrganizerWithApprovalState,
 } from "@/lib/auth/guards";
 import { normalizeRole } from "@/lib/auth/rbac";
@@ -218,11 +220,14 @@ export async function getOrganizerEvents() {
 }
 
 export async function getBroadcastEvents(): Promise<{ id: string; title: string }[]> {
-  const { user, pending } = await requireOrganizerWithApprovalState();
-  if (pending) return [];
+  // Admin/superadmin usan /admin|/superadmin/broadcasts; organizer usa /organizer/broadcasts.
+  // Antes exigía requireOrganizer() y rompía al admin de entidad.
+  const user = await requireOrganizerOrHigher();
   const role = normalizeRole(user.role);
 
   if (role === "organizer") {
+    const pending = await getOrganizerPendingApproval(user);
+    if (pending) return [];
     const rows = await EventService.getOrganizerEvents(user.id);
     return rows.map(({ event }) => ({ id: event.id, title: event.title }));
   }

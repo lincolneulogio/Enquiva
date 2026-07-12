@@ -9,21 +9,30 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";
 import { getI18n } from "@/lib/i18n/server";
+import { ROLE_ORDER, type AppRole } from "@/lib/auth/rbac";
+import { ensureDefaultRoles } from "@/actions/admin/system";
 
 async function getRolesWithCounts() {
-    const allRoles = await db.select().from(roles);
+    // Completa roles faltantes (p. ej. solo quedó `admin` tras editar permisos).
+    await ensureDefaultRoles();
 
-    const withCounts = await Promise.all(
-        allRoles.map(async (role) => {
+    const allRoles = await db.select().from(roles);
+    const byName = new Map(allRoles.map((role) => [role.name, role]));
+
+    const ordered = ROLE_ORDER.map((name) => byName.get(name)).filter(
+        (role): role is NonNullable<typeof role> => Boolean(role),
+    );
+    const extras = allRoles.filter((role) => !ROLE_ORDER.includes(role.name as AppRole));
+
+    return Promise.all(
+        [...ordered, ...extras].map(async (role) => {
             const [{ count: userCount }] = await db
                 .select({ count: count() })
                 .from(users)
-                .where(eq(users.role, role.name as "super_admin" | "admin" | "organizer" | "member"));
+                .where(eq(users.role, role.name as AppRole));
             return { ...role, userCount };
-        })
+        }),
     );
-
-    return withCounts;
 }
 
 export default async function AdminRolesPage() {
@@ -42,6 +51,9 @@ export default async function AdminRolesPage() {
                     <h1 className="font-display text-3xl font-semibold text-foreground">{t("common.rolesLabel")}</h1>
                     <p className="mt-1 text-muted-foreground">
                         {t("dashboard.admin.rolesIntro")}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                        {t("dashboard.admin.rolesLocaleHint")}
                     </p>
                 </div>
                 {isEmpty && <SeedRolesButton />}
@@ -63,7 +75,14 @@ export default async function AdminRolesPage() {
                                 <span className="text-xs text-muted-foreground">
                                     {t("dashboard.admin.roleUsersCount", {
                                         count: role.userCount,
-                                        label: role.userCount === 1 ? (locale === "en" ? "user" : "usuario") : (locale === "en" ? "users" : "usuarios"),
+                                        label:
+                                            role.userCount === 1
+                                                ? locale === "en"
+                                                    ? "user"
+                                                    : "usuario"
+                                                : locale === "en"
+                                                  ? "users"
+                                                  : "usuarios",
                                     })}
                                 </span>
                             </div>

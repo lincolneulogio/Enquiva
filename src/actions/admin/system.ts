@@ -30,7 +30,7 @@ const DEFAULT_ROLES = [
     },
     {
         name: "admin",
-        label: "Administrador",
+        label: "Admin",
         description: "Oversee operations, payments and participant workflows.",
         color: "rose",
     },
@@ -42,22 +42,28 @@ const DEFAULT_ROLES = [
     },
     {
         name: "member",
-        label: "Cliente",
+        label: "Member",
         description: "Browse and register for events in the community.",
         color: "green",
     },
 ] as const;
 
-export async function seedRoles() {
-    const user = await requireSuperAdmin();
-    await assertPermission(user, "roles:manage");
+/** Inserta los 4 roles de plataforma si faltan (idempotente). */
+export async function ensureDefaultRoles() {
     for (const role of DEFAULT_ROLES) {
         await db
             .insert(roles)
             .values(role)
             .onConflictDoNothing();
     }
+}
+
+export async function seedRoles() {
+    const user = await requireSuperAdmin();
+    await assertPermission(user, "roles:manage");
+    await ensureDefaultRoles();
     revalidatePath("/admin/roles");
+    revalidatePath("/superadmin/roles");
     return { success: true };
 }
 
@@ -82,6 +88,7 @@ export async function updateRole(
     });
 
     revalidatePath("/admin/roles");
+    revalidatePath("/superadmin/roles");
     return { success: true };
 }
 

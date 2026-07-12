@@ -13,8 +13,9 @@ import {
   UserRound,
 } from "lucide-react";
 import type { Role } from "@/lib/db/schema";
-import { useTranslations } from "@/components/providers/LocaleProvider";
-import { ROLE_BADGE_STYLES } from "@/lib/auth/rbac";
+import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
+import { ROLE_BADGE_STYLES, type AppRole } from "@/lib/auth/rbac";
+import { getRoleDescription, getRoleLabel } from "@/lib/i18n/core";
 
 const colorOptions = [
   {
@@ -61,26 +62,34 @@ const roleIcons = {
   member: UserRound,
 };
 
-const isStandardRole = (
-  name: string,
-): name is "super_admin" | "admin" | "organizer" | "member" => {
+const isStandardRole = (name: string): name is AppRole => {
   return ["super_admin", "admin", "organizer", "member"].includes(name);
 };
 
 export function RoleEditor({ role }: { role: Role }) {
   const t = useTranslations();
+  const { locale } = useLocale();
+  const isStd = isStandardRole(role.name);
+
+  const localizedLabel = isStd ? getRoleLabel(role.name, locale) : role.label;
+  const localizedDescription = isStd
+    ? getRoleDescription(role.name, locale) || role.description
+    : role.description;
+
   const [editing, setEditing] = useState(false);
-  const [label, setLabel] = useState(role.label);
-  const [description, setDescription] = useState(role.description);
+  const [label, setLabel] = useState(localizedLabel);
+  const [description, setDescription] = useState(localizedDescription);
   const [color, setColor] = useState(role.color);
   const [isPending, startTransition] = useTransition();
 
-  const isStd = isStandardRole(role.name);
-  const RoleIcon = isStd
-    ? roleIcons[
-        role.name as "super_admin" | "admin" | "organizer" | "member"
-      ]
-    : null;
+  const RoleIcon = isStd ? roleIcons[role.name] : null;
+
+  const startEditing = () => {
+    setLabel(localizedLabel);
+    setDescription(localizedDescription);
+    setColor(role.color);
+    setEditing(true);
+  };
 
   const handleSave = () => {
     startTransition(async () => {
@@ -95,8 +104,8 @@ export function RoleEditor({ role }: { role: Role }) {
   };
 
   const handleCancel = () => {
-    setLabel(role.label);
-    setDescription(role.description);
+    setLabel(localizedLabel);
+    setDescription(localizedDescription);
     setColor(role.color);
     setEditing(false);
   };
@@ -163,26 +172,16 @@ export function RoleEditor({ role }: { role: Role }) {
                 <span
                   className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${
                     isStd
-                      ? ROLE_BADGE_STYLES[
-                          role.name as
-                            | "super_admin"
-                            | "admin"
-                            | "organizer"
-                            | "member"
-                        ]
+                      ? ROLE_BADGE_STYLES[role.name]
                       : (colorClass[role.color] ?? colorClass.gray)
                   }`}
                 >
                   {RoleIcon && <RoleIcon className="h-3.5 w-3.5" />}
-                  {role.label}
+                  {localizedLabel}
                 </span>
-                <code className="text-xs text-muted-foreground">
-                  {role.name}
-                </code>
+                <code className="text-xs text-muted-foreground">{role.name}</code>
               </div>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {role.description}
-              </p>
+              <p className="mt-2 text-sm text-muted-foreground">{localizedDescription}</p>
             </div>
           )}
         </div>
@@ -208,7 +207,7 @@ export function RoleEditor({ role }: { role: Role }) {
             </>
           ) : (
             <button
-              onClick={() => setEditing(true)}
+              onClick={startEditing}
               className="flex items-center gap-1 rounded-lg border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-foreground hover:bg-secondary/80 transition-colors"
             >
               <Pencil className="h-3.5 w-3.5" />

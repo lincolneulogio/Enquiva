@@ -14,15 +14,20 @@ function buildWelcomeMessage(
   userName: string,
   userRole: string,
   locale: Locale,
+  t: (key: string, params?: Record<string, string | number>) => string,
 ) {
-  const capabilityText =
+  const capabilitiesKey =
     userRole === "super_admin" || userRole === "admin"
-      ? "• Consultar métricas de la plataforma en tiempo real.\n• Analizar los últimos registros de auditoría de seguridad.\n• Buscar eventos de forma semántica y rápida."
+      ? "copilot.capabilitiesStaff"
       : userRole === "organizer"
-        ? "• Consultar estadísticas de asistencia de tus eventos.\n• Redactar borradores para comunicados masivos.\n• Gestionar y coordinar la logística de tus eventos."
-        : "• Buscar conferencias, talleres o eventos locales.\n• Verificar tus entradas y tickets activos.\n• Coordinar traslados y transporte.";
+        ? "copilot.capabilitiesOrganizer"
+        : "copilot.capabilitiesMember";
 
-  return `¡Hola ${userName}! ✦ Soy EvoraBot, tu Copiloto de Inteligencia Artificial para Evora.\n\nComo ${getRoleLabel(userRole, locale)}, puedo ayudarte de manera personalizada:\n${capabilityText}\n\n¿En qué puedo asistirte hoy?`;
+  return t("copilot.welcome", {
+    name: userName,
+    role: getRoleLabel(userRole, locale),
+    capabilities: t(capabilitiesKey),
+  });
 }
 
 const ROLE_ICON: Record<string, LucideIcon> = {
@@ -34,14 +39,14 @@ const ROLE_ICON: Record<string, LucideIcon> = {
 
 export function useChatCopilot() {
   const { data: session } = useSession();
-  const { locale } = useLocale();
+  const { locale, t } = useLocale();
   const [isOpen, setIsOpen] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
   const [aiUsage, setAiUsage] = useState<{ used: number; limit: number | null; remaining: number | null } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const userRole = normalizeRole(session?.user.role ?? "member");
-  const userName = session?.user.name ?? "Miembro";
+  const userName = session?.user.name ?? getRoleLabel("member", locale);
 
   const {
     messages,
@@ -59,7 +64,7 @@ export function useChatCopilot() {
       {
         id: "welcome",
         role: "assistant",
-        content: buildWelcomeMessage(userName, userRole, locale),
+        content: buildWelcomeMessage(userName, userRole, locale, t),
       },
     ],
   });
@@ -114,7 +119,7 @@ export function useChatCopilot() {
       {
         id: "welcome",
         role: "assistant",
-        content: `Chat reiniciado. ¿En qué más te puedo ayudar hoy, ${userName}?`,
+        content: t("copilot.reset", { name: userName }),
       },
     ]);
 

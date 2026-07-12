@@ -135,6 +135,12 @@ const translations: Record<Locale, TranslationDictionary> = {
             organizer: "Organizador",
             member: "Miembro",
         },
+        roleDescriptions: {
+            super_admin: "Acceso total a la plataforma: usuarios, eventos y toda la configuración.",
+            admin: "Supervisa operaciones, pagos y flujos de participantes de su entidad.",
+            organizer: "Crea y gestiona eventos, ve asistentes y consulta analíticas.",
+            member: "Explora eventos de la comunidad e inscríbete en ellos.",
+        },
         eventStatus: {
             draft: "Borrador",
             published: "Publicado",
@@ -475,6 +481,8 @@ const translations: Record<Locale, TranslationDictionary> = {
                 usersRegistered: "{count} {label} registrados",
                 noUsersYet: "Aún no hay usuarios",
                 rolesIntro: "Administra las etiquetas y descripciones de roles para tu plataforma",
+                rolesLocaleHint:
+                    "Los nombres y descripciones de los roles estándar se muestran según el idioma de la app. Al editar, guardas un texto personalizado en la base de datos.",
                 noRolesConfigured: "No hay roles configurados",
                 initializeRolesHelp: "Haz clic en “Inicializar roles” para crear los roles predeterminados.",
                 roleUsersCount: "{count} {label} con este rol",
@@ -543,6 +551,56 @@ const translations: Record<Locale, TranslationDictionary> = {
                 failedToInitializeRoles: "No se pudieron inicializar los roles",
                 initializing: "Inicializando...",
                 initializeRoles: "Inicializar roles",
+                plansEditTitle: "Editar plan",
+                plansCreateTitle: "Crear plan",
+                plansSlugRequired: "Slug y nombre son obligatorios",
+                plansUpdated: "Plan actualizado",
+                plansCreated: "Plan creado",
+                plansSaveError: "Error al guardar plan",
+                plansDeleteTitle: "Eliminar plan",
+                plansDeleteConfirm: "¿Eliminar este plan? Esta acción no se puede deshacer.",
+                plansDeleted: "Plan eliminado",
+                plansDeleteError: "No se pudo eliminar",
+                plansAssignSelectError: "Selecciona organizador y plan",
+                plansAssigned: "Plan asignado al organizador",
+                plansAssignError: "Error al asignar",
+                plansAssignTitle: "Asignar plan a organizador",
+                plansSaveChanges: "Guardar cambios",
+                plansCreateAction: "Crear plan",
+                plansInactive: "Inactivo",
+                plansFeatureTransport: "Transporte",
+                plansFeatureAi: "IA Copilot",
+                plansFeatureExports: "Exportaciones",
+                plansFeatureBranding: "Marca personalizada",
+                plansPlaceholderSlug: "slug (ej: pro)",
+                plansPlaceholderName: "Nombre",
+                plansPlaceholderDescription: "Descripción",
+                plansPlaceholderPrice: "Precio mensual (PEN)",
+                plansPlaceholderCommission: "Comisión %",
+                plansPlaceholderMaxEvents: "Máx. eventos activos",
+                plansPlaceholderMaxAttendees: "Máx. asistentes/evento",
+                plansPlaceholderMaxBroadcasts: "Máx. broadcasts/mes",
+                plansPlaceholderMaxAi: "Máx. mensajes IA/mes (vacío = ∞)",
+                plansSelectOrganizer: "Seleccionar organizador",
+                plansSelectPlan: "Seleccionar plan",
+                plansAssignAction: "Asignar",
+                plansEditAria: "Editar plan",
+                plansDeleteAria: "Eliminar plan",
+                plansPriceLine: "S/ {price}/mes · Comisión {commission}%",
+                plansLimitsLine:
+                    "Eventos: {events} · Asistentes: {attendees} · Broadcasts: {broadcasts} · IA: {ai}/mes",
+                plansTabList: "Ver planes",
+                plansTabEditor: "Crear / editar",
+                plansTabEditorCreate: "Crear plan",
+                plansTabEditorEdit: "Editar plan",
+                plansNewPlan: "Nuevo plan",
+                plansEmptyList: "Aún no hay planes. Crea el primero en la pestaña Crear / editar.",
+                plansPageTitle: "Planes y suscripciones",
+                plansPageIntro:
+                    "Administra los planes SaaS, límites, funcionalidades y asignaciones a organizadores.",
+                scanPageIntro:
+                    "Valida firmas digitales y confirma asistencia en la plataforma escaneando códigos QR.",
+                scanPageTitleMeta: "Escaneo de tickets — Administrador",
                 createCategory: "Crear categoría",
                 slugRequiredLabelRequired: "El slug y la etiqueta son obligatorios",
                 categoryCreated: "Categoría creada",
@@ -709,6 +767,9 @@ const translations: Record<Locale, TranslationDictionary> = {
                 broadcastsHistoryTitle: "Historial reciente",
                 broadcastsNoHistory: "No hay envíos registrados",
                 broadcastsNoHistoryHelp: "Los comunicados que envíes aparecerán aquí.",
+                scanPageIntro:
+                    "Valida firmas digitales y confirma asistencia instantáneamente escaneando códigos QR.",
+                scanPageTitleMeta: "Escaneo de tickets — Organizador",
                 broadcastsRecipients: "Destinatarios:",
                 broadcastFormSelectEvent: "Seleccionar evento",
                 broadcastFormSelectEventPlaceholder: "— Selecciona un evento —",
@@ -950,6 +1011,17 @@ const translations: Record<Locale, TranslationDictionary> = {
             cancelledCanRejoin: "Tu inscripción fue cancelada. Puedes volver a inscribirte si hay cupo o unirte a la lista de espera.",
             registerNow: "Registrarme ahora",
             contactPhonePlaceholder: "+51987654321",
+        },
+        copilot: {
+            welcome:
+                "¡Hola {name}! ✦ Soy EvoraBot, tu Copiloto de Inteligencia Artificial para Evora.\n\nComo {role}, puedo ayudarte de manera personalizada:\n{capabilities}\n\n¿En qué puedo asistirte hoy?",
+            reset: "Chat reiniciado. ¿En qué más te puedo ayudar hoy, {name}?",
+            capabilitiesStaff:
+                "• Consultar métricas de la plataforma en tiempo real.\n• Analizar los últimos registros de auditoría de seguridad.\n• Buscar eventos de forma semántica y rápida.",
+            capabilitiesOrganizer:
+                "• Consultar estadísticas de asistencia de tus eventos.\n• Redactar borradores para comunicados masivos.\n• Gestionar y coordinar la logística de tus eventos.",
+            capabilitiesMember:
+                "• Buscar conferencias, talleres o eventos locales.\n• Verificar tus entradas y tickets activos.\n• Coordinar traslados y transporte.",
         },
         auth: {
             welcomeBack: "Bienvenido de nuevo",
@@ -1687,6 +1759,12 @@ const translations: Record<Locale, TranslationDictionary> = {
             organizer: "Organizer",
             member: "Member",
         },
+        roleDescriptions: {
+            super_admin: "Full platform access: manage users, events, and all settings.",
+            admin: "Oversee operations, payments, and participant workflows for your entity.",
+            organizer: "Create and manage events, view attendees, and analytics.",
+            member: "Browse and register for events in the community.",
+        },
         eventStatus: {
             draft: "Draft",
             published: "Published",
@@ -2039,6 +2117,8 @@ const translations: Record<Locale, TranslationDictionary> = {
                 usersRegistered: "{count} registered {label}",
                 noUsersYet: "No users yet",
                 rolesIntro: "Manage role labels and descriptions for your platform",
+                rolesLocaleHint:
+                    "Standard role names and descriptions follow the app language. Editing saves a custom text in the database.",
                 noRolesConfigured: "No roles configured",
                 initializeRolesHelp: "Click “Initialize roles” to create the default roles.",
                 roleUsersCount: "{count} {label} with this role",
@@ -2095,6 +2175,56 @@ const translations: Record<Locale, TranslationDictionary> = {
                 failedToInitializeRoles: "Failed to initialize roles",
                 initializing: "Initializing...",
                 initializeRoles: "Initialize roles",
+                plansEditTitle: "Edit plan",
+                plansCreateTitle: "Create plan",
+                plansSlugRequired: "Slug and name are required",
+                plansUpdated: "Plan updated",
+                plansCreated: "Plan created",
+                plansSaveError: "Failed to save plan",
+                plansDeleteTitle: "Delete plan",
+                plansDeleteConfirm: "Delete this plan? This action cannot be undone.",
+                plansDeleted: "Plan deleted",
+                plansDeleteError: "Could not delete",
+                plansAssignSelectError: "Select an organizer and a plan",
+                plansAssigned: "Plan assigned to organizer",
+                plansAssignError: "Failed to assign",
+                plansAssignTitle: "Assign plan to organizer",
+                plansSaveChanges: "Save changes",
+                plansCreateAction: "Create plan",
+                plansInactive: "Inactive",
+                plansFeatureTransport: "Transport",
+                plansFeatureAi: "AI Copilot",
+                plansFeatureExports: "Exports",
+                plansFeatureBranding: "Custom branding",
+                plansPlaceholderSlug: "slug (e.g. pro)",
+                plansPlaceholderName: "Name",
+                plansPlaceholderDescription: "Description",
+                plansPlaceholderPrice: "Monthly price (PEN)",
+                plansPlaceholderCommission: "Commission %",
+                plansPlaceholderMaxEvents: "Max active events",
+                plansPlaceholderMaxAttendees: "Max attendees/event",
+                plansPlaceholderMaxBroadcasts: "Max broadcasts/month",
+                plansPlaceholderMaxAi: "Max AI messages/month (empty = ∞)",
+                plansSelectOrganizer: "Select organizer",
+                plansSelectPlan: "Select plan",
+                plansAssignAction: "Assign",
+                plansEditAria: "Edit plan",
+                plansDeleteAria: "Delete plan",
+                plansPriceLine: "S/ {price}/mo · Commission {commission}%",
+                plansLimitsLine:
+                    "Events: {events} · Attendees: {attendees} · Broadcasts: {broadcasts} · AI: {ai}/mo",
+                plansTabList: "View plans",
+                plansTabEditor: "Create / edit",
+                plansTabEditorCreate: "Create plan",
+                plansTabEditorEdit: "Edit plan",
+                plansNewPlan: "New plan",
+                plansEmptyList: "No plans yet. Create the first one in the Create / edit tab.",
+                plansPageTitle: "Plans & subscriptions",
+                plansPageIntro:
+                    "Manage SaaS plans, limits, features, and assignments to organizers.",
+                scanPageIntro:
+                    "Validate digital signatures and confirm attendance by scanning QR codes.",
+                scanPageTitleMeta: "Ticket scan — Admin",
                 createCategory: "Create category",
                 slugRequiredLabelRequired: "Slug and label are required",
                 categoryCreated: "Category created",
@@ -2261,6 +2391,9 @@ const translations: Record<Locale, TranslationDictionary> = {
                 broadcastsHistoryTitle: "Recent history",
                 broadcastsNoHistory: "No sends recorded",
                 broadcastsNoHistoryHelp: "Broadcasts you send will appear here.",
+                scanPageIntro:
+                    "Validate digital signatures and confirm attendance instantly by scanning QR codes.",
+                scanPageTitleMeta: "Ticket scan — Organizer",
                 broadcastsRecipients: "Recipients:",
                 broadcastFormSelectEvent: "Select event",
                 broadcastFormSelectEventPlaceholder: "— Select an event —",
@@ -2502,6 +2635,17 @@ const translations: Record<Locale, TranslationDictionary> = {
             cancelledCanRejoin: "Your registration was cancelled. You can register again if spots are available or join the waitlist.",
             registerNow: "Register now",
             contactPhonePlaceholder: "+51987654321",
+        },
+        copilot: {
+            welcome:
+                "Hi {name}! ✦ I'm EvoraBot, your AI Copilot for Evora.\n\nAs {role}, I can help you personally:\n{capabilities}\n\nHow can I assist you today?",
+            reset: "Chat reset. How else can I help you today, {name}?",
+            capabilitiesStaff:
+                "• Check platform metrics in real time.\n• Review the latest security audit logs.\n• Search events semantically and quickly.",
+            capabilitiesOrganizer:
+                "• Check attendance stats for your events.\n• Draft mass broadcast messages.\n• Manage and coordinate event logistics.",
+            capabilitiesMember:
+                "• Find conferences, workshops, or local events.\n• Check your active tickets.\n• Coordinate transfers and transport.",
         },
         auth: {
             welcomeBack: "Welcome back",
@@ -3153,6 +3297,12 @@ export function getIntlLocale(locale: Locale): string {
 
 export function getRoleLabel(role: string | null | undefined, locale: Locale): string {
     return translate(locale, `roles.${role ?? "member"}`);
+}
+
+export function getRoleDescription(role: string | null | undefined, locale: Locale): string {
+    const key = `roleDescriptions.${role ?? "member"}`;
+    const value = translate(locale, key);
+    return value === key ? "" : value;
 }
 
 export function getPermissionLabel(permission: string, locale: Locale): string {
