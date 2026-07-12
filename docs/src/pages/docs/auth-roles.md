@@ -14,25 +14,28 @@ El sistema soporta cuatro niveles de jerarquía. Cada usuario posee un rol globa
 
 ### 1. Rol: Superadministrador (`super_admin`)
 Es el dueño de la plataforma SaaS.
-- **Acceso:** Panel de administración total (`/admin/*`), analítica global, planes, permisos y medios de pago de plataforma.
+- **Acceso:** Panel de plataforma (`/superadmin/*`). Si visita `/admin/*`, el proxy/layout lo remapea a la ruta equivalente en `/superadmin`.
+- **También:** puede usar `/organizer/*` para eventos propios de plataforma.
 - **Color y Badge:** Cyan con el ícono `Crown` (Corona).
-- **Permisos:** Gestión de todos los roles, entidades, respaldos y métricas de toda la plataforma.
+- **Permisos:** Gestión de todos los roles, entidades, planes SaaS, respaldos y métricas globales.
 
 ### 2. Rol: Administrador (`admin`)
 Dueño o responsable de una **entidad** (organización).
-- **Acceso:** Dashboard administrativo (`/admin/*`) acotado a su entidad.
+- **Acceso:** Dashboard de entidad (`/admin/*`) acotado a su organización.
+- **No** entra a `/superadmin/*` (se remapea o redirige a `/admin`).
 - **Color y Badge:** Rosado con el ícono `ShieldCheck`.
 - **Permisos:** Equipo de la entidad, eventos y pagos de su organización, exportaciones y analítica de su entidad.
 
 ### 3. Rol: Organizador (`organizer`)
 Coordinador de eventos dentro de una entidad (o independiente en eventos propios).
 - **Acceso:** Vistas de coordinación (`/organizer/*`).
+- **Gates SSR:** si la membresía está pendiente → solo `/organizer/pending`; si el plan está bloqueado → solo `/organizer/billing` (hasta renovar).
 - **Color y Badge:** Azul con el ícono `Briefcase`.
 - **Permisos:** Listas de asistentes, aprobación de comprobantes, escáner QR y medios de pago del organizador.
 
 ### 4. Rol: Miembro (`member`)
 Asistentes y usuarios finales.
-- **Acceso:** Rutas públicas y panel privado (`/member/*` / `/profile`).
+- **Acceso:** Rutas públicas y panel privado (`/member/*`).
 - **Color y Badge:** Verde/Esmeralda con el ícono `UserRound`.
 - **Permisos:** Registro en eventos, carga de comprobantes, transporte y ticket QR personal.
 
@@ -44,7 +47,7 @@ La plataforma admite **correo y contraseña** como método principal. También p
 
 1. El usuario ingresa email y contraseña en `/login` (o se registra en `/register`).
 2. Better-Auth valida credenciales y emite una cookie de sesión firmada con `BETTER_AUTH_SECRET`.
-3. Las **Server Actions** y layouts del dashboard consultan la sesión en el servidor (`auth.api.getSession`) antes de ejecutar lógica sensible.
+3. El **proxy** (`src/proxy.ts`) y los layouts del dashboard consultan la sesión en el servidor (`auth.api.getSession`) antes de servir HTML del panel.
 
 Los guards centralizados viven en `src/lib/auth/guards.ts` (`requireAuth`, `requireOrganizerOrHigher`, `requireAdminOrHigher`, `requireSuperAdmin`, etc.) y se reutilizan en todas las acciones del servidor.
 
@@ -52,24 +55,31 @@ Los guards centralizados viven en `src/lib/auth/guards.ts` (`requireAuth`, `requ
 
 ## Protección de rutas
 
-La protección se aplica en **dos capas**:
+La protección se aplica en **tres capas**:
 
-### 1. Layouts por prefijo de ruta
-Cada área del dashboard tiene un layout que valida sesión y rol antes de renderizar:
+### 1. Proxy (`src/proxy.ts`) — borde
+- Rutas públicas (landing, auth, `/events`, `/ticket`, etc.) pasan sin sesión.
+- Rutas de panel: valida **sesión real** con `auth.api.getSession` (no solo presencia de cookie).
+- Cuenta suspendida (`isActive === false`) → `/login?error=account_disabled`.
+- Rol incorrecto para el prefijo → redirect al home de su rol (y remap `/admin` ↔ `/superadmin` cuando aplica).
+
+### 2. Layouts por prefijo (SSR)
+Cada área del dashboard vuelve a validar sesión y rol:
 
 | Prefijo | Roles permitidos |
 |---------|------------------|
-| `/admin/*` | `admin`, `super_admin` |
-| `/organizer/*` | `organizer`, `admin`, `super_admin` |
-| `/member/*` | cualquier usuario autenticado |
+| `/superadmin/*` (panel) | solo `super_admin` |
+| `/admin/*` | solo `admin` (`super_admin` se remapea a `/superadmin`) |
+| `/organizer/*` | `organizer`, `super_admin` |
+| `/member/*` | solo `member` (staff/organizer redirigidos a su home) |
 
-Si el rol no coincide, el layout redirige al área correcta o al inicio.
-
-### 2. Middleware (`middleware.ts`)
-Comprueba la presencia de cookie de sesión en rutas protegidas. Los usuarios no autenticados son redirigidos a `/login`.
+Si el rol no coincide, el layout redirige al área correcta.
 
 ### 3. Server Actions y scope multi-tenant
 Además del rol global, muchas operaciones admin aplican **scope de entidad** (`resolveAdminScope` en `src/lib/organizations/admin-scope.ts`): un `admin` solo ve datos de su organización; `super_admin` ve toda la plataforma.
+
+> [!IMPORTANT]
+> Pegar una URL de panel en otro navegador **sin cookie de sesión** cae en el proxy → login. Con sesión de otro rol, proxy/layout redirigen. Los tickets públicos `/ticket/...` no usan sesión: exigen firma HMAC `?s=`.
 
 ---
 
@@ -87,4 +97,4 @@ Al cambiar roles desde el panel (promoción de equipo o asignación por super ad
 ## Primer usuario y asignación automática
 
 > [!NOTE]
-> El **primer usuario** registrado en la plataforma recibe automáticamente `super_admin`. Los registros posteriores inician como `member`. Solo un super administrador puede promover roles globales desde `/admin/users`; los administradores de entidad gestionan organizer/member dentro de su equipo.
+> El **primer usuario** registrado en la plataforma recibe automáticamente `super_admin`. Los registros posteriores inician como `member`. Solo un super administrador puede promover roles globales desde `/superadmin/users` (o la ruta remapeada); los administradores de entidad gestionan organizer/member dentro de su equipo.

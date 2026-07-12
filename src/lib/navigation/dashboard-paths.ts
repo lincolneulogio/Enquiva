@@ -8,6 +8,20 @@ export function getStaffDashboardHome(role?: string | null): StaffDashboardBase 
   return normalizeRole(role) === "super_admin" ? "/superadmin" : "/admin";
 }
 
+/** Home del panel según rol global (proxy + layouts). */
+export function getDashboardHomeForRole(role?: string | null): string {
+  switch (normalizeRole(role)) {
+    case "super_admin":
+      return "/superadmin";
+    case "admin":
+      return "/admin";
+    case "organizer":
+      return "/organizer";
+    default:
+      return "/member";
+  }
+}
+
 export function getStaffDashboardBase(
   pathname?: string | null,
   role?: string | null,

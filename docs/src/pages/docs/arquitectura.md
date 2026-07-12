@@ -15,7 +15,8 @@ El proyecto utiliza un stack de última generación optimizado para velocidad ex
 * **Framework:** Next.js 16.2.6 (App Router) con Server Actions y componentes de servidor optimizados.
 * **Librería de Interfaz:** React 19.2.6 y Tailwind CSS v4.3.0 para diseño web ultra veloz.
 * **Base de Datos & ORM:** Drizzle ORM (v0.45.2) conectado a una base de datos PostgreSQL de alto rendimiento.
-* **Autenticación:** `better-auth` v1.6.11, que maneja sesiones seguras basadas en cookies con compatibilidad nativa para middleware de Next.js.
+* **Autenticación:** `better-auth` v1.6.11, sesiones por cookies HTTP-Only. El borde de páginas es `src/proxy.ts` (Next.js 16), que valida la sesión con `auth.api.getSession`; las APIs autentican en cada Route Handler.
+
 * **Sincronización en Tiempo Real:** **Pusher** (v5.3.3) para transmisiones WebSocket bidireccionales en tiempo real (notificaciones de pagos y cambios de asistencia en el scanner).
 * **Carga de Archivos:** **Uploadthing** v7.7.4 para subida directa y segura de comprobantes de pago de los asistentes a la nube.
 
