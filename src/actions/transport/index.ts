@@ -157,6 +157,7 @@ export async function cancelTransportBooking(bookingId: string, password?: strin
 // ─── Admin: Ver y aprobar pagos de transporte ─────────────────────────────────
 
 export async function getTransportBookingsForEvent(eventId: string) {
+    await requireAuth();
     await requireOrganizerOrHigher();
     return TransportService.getTransportBookingsForEvent(eventId);
 }

@@ -173,17 +173,10 @@ export function TicketCard({
               : "¡Tu check-in de ingreso ha sido verificado con éxito!"
           );
         } else {
-          setGuestsState((prev) => {
-            const hasGuest = prev.some((g) => g.registration.id === data.registrationId);
-            if (hasGuest) {
-              const guestName = prev.find((g) => g.registration.id === data.registrationId)?.user.name || "";
-              toast.success(
-                locale === "en"
-                  ? `Guest ${guestName} checked in successfully!`
-                  : `¡El invitado ${guestName} ingresó correctamente!`
-              );
-            }
-            return prev.map((g) =>
+          const guestName =
+            guestsState.find((g) => g.registration.id === data.registrationId)?.user.name || "";
+          setGuestsState((prev) =>
+            prev.map((g) =>
               g.registration.id === data.registrationId
                 ? {
                     ...g,
@@ -194,8 +187,15 @@ export function TicketCard({
                     },
                   }
                 : g
+            )
+          );
+          if (guestName) {
+            toast.success(
+              locale === "en"
+                ? `Guest ${guestName} checked in successfully!`
+                : `¡El invitado ${guestName} ingresó correctamente!`
             );
-          });
+          }
         }
       }
     );
@@ -204,7 +204,7 @@ export function TicketCard({
       channel.unbind_all();
       pusher.unsubscribe(PUSHER_CHANNELS.event(event.id));
     };
-  }, [event.id, registration.id, locale]);
+  }, [event.id, registration.id, locale, guestsState]);
 
   // --- MULTIPAGE CONSOLIDATED PDF DOWNLOAD ---
   const [downloadingAll, setDownloadingAll] = useState(false);

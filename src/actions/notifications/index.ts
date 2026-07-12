@@ -56,6 +56,7 @@ export async function getNotificationsPaginated(page = 1, limit = 10) {
 }
 
 export async function getRecentNotifications(limit = 8) {
+  await requireAuth();
   const items = await getNotifications(limit);
   const unreadCount = await getUnreadNotificationsCount();
 

@@ -56,6 +56,7 @@ export async function getPlatformBillingMethods() {
 }
 
 export async function getMyPendingSubscriptionPayment() {
+  await requireAuthUser();
   const user = await requireOrganizerOrStaff();
   const ctx = await resolveSubscriptionBillingContext(user.id, user.role);
   const billingUserId = getBillingUserId(ctx);
@@ -64,6 +65,7 @@ export async function getMyPendingSubscriptionPayment() {
 }
 
 export async function getMySubscriptionPaymentHistory() {
+  await requireAuthUser();
   const user = await requireOrganizerOrStaff();
   const ctx = await resolveSubscriptionBillingContext(user.id, user.role);
   const billingUserId = getBillingUserId(ctx);
@@ -80,6 +82,7 @@ const submitManualSchema = z.object({
 });
 
 export async function submitSubscriptionPayment(input: z.infer<typeof submitManualSchema>) {
+  await requireAuthUser();
   const { user, billingUserId } = await requireBillingManager();
   const data = submitManualSchema.parse(input);
 
@@ -118,6 +121,7 @@ export async function submitSubscriptionPayment(input: z.infer<typeof submitManu
 }
 
 export async function requestPlanUpgrade(planSlug: string, confirmed = false) {
+  await requireAuthUser();
   const { user } = await requireBillingManager();
 
   const plan = await SubscriptionService.getPlanBySlug(planSlug);
@@ -191,6 +195,7 @@ export async function rejectSubscriptionPayment(paymentId: string, notes?: strin
 }
 
 export async function updateSubscriptionAutoRenew(enabled: boolean) {
+  await requireAuthUser();
   const { user, billingUserId } = await requireBillingManager();
   await SubscriptionAutoRenewService.setAutoRenew(billingUserId, enabled, user.role);
   revalidatePath("/organizer/billing");

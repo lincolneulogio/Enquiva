@@ -154,43 +154,17 @@ export async function getPaymentMethodsPageContext(scope: PaymentMethodScope) {
   };
 }
 
-/** Medios activos del organizador (solo cuenta propia, sin plataforma). */
-export async function getActivePaymentMethodsForOrganizer(organizerId: string) {
+async function listOrganizerActivePaymentMethods(organizerId: string) {
   const rows = await db
     .select()
     .from(paymentMethods)
     .where(and(eq(paymentMethods.organizerId, organizerId), eq(paymentMethods.isActive, true)))
     .orderBy(paymentMethods.createdAt);
 
-  return rows.filter(
-    (m) => m.type !== "culqi" || isOrganizerCulqiMethodConfigured(m),
-  );
+  return rows.filter((m) => m.type !== "culqi" || isOrganizerCulqiMethodConfigured(m));
 }
 
-/** Medios activos según quién organiza el evento (plataforma si super_admin, sino cuenta del organizador). */
-export async function getActivePaymentMethodsForEventOrganizer(organizerId: string) {
-  const role = await getEventOrganizerRole(organizerId);
-  if (eventOrganizerUsesPlatformPayments(role)) {
-    const rows = await getPlatformPaymentMethods();
-    return rows.filter((m) => m.type !== "culqi" || isPlatformCulqiConfigured());
-  }
-  return getActivePaymentMethodsForOrganizer(organizerId);
-}
-
-/** Para el formulario de evento: medios del organizador dueño del evento */
-export async function getPaymentMethodsForEventForm(eventOrganizerId?: string | null) {
-  const user = await requireEventManager();
-  const organizerId = eventOrganizerId ?? user.id;
-
-  if (user.role === "organizer" && organizerId !== user.id) {
-    throw new Error("Forbidden");
-  }
-
-  return getActivePaymentMethodsForEventOrganizer(organizerId);
-}
-
-/** Medios activos de la plataforma (licencias SaaS) — solo Culqi. */
-export async function getPlatformPaymentMethods() {
+async function listPlatformPaymentMethodsInternal() {
   return db
     .select()
     .from(paymentMethods)
@@ -204,16 +178,68 @@ export async function getPlatformPaymentMethods() {
     .orderBy(paymentMethods.createdAt);
 }
 
+async function listActivePaymentMethodsForEventOrganizerInternal(organizerId: string) {
+  const role = await getEventOrganizerRole(organizerId);
+  if (eventOrganizerUsesPlatformPayments(role)) {
+    const rows = await listPlatformPaymentMethodsInternal();
+    return rows.filter((m) => m.type !== "culqi" || isPlatformCulqiConfigured());
+  }
+  return listOrganizerActivePaymentMethods(organizerId);
+}
+
+/** Medios activos del organizador (solo cuenta propia, sin plataforma). */
+export async function getActivePaymentMethodsForOrganizer(organizerId: string) {
+  const user = await requireAuth();
+  const role = user.role ?? "member";
+  const canAccess =
+    user.id === organizerId || role === "admin" || role === "super_admin";
+  if (!canAccess) throw new Error("Forbidden");
+
+  return sanitizeMethodsForClient(await listOrganizerActivePaymentMethods(organizerId));
+}
+
+/** Medios activos según quién organiza el evento (plataforma si super_admin, sino cuenta del organizador). */
+export async function getActivePaymentMethodsForEventOrganizer(organizerId: string) {
+  await requireAuth();
+  return sanitizeMethodsForClient(
+    await listActivePaymentMethodsForEventOrganizerInternal(organizerId),
+  );
+}
+
+/** Para el formulario de evento: medios del organizador dueño del evento */
+export async function getPaymentMethodsForEventForm(eventOrganizerId?: string | null) {
+  const user = await requireAuth();
+  await requireEventManager();
+  const organizerId = eventOrganizerId ?? user.id;
+
+  if (user.role === "organizer" && organizerId !== user.id) {
+    throw new Error("Forbidden");
+  }
+
+  return sanitizeMethodsForClient(
+    await listActivePaymentMethodsForEventOrganizerInternal(organizerId),
+  );
+}
+
+/** Medios activos de la plataforma (licencias SaaS) — solo Culqi. */
+export async function getPlatformPaymentMethods() {
+  await requireAuth();
+  return sanitizeMethodsForClient(await listPlatformPaymentMethodsInternal());
+}
+
 export async function getEventPaymentMethods(eventId: string) {
+  await requireAuth();
   const rows = await db
     .select({ method: paymentMethods })
     .from(eventPaymentMethods)
     .innerJoin(paymentMethods, eq(eventPaymentMethods.paymentMethodId, paymentMethods.id))
     .where(and(eq(eventPaymentMethods.eventId, eventId), eq(paymentMethods.isActive, true)));
 
-  return rows
-    .map((r) => r.method)
-    .filter((m) => m.type !== "culqi" || isOrganizerCulqiMethodConfigured(m));
+  return sanitizeMethodsForClient(
+    rows
+      .map((r) => r.method)
+      .filter((m) => m.type !== "culqi" || isOrganizerCulqiMethodConfigured(m)),
+  );
 }
 
 export async function createPaymentMethod(
@@ -386,6 +412,7 @@ export async function detachLegacyWalletMethodsFromEvents() {
 export { isLegacyWalletType };
 
 export async function setEventPaymentMethods(eventId: string, methodIds: string[]) {
+  await requireAuth();
   const user = await requireEventManager();
 
   const [event] = await db.select().from(events).where(eq(events.id, eventId)).limit(1);

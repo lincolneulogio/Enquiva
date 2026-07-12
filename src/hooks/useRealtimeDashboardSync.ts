@@ -67,56 +67,91 @@ export function useRealtimeDashboardSync({
   const pathname = usePathname();
   const pathnameRef = useRef(pathname);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelledRef = useRef(false);
+  const routerRef = useRef(router);
+  routerRef.current = router;
 
   useEffect(() => {
     pathnameRef.current = pathname;
   }, [pathname]);
 
   useEffect(() => {
+    cancelledRef.current = false;
+    return () => {
+      cancelledRef.current = true;
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     const normalizedRole = normalizeRole(role ?? "member");
-    const isStaff = normalizedRole === "admin" || normalizedRole === "super_admin" || normalizedRole === "organizer";
+    const isStaff =
+      normalizedRole === "admin" ||
+      normalizedRole === "super_admin" ||
+      normalizedRole === "organizer";
+    if (!isStaff) return;
 
     const scheduleRefresh = (payload?: TableRefreshPayload) => {
+      if (cancelledRef.current) return;
       const currentPath = pathnameRef.current;
       if (payload && !shouldRefreshPath(currentPath, payload)) return;
 
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
       refreshTimerRef.current = setTimeout(() => {
-        router.refresh();
+        if (!cancelledRef.current) routerRef.current.refresh();
       }, 350);
     };
 
     const pusher = getPusherClient();
-    const channels: Array<{ name: string; channel: ReturnType<typeof pusher.subscribe> }> = [];
+    const channel = pusher.subscribe(PUSHER_CHANNELS.adminDashboard);
 
-    if (isStaff) {
-      const adminChannel = pusher.subscribe(PUSHER_CHANNELS.adminDashboard);
-      adminChannel.bind(PUSHER_EVENTS.tableRefresh, (data: TableRefreshPayload) => {
-        scheduleRefresh(data);
-      });
-      adminChannel.bind(PUSHER_EVENTS.newRegistration, () => {
-        scheduleRefresh({ resource: ["registrations", "attendees", "events"] });
-      });
-      adminChannel.bind(PUSHER_EVENTS.attendeeCountUpdated, () => {
-        scheduleRefresh({ resource: ["registrations", "attendees"] });
-      });
-      adminChannel.bind(PUSHER_EVENTS.paymentUpdated, () => {
-        scheduleRefresh({ resource: "payments" });
-      });
-      adminChannel.bind(PUSHER_EVENTS.eventUpdated, () => {
-        scheduleRefresh({ resource: "events" });
-      });
-      adminChannel.bind(PUSHER_EVENTS.checkIn, () => {
-        scheduleRefresh({ resource: ["registrations", "attendees"] });
-      });
-      channels.push({ name: PUSHER_CHANNELS.adminDashboard, channel: adminChannel });
-    }
-
-    const userChannel = pusher.subscribe(PUSHER_CHANNELS.userNotifications(userId));
-    userChannel.bind(PUSHER_EVENTS.tableRefresh, (data: TableRefreshPayload) => {
+    channel.bind(PUSHER_EVENTS.tableRefresh, (data: TableRefreshPayload) => {
       scheduleRefresh(data);
     });
-    userChannel.bind(
+    channel.bind(PUSHER_EVENTS.newRegistration, () => {
+      scheduleRefresh({ resource: ["registrations", "attendees", "events"] });
+    });
+    channel.bind(PUSHER_EVENTS.attendeeCountUpdated, () => {
+      scheduleRefresh({ resource: ["registrations", "attendees"] });
+    });
+    channel.bind(PUSHER_EVENTS.paymentUpdated, () => {
+      scheduleRefresh({ resource: "payments" });
+    });
+    channel.bind(PUSHER_EVENTS.eventUpdated, () => {
+      scheduleRefresh({ resource: "events" });
+    });
+    channel.bind(PUSHER_EVENTS.checkIn, () => {
+      scheduleRefresh({ resource: ["registrations", "attendees"] });
+    });
+
+    return () => {
+      channel.unbind_all();
+      channel.unsubscribe();
+    };
+  }, [role]);
+
+  useEffect(() => {
+    const scheduleRefresh = (payload?: TableRefreshPayload) => {
+      if (cancelledRef.current) return;
+      const currentPath = pathnameRef.current;
+      if (payload && !shouldRefreshPath(currentPath, payload)) return;
+
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = setTimeout(() => {
+        if (!cancelledRef.current) routerRef.current.refresh();
+      }, 350);
+    };
+
+    const pusher = getPusherClient();
+    const channel = pusher.subscribe(PUSHER_CHANNELS.userNotifications(userId));
+
+    channel.bind(PUSHER_EVENTS.tableRefresh, (data: TableRefreshPayload) => {
+      scheduleRefresh(data);
+    });
+    channel.bind(
       PUSHER_EVENTS.notificationCreated,
       (data: { type?: string; eventId?: string }) => {
         if (data.type && NOTIFICATION_TYPES_REFRESH_ALL_PAGES.has(data.type)) {
@@ -130,14 +165,10 @@ export function useRealtimeDashboardSync({
         }
       },
     );
-    channels.push({ name: PUSHER_CHANNELS.userNotifications(userId), channel: userChannel });
 
     return () => {
-      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-      for (const { name, channel } of channels) {
-        channel.unbind_all();
-        pusher.unsubscribe(name);
-      }
+      channel.unbind_all();
+      channel.unsubscribe();
     };
-  }, [userId, role, router]);
+  }, [userId]);
 }

@@ -18,6 +18,7 @@ import {
 import { eq, and, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireSuperAdmin } from "./users";
+import { requireAuth } from "@/lib/auth/guards";
 import { logAdminAction } from "@/lib/analytics/log-admin-action";
 import { assertPermission } from "@/lib/auth/permission-guards";
 
@@ -48,8 +49,15 @@ const DEFAULT_ROLES = [
     },
 ] as const;
 
-/** Inserta los 4 roles de plataforma si faltan (idempotente). */
+/** Inserta los 4 roles de plataforma si faltan (idempotente). Solo super_admin. */
 export async function ensureDefaultRoles() {
+    await requireAuth();
+    const user = await requireSuperAdmin();
+    await assertPermission(user, "roles:manage");
+    await upsertDefaultRoles();
+}
+
+async function upsertDefaultRoles() {
     for (const role of DEFAULT_ROLES) {
         await db
             .insert(roles)
@@ -59,9 +67,10 @@ export async function ensureDefaultRoles() {
 }
 
 export async function seedRoles() {
+    await requireAuth();
     const user = await requireSuperAdmin();
     await assertPermission(user, "roles:manage");
-    await ensureDefaultRoles();
+    await upsertDefaultRoles();
     revalidatePath("/admin/roles");
     revalidatePath("/superadmin/roles");
     return { success: true };

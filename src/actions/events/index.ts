@@ -17,6 +17,7 @@ import { events, broadcastLogs, categories } from "@/lib/db/schema";
 import { eq, and, asc, desc } from "drizzle-orm";
 import { assertEventInAdminScope, resolveAdminScope, scopeEventCondition } from "@/lib/organizations/admin-scope";
 import {
+  requireAuth,
   requireApprovedEventManager,
   requireOrganizerOrHigher,
   getOrganizerPendingApproval,
@@ -214,6 +215,7 @@ export async function getEventBySlug(slug: string) {
 // ─── Get Organizer Events ─────────────────────────────────────────────────────
 
 export async function getOrganizerEvents() {
+  await requireAuth();
   const { user, pending } = await requireOrganizerWithApprovalState();
   if (pending) return [];
   return EventService.getOrganizerEvents(user.id);
@@ -254,6 +256,7 @@ export async function sendBroadcastAction(input: {
   recipientStatus: "all" | "registered" | "checked_in" | "waitlisted";
   channels?: Partial<MassCommunicationChannels>;
 }) {
+  await requireAuth();
   const user = await requireApprovedEventManager();
 
   if (!input.eventId || !input.subject || !input.message) {
@@ -325,6 +328,7 @@ export async function sendBroadcastEmailAction(input: {
   message: string;
   recipientStatus: "all" | "registered" | "checked_in" | "waitlisted";
 }) {
+  await requireAuth();
   const result = await sendBroadcastAction({
     ...input,
     channels: { email: true, inApp: false, pusher: false },
