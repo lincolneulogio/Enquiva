@@ -1,6 +1,9 @@
 # Playwright auth state
 e2e/.auth/
 
+# Staging fixtures (contain test passwords)
+e2e/.staging-fixtures.json
+
 # Playwright reports
 playwright-report/
 test-results/

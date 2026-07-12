@@ -35,6 +35,11 @@ export default defineConfig({
         storageState: "e2e/.auth/user.json",
       },
     },
+    {
+      name: "critical",
+      testMatch: /critical-flow\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
   ],
   webServer: {
     command: "pnpm dev",

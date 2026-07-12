@@ -1,0 +1,23 @@
+{
+  "generatedAt": "2026-07-12T21:36:22.493Z",
+  "organizer": {
+    "id": "ea3512dc-4688-4470-af19-d61548040d98",
+    "email": "e2e-organizer@example.com",
+    "password": "E2eTest123!@#"
+  },
+  "member": {
+    "id": "a31c8509-8b16-4044-b1fc-b748bfe752d8",
+    "email": "e2e-member@example.com",
+    "password": "E2eTest123!@#"
+  },
+  "paidEvent": {
+    "id": "1368235d-bfea-432d-8c58-702bf2729c09",
+    "slug": "staging-pago-cash",
+    "price": "25.00"
+  },
+  "freeEvent": {
+    "id": "d7a81dba-b5cd-4f4c-acfa-03dbb40b6168",
+    "slug": "staging-gratis"
+  },
+  "cashMethodId": "12dbefda-74c5-4a69-9f00-954e95e3b49c"
+}

@@ -17,6 +17,8 @@ El repositorio incluye CI (typecheck, lint) pero **no** despliega automáticamen
 3. En local, una vez: `pnpm run db:migrate` contra esa URL para crear/actualizar tablas (fuente de verdad: `drizzle/`).
 4. Tras el primer deploy: `pnpm run db:migrate` y `pnpm run db:sync:plans` en la BD de producción (sincroniza Free/Pro/Enterprise, incluido `feature_culqi`). También puedes abrir Admin → Planes (dispara el mismo upsert).
 
+> **Gate pre-prod:** en staging corre `pnpm run staging:gate` (seed + smoke registro→pago→QR→check-in). Ver [Staging pre-producción](/docs/staging-pre-prod).
+
 ### Supabase
 
 1. Crea proyecto en [supabase.com](https://supabase.com).
