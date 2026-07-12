@@ -4,12 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createPayment } from "@/actions/payments";
-import { Loader2, Smartphone, QrCode, Wallet, Copy, Download } from "lucide-react";
+import { Loader2, Smartphone, Copy, Download } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import { usePersistedFormFields } from "@/hooks/useFormPersistence";
 import { formStorageKey } from "@/lib/form-persistence";
 import { UploadDropzone } from "@/lib/uploadthing/components";
 import Image from "next/image";
+import { PaymentMethodOption } from "@/components/payments/PaymentMethodOption";
+import { PaymentBrandMark } from "@/components/payments/PaymentBrandMark";
 
 interface EventMethod {
   id: string;
@@ -27,13 +29,9 @@ interface ManualPaymentMethodFormProps {
   defaultAmount: number;
   existingMethod?: string | null;
   eventMethods: EventMethod[];
+  /** Sin card externa ni título (cuando ya está envuelto por PaymentCheckoutForm). */
+  embedded?: boolean;
 }
-
-const TYPE_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
-  yape: { label: "Yape", icon: Smartphone },
-  plin: { label: "Plin", icon: QrCode },
-  cash: { label: "Efectivo", icon: Wallet },
-};
 
 export function ManualPaymentMethodForm({
   registrationId,
@@ -42,6 +40,7 @@ export function ManualPaymentMethodForm({
   defaultAmount,
   existingMethod,
   eventMethods,
+  embedded = false,
 }: ManualPaymentMethodFormProps) {
   const t = useTranslations();
   const router = useRouter();
@@ -126,61 +125,51 @@ export function ManualPaymentMethodForm({
 
   if (eventMethods.length === 0) {
     return (
-      <div className="fe-glass rounded-3xl p-6 text-center text-sm text-muted-foreground">
-        No hay medios de pago configurados para este evento.
+      <div className="rounded-2xl p-4 text-center text-sm text-muted-foreground">
+        {t("payments.checkout.noMethods")}
       </div>
     );
   }
 
-  return (
-    <div className="fe-glass rounded-3xl p-6 shadow-sm transition-all duration-300 hover:shadow-md">
-      <div className="mb-5">
-        <h2 className="text-xl font-semibold text-foreground">{t("payments.manual.title")}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t("payments.manual.description", { eventTitle })}
-        </p>
-      </div>
-
+  const body = (
       <div className="space-y-4">
+        {!embedded && (
+          <div className="mb-1">
+            <h2 className="text-xl font-semibold text-foreground">{t("payments.manual.title")}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("payments.manual.description", { eventTitle })}
+            </p>
+          </div>
+        )}
+
         <div>
           <label className="mb-2 block text-sm font-medium text-foreground">{t("payments.manual.method")}</label>
-          <div className="grid grid-cols-2 gap-2">
-            {eventMethods.map((em) => {
-              const config = TYPE_CONFIG[em.type];
-              const Icon = config?.icon ?? Smartphone;
-              const isActive = methodId === em.id;
-              return (
-                <button
-                  key={em.id}
-                  type="button"
-                  onClick={() => setValue("methodId", em.id)}
-                  disabled={isSaving || isUploading}
-                  className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors ${
-                    isActive
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border bg-background text-foreground hover:bg-muted"
-                  }`}
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{em.label}</span>
-                  {isActive && <span className="text-xs text-muted-foreground">({em.holderName})</span>}
-                </button>
-              );
-            })}
+          <div className="space-y-2">
+            {eventMethods.map((em) => (
+              <PaymentMethodOption
+                key={em.id}
+                selected={methodId === em.id}
+                onSelect={() => setValue("methodId", em.id)}
+                label={em.label}
+                description={em.holderName}
+                paymentType={em.type}
+                disabled={isSaving || isUploading}
+              />
+            ))}
           </div>
         </div>
 
         {currentMethod?.type === "yape" && (
           <div className="rounded-2xl border border-green-200/50 bg-green-50/40 dark:border-green-900/30 dark:bg-green-950/10 p-5 text-center space-y-4">
-            <div>
-              <p className="text-sm font-bold text-green-800 dark:text-green-400 flex items-center justify-center gap-1.5">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-white text-[10px]">✓</span>
+            <div className="flex items-center justify-center gap-2">
+              <PaymentBrandMark brand="yape" size="md" />
+              <p className="text-sm font-bold text-green-800 dark:text-green-400">
                 Paga con Yape
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Titular: <span className="font-semibold text-foreground">{currentMethod.holderName}</span>
-              </p>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Titular: <span className="font-semibold text-foreground">{currentMethod.holderName}</span>
+            </p>
 
             {currentMethod.phone && (
               <div className="flex items-center justify-between gap-3 rounded-xl bg-background dark:bg-zinc-900/50 border border-green-100 dark:border-green-900/20 px-3.5 py-2">
@@ -225,15 +214,15 @@ export function ManualPaymentMethodForm({
 
         {currentMethod?.type === "plin" && (
           <div className="rounded-2xl border border-blue-200/50 bg-blue-50/40 dark:border-blue-900/30 dark:bg-blue-950/10 p-5 text-center space-y-4">
-            <div>
-              <p className="text-sm font-bold text-blue-800 dark:text-blue-400 flex items-center justify-center gap-1.5">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-white text-[10px]">✓</span>
+            <div className="flex items-center justify-center gap-2">
+              <PaymentBrandMark brand="plin" size="md" />
+              <p className="text-sm font-bold text-blue-800 dark:text-blue-400">
                 Paga con Plin
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Titular: <span className="font-semibold text-foreground">{currentMethod.holderName}</span>
-              </p>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Titular: <span className="font-semibold text-foreground">{currentMethod.holderName}</span>
+            </p>
 
             {currentMethod.phone && (
               <div className="flex items-center justify-between gap-3 rounded-xl bg-background dark:bg-zinc-900/50 border border-blue-100 dark:border-blue-900/20 px-3.5 py-2">
@@ -278,7 +267,10 @@ export function ManualPaymentMethodForm({
 
         {currentMethod?.type === "cash" && (
           <div className="rounded-xl border border-purple-200 bg-purple-50 dark:bg-purple-950/10 dark:border-purple-900/30 p-4 text-sm space-y-2">
-            <p className="font-medium text-purple-800 dark:text-purple-300">{t("payments.manual.cashTitle")}</p>
+            <div className="flex items-center gap-2">
+              <PaymentBrandMark brand="cash" size="sm" />
+              <p className="font-medium text-purple-800 dark:text-purple-300">{t("payments.manual.cashTitle")}</p>
+            </div>
             <p className="text-purple-600 dark:text-purple-400">{t("payments.manual.cashDescription")}</p>
             <p className="text-xs text-purple-700/80 dark:text-purple-400/90">{t("payments.manual.cashNoTicketYet")}</p>
             <p className="text-purple-600 dark:text-purple-400">
@@ -363,6 +355,13 @@ export function ManualPaymentMethodForm({
           {isUploading ? "Subiendo comprobante..." : isSaving ? t("payments.manual.saving") : `Pagar S/ ${defaultAmount.toFixed(2)} vía ${currentMethod?.label ?? "seleccionado"}`}
         </button>
       </div>
+  );
+
+  if (embedded) return body;
+
+  return (
+    <div className="fe-glass rounded-3xl p-6 shadow-sm transition-all duration-300 hover:shadow-md">
+      {body}
     </div>
   );
 }

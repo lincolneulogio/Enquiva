@@ -94,7 +94,7 @@ export async function submitSubscriptionPayment(input: z.infer<typeof submitManu
     return { success: true, mode: "assigned" as const };
   }
 
-  await SubscriptionPaymentService.createManualPayment({
+  await SubscriptionPaymentService.fulfillManualSubscriptionPayment({
     userId: billingUserId,
     planId: plan.id,
     amount,
@@ -107,11 +107,13 @@ export async function submitSubscriptionPayment(input: z.infer<typeof submitManu
   revalidatePath("/organizer/billing");
   revalidatePath("/admin/plan");
   revalidatePath("/admin/billing");
+  revalidatePath("/organizer", "layout");
+  revalidatePath("/admin", "layout");
 
   return {
     success: true,
-    mode: "pending" as const,
-    message: "Pago enviado. El administrador revisará tu comprobante y activará tu plan pronto.",
+    mode: "assigned" as const,
+    message: "Plan activado. Ya puedes usar Evora con tu nueva suscripción.",
   };
 }
 

@@ -50,6 +50,31 @@ async function fulfillSubscriptionCharge(charge: CulqiChargePayload & { amount?:
     planName: plan.name,
     amount: amountFromCharge,
     chargeId: charge.id,
+    method: "culqi",
+  });
+
+  return { ok: true as const, result };
+}
+
+async function fulfillSubscriptionOrder(order: CulqiOrderPayload) {
+  const userId = order.metadata?.userId;
+  const planId = order.metadata?.planId;
+  if (!userId || !planId || !order.id) {
+    return { ok: true as const, skipped: "subscription_order_missing_metadata" };
+  }
+
+  const [plan] = await db.select().from(plans).where(eq(plans.id, planId)).limit(1);
+  if (!plan) {
+    return { ok: false as const, error: "plan_not_found" };
+  }
+
+  const result = await SubscriptionPaymentService.fulfillCulqiSubscriptionCharge({
+    userId,
+    planId: plan.id,
+    planName: plan.name,
+    amount: Number(plan.priceMonthly),
+    chargeId: order.id,
+    method: "yape",
   });
 
   return { ok: true as const, result };
@@ -119,6 +144,9 @@ export async function processCulqiWebhook(event: unknown) {
       if (!order?.id) return { ok: true, skipped: "invalid_order_payload" };
 
       if (order.state === "paid") {
+        if (order.metadata?.type === "subscription") {
+          return fulfillSubscriptionOrder(order);
+        }
         return {
           ok: true,
           result: await CulqiEventPaymentService.reconcileOrderPaid(order),

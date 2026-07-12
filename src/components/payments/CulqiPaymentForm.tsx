@@ -8,6 +8,7 @@ import { useTranslations } from "@/components/providers/LocaleProvider";
 import { loadCulqiCheckoutScript, openCulqiCheckout } from "@/lib/culqi/open-checkout";
 import { CULQI_ORDER_MIN_AMOUNT_PEN } from "@/lib/culqi/constants";
 import { useSession } from "@/lib/auth/client";
+import { PaymentBrandMark } from "@/components/payments/PaymentBrandMark";
 
 interface CulqiPaymentFormProps {
   paymentId: string;
@@ -115,7 +116,14 @@ export function CulqiPaymentForm({
           <CreditCard className="h-5 w-5 text-violet-600 dark:text-violet-400" />
         </div>
         <div className="flex-1">
-          <p className="font-semibold text-foreground">{t("payments.culqi.title")}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-semibold text-foreground">{t("payments.culqi.title")}</p>
+            <div className="flex items-center gap-1">
+              <PaymentBrandMark brand="visa" size="sm" />
+              <PaymentBrandMark brand="mastercard" size="sm" />
+              <PaymentBrandMark brand="culqi" size="sm" />
+            </div>
+          </div>
           <p className="mt-1 text-sm text-muted-foreground">
             {t("payments.culqi.description", { eventTitle })}
           </p>

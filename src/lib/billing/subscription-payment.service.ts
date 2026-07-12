@@ -43,7 +43,7 @@ export class SubscriptionPaymentService {
 
   /**
    * Persiste pago Culqi aprobado, activa el plan y registra ingreso de plataforma
-   * en una sola transacción. Idempotente por gatewayChargeId.
+   * en una sola transacción. Idempotente por gatewayChargeId (charge o order).
    */
   static async fulfillCulqiSubscriptionCharge(input: {
     userId: string;
@@ -51,6 +51,8 @@ export class SubscriptionPaymentService {
     planName: string;
     amount: number;
     chargeId: string;
+    /** culqi | yape — cómo se cobró en la pasarela */
+    method?: string;
   }) {
     return db.transaction(async (tx) =>
       this.fulfillCulqiSubscriptionChargeTx(tx, input),
@@ -65,8 +67,10 @@ export class SubscriptionPaymentService {
       planName: string;
       amount: number;
       chargeId: string;
+      method?: string;
     },
   ) {
+    const method = input.method ?? "culqi";
     let payment = await this.findPaymentByChargeIdTx(tx, input.chargeId);
     let idempotent = Boolean(payment);
 
@@ -82,13 +86,13 @@ export class SubscriptionPaymentService {
             userId: input.userId,
             planId: input.planId,
             amount: String(input.amount),
-            method: "culqi",
+            method,
             status: "approved",
             gatewayProvider: "culqi",
             gatewayChargeId: input.chargeId,
             reference: input.chargeId,
             verifiedAt: new Date(),
-            notes: "Aprobado automáticamente vía Culqi",
+            notes: `Aprobado automáticamente vía Culqi (${method})`,
           })
           .returning();
 
@@ -116,7 +120,7 @@ export class SubscriptionPaymentService {
       subscriptionId,
       subscriptionPaymentId: payment.id,
       description: `Suscripción plan ${input.planName} (Culqi)`,
-      metadata: { chargeId: input.chargeId, subscriptionPaymentId: payment.id },
+      metadata: { chargeId: input.chargeId, subscriptionPaymentId: payment.id, method },
     });
 
     return {
@@ -136,7 +140,11 @@ export class SubscriptionPaymentService {
     return payment ?? null;
   }
 
-  static async createManualPayment(input: {
+  /**
+   * Pago Yape/Plin de plan: activa la suscripción al instante (como Culqi).
+   * El comprobante queda como auditoría; no espera revisión del superadmin.
+   */
+  static async fulfillManualSubscriptionPayment(input: {
     userId: string;
     planId: string;
     amount: number;
@@ -147,28 +155,66 @@ export class SubscriptionPaymentService {
   }) {
     const pending = await this.getPendingForUser(input.userId);
     if (pending) {
-      throw new Error("Ya tienes un pago de plan pendiente de revisión. Espera la aprobación del administrador.");
+      throw new Error(
+        "Ya tienes un pago de plan pendiente de revisión. Espera la aprobación del administrador o pídele que lo resuelva.",
+      );
     }
 
-    const [plan] = await db.select().from(plans).where(eq(plans.id, input.planId)).limit(1);
-    if (!plan) throw new Error("Plan no encontrado");
+    return db.transaction(async (tx) => {
+      const [plan] = await tx.select().from(plans).where(eq(plans.id, input.planId)).limit(1);
+      if (!plan) throw new Error("Plan no encontrado");
 
-    const [created] = await db
-      .insert(subscriptionPayments)
-      .values({
+      const [payment] = await tx
+        .insert(subscriptionPayments)
+        .values({
+          userId: input.userId,
+          planId: input.planId,
+          amount: String(input.amount),
+          method: input.method,
+          reference: input.reference ?? null,
+          receiptUrl: input.receiptUrl ?? null,
+          receiptFileName: input.receiptFileName ?? null,
+          status: "approved",
+          verifiedAt: new Date(),
+          notes: `Activado automáticamente vía ${input.method} · plan ${plan.name}`,
+        })
+        .returning();
+
+      const subscriptionId = await SubscriptionService.assignPlanToUserTx(
+        tx,
+        input.userId,
+        input.planId,
+      );
+
+      await SubscriptionService.recordPlatformTransactionTx(tx, {
+        type: "subscription",
+        amount: input.amount,
         userId: input.userId,
-        planId: input.planId,
-        amount: String(input.amount),
-        method: input.method,
-        reference: input.reference ?? null,
-        receiptUrl: input.receiptUrl ?? null,
-        receiptFileName: input.receiptFileName ?? null,
-        status: "pending",
-        notes: `Solicitud upgrade a plan ${plan.name}`,
-      })
-      .returning();
+        subscriptionId,
+        subscriptionPaymentId: payment.id,
+        description: `Suscripción plan ${plan.name} (${input.method})`,
+        metadata: {
+          subscriptionPaymentId: payment.id,
+          method: input.method,
+          autoApproved: true,
+        },
+      });
 
-    return created;
+      return { payment, subscriptionId };
+    });
+  }
+
+  static async createManualPayment(input: {
+    userId: string;
+    planId: string;
+    amount: number;
+    method: string;
+    reference?: string;
+    receiptUrl?: string;
+    receiptFileName?: string;
+  }) {
+    const result = await this.fulfillManualSubscriptionPayment(input);
+    return result.payment;
   }
 
   static async approvePayment(paymentId: string, adminUserId: string) {
