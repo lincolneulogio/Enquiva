@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { CreditCard, Loader2, X, ShieldCheck, DollarSign } from "lucide-react";
+import { CreditCard, Loader2, X, ShieldCheck, DollarSign, Info } from "lucide-react";
 import type { PaymentMethod, Plan } from "@/lib/db/schema";
 import { useTranslations, useLocale } from "@/components/providers/LocaleProvider";
 import { loadCulqiCheckoutScript, openCulqiCheckout, closeActiveCulqiCheckout, resetCulqiCheckoutUi, isCulqiCheckoutCancelled } from "@/lib/culqi/open-checkout";
@@ -107,6 +107,15 @@ export function PlanUpgradeCheckout({
     if (isSaving) {
       closeActiveCulqiCheckout();
       setIsSaving(false);
+    }
+
+    if (yapeAvailable) {
+      toast.message(t("billing.planCheckout.payHintToastTitle"), {
+        description: t("billing.planCheckout.payHintToastBody", {
+          amount: amount.toFixed(2),
+        }),
+        duration: 6000,
+      });
     }
 
     setIsSaving(true);
@@ -255,13 +264,19 @@ export function PlanUpgradeCheckout({
 
               <div className="mt-3 flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
                 <ShieldCheck className="h-4 w-4 shrink-0" />
-                {t("billing.planCheckout.instantActivation")}
+                {t("billing.planCheckout.cardExactAmount", { amount: amount.toFixed(2) })}
               </div>
 
               {yapeAvailable && (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {t("billing.planCheckout.walletsInCheckout")}
-                </p>
+                <div className="mt-3 flex gap-2.5 rounded-xl border border-amber-200/70 bg-amber-50/80 p-3 dark:border-amber-900/40 dark:bg-amber-950/30">
+                  <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                  <div className="space-y-1 text-xs leading-relaxed text-amber-950/90 dark:text-amber-100/90">
+                    <p className="font-semibold text-amber-900 dark:text-amber-200">
+                      {t("billing.planCheckout.payHintTitle")}
+                    </p>
+                    <p>{t("billing.planCheckout.payHintBody", { amount: amount.toFixed(2) })}</p>
+                  </div>
+                </div>
               )}
 
               <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-violet-200/40 bg-white/50 p-3 dark:border-violet-900/20 dark:bg-violet-950/20">
