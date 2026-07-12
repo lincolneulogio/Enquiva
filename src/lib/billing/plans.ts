@@ -22,7 +22,7 @@ export const DEFAULT_PLAN_DEFINITIONS: Array<{
   {
     slug: "free",
     name: "Gratis",
-    description: "Ideal para probar la plataforma con un evento pequeño.",
+    description: "Ideal para probar la plataforma: 1 evento, hasta 100 asistentes y pagos con Culqi (tarjeta, Yape y billeteras).",
     priceMonthly: "0",
     maxActiveEvents: 1,
     maxAttendeesPerEvent: 100,
@@ -30,7 +30,7 @@ export const DEFAULT_PLAN_DEFINITIONS: Array<{
     maxBroadcastsPerMonth: 0,
     maxAiMessagesPerMonth: 0,
     maxOrganizers: 1,
-    featureCulqi: false,
+    featureCulqi: true,
     featureTransport: false,
     featureAi: false,
     featureExports: false,

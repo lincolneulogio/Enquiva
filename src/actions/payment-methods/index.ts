@@ -88,6 +88,11 @@ async function assertAllowedTypeForScope(scope: PaymentMethodScope, type: string
       "Los cobros de plataforma solo usan Culqi. Tarjeta, Yape y billeteras se ofrecen en el mismo checkout.",
     );
   }
+  if (scope === "organizer" && type !== "culqi" && type !== "cash") {
+    throw new Error(
+      "Solo puedes crear Efectivo o Tarjeta (Culqi). Yape y billeteras se pagan dentro de Culqi.",
+    );
+  }
 }
 
 export async function getPaymentMethodsPageContext(scope: PaymentMethodScope) {

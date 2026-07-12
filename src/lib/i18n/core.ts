@@ -726,7 +726,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                 gettingStartedStep1Title: "Crea tu primer evento",
                 gettingStartedStep1Desc: "Título, fecha, ubicación y capacidad.",
                 gettingStartedStep2Title: "Configura métodos de pago",
-                gettingStartedStep2Desc: "Yape, Plin o efectivo en Métodos de pago.",
+                gettingStartedStep2Desc: "Efectivo o Culqi (tarjeta / Yape) en Medios de pago.",
                 gettingStartedStep3Title: "Publica y comparte",
                 gettingStartedStep3Desc: "Cambia el estado a publicado y comparte el enlace.",
                 gettingStartedStep4Title: "Únete a una entidad (opcional)",
@@ -1321,8 +1321,11 @@ const translations: Record<Locale, TranslationDictionary> = {
                     "Culqi de plataforma ya está activo. Edítalo o elimínalo abajo si necesitas cambiarlo.",
                 platformLegacyHint:
                     "Medios Yape/Plin manuales antiguos: ya no se usan para planes. Puedes eliminarlos; el cobro de licencias es solo por Culqi.",
+                organizerLegacyHint:
+                    "Yape/Plin manuales antiguos: ya no se crean. Usa Culqi (incluye Yape y billeteras) o Efectivo. Puedes eliminar los legacy.",
                 adminIntro: "Catálogo global de medios de pago. Los organizadores los asignan por evento en el formulario de creación.",
-                organizerIntro: "Tus medios de pago personales (Yape, Plin, efectivo o Culqi). Actívalos en cada evento de pago.",
+                organizerIntro:
+                    "Configura Efectivo o Tarjeta (Culqi). Con Culqi tus asistentes pagan con tarjeta, Yape o billeteras. Actívalos en cada evento de pago.",
                 addCulqiMethod: "Activar Culqi (tarjeta / Yape / billeteras)",
                 newCulqiMethod: "Activar Culqi de plataforma",
                 addMethod: "Nuevo medio de pago",
@@ -1345,7 +1348,8 @@ const translations: Record<Locale, TranslationDictionary> = {
                 cashReceiverPlaceholder: "Quien recibe en puerta",
                 holderPlaceholder: "Titular de la cuenta",
                 empty: "No hay medios de pago registrados.",
-                culqiHelp: "Los asistentes pagan con tarjeta y el dinero va a tu cuenta Culqi (no a la de la plataforma).",
+                culqiHelp:
+                    "Con Culqi los asistentes pagan con tarjeta, Yape o billeteras. El dinero va a tu comercio Culqi (no al de la plataforma).",
                 culqiKeysHelp: "Usa las llaves de tu comercio en Culqi (panel culqi.com). Son distintas a las de la plataforma Evora.",
                 culqiPublicKey: "Llave pública Culqi",
                 culqiSecretKey: "Llave secreta Culqi",
@@ -2388,7 +2392,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                 gettingStartedStep1Title: "Create your first event",
                 gettingStartedStep1Desc: "Title, date, location, and capacity.",
                 gettingStartedStep2Title: "Set up payment methods",
-                gettingStartedStep2Desc: "Yape, Plin, or cash under Payment methods.",
+                gettingStartedStep2Desc: "Cash or Culqi (card / Yape) under Payment methods.",
                 gettingStartedStep3Title: "Publish and share",
                 gettingStartedStep3Desc: "Set status to published and share the link.",
                 gettingStartedStep4Title: "Join an entity (optional)",
@@ -2982,8 +2986,11 @@ const translations: Record<Locale, TranslationDictionary> = {
                     "Platform Culqi is already active. Edit or delete it below if you need to change it.",
                 platformLegacyHint:
                     "Legacy manual Yape/Plin methods are no longer used for plans. You can delete them; license billing is Culqi-only.",
+                organizerLegacyHint:
+                    "Legacy manual Yape/Plin are no longer created. Use Culqi (includes Yape and wallets) or Cash. You can delete legacy methods.",
                 adminIntro: "Global payment method catalog. Organizers assign them per event in the event form.",
-                organizerIntro: "Your personal payment methods (Yape, Plin, cash, or Culqi). Enable them on each paid event.",
+                organizerIntro:
+                    "Set up Cash or Card (Culqi). With Culqi, attendees pay by card, Yape, or wallets. Enable them on each paid event.",
                 addCulqiMethod: "Enable Culqi (card / Yape / wallets)",
                 newCulqiMethod: "Enable platform Culqi",
                 addMethod: "New payment method",
@@ -3006,7 +3013,8 @@ const translations: Record<Locale, TranslationDictionary> = {
                 cashReceiverPlaceholder: "Who receives at the door",
                 holderPlaceholder: "Account holder name",
                 empty: "No payment methods registered.",
-                culqiHelp: "Attendees pay by card and funds go to your Culqi merchant account (not the platform's).",
+                culqiHelp:
+                    "With Culqi, attendees pay by card, Yape, or wallets. Funds go to your Culqi merchant (not the platform's).",
                 culqiKeysHelp: "Use your merchant keys from the Culqi dashboard (culqi.com). They are separate from Evora platform keys.",
                 culqiPublicKey: "Culqi public key",
                 culqiSecretKey: "Culqi secret key",

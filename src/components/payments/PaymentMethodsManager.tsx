@@ -16,8 +16,9 @@ import { formStorageKey } from "@/lib/form-persistence";
 const TYPE_ICONS = { yape: Smartphone, plin: QrCode, cash: Wallet, culqi: CreditCard };
 const TYPE_LABELS = { yape: "Yape", plin: "Plin", cash: "Efectivo", culqi: "Tarjeta (Culqi)" };
 
-const ORGANIZER_MANUAL_TYPES = ["yape", "plin", "cash"] as const;
-/** Plataforma: solo Culqi (incluye tarjeta, Yape y billeteras en el checkout). */
+/** Organizer: efectivo + Culqi (Yape/billeteras van dentro de Culqi). */
+const ORGANIZER_BASE_TYPES = ["cash"] as const;
+/** Plataforma: solo Culqi. */
 const PLATFORM_TYPES = ["culqi"] as const;
 
 function UploadQRDropzone({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
@@ -113,9 +114,9 @@ export function PaymentMethodsManager({
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const { values, setValue, setValues, clear } = usePersistedFormFields(
-    formStorageKey(`payment-methods.${scope}`),
+    formStorageKey(`payment-methods.${scope}.v3`),
     {
-      type: (scope === "platform" ? "culqi" : "yape") as "yape" | "plin" | "cash" | "culqi",
+      type: (scope === "platform" ? "culqi" : "cash") as "cash" | "culqi",
       label: scope === "platform" ? "Tarjeta de crédito/débito" : "",
       holderName: "",
       phone: "",
@@ -135,7 +136,7 @@ export function PaymentMethodsManager({
     ? canAddCulqiType
       ? [...PLATFORM_TYPES]
       : []
-    : [...ORGANIZER_MANUAL_TYPES, ...(canAddCulqiType ? (["culqi"] as const) : [])];
+    : [...ORGANIZER_BASE_TYPES, ...(canAddCulqiType ? (["culqi"] as const) : [])];
 
   const resetForm = () => {
     clear();
@@ -148,6 +149,17 @@ export function PaymentMethodsManager({
       setValues({
         type: "culqi",
         label: "Tarjeta de crédito/débito",
+        holderName: "",
+        phone: "",
+        qrPreview: null,
+        culqiPublicKey: "",
+        culqiSecretKey: "",
+      });
+    } else {
+      const defaultType = canAddCulqiType ? "culqi" : "cash";
+      setValues({
+        type: defaultType,
+        label: defaultType === "culqi" ? "Tarjeta de crédito/débito" : "",
         holderName: "",
         phone: "",
         qrPreview: null,
@@ -173,9 +185,7 @@ export function PaymentMethodsManager({
   };
 
   const visibleMethods = isPlatform ? methods.filter((m) => m.type !== "cash") : methods;
-  const legacyPlatformMethods = isPlatform
-    ? visibleMethods.filter((m) => m.type !== "culqi")
-    : [];
+  const legacyWalletMethods = visibleMethods.filter((m) => m.type === "yape" || m.type === "plin");
   const canCreate = availableTypes.length > 0;
 
   const submit = () => {
@@ -506,9 +516,11 @@ export function PaymentMethodsManager({
       )}
 
       <div className="max-w-2xl space-y-3">
-        {legacyPlatformMethods.length > 0 && (
+        {legacyWalletMethods.length > 0 && (
           <p className="rounded-xl border border-amber-200/60 bg-amber-50/50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-200">
-            {t("payments.config.platformLegacyHint")}
+            {isPlatform
+              ? t("payments.config.platformLegacyHint")
+              : t("payments.config.organizerLegacyHint")}
           </p>
         )}
         {visibleMethods.length === 0 && (
@@ -516,7 +528,7 @@ export function PaymentMethodsManager({
         )}
         {visibleMethods.map((m) => {
           const Icon = TYPE_ICONS[m.type];
-          const isLegacy = isPlatform && m.type !== "culqi";
+          const isLegacy = m.type === "yape" || m.type === "plin";
           return (
             <div key={m.id} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
               <div className="rounded-lg bg-primary/10 p-2.5">

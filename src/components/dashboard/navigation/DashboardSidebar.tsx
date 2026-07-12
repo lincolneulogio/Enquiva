@@ -70,7 +70,6 @@ function applyPermissionFilter(
 type OrganizerNavOptions = {
   showBroadcasts: boolean;
   showTransport: boolean;
-  showCulqi: boolean;
   showExports: boolean;
 };
 
@@ -119,16 +118,12 @@ const organizerSections = (options: OrganizerNavOptions): NavSection[] =>
           icon: CreditCard,
           permissions: ["payments:view:own", "payments:update:own"],
         },
-        ...(options.showCulqi
-          ? [
-              {
-                labelKey: "dashboard.sidebar.organizer.paymentMethods",
-                href: "/organizer/payment-methods",
-                icon: Wallet,
-                permissions: ["payments:view:own", "payments:update:own"] as const,
-              },
-            ]
-          : []),
+        {
+          labelKey: "dashboard.sidebar.organizer.paymentMethods",
+          href: "/organizer/payment-methods",
+          icon: Wallet,
+          permissions: ["payments:view:own", "payments:update:own"],
+        },
         { labelKey: "dashboard.sidebar.organizer.billing", href: "/organizer/billing", icon: Crown },
         ...(options.showTransport
           ? [
@@ -466,7 +461,6 @@ export function DashboardSidebar({
                 organizerNav ?? {
                   showBroadcasts: true,
                   showTransport: true,
-                  showCulqi: true,
                   showExports: true,
                 },
               )

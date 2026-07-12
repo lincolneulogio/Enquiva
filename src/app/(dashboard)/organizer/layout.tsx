@@ -52,7 +52,6 @@ export default async function OrganizerLayout({
         organizerNav={{
           showBroadcasts: planIncludesBroadcasts(plan, isUnlimited),
           showTransport: planIncludesFeature(plan, "transport", isUnlimited),
-          showCulqi: planIncludesFeature(plan, "culqi", isUnlimited),
           showExports: planIncludesFeature(plan, "exports", isUnlimited),
         }}
       />
