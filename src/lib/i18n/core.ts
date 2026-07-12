@@ -287,8 +287,9 @@ const translations: Record<Locale, TranslationDictionary> = {
                     analyticsGlobal: "Analítica global",
                     analyticsOwn: "Analítica — tus eventos",
                     payments: "Pagos",
+                    eventPayments: "Pagos de eventos",
                     transport: "Transporte",
-                    platformPayments: "Cobros de plataforma",
+                    platformPayments: "Medios Culqi (SaaS)",
                     scan: "Escanear QR",
                     profile: "Perfil",
                     settings: "Configuración",
@@ -297,7 +298,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                     audit: "Auditoría de seguridad",
                     broadcasts: "Comunicados",
                     plans: "Planes SaaS",
-                    platformBilling: "Ingresos plataforma",
+                    platformBilling: "Suscripciones e ingresos SaaS",
                     entityPlan: "Plan de la entidad",
                     setupEntity: "Configurar entidad",
                 },
@@ -338,7 +339,9 @@ const translations: Record<Locale, TranslationDictionary> = {
                 statsScopeBadgeGlobal: "Vista global",
                 statsScopeBadgeOwn: "Tus eventos",
                 statsScopeBadgeEntity: "Tu entidad",
-                statsTotalRevenue: "Total recaudado",
+                statsTotalRevenue: "Recaudado en eventos",
+                statsTotalRevenueHint:
+                    "Solo entradas y transporte. Los ingresos SaaS están en Suscripciones e ingresos SaaS.",
                 statsAvgTicket: "Ticket promedio: S/. {amount}",
                 statsPendingPayments: "Pagos pendientes",
                 statsPendingReview: "Requiere verificación manual",
@@ -388,10 +391,19 @@ const translations: Record<Locale, TranslationDictionary> = {
                 analyticsOwnEmptyTitle: "Aún no tienes eventos propios",
                 analyticsOwnEmptyDescription:
                     "Crea un evento con tu cuenta de superadministrador para ver aquí pagos, asistencia y transporte con la cuenta Culqi de plataforma.",
-                pendingPaymentsAlertTitle: "Pagos pendientes de revisión",
+                pendingPaymentsAlertTitle: "Pagos de eventos pendientes",
                 pendingPaymentsAlertDescription:
-                    "{count} pagos esperan aprobación manual en la plataforma.",
-                pendingPaymentsAlertAction: "Revisar pagos",
+                    "{count} pagos de entradas/transporte esperan aprobación manual.",
+                pendingPaymentsAlertAction: "Revisar pagos de eventos",
+                pendingSubscriptionsAlertTitle: "Suscripciones pendientes",
+                pendingSubscriptionsAlertDescription:
+                    "{count} pagos de plan SaaS esperan revisión.",
+                pendingSubscriptionsAlertAction: "Revisar suscripciones",
+                eventPaymentsTitle: "Pagos de eventos",
+                eventPaymentsIntro:
+                    "Entradas y transporte. No incluye suscripciones SaaS (esa caja es aparte, misma Culqi de plataforma).",
+                eventPaymentsSaasLink: "Ver suscripciones e ingresos SaaS",
+                saasBillingEventsLink: "Ver pagos de eventos",
                 statsFunnelStagePayment: "3. Pagos aprobados",
                 statsFunnelStageTraffic: "1. Vistas de evento",
                 statsFunnelStageRegistration: "2. Inscripciones",
@@ -1464,8 +1476,9 @@ const translations: Record<Locale, TranslationDictionary> = {
             },
         },
         billing: {
-            pageTitle: "Ingresos de plataforma",
-            pageIntro: "Suscripciones, comisiones y movimientos registrados en Evora.",
+            pageTitle: "Suscripciones e ingresos SaaS",
+            pageIntro:
+                "Planes, comisiones y movimientos de plataforma. No incluye pagos de entradas ni transporte de eventos.",
             revenue: {
                 paidOrganizersTitle: "Organizadores con plan de pago",
                 paidOrganizersSubtitle: "Pro, Enterprise u otro plan con cuota mensual",
@@ -1972,8 +1985,9 @@ const translations: Record<Locale, TranslationDictionary> = {
                     analyticsGlobal: "Global analytics",
                     analyticsOwn: "Analytics — your events",
                     payments: "Payments",
+                    eventPayments: "Event payments",
                     transport: "Transport",
-                    platformPayments: "Platform billing",
+                    platformPayments: "Culqi methods (SaaS)",
                     scan: "Scan QR",
                     profile: "Profile",
                     settings: "Settings",
@@ -1982,7 +1996,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                     audit: "Security Audit",
                     broadcasts: "Broadcasts",
                     plans: "SaaS Plans",
-                    platformBilling: "Platform revenue",
+                    platformBilling: "Subscriptions & SaaS revenue",
                     entityPlan: "Entity plan",
                     setupEntity: "Set up entity",
                 },
@@ -2035,7 +2049,9 @@ const translations: Record<Locale, TranslationDictionary> = {
                 statsScopeBadgeGlobal: "Global view",
                 statsScopeBadgeOwn: "Your events",
                 statsScopeBadgeEntity: "Your entity",
-                statsTotalRevenue: "Total revenue",
+                statsTotalRevenue: "Event revenue",
+                statsTotalRevenueHint:
+                    "Tickets and transport only. SaaS revenue is under Subscriptions & SaaS revenue.",
                 statsAvgTicket: "Average ticket: S/. {amount}",
                 statsPendingPayments: "Pending payments",
                 statsPendingReview: "Requires manual review",
@@ -2085,10 +2101,19 @@ const translations: Record<Locale, TranslationDictionary> = {
                 analyticsOwnEmptyTitle: "You don't have your own events yet",
                 analyticsOwnEmptyDescription:
                     "Create an event with your super admin account to see payments, attendance and transport here using the platform Culqi account.",
-                pendingPaymentsAlertTitle: "Payments pending review",
+                pendingPaymentsAlertTitle: "Event payments pending review",
                 pendingPaymentsAlertDescription:
-                    "{count} payments are waiting for manual approval on the platform.",
-                pendingPaymentsAlertAction: "Review payments",
+                    "{count} ticket/transport payments await manual approval.",
+                pendingPaymentsAlertAction: "Review event payments",
+                pendingSubscriptionsAlertTitle: "Subscriptions pending review",
+                pendingSubscriptionsAlertDescription:
+                    "{count} SaaS plan payments await review.",
+                pendingSubscriptionsAlertAction: "Review subscriptions",
+                eventPaymentsTitle: "Event payments",
+                eventPaymentsIntro:
+                    "Tickets and transport only. SaaS subscriptions are separate (same platform Culqi account).",
+                eventPaymentsSaasLink: "View subscriptions & SaaS revenue",
+                saasBillingEventsLink: "View event payments",
                 statsFunnelStagePayment: "3. Approved payments",
                 statsFunnelStageTraffic: "1. Event page views",
                 statsFunnelStageRegistration: "2. Registrations",
@@ -3148,8 +3173,9 @@ const translations: Record<Locale, TranslationDictionary> = {
             },
         },
         billing: {
-            pageTitle: "Platform revenue",
-            pageIntro: "Subscriptions, commissions, and ledger entries recorded in Evora.",
+            pageTitle: "Subscriptions & SaaS revenue",
+            pageIntro:
+                "Plans, commissions, and platform ledger. Does not include event ticket or transport payments.",
             revenue: {
                 paidOrganizersTitle: "Paid plan organizers",
                 paidOrganizersSubtitle: "Pro, Enterprise, or other monthly plans",

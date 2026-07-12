@@ -3,12 +3,17 @@ import { Crown, Coins } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
 import type { DashboardRevenueSnapshot } from "@/lib/analytics/platform-revenue";
+import { staffDashboardPath, type StaffDashboardBase } from "@/lib/navigation/dashboard-paths";
 
 type AdminRevenueSplitCardsProps = {
   snapshot: DashboardRevenueSnapshot;
+  staffBase?: StaffDashboardBase;
 };
 
-export async function AdminRevenueSplitCards({ snapshot }: AdminRevenueSplitCardsProps) {
+export async function AdminRevenueSplitCards({
+  snapshot,
+  staffBase = "/admin",
+}: AdminRevenueSplitCardsProps) {
   const { locale, t } = await getI18n();
   const intl = getIntlLocale(locale);
 
@@ -17,7 +22,7 @@ export async function AdminRevenueSplitCards({ snapshot }: AdminRevenueSplitCard
       label: t("dashboard.admin.revenueEventsTitle"),
       description: t("dashboard.admin.revenueEventsDescription"),
       value: snapshot.eventRevenue,
-      href: "/admin/payments",
+      href: staffDashboardPath(staffBase, "payments"),
       Icon: Coins,
       color: "text-emerald-600",
       iconBg: "bg-emerald-500/10",
@@ -26,7 +31,7 @@ export async function AdminRevenueSplitCards({ snapshot }: AdminRevenueSplitCard
       label: t("dashboard.admin.revenueSaasTitle"),
       description: t("dashboard.admin.revenueSaasDescription"),
       value: snapshot.platformRevenue,
-      href: "/admin/billing",
+      href: staffDashboardPath(staffBase, "billing"),
       Icon: Crown,
       color: "text-amber-600",
       iconBg: "bg-amber-500/10",

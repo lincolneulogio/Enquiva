@@ -231,16 +231,28 @@ export default async function AdminPaymentsPage({
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-3xl font-semibold text-foreground">
-          {t("common.payments")}
+          {staffBase === "/superadmin"
+            ? t("dashboard.admin.eventPaymentsTitle")
+            : t("common.payments")}
         </h1>
         <p className="mt-1 text-muted-foreground">
-          {t("dashboard.admin.paymentsIntro")}
+          {staffBase === "/superadmin"
+            ? t("dashboard.admin.eventPaymentsIntro")
+            : t("dashboard.admin.paymentsIntro")}
           {isFiltered && (
             <span className="ml-2 text-xs text-primary font-medium">
               ({locale === "en" ? "filtered" : "filtrado"})
             </span>
           )}
         </p>
+        {staffBase === "/superadmin" ? (
+          <Link
+            href={staffDashboardPath(staffBase, "billing")}
+            className="mt-2 inline-flex text-sm font-medium text-primary hover:underline"
+          >
+            {t("dashboard.admin.eventPaymentsSaasLink")} →
+          </Link>
+        ) : null}
       </div>
 
       <Suspense>

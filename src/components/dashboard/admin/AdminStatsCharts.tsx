@@ -45,6 +45,8 @@ interface AdminStatsChartsProps {
   totalEventViews?: number;
   /** Oculta usuarios en el gráfico mensual (p. ej. métricas solo de eventos propios). */
   hideUserSeries?: boolean;
+  /** Aclara que el total es solo eventos (no SaaS). */
+  showEventRevenueHint?: boolean;
 }
 
 const COLORS = ["#7c3aed", "#e11d48", "#ea580c", "#16a34a", "#d97706", "#4f46e5", "#06b6d4"];
@@ -64,6 +66,7 @@ export function AdminStatsCharts({
   approvedPaymentsCount = 0,
   totalEventViews = 0,
   hideUserSeries = false,
+  showEventRevenueHint = false,
 }: AdminStatsChartsProps) {
   const t = useTranslations();
   const { locale } = useLocale();
@@ -138,6 +141,11 @@ export function AdminStatsCharts({
               <TrendingUp className="h-3.5 w-3.5 text-green-500" />
               {t("dashboard.admin.statsAvgTicket", { amount: avgPayment.toFixed(2) })}
             </p>
+            {showEventRevenueHint ? (
+              <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+                {t("dashboard.admin.statsTotalRevenueHint")}
+              </p>
+            ) : null}
           </div>
         </div>
 

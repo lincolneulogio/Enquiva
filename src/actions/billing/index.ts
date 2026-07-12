@@ -165,18 +165,28 @@ export async function getPendingSubscriptionPayments() {
 export async function approveSubscriptionPayment(paymentId: string) {
   const admin = await requireSuperAdmin();
   await SubscriptionPaymentService.approvePayment(paymentId, admin.id);
+  const { invalidateAdminDashboardStatsCache } = await import("@/lib/analytics/admin");
+  await invalidateAdminDashboardStatsCache();
   revalidatePath("/organizer/billing");
   revalidatePath("/admin/plan");
   revalidatePath("/admin/billing");
+  revalidatePath("/superadmin/billing");
+  revalidatePath("/admin");
+  revalidatePath("/superadmin");
   return { success: true };
 }
 
 export async function rejectSubscriptionPayment(paymentId: string, notes?: string) {
   const admin = await requireSuperAdmin();
   await SubscriptionPaymentService.rejectPayment(paymentId, admin.id, notes);
+  const { invalidateAdminDashboardStatsCache } = await import("@/lib/analytics/admin");
+  await invalidateAdminDashboardStatsCache();
   revalidatePath("/organizer/billing");
   revalidatePath("/admin/plan");
   revalidatePath("/admin/billing");
+  revalidatePath("/superadmin/billing");
+  revalidatePath("/admin");
+  revalidatePath("/superadmin");
   return { success: true };
 }
 

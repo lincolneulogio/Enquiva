@@ -311,7 +311,9 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
       titleKey: "dashboard.sidebar.groups.finances",
       items: [
         {
-          labelKey: "dashboard.sidebar.admin.payments",
+          labelKey: isSuperAdmin
+            ? "dashboard.sidebar.admin.eventPayments"
+            : "dashboard.sidebar.admin.payments",
           href: p("/payments"),
           icon: CreditCard,
           permissions: ["payments:view:any", "payments:update:any"],

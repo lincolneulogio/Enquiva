@@ -10,12 +10,16 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq, inArray } from "drizzle-orm";
 
-import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";
+import { getStaffDashboardHome, staffDashboardPath } from "@/lib/navigation/dashboard-paths";
+import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
+import Link from "next/link";
 
 export default async function AdminBillingPage() {
   const { t } = await getI18n();
   const session = await auth.api.getSession({ headers: await headers() });
   if (session?.user?.role !== "super_admin") redirect(getStaffDashboardHome(session?.user?.role));
+
+  const staffBase = await getStaffBaseFromRequest();
 
   const [revenue, pendingRows] = await Promise.all([
     getPlatformRevenue(),
@@ -43,6 +47,12 @@ export default async function AdminBillingPage() {
       <div>
         <h1 className="font-display text-3xl font-semibold text-foreground">{t("billing.pageTitle")}</h1>
         <p className="mt-1 text-muted-foreground">{t("billing.pageIntro")}</p>
+        <Link
+          href={staffDashboardPath(staffBase, "payments")}
+          className="mt-2 inline-flex text-sm font-medium text-primary hover:underline"
+        >
+          {t("dashboard.admin.saasBillingEventsLink")} →
+        </Link>
       </div>
 
       <AdminSubscriptionPaymentsPanel pending={pending} />

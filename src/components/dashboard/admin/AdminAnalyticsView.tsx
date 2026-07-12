@@ -311,6 +311,7 @@ export async function AdminAnalyticsView({
         approvedPaymentsCount={stats.approvedPaymentsCount}
         totalEventViews={stats.totalEventViews}
         hideUserSeries={mode === "own"}
+        showEventRevenueHint={mode === "global"}
       />
     </div>
   );
