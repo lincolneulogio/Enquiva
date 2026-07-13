@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import dynamic from "next/dynamic";
 import {
   Camera,
@@ -12,9 +12,13 @@ import {
   Calendar,
   Clock,
   QrCode,
+  ScanBarcode,
+  Keyboard,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
+import { useHardwareScanner } from "@/hooks/useHardwareScanner";
+import { parseTicketScanPayload } from "@/lib/tickets/parse-scan-payload";
 
 const QRScanner = dynamic(() => import("./QRScanner"), { ssr: false });
 
@@ -38,10 +42,16 @@ export function QRScannerView() {
   const [cameraLoading, setCameraLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ScanResultData | null>(null);
+  const hardwareInputRef = useRef<HTMLInputElement | null>(null);
+  const verifyingRef = useRef(false);
+
+  const busy = loading || Boolean(result);
+  const hardwareEnabled = !busy;
 
   const handleQRDetected = useCallback(
     async (detectedText: string) => {
-      if (!detectedText) return;
+      if (!detectedText || verifyingRef.current) return;
+      verifyingRef.current = true;
 
       setLoading(true);
       setResult(null);
@@ -49,29 +59,7 @@ export function QRScannerView() {
       setCameraLoading(false);
 
       try {
-        let code = "";
-        let signature = "";
-
-        if (detectedText.includes("/ticket/")) {
-          const ticketIndex = detectedText.indexOf("/ticket/");
-          const pathAndQuery = detectedText.substring(ticketIndex);
-          const [path, queryStr] = pathAndQuery.split("?");
-          const cleanSegments = path.split("/").filter(Boolean);
-          code = cleanSegments[cleanSegments.length - 1] || "";
-
-          if (queryStr) {
-            const searchParams = new URLSearchParams(queryStr);
-            signature = searchParams.get("s") || searchParams.get("signature") || "";
-          }
-        } else {
-          try {
-            const parsed = JSON.parse(detectedText);
-            code = parsed.code || "";
-            signature = parsed.signature || parsed.s || "";
-          } catch {
-            code = detectedText.trim();
-          }
-        }
+        const { code, signature } = parseTicketScanPayload(detectedText);
 
         if (!code) {
           throw new Error(t("scanner.noValidCode"));
@@ -111,11 +99,46 @@ export function QRScannerView() {
         });
         toast.error(t("scanner.processError"));
       } finally {
+        verifyingRef.current = false;
         setLoading(false);
+        if (hardwareInputRef.current) {
+          hardwareInputRef.current.value = "";
+        }
       }
     },
     [t],
   );
+
+  useHardwareScanner({
+    enabled: hardwareEnabled,
+    onScan: handleQRDetected,
+  });
+
+  useEffect(() => {
+    if (!hardwareEnabled) return;
+    const focusInput = () => {
+      const el = hardwareInputRef.current;
+      if (!el) return;
+      if (document.activeElement === el) return;
+      // Don't steal focus from another intentional input on the page
+      const active = document.activeElement as HTMLElement | null;
+      if (
+        active &&
+        (active.tagName === "INPUT" ||
+          active.tagName === "TEXTAREA" ||
+          active.tagName === "SELECT" ||
+          active.isContentEditable) &&
+        active.dataset.hardwareScanner !== "true"
+      ) {
+        return;
+      }
+      el.focus({ preventScroll: true });
+    };
+
+    focusInput();
+    const id = window.setInterval(focusInput, 1500);
+    return () => window.clearInterval(id);
+  }, [hardwareEnabled, showScanner]);
 
   const handleCameraError = useCallback(() => {
     toast.error(t("scanner.cameraError"));
@@ -129,8 +152,9 @@ export function QRScannerView() {
 
   const resetScanner = () => {
     setResult(null);
-    setCameraLoading(true);
-    setShowScanner(true);
+    setCameraLoading(false);
+    setShowScanner(false);
+    requestAnimationFrame(() => hardwareInputRef.current?.focus({ preventScroll: true }));
   };
 
   const startScanner = () => {
@@ -142,6 +166,7 @@ export function QRScannerView() {
   const stopScanner = () => {
     setShowScanner(false);
     setCameraLoading(false);
+    requestAnimationFrame(() => hardwareInputRef.current?.focus({ preventScroll: true }));
   };
 
   return (
@@ -157,8 +182,59 @@ export function QRScannerView() {
           <p className="text-sm text-muted-foreground">{t("scanner.subtitle")}</p>
         </div>
 
+        {/* Hardware USB/Bluetooth wedge — always ready while idle */}
+        {!busy && (
+          <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/5 p-4 text-left space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="rounded-xl bg-emerald-500/10 p-2.5 text-emerald-600 dark:text-emerald-400 shrink-0">
+                <ScanBarcode className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 space-y-1">
+                <p className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                  {t("scanner.hardwareReady")}
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {t("scanner.hardwareHelp")}
+                </p>
+              </div>
+            </div>
+
+            <div className="relative">
+              <Keyboard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <input
+                ref={hardwareInputRef}
+                data-hardware-scanner="true"
+                type="text"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                inputMode="none"
+                aria-label={t("scanner.hardwareInputLabel")}
+                placeholder={t("scanner.hardwarePlaceholder")}
+                className="w-full rounded-xl border border-border bg-background pl-10 pr-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50"
+                onPaste={(e) => {
+                  const text = e.clipboardData.getData("text").trim();
+                  if (text.length >= 4) {
+                    e.preventDefault();
+                    void handleQRDetected(text);
+                  }
+                }}
+              />
+            </div>
+          </div>
+        )}
+
         {!result && !loading && (
-          <div className="relative">
+          <div className="relative space-y-3">
+            <div className="flex items-center gap-2 text-left">
+              <Camera className="h-4 w-4 text-primary shrink-0" />
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {t("scanner.cameraMode")}
+              </p>
+            </div>
+
             {showScanner ? (
               <div className="space-y-4">
                 <div className="relative rounded-2xl overflow-hidden border border-primary/20 bg-black aspect-video max-h-72 mx-auto">
@@ -178,6 +254,7 @@ export function QRScannerView() {
                     onResult={handleQRDetected}
                     onError={handleCameraError}
                     onScanStart={handleScanStart}
+                    paused={loading}
                   />
 
                   <div className="absolute inset-0 z-10 pointer-events-none border-[16px] border-black/40 flex items-center justify-center">
@@ -200,9 +277,9 @@ export function QRScannerView() {
                 </button>
               </div>
             ) : (
-              <div className="py-8 px-4 rounded-2xl border border-dashed border-border bg-muted/40 flex flex-col items-center justify-center space-y-4">
-                <div className="w-16 h-16 rounded-full bg-background flex items-center justify-center border text-muted-foreground shadow-sm">
-                  <Camera className="h-8 w-8" />
+              <div className="py-6 px-4 rounded-2xl border border-dashed border-border bg-muted/40 flex flex-col items-center justify-center space-y-4">
+                <div className="w-14 h-14 rounded-full bg-background flex items-center justify-center border text-muted-foreground shadow-sm">
+                  <Camera className="h-7 w-7" />
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-foreground">{t("scanner.cameraOff")}</p>
