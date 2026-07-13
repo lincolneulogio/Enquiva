@@ -6,6 +6,7 @@ import { Bus, Search, Download, AlertCircle, MapPin, Printer } from "lucide-reac
 import { toast } from "sonner";
 import { printJsPdf } from "@/lib/export/print-pdf";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+import { usePlatformBrand } from "@/components/providers/PlatformBrandProvider";
 
 interface BookingItem {
   id: string;
@@ -27,6 +28,7 @@ interface PassengerManifestProps {
 
 export function PassengerManifest({ eventId }: PassengerManifestProps) {
   const t = useTranslations();
+  const brand = usePlatformBrand();
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -84,7 +86,7 @@ export function PassengerManifest({ eventId }: PassengerManifestProps) {
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text("Evora - Sistema de Control y Logística de Rutas", 14, 30);
+    doc.text(`${brand.name} - Sistema de Control y Logística de Rutas`, 14, 30);
 
     // Document Info Box
     doc.setTextColor(50, 50, 50);

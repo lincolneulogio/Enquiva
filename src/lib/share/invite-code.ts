@@ -20,21 +20,23 @@ export function buildInviteShareMessage(options: {
   entityName?: string;
   appUrl: string;
   locale: InviteShareLocale;
+  platformName?: string;
 }) {
   const code = options.inviteCode.trim().toUpperCase();
   const registerUrl = getRegisterInviteUrl(options.appUrl, code);
   const entity = options.entityName?.trim();
+  const platform = options.platformName?.trim() || BRAND.name;
 
   if (options.locale === "en") {
     const intro = entity
-      ? `Join ${entity} as an event organizer on ${BRAND.name}.`
-      : `Join us as an event organizer on ${BRAND.name}.`;
+      ? `Join ${entity} as an event organizer on ${platform}.`
+      : `Join us as an event organizer on ${platform}.`;
     return `${intro}\n\nInvite code: ${code}\nRegister: ${registerUrl}\n\nChoose Organizer → With an entity and enter the code.`;
   }
 
   const intro = entity
-    ? `Únete a ${entity} como organizador de eventos en ${BRAND.name}.`
-    : `Únete como organizador de eventos en ${BRAND.name}.`;
+    ? `Únete a ${entity} como organizador de eventos en ${platform}.`
+    : `Únete como organizador de eventos en ${platform}.`;
   return `${intro}\n\nCódigo de invitación: ${code}\nRegistro: ${registerUrl}\n\nElige Organizador → Con una entidad e ingresa el código.`;
 }
 
@@ -45,12 +47,14 @@ export function buildInviteShareUrl(
     entityName?: string;
     appUrl: string;
     locale: InviteShareLocale;
+    platformName?: string;
   },
 ) {
   const message = buildInviteShareMessage(options);
   const registerUrl = getRegisterInviteUrl(options.appUrl, options.inviteCode);
   const encodedMessage = encodeURIComponent(message);
   const encodedUrl = encodeURIComponent(registerUrl);
+  const platform = options.platformName?.trim() || BRAND.name;
 
   switch (channel) {
     case "whatsapp":
@@ -66,8 +70,8 @@ export function buildInviteShareUrl(
     case "email": {
       const subject =
         options.locale === "en"
-          ? `Invitation to join ${entityNameOrFallback(options.entityName, "our entity")} on ${BRAND.name}`
-          : `Invitación a unirte a ${entityNameOrFallback(options.entityName, "nuestra entidad")} en ${BRAND.name}`;
+          ? `Invitation to join ${entityNameOrFallback(options.entityName, "our entity")} on ${platform}`
+          : `Invitación a unirte a ${entityNameOrFallback(options.entityName, "nuestra entidad")} en ${platform}`;
       return `mailto:?subject=${encodeURIComponent(subject)}&body=${encodedMessage}`;
     }
   }

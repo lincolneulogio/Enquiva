@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CreditCard, Loader2, ShieldCheck } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+import { usePlatformBrand } from "@/components/providers/PlatformBrandProvider";
 import { loadCulqiCheckoutScript, openCulqiCheckout, closeActiveCulqiCheckout, isCulqiCheckoutCancelled } from "@/lib/culqi/open-checkout";
 import { CULQI_ORDER_MIN_AMOUNT_PEN } from "@/lib/culqi/constants";
 import { useSession } from "@/lib/auth/client";
@@ -28,6 +29,7 @@ export function CulqiPaymentForm({
   userEmail,
 }: CulqiPaymentFormProps) {
   const t = useTranslations();
+  const brand = usePlatformBrand();
   const router = useRouter();
   const { data: session } = useSession();
   const checkoutEmail = userEmail ?? session?.user?.email ?? null;
@@ -83,7 +85,7 @@ export function CulqiPaymentForm({
 
       const checkoutResult = await openCulqiCheckout({
         publicKey: culqiPublicKey,
-        title: "Evora",
+        title: brand.name,
         amount,
         email: checkoutEmail,
         orderId: orderData.orderId,

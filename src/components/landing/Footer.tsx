@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Mail, MapPin, ArrowRight, ChevronUp } from "lucide-react";
 import { BrandLogo } from "@/components/shared/BrandLogo";
+import { BrandText, SupportEmailLink } from "@/components/shared/BrandText";
 
 interface FooterProps {
   t: (key: string) => string;
@@ -87,13 +88,10 @@ export function Footer({ t }: FooterProps) {
             <p className="mb-4 text-sm text-muted-foreground">{t("public.home.footerContactDescription")}</p>
 
             <div className="space-y-2.5 text-sm">
-              <a
-                href="mailto:hola@evora.app"
-                className="inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
-              >
+              <p className="inline-flex items-center gap-2 text-muted-foreground">
                 <Mail className="h-4 w-4 text-primary" />
-                hola@evora.app
-              </a>
+                <SupportEmailLink className="transition-colors hover:text-foreground" />
+              </p>
               <p className="inline-flex items-center gap-2 text-muted-foreground">
                 <MapPin className="h-4 w-4 text-primary" />
                 Huánuco, Perú
@@ -126,7 +124,9 @@ export function Footer({ t }: FooterProps) {
         </div>
 
         <div className="flex flex-col gap-3 border-t border-border/80 bg-background/70 px-6 py-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-10">
-          <p>© {new Date().getFullYear()} Evora. {t("public.home.footerBuilt")}</p>
+          <p>
+            © {new Date().getFullYear()} <BrandText />. {t("public.home.footerBuilt")}
+          </p>
           <Link
             href="#top"
             className="inline-flex items-center gap-1 self-start rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground transition-colors hover:bg-secondary sm:self-auto"

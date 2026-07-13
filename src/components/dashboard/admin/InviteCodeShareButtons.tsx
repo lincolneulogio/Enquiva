@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
+import { usePlatformBrand } from "@/components/providers/PlatformBrandProvider";
 import { cn } from "@/lib/utils";
 import {
   buildInviteShareMessage,
@@ -100,6 +101,7 @@ export function InviteCodeShareButtons({
 }: InviteCodeShareButtonsProps) {
   const { locale } = useLocale();
   const t = useTranslations();
+  const brand = usePlatformBrand();
   const [showNativeShare, setShowNativeShare] = useState(false);
   const shareLocale = locale === "en" ? "en" : "es";
   const appUrl = getAppUrl();
@@ -114,6 +116,7 @@ export function InviteCodeShareButtons({
     entityName,
     appUrl,
     locale: shareLocale as "es" | "en",
+    platformName: brand.name,
   };
 
   const nativeShare = async () => {

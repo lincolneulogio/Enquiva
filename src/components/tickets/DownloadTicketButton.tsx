@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Download } from "lucide-react";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
+import { usePlatformBrand } from "@/components/providers/PlatformBrandProvider";
 import { formatEventDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { buildTicketQrDataUrlClient } from "@/lib/tickets/qr-client";
@@ -41,6 +42,7 @@ export function DownloadTicketButton({
   const [loading, setLoading] = useState(false);
   const { locale } = useLocale();
   const t = useTranslations();
+  const brand = usePlatformBrand();
 
   const handleDownload = async () => {
     const resolvedQr =
@@ -94,6 +96,7 @@ export function DownloadTicketButton({
         {
           primary: getActiveTicketPrimaryRgb(),
           logoDataUrl,
+          brandName: brand.name,
         },
       );
 

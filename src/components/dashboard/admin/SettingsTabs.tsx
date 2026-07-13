@@ -552,6 +552,7 @@ export function SettingsTabs({
                     )}
 
                     {section === "platform" && platformSubTab === "identity" && initialPlatformSettings && (
+                        <div className="space-y-6">
                         <div className="rounded-xl border border-border bg-card p-4 sm:p-6 space-y-4">
                             <div>
                                 <h2 className="text-lg font-semibold text-foreground">
@@ -559,8 +560,8 @@ export function SettingsTabs({
                                 </h2>
                                 <p className="text-xs text-muted-foreground mt-0.5">
                                     {locale === "en"
-                                        ? "Public name and support email used in system emails, PDFs, and QR tickets across all entities."
-                                        : "Nombre público y correo de soporte usados en correos del sistema, PDFs y entradas QR en todas las entidades."}
+                                        ? "These values update the sidebar, landing, ticket PDFs, Culqi title, invites, and system emails (including support contact)."
+                                        : "Estos valores actualizan el sidebar, landing, PDF de tickets, Culqi, invitaciones y correos del sistema (incluido el contacto de soporte)."}
                                 </p>
                             </div>
 
@@ -586,6 +587,11 @@ export function SettingsTabs({
                                         onChange={(e) => setSettingsValue("platformSupportEmail", e.target.value)}
                                         className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
                                     />
+                                    <p className="text-[11px] text-muted-foreground">
+                                        {locale === "en"
+                                            ? "Shown in welcome emails and the public contact block."
+                                            : "Se muestra en correos de bienvenida y en el bloque de contacto público."}
+                                    </p>
                                 </div>
                             </div>
 
@@ -600,6 +606,47 @@ export function SettingsTabs({
                                     {locale === "en" ? "Save platform identity" : "Guardar identidad de plataforma"}
                                 </button>
                             </div>
+                        </div>
+
+                        <div className="rounded-xl border border-dashed border-border bg-muted/20 p-4 sm:p-5">
+                            <h3 className="text-sm font-semibold text-foreground">
+                                {locale === "en" ? "Recommended next settings" : "Próximas configuraciones recomendadas"}
+                            </h3>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                {locale === "en"
+                                    ? "As Super Admin you should own platform-wide controls. Already available: identity, SMTP diagnostics, system alerts, DB backup. Coming next candidates:"
+                                    : "Como Super Admin debes controlar la plataforma completa. Ya disponible: identidad, diagnóstico SMTP, alertas y backup BD. Candidatos siguientes:"}
+                            </p>
+                            <ul className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+                                {(locale === "en"
+                                    ? [
+                                        "Public contact email / social links",
+                                        "Default brand accent colors (server-wide)",
+                                        "Maintenance mode & announcement banner",
+                                        "Legal pages (terms, privacy) URLs",
+                                        "Default locale & timezone",
+                                        "SMTP credentials editable from UI (now env-only)",
+                                        "Daily finance digest delivery (toggle exists, job pending)",
+                                        "Push notification branding title",
+                                      ]
+                                    : [
+                                        "Correo público de contacto / redes",
+                                        "Color de acento por defecto (toda la plataforma)",
+                                        "Modo mantenimiento y banner de avisos",
+                                        "URLs legales (términos, privacidad)",
+                                        "Idioma y zona horaria por defecto",
+                                        "SMTP editable desde la UI (hoy solo env)",
+                                        "Resumen financiero diario (toggle existe, falta el job)",
+                                        "Título de notificaciones push",
+                                      ]
+                                ).map((item) => (
+                                    <li key={item} className="flex gap-2 rounded-lg border border-border/60 bg-card/60 px-3 py-2">
+                                        <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/70" />
+                                        <span>{item}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
                         </div>
                     )}
 

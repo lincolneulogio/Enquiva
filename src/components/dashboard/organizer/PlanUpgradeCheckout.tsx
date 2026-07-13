@@ -7,6 +7,7 @@ import { CreditCard, Loader2, X, ShieldCheck, DollarSign, Info } from "lucide-re
 import { cn } from "@/lib/utils";
 import type { PaymentMethod, Plan } from "@/lib/db/schema";
 import { useTranslations, useLocale } from "@/components/providers/LocaleProvider";
+import { usePlatformBrand } from "@/components/providers/PlatformBrandProvider";
 import {
   loadCulqiCheckoutScript,
   openCulqiCheckout,
@@ -39,6 +40,7 @@ export function PlanUpgradeCheckout({
   onSuccess,
 }: PlanUpgradeCheckoutProps) {
   const t = useTranslations();
+  const brand = usePlatformBrand();
   const amount = Number(plan.priceMonthly);
   const culqiMethod = platformMethods.find((m) => m.type === "culqi");
   const showCulqi = Boolean(culqiMethod && culqiPublicKey);
@@ -159,7 +161,7 @@ export function PlanUpgradeCheckout({
       // para no dejar un frame vacío negro durante la creación de la orden.
       const checkoutResult = await openCulqiCheckout({
         publicKey: culqiPublicKey,
-        title: `Evora · ${plan.name}`,
+        title: `${brand.name} · ${plan.name}`,
         amount: checkoutAmount,
         email: checkoutEmail,
         orderId,

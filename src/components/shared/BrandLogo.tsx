@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { BRAND } from "@/lib/brand";
+import { usePlatformBrand } from "@/components/providers/PlatformBrandProvider";
 
 type BrandLogoSize = "xs" | "sm" | "md" | "lg";
 
@@ -21,6 +24,8 @@ interface BrandLogoProps {
   className?: string;
   textClassName?: string;
   priority?: boolean;
+  /** Override explícito (p. ej. emails/preview). Por defecto usa settings de plataforma. */
+  name?: string;
 }
 
 export function BrandLogo({
@@ -30,7 +35,10 @@ export function BrandLogo({
   className,
   textClassName,
   priority = false,
+  name: nameProp,
 }: BrandLogoProps) {
+  const brand = usePlatformBrand();
+  const displayName = nameProp?.trim() || brand.name;
   const s = sizeMap[size];
 
   const content = (
@@ -39,7 +47,7 @@ export function BrandLogo({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={s.src}
-        alt={BRAND.name}
+        alt={displayName}
         height={s.height}
         decoding="async"
         fetchPriority={priority ? "high" : "auto"}
@@ -48,7 +56,7 @@ export function BrandLogo({
       />
       {showText && (
         <span className={cn("font-display font-semibold text-foreground", s.text, textClassName)}>
-          {BRAND.name}
+          {displayName}
         </span>
       )}
     </>

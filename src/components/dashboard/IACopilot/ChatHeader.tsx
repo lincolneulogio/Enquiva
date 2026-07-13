@@ -4,6 +4,7 @@ import { Sparkles, X, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getRoleLabel, type Locale } from "@/lib/i18n/core";
 import type { LucideIcon } from "lucide-react";
+import { usePlatformBrand } from "@/components/providers/PlatformBrandProvider";
 
 interface ChatHeaderProps {
   userRole: string;
@@ -16,6 +17,7 @@ interface ChatHeaderProps {
 }
 
 export function ChatHeader({ userRole, locale, RoleIcon, roleBadgeStyle, aiUsage, onReset, onClose }: ChatHeaderProps) {
+  const brand = usePlatformBrand();
   return (
     <div className="flex items-center justify-between p-4.5 border-b border-border bg-muted/40">
       <div className="flex items-center gap-2.5">
@@ -24,7 +26,7 @@ export function ChatHeader({ userRole, locale, RoleIcon, roleBadgeStyle, aiUsage
         </div>
         <div className="text-left">
           <h3 className="font-semibold text-foreground text-sm flex items-center gap-1.5 leading-none">
-            EvoraBot
+            {brand.botName}
             <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-primary/10 text-primary border border-primary/20 uppercase tracking-wide">IA</span>
           </h3>
           <span className={cn("inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-normal shadow-sm mt-1", roleBadgeStyle)}>

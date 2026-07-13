@@ -59,7 +59,7 @@ export function wrapInTemplate(
               <!-- Brand Header -->
               <tr>
                 <td class="header-padding" style="background-color: #f5efe6; padding: 32px 32px; text-align: center; border-bottom: 1px solid rgba(61, 41, 20, 0.08);">
-                  ${renderEmailBrandHeader()}
+                  ${renderEmailBrandHeader(orgName)}
                 </td>
               </tr>
 
@@ -398,10 +398,12 @@ export function getWelcomeEmailTemplate(opts: {
   accountType: WelcomeAccountType;
   loginUrl: string;
   orgName?: string;
+  supportEmail?: string;
   locale?: MailLocale;
 }) {
   const locale = opts.locale ?? "es";
   const copy = welcomeEmailCopy(locale, opts.accountType);
+  const supportEmail = opts.supportEmail?.trim() || BRAND.supportEmail;
 
   const stepsHtml = copy.steps
     .map(
@@ -441,14 +443,14 @@ export function getWelcomeEmailTemplate(opts: {
 
   const footerNote =
     locale === "en"
-      ? `Need help? Write to us at ${BRAND.supportEmail}`
-      : `¿Necesitas ayuda? Escríbenos a ${BRAND.supportEmail}`;
+      ? `Need help? Write to us at <a href="mailto:${supportEmail}" style="color:#ea580c;text-decoration:none;">${supportEmail}</a>`
+      : `¿Necesitas ayuda? Escríbenos a <a href="mailto:${supportEmail}" style="color:#ea580c;text-decoration:none;">${supportEmail}</a>`;
 
   const textSteps = copy.steps.map((step, i) => `${i + 1}. ${step}`).join("\n");
 
   return {
     subject: copy.subject,
-    text: `${opts.greeting}\n\n${copy.intro}\n\n${locale === "en" ? "Next steps" : "Próximos pasos"}:\n${textSteps}\n\n${copy.cta}: ${opts.loginUrl}`,
+    text: `${opts.greeting}\n\n${copy.intro}\n\n${locale === "en" ? "Next steps" : "Próximos pasos"}:\n${textSteps}\n\n${copy.cta}: ${opts.loginUrl}\n\n${locale === "en" ? "Need help?" : "¿Necesitas ayuda?"} ${supportEmail}`,
     html: wrapInTemplate(copy.title, opts.greeting, bodyHtml, footerNote, opts.orgName, locale),
   };
 }

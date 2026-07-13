@@ -9,7 +9,6 @@ import { appendEmailBrandLogoAttachment } from "@/lib/mail/brand-header";
 import { transporter, sender } from "@/lib/mail/transporter";
 import { revalidatePath } from "next/cache";
 import { env } from "@/env";
-import { BRAND } from "@/lib/brand";
 
 /**
  * Server action to get the current system settings.
@@ -43,6 +42,8 @@ export async function saveSystemSettingsAction(settings: Partial<SystemSettings>
     });
 
     revalidatePath("/admin/settings");
+    revalidatePath("/superadmin/settings");
+    revalidatePath("/", "layout");
     return { success: true, settings: updated };
 }
 
@@ -117,15 +118,15 @@ export async function sendTestEmailAction(email: string) {
             "Prueba de correo SMTP",
             greeting,
             bodyHtml,
-            `Correo de diagnóstico de ${BRAND.name}.`,
+            `Correo de diagnóstico de ${settings.organizationName}. Soporte: ${settings.supportEmail}`,
             settings.organizationName,
         );
         
         await transporter.sendMail({
             from: sender(),
             to: email,
-            subject: `Prueba de correo SMTP — ${BRAND.name}`,
-            text: `¡Hola ${user.name}! Este es un correo de prueba SMTP exitoso de la plataforma ${settings.organizationName}.`,
+            subject: `Prueba de correo SMTP — ${settings.organizationName}`,
+            text: `¡Hola ${user.name}! Este es un correo de prueba SMTP exitoso de la plataforma ${settings.organizationName}. Soporte: ${settings.supportEmail}`,
             html,
             attachments: appendEmailBrandLogoAttachment(),
         });

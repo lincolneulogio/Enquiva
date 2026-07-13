@@ -47,7 +47,8 @@ export function appendEmailBrandLogoAttachment(
 }
 
 /** Encabezado de marca alineado con BrandLogo de la app (logo + nombre). */
-export function renderEmailBrandHeader() {
+export function renderEmailBrandHeader(orgName?: string) {
+  const displayName = orgName?.trim() || BRAND.name;
   const logoAttachment = getEmailBrandLogoAttachment();
   const logoSrc = logoAttachment ? `cid:${EMAIL_BRAND_LOGO_CID}` : emailAssetUrl(BRAND.logo.markLg);
 
@@ -57,7 +58,7 @@ export function renderEmailBrandHeader() {
         <td style="vertical-align: middle; padding-right: 12px;">
           <img
             src="${logoSrc}"
-            alt="${BRAND.name}"
+            alt="${displayName}"
             width="42"
             height="42"
             style="display: block; height: 42px; width: auto; border: 0; outline: none; text-decoration: none;"
@@ -65,7 +66,7 @@ export function renderEmailBrandHeader() {
         </td>
         <td style="vertical-align: middle; text-align: left;">
           <span style="font-size: 22px; font-weight: 700; color: #3d2914; letter-spacing: -0.5px; display: block; font-family: 'Outfit', system-ui, sans-serif;">
-            ${BRAND.name}
+            ${displayName}
           </span>
         </td>
       </tr>

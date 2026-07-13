@@ -9,6 +9,7 @@ import {
   useLocale,
   useTranslations,
 } from "@/components/providers/LocaleProvider";
+import { usePlatformBrand } from "@/components/providers/PlatformBrandProvider";
 import { useState, useEffect } from "react";
 import { getPusherClient, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/client";
 import Swal from "@/lib/ui/swal-client";
@@ -101,6 +102,7 @@ export function TicketCard({
 }: TicketCardProps) {
   const { locale } = useLocale();
   const t = useTranslations();
+  const brand = usePlatformBrand();
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(ticket?.qrCode ?? null);
   const hasTransport = Boolean(event.hasTransport);
   
@@ -226,6 +228,7 @@ export function TicketCard({
       const theme = {
         primary: getActiveTicketPrimaryRgb(),
         logoDataUrl,
+        brandName: brand.name,
       };
 
       const ticketsToGenerate = (

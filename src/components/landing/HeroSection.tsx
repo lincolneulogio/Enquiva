@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Sparkles, ArrowRight, Compass, type LucideIcon } from "lucide-react";
+import { BrandBadge } from "@/components/shared/BrandText";
 
 interface HeroSectionProps {
   t: (key: string) => string;
@@ -85,17 +86,7 @@ export function HeroSection({ t, locale, signals, features }: HeroSectionProps) 
 
           <div className="relative overflow-hidden rounded-[1.75rem] border border-border/80 bg-card/90 p-5 shadow-xl backdrop-blur-sm sm:p-6">
             <div className="mb-5 flex items-center justify-between">
-              <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/images/logo-mark-xs.png"
-                  alt="Evora"
-                  height={18}
-                  className="object-contain"
-                  style={{ height: "18px", width: "auto" }}
-                />
-                Evora
-              </span>
+              <BrandBadge />
               <span className="text-xs text-muted-foreground">Live</span>
             </div>
 

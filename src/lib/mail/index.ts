@@ -64,7 +64,7 @@ export async function sendWelcomeEmail(input: {
   accountType: WelcomeAccountType;
   locale?: MailLocale;
 }) {
-  const { organizationName } = await getSystemSettings();
+  const { organizationName, supportEmail } = await getSystemSettings();
   const locale = input.locale ?? "es";
   const greeting = mailGreeting(locale, input.name);
   const loginPath = welcomeLoginPath(input.accountType);
@@ -74,6 +74,7 @@ export async function sendWelcomeEmail(input: {
     accountType: input.accountType,
     loginUrl,
     orgName: organizationName,
+    supportEmail,
     locale,
   });
 
