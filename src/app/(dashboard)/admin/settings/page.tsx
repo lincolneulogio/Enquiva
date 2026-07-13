@@ -34,7 +34,7 @@ export default async function AdminSettingsPage() {
         };
     }
 
-    const platformSettings = isSuperAdmin ? await getSystemSettings() : null;
+    const platformSettings = await getSystemSettings();
 
     const introKey =
         isSuperAdmin && entityContext
@@ -54,7 +54,8 @@ export default async function AdminSettingsPage() {
                 <SettingsTabs
                     isSuperAdmin={isSuperAdmin}
                     entityContext={entityContext}
-                    initialPlatformSettings={platformSettings ?? undefined}
+                    initialPlatformSettings={isSuperAdmin ? platformSettings : undefined}
+                    platformDefaultAccent={platformSettings.defaultAccentColor}
                     adminUser={{
                         name: user.name ?? "—",
                         email: user.email,

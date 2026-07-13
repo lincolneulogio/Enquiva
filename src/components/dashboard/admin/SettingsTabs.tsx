@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import {
     User, Mail, Shield, Globe, Sun, Moon,
     Send, Bell, Building, Save, Loader2,
-    Wifi, WifiOff, RefreshCw, Users, Copy, Server,
+    Wifi, WifiOff, RefreshCw, Users, Copy, Server, Palette,
 } from "lucide-react";
 import {
     saveSystemSettingsAction,
@@ -19,15 +19,20 @@ import { saveEntitySettingsAction } from "@/actions/organizations";
 import type { SystemSettings } from "@/lib/settings";
 import { useRouter } from "next/navigation";
 import {
-    applyAccentColor,
     ACCENT_COLORS,
+    setAccentOverride,
+    clearAccentOverride,
+    hasAccentOverride,
+    resolveEffectiveAccent,
+    DEFAULT_ACCENT_COLOR,
+    isAccentColor,
     type AccentColor,
 } from "./AccentColorInitializer";
 import { usePersistedFormFields } from "@/hooks/useFormPersistence";
 import { formStorageKey } from "@/lib/form-persistence";
 
 type EntitySubTab = "profile" | "entity" | "appearance";
-type PlatformSubTab = "identity" | "smtp" | "notifications";
+type PlatformSubTab = "identity" | "preferences" | "smtp" | "notifications";
 type SettingsSection = "entity" | "platform";
 
 interface SettingsTabsProps {
@@ -39,6 +44,8 @@ interface SettingsTabsProps {
         isOwner: boolean;
     };
     initialPlatformSettings?: SystemSettings;
+    /** Default de plataforma (también para roles sin acceso a settings globales). */
+    platformDefaultAccent?: AccentColor;
     adminUser: {
         name: string;
         email: string;
@@ -50,6 +57,7 @@ export function SettingsTabs({
     isSuperAdmin,
     entityContext,
     initialPlatformSettings,
+    platformDefaultAccent: platformDefaultAccentProp,
     adminUser,
 }: SettingsTabsProps) {
     const { locale, setLocale, isPending: isLocalePending } = useLocale();
@@ -108,22 +116,78 @@ export function SettingsTabs({
     const [smtpInfo, setSmtpInfo] = useState<{ host?: string; port?: number; latencyMs?: number; error?: string } | null>(null);
     const [isTestingEmail, startTestingEmail] = useTransition();
     const [isSaving, startSaving] = useTransition();
-    const [activeAccent, setActiveAccent] = useState<AccentColor>("amber");
+
+    const platformDefaultAccent: AccentColor = isAccentColor(platformDefaultAccentProp)
+        ? platformDefaultAccentProp
+        : isAccentColor(initialPlatformSettings?.defaultAccentColor)
+          ? initialPlatformSettings!.defaultAccentColor
+          : DEFAULT_ACCENT_COLOR;
+
+    const [platformAccentDraft, setPlatformAccentDraft] = useState<AccentColor>(platformDefaultAccent);
+    const [activeAccent, setActiveAccent] = useState<AccentColor>(platformDefaultAccent);
+    const [followsPlatformAccent, setFollowsPlatformAccent] = useState(true);
 
     useEffect(() => {
-        const saved = localStorage.getItem("brand-accent") as AccentColor;
-        if (saved && ACCENT_COLORS[saved]) {
-            setActiveAccent(saved);
-        }
+        setPlatformAccentDraft(platformDefaultAccent);
+    }, [platformDefaultAccent]);
 
-        const handleAccentChange = () => {
-            const current = localStorage.getItem("brand-accent") as AccentColor;
-            if (current) setActiveAccent(current);
+    useEffect(() => {
+        const sync = () => {
+            const follows = !hasAccentOverride();
+            setFollowsPlatformAccent(follows);
+            setActiveAccent(resolveEffectiveAccent(platformDefaultAccent));
         };
+        sync();
+        window.addEventListener("brand-accent-changed", sync);
+        return () => window.removeEventListener("brand-accent-changed", sync);
+    }, [platformDefaultAccent]);
 
-        window.addEventListener("brand-accent-changed", handleAccentChange);
-        return () => window.removeEventListener("brand-accent-changed", handleAccentChange);
-    }, []);
+    const handlePersonalAccent = (color: AccentColor) => {
+        setAccentOverride(color);
+        setActiveAccent(color);
+        setFollowsPlatformAccent(false);
+        toast.success(
+            locale === "en"
+                ? `Accent color set to ${ACCENT_COLORS[color].name}`
+                : `Color de acento: ${ACCENT_COLORS[color].name}`,
+        );
+    };
+
+    const handleFollowPlatformAccent = () => {
+        clearAccentOverride(platformDefaultAccent);
+        setActiveAccent(platformDefaultAccent);
+        setFollowsPlatformAccent(true);
+        toast.success(
+            locale === "en"
+                ? "Using platform default accent"
+                : "Usando el color de acento de la plataforma",
+        );
+    };
+
+    const handleSavePlatformAccent = () => {
+        startSaving(async () => {
+            try {
+                const res = await saveSystemSettingsAction({
+                    defaultAccentColor: platformAccentDraft,
+                });
+                if (res.success) {
+                    if (!hasAccentOverride()) {
+                        clearAccentOverride(platformAccentDraft);
+                        setActiveAccent(platformAccentDraft);
+                    }
+                    toast.success(
+                        locale === "en"
+                            ? "Platform default accent saved"
+                            : "Color de acento por defecto guardado",
+                    );
+                    router.refresh();
+                }
+            } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : "Error";
+                toast.error(message);
+            }
+        });
+    };
 
     const handleSaveEntity = () => {
         if (!entityName.trim()) {
@@ -266,6 +330,7 @@ export function SettingsTabs({
 
     const platformNav: { id: PlatformSubTab; icon: typeof Server; labelEs: string; labelEn: string }[] = [
         { id: "identity", icon: Building, labelEs: "Identidad global", labelEn: "Global identity" },
+        { id: "preferences", icon: Palette, labelEs: "Preferencias", labelEn: "Preferences" },
         { id: "smtp", icon: Send, labelEs: "Diagnóstico SMTP", labelEn: "SMTP diagnostics" },
         { id: "notifications", icon: Bell, labelEs: "Alertas del sistema", labelEn: "System alerts" },
     ];
@@ -463,31 +528,39 @@ export function SettingsTabs({
                                 <div className="space-y-3">
                                     <div>
                                         <h2 className="text-lg font-semibold text-foreground">
-                                            {locale === "en" ? "Brand accent color" : "Esquema de color de la marca"}
+                                            {locale === "en" ? "Accent color" : "Color de acento"}
                                         </h2>
                                         <p className="text-xs text-muted-foreground mt-0.5">
                                             {locale === "en"
-                                                ? "Choose an accent palette for your dashboard session."
-                                                : "Selecciona un color de acento para tu sesión en el panel."}
+                                                ? "Personal preference for this browser. Leave it on the platform default, or pick your own."
+                                                : "Preferencia personal de este navegador. Puedes seguir el color de la plataforma o elegir el tuyo."}
                                         </p>
                                     </div>
-                                    <div className="flex flex-wrap gap-4 items-center pt-2">
+                                    <div className="flex flex-wrap gap-3 items-center pt-1">
+                                        <button
+                                            type="button"
+                                            onClick={handleFollowPlatformAccent}
+                                            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                                                followsPlatformAccent
+                                                    ? "border-primary bg-primary/10 text-primary ring-1 ring-primary"
+                                                    : "border-border bg-background text-foreground hover:border-primary/50"
+                                            }`}
+                                        >
+                                            <Palette className="h-3.5 w-3.5" />
+                                            {locale === "en"
+                                                ? `Platform default (${ACCENT_COLORS[platformDefaultAccent].name})`
+                                                : `De la plataforma (${ACCENT_COLORS[platformDefaultAccent].name})`}
+                                        </button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-4 items-center pt-1">
                                         {(Object.keys(ACCENT_COLORS) as AccentColor[]).map((key) => {
                                             const config = ACCENT_COLORS[key];
-                                            const isSelected = activeAccent === key;
+                                            const isSelected = !followsPlatformAccent && activeAccent === key;
                                             return (
                                                 <button
                                                     key={key}
                                                     type="button"
-                                                    onClick={() => {
-                                                        applyAccentColor(key);
-                                                        setActiveAccent(key);
-                                                        toast.success(
-                                                            locale === "en"
-                                                                ? `Accent color set to ${config.name}!`
-                                                                : `¡Color de acento: ${config.name}!`,
-                                                        );
-                                                    }}
+                                                    onClick={() => handlePersonalAccent(key)}
                                                     className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all duration-300 hover:scale-103 ${
                                                         isSelected
                                                             ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary"
@@ -710,13 +783,12 @@ export function SettingsTabs({
                             </h3>
                             <p className="mt-1 text-xs text-muted-foreground">
                                 {locale === "en"
-                                    ? "Already available: identity, public contact/socials, SMTP diagnostics, system alerts, DB backup."
-                                    : "Ya disponible: identidad, contacto/redes públicas, diagnóstico SMTP, alertas y backup BD."}
+                                    ? "Already available: identity, public contact/socials, platform accent, SMTP diagnostics, system alerts, DB backup."
+                                    : "Ya disponible: identidad, contacto/redes, acento de plataforma, diagnóstico SMTP, alertas y backup BD."}
                             </p>
                             <ul className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
                                 {(locale === "en"
                                     ? [
-                                        "Default brand accent colors (server-wide)",
                                         "Maintenance mode & announcement banner",
                                         "Legal pages (terms, privacy) URLs",
                                         "Default locale & timezone",
@@ -725,7 +797,6 @@ export function SettingsTabs({
                                         "Push notification branding title",
                                       ]
                                     : [
-                                        "Color de acento por defecto (toda la plataforma)",
                                         "Modo mantenimiento y banner de avisos",
                                         "URLs legales (términos, privacidad)",
                                         "Idioma y zona horaria por defecto",
@@ -741,6 +812,193 @@ export function SettingsTabs({
                                 ))}
                             </ul>
                         </div>
+                        </div>
+                    )}
+
+                    {section === "platform" && platformSubTab === "preferences" && initialPlatformSettings && (
+                        <div className="space-y-6">
+                            <div className="rounded-xl border border-border bg-card p-4 sm:p-6 space-y-5">
+                                <div>
+                                    <h2 className="text-lg font-semibold text-foreground">
+                                        {locale === "en"
+                                            ? "Platform default accent"
+                                            : "Color de acento por defecto (plataforma)"}
+                                    </h2>
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                        {locale === "en"
+                                            ? "Applies to all users who have not chosen a personal accent. Saved in the database."
+                                            : "Aplica a todos los usuarios que no hayan elegido un color personal. Se guarda en la base de datos."}
+                                    </p>
+                                </div>
+
+                                <div className="flex flex-wrap gap-4 items-center">
+                                    {(Object.keys(ACCENT_COLORS) as AccentColor[]).map((key) => {
+                                        const config = ACCENT_COLORS[key];
+                                        const isSelected = platformAccentDraft === key;
+                                        return (
+                                            <button
+                                                key={key}
+                                                type="button"
+                                                onClick={() => setPlatformAccentDraft(key)}
+                                                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all duration-300 hover:scale-103 ${
+                                                    isSelected
+                                                        ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary"
+                                                        : "border-border bg-background hover:border-primary/50"
+                                                }`}
+                                            >
+                                                <span
+                                                    className={`h-4.5 w-4.5 rounded-full shrink-0 flex items-center justify-center text-white text-[10px] font-bold ${config.class} shadow-inner`}
+                                                >
+                                                    {isSelected && "✓"}
+                                                </span>
+                                                <span className="text-foreground text-xs font-semibold">{config.name}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="pt-1 flex justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={handleSavePlatformAccent}
+                                        disabled={isSaving || platformAccentDraft === platformDefaultAccent}
+                                        className="w-full sm:w-auto justify-center flex items-center gap-2 rounded-lg bg-primary hover:bg-primary/95 text-primary-foreground font-semibold px-4 py-2 text-xs transition duration-200 disabled:opacity-50"
+                                    >
+                                        {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                                        {locale === "en" ? "Save platform accent" : "Guardar acento de plataforma"}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="rounded-xl border border-border bg-card p-4 sm:p-6 space-y-6">
+                                <div>
+                                    <h2 className="text-lg font-semibold text-foreground">
+                                        {locale === "en" ? "My preferences" : "Mis preferencias"}
+                                    </h2>
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                        {locale === "en"
+                                            ? "Only for this browser / session. Does not change the platform default."
+                                            : "Solo para este navegador / sesión. No cambia el valor por defecto de la plataforma."}
+                                    </p>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <p className="text-sm font-medium text-foreground">
+                                        {locale === "en" ? "Personal accent" : "Acento personal"}
+                                    </p>
+                                    <div className="flex flex-wrap gap-3 items-center">
+                                        <button
+                                            type="button"
+                                            onClick={handleFollowPlatformAccent}
+                                            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                                                followsPlatformAccent
+                                                    ? "border-primary bg-primary/10 text-primary ring-1 ring-primary"
+                                                    : "border-border bg-background text-foreground hover:border-primary/50"
+                                            }`}
+                                        >
+                                            <Palette className="h-3.5 w-3.5" />
+                                            {locale === "en"
+                                                ? `Follow platform (${ACCENT_COLORS[platformDefaultAccent].name})`
+                                                : `Seguir plataforma (${ACCENT_COLORS[platformDefaultAccent].name})`}
+                                        </button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-4 items-center">
+                                        {(Object.keys(ACCENT_COLORS) as AccentColor[]).map((key) => {
+                                            const config = ACCENT_COLORS[key];
+                                            const isSelected = !followsPlatformAccent && activeAccent === key;
+                                            return (
+                                                <button
+                                                    key={key}
+                                                    type="button"
+                                                    onClick={() => handlePersonalAccent(key)}
+                                                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all duration-300 hover:scale-103 ${
+                                                        isSelected
+                                                            ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary"
+                                                            : "border-border bg-background hover:border-primary/50"
+                                                    }`}
+                                                >
+                                                    <span
+                                                        className={`h-4.5 w-4.5 rounded-full shrink-0 flex items-center justify-center text-white text-[10px] font-bold ${config.class} shadow-inner`}
+                                                    >
+                                                        {isSelected && "✓"}
+                                                    </span>
+                                                    <span className="text-foreground text-xs font-semibold">{config.name}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <hr className="border-border" />
+
+                                <div className="space-y-3">
+                                    <p className="text-sm font-medium text-foreground">
+                                        {locale === "en" ? "App theme" : "Tema del sistema"}
+                                    </p>
+                                    <div className="flex flex-wrap gap-3 select-none">
+                                        <button
+                                            type="button"
+                                            onClick={() => setTheme("light")}
+                                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 ${
+                                                theme === "light"
+                                                    ? "border-primary bg-primary/10 text-primary"
+                                                    : "border-border bg-background text-foreground hover:bg-muted"
+                                            }`}
+                                        >
+                                            <Sun className="h-4 w-4" />
+                                            {locale === "en" ? "Light" : "Modo claro"}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setTheme("dark")}
+                                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 ${
+                                                theme === "dark"
+                                                    ? "border-primary bg-primary/10 text-primary"
+                                                    : "border-border bg-background text-foreground hover:bg-muted"
+                                            }`}
+                                        >
+                                            <Moon className="h-4 w-4" />
+                                            {locale === "en" ? "Dark" : "Modo oscuro"}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <hr className="border-border" />
+
+                                <div className="space-y-3">
+                                    <p className="text-sm font-medium text-foreground">
+                                        {locale === "en" ? "Panel language" : "Idioma de la interfaz"}
+                                    </p>
+                                    <div className="flex gap-3 select-none">
+                                        <button
+                                            type="button"
+                                            onClick={() => setLocale("es")}
+                                            disabled={isLocalePending}
+                                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 disabled:opacity-50 ${
+                                                locale === "es"
+                                                    ? "border-primary bg-primary/10 text-primary"
+                                                    : "border-border bg-background text-foreground hover:bg-muted"
+                                            }`}
+                                        >
+                                            <span>🇪🇸</span>
+                                            Español
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setLocale("en")}
+                                            disabled={isLocalePending}
+                                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 disabled:opacity-50 ${
+                                                locale === "en"
+                                                    ? "border-primary bg-primary/10 text-primary"
+                                                    : "border-border bg-background text-foreground hover:bg-muted"
+                                            }`}
+                                        >
+                                            <span>🇺🇸</span>
+                                            English
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
 

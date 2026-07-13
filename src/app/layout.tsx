@@ -75,7 +75,7 @@ export default async function RootLayout({
         />
       </head>
       <body suppressHydrationWarning className="font-sans">
-        <AccentColorInitializer />
+        <AccentColorInitializer platformDefault={brand.defaultAccentColor} />
         <PlatformBrandProvider brand={brand}>
           <LocaleProvider initialLocale={locale}>
             <AppThemeProvider>

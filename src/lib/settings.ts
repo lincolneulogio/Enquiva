@@ -5,6 +5,11 @@ import { platformSettings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { BRAND } from "@/lib/brand";
 import { normalizeHttpUrl, normalizeWhatsAppLink } from "@/lib/brand/social";
+import {
+  DEFAULT_ACCENT_COLOR,
+  isAccentColor,
+  type AccentColor,
+} from "@/lib/brand/accent";
 
 export interface SystemSettings {
   organizationName: string;
@@ -17,6 +22,8 @@ export interface SystemSettings {
   socialLinkedIn: string;
   socialWhatsApp: string;
   socialYoutube: string;
+  /** Color de acento por defecto de toda la plataforma. */
+  defaultAccentColor: AccentColor;
   alertNewPayments: boolean;
   alertTransportCapacity: boolean;
   alertDailyFinanceSummary: boolean;
@@ -37,12 +44,14 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   socialLinkedIn: "",
   socialWhatsApp: "",
   socialYoutube: "",
+  defaultAccentColor: DEFAULT_ACCENT_COLOR,
   alertNewPayments: true,
   alertTransportCapacity: true,
   alertDailyFinanceSummary: false,
 };
 
 function rowToSettings(row: typeof platformSettings.$inferSelect): SystemSettings {
+  const accent = row.defaultAccentColor;
   return {
     organizationName: row.organizationName,
     supportEmail: row.supportEmail,
@@ -54,6 +63,7 @@ function rowToSettings(row: typeof platformSettings.$inferSelect): SystemSetting
     socialLinkedIn: row.socialLinkedIn ?? "",
     socialWhatsApp: row.socialWhatsApp ?? "",
     socialYoutube: row.socialYoutube ?? "",
+    defaultAccentColor: isAccentColor(accent) ? accent : DEFAULT_ACCENT_COLOR,
     alertNewPayments: row.alertNewPayments,
     alertTransportCapacity: row.alertTransportCapacity,
     alertDailyFinanceSummary: row.alertDailyFinanceSummary,
@@ -92,6 +102,11 @@ function sanitizeSettingsPatch(settings: Partial<SystemSettings>): Partial<Syste
   }
   if (typeof next.socialWhatsApp === "string") {
     next.socialWhatsApp = normalizeWhatsAppLink(next.socialWhatsApp);
+  }
+  if (typeof next.defaultAccentColor === "string") {
+    next.defaultAccentColor = isAccentColor(next.defaultAccentColor)
+      ? next.defaultAccentColor
+      : DEFAULT_ACCENT_COLOR;
   }
 
   return next;

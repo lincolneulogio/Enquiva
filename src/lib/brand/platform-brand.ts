@@ -1,6 +1,11 @@
 import { cache } from "react";
 import { BRAND } from "@/lib/brand";
 import { getSystemSettings, type SystemSettings } from "@/lib/settings";
+import {
+  DEFAULT_ACCENT_COLOR,
+  isAccentColor,
+  type AccentColor,
+} from "@/lib/brand/accent";
 
 export type PlatformSocialLinks = {
   facebook: string;
@@ -21,6 +26,8 @@ export type PlatformBrand = {
   domain: string;
   botName: string;
   logo: typeof BRAND.logo;
+  /** Color de acento por defecto de toda la plataforma. */
+  defaultAccentColor: AccentColor;
 };
 
 export function brandFromSettings(
@@ -34,6 +41,7 @@ export function brandFromSettings(
   const contactEmail =
     (input.publicContactEmail?.trim() || supportEmail || BRAND.contactEmail).trim();
 
+  const accent = input.defaultAccentColor;
   return {
     name,
     supportEmail,
@@ -50,6 +58,7 @@ export function brandFromSettings(
     domain: BRAND.domain,
     botName: `${name.replace(/\s+/g, "")}Bot`,
     logo: BRAND.logo,
+    defaultAccentColor: isAccentColor(accent) ? accent : DEFAULT_ACCENT_COLOR,
   };
 }
 

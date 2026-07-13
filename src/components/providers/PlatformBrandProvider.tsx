@@ -20,6 +20,7 @@ const defaultBrand: PlatformBrand = {
   domain: BRAND.domain,
   botName: BRAND.botName,
   logo: BRAND.logo,
+  defaultAccentColor: "amber",
 };
 
 const PlatformBrandContext = createContext<PlatformBrand>(defaultBrand);
