@@ -3795,6 +3795,8 @@ export function translateNotification(
         case "subscription_alert":
             if (title === "Your plan expires soon") {
                 translatedTitle = "Tu plan vence pronto";
+            } else if (title === "Past-due subscription" || title === "Suscripción en mora") {
+                translatedTitle = "Suscripción en mora";
             }
             break;
 

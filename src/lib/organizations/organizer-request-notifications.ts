@@ -3,7 +3,8 @@ import { db } from "@/lib/db";
 import { users, type Organization } from "@/lib/db/schema";
 import { sendOrganizerRequestAdminEmail } from "@/lib/mail";
 import type { MailLocale } from "@/lib/mail/locale-strings";
-import { NotificationService } from "@/lib/notifications/notification.service";
+import { NotificationService, type NotificationPayload } from "@/lib/notifications/notification.service";
+import { getSuperAdminUserIds } from "@/lib/notifications/notification-targets";
 
 export async function notifyEntityAdminOfOrganizerRequest(input: {
   org: Organization;
@@ -21,19 +22,36 @@ export async function notifyEntityAdminOfOrganizerRequest(input: {
 
   const title = "Nueva solicitud de organizador";
   const message = `${input.requesterName} (${input.requesterEmail}) solicitó unirse a ${input.org.name} como organizador.`;
+  const metadata = {
+    organizationId: input.org.id,
+    organizationName: input.org.name,
+    requesterEmail: input.requesterEmail,
+    requesterName: input.requesterName,
+  };
 
-  await NotificationService.create({
-    userId: adminUser.id,
-    type: "organizer_request",
-    title,
-    message,
-    metadata: {
-      organizationId: input.org.id,
-      organizationName: input.org.name,
-      requesterEmail: input.requesterEmail,
-      requesterName: input.requesterName,
+  const payloads: NotificationPayload[] = [
+    {
+      userId: adminUser.id,
+      type: "organizer_request",
+      title,
+      message,
+      metadata,
     },
-  });
+  ];
+
+  const superAdminIds = await getSuperAdminUserIds({ requireAlert: "alertOrganizerRequests" });
+  for (const userId of superAdminIds) {
+    if (userId === adminUser.id) continue;
+    payloads.push({
+      userId,
+      type: "organizer_request",
+      title,
+      message,
+      metadata,
+    });
+  }
+
+  await NotificationService.createMany(payloads);
 
   await sendOrganizerRequestAdminEmail({
     email: adminUser.email,

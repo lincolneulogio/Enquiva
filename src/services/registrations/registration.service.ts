@@ -8,7 +8,7 @@ import {
   transportBookings,
   accounts,
 } from "@/lib/db/schema";
-import { eq, and, inArray, sql, desc, or, count } from "drizzle-orm";
+import { eq, and, inArray, sql, desc, count } from "drizzle-orm";
 import { verifyPassword } from "better-auth/crypto";
 import crypto from "crypto";
 import {
@@ -395,21 +395,14 @@ export class RegistrationService {
         recipientIds.add(event.organizerId);
       }
 
-      const staffUsers = await tx
-        .select({ id: users.id })
-        .from(users)
-        .where(
-          or(
-            event.organizationId
-              ? and(eq(users.role, "admin"), eq(users.organizationId, event.organizationId))
-              : sql`false`,
-            eq(users.role, "super_admin"),
-          ),
-        );
-
-      for (const staffUser of staffUsers) {
-        if (staffUser.id !== attendee.id) recipientIds.add(staffUser.id);
-      }
+      const { getEntityStaffUserIds } = await import("@/lib/notifications/notification-targets");
+      const staffIds = await getEntityStaffUserIds({
+        organizationId: event.organizationId,
+        organizerId: null,
+        excludeUserId: attendee.id,
+        superAdminAlert: "alertNewRegistrations",
+      });
+      for (const id of staffIds) recipientIds.add(id);
 
       for (const recipientId of recipientIds) {
         notificationPayloads.push({

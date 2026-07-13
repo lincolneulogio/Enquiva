@@ -165,23 +165,51 @@ export class EventService {
 
     if (existing.status !== "published" && updated.status === "published") {
       runBackground(async () => {
-        if (!updated.organizationId) return;
+        const { getSuperAdminUserIds } = await import("@/lib/notifications/notification-targets");
+        const payloads: import("@/lib/notifications/notification.service").NotificationPayload[] = [];
 
-        const [org] = await db
-          .select({ ownerId: organizations.ownerId, name: organizations.name })
-          .from(organizations)
-          .where(eq(organizations.id, updated.organizationId))
-          .limit(1);
+        if (updated.organizationId) {
+          const [org] = await db
+            .select({ ownerId: organizations.ownerId, name: organizations.name })
+            .from(organizations)
+            .where(eq(organizations.id, updated.organizationId))
+            .limit(1);
 
-        if (!org || org.ownerId === userId) return;
+          if (org && org.ownerId !== userId) {
+            payloads.push({
+              userId: org.ownerId,
+              type: "event_published",
+              title: "Nuevo evento publicado",
+              message: `Se publicó el evento "${updated.title}" en ${org.name}.`,
+              metadata: {
+                eventId: updated.id,
+                eventTitle: updated.title,
+                organizationId: updated.organizationId,
+              },
+            });
+          }
+        }
 
-        await NotificationService.create({
-          userId: org.ownerId,
-          type: "event_published",
-          title: "Nuevo evento publicado",
-          message: `Se publicó el evento "${updated.title}" en ${org.name}.`,
-          metadata: { eventId: updated.id, eventTitle: updated.title, organizationId: updated.organizationId },
-        });
+        const superAdminIds = await getSuperAdminUserIds({ requireAlert: "alertEventPublished" });
+        for (const saId of superAdminIds) {
+          if (saId === userId) continue;
+          if (payloads.some((p) => p.userId === saId)) continue;
+          payloads.push({
+            userId: saId,
+            type: "event_published",
+            title: "Nuevo evento publicado",
+            message: `Se publicó el evento "${updated.title}".`,
+            metadata: {
+              eventId: updated.id,
+              eventTitle: updated.title,
+              organizationId: updated.organizationId ?? null,
+            },
+          });
+        }
+
+        if (payloads.length > 0) {
+          await NotificationService.createMany(payloads);
+        }
       });
     }
 

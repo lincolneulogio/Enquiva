@@ -180,6 +180,11 @@ export class SubscriptionRenewalService {
             .set({ status: "past_due", updatedAt: now })
             .where(eq(subscriptions.id, subscription.id));
           markedPastDue += 1;
+          await notifySuperAdminsSubscriptionPastDue({
+            userId: subscription.userId,
+            planName: plan.name,
+            subscriptionId: subscription.id,
+          });
         }
         continue;
       }
@@ -190,11 +195,53 @@ export class SubscriptionRenewalService {
           .set({ status: "past_due", updatedAt: now })
           .where(eq(subscriptions.id, subscription.id));
         markedPastDue += 1;
+        await notifySuperAdminsSubscriptionPastDue({
+          userId: subscription.userId,
+          planName: plan.name,
+          subscriptionId: subscription.id,
+        });
       }
     }
 
     return { autoRenewed, autoRenewAttempts, markedPastDue };
   }
+}
+
+async function notifySuperAdminsSubscriptionPastDue(input: {
+  userId: string;
+  planName: string;
+  subscriptionId: string;
+}) {
+  const { getSuperAdminUserIds } = await import("@/lib/notifications/notification-targets");
+  const { NotificationService } = await import("@/lib/notifications/notification.service");
+
+  const recipientIds = await getSuperAdminUserIds({ requireAlert: "alertSubscriptionPastDue" });
+  if (recipientIds.length === 0) return;
+
+  const [user] = await db
+    .select({ name: users.name, email: users.email })
+    .from(users)
+    .where(eq(users.id, input.userId))
+    .limit(1);
+
+  const who = user?.name || user?.email || input.userId;
+  const title = "Suscripción en mora";
+  const message = `${who} — plan ${input.planName} pasó a past_due.`;
+
+  await NotificationService.createMany(
+    recipientIds.map((userId) => ({
+      userId,
+      type: "subscription_alert" as const,
+      title,
+      message,
+      metadata: {
+        subscriptionId: input.subscriptionId,
+        planName: input.planName,
+        subscriberUserId: input.userId,
+        alert: "past_due",
+      },
+    })),
+  );
 }
 
 export function clearRenewalTrackingFields() {

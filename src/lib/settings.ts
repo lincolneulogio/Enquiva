@@ -69,7 +69,11 @@ export interface SystemSettings {
    */
   pushNotificationTitle: string;
   alertNewPayments: boolean;
+  alertNewRegistrations: boolean;
   alertTransportCapacity: boolean;
+  alertOrganizerRequests: boolean;
+  alertEventPublished: boolean;
+  alertSubscriptionPastDue: boolean;
   alertDailyFinanceSummary: boolean;
 }
 
@@ -108,7 +112,11 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   smtpPasswordSet: false,
   pushNotificationTitle: "",
   alertNewPayments: true,
+  alertNewRegistrations: true,
   alertTransportCapacity: true,
+  alertOrganizerRequests: true,
+  alertEventPublished: true,
+  alertSubscriptionPastDue: true,
   alertDailyFinanceSummary: false,
 };
 
@@ -147,7 +155,11 @@ function rowToSettings(row: typeof platformSettings.$inferSelect): SystemSetting
     smtpPasswordSet: Boolean(row.smtpPassEncrypted?.trim()),
     pushNotificationTitle: row.pushNotificationTitle ?? "",
     alertNewPayments: row.alertNewPayments,
+    alertNewRegistrations: row.alertNewRegistrations !== false,
     alertTransportCapacity: row.alertTransportCapacity,
+    alertOrganizerRequests: row.alertOrganizerRequests !== false,
+    alertEventPublished: row.alertEventPublished !== false,
+    alertSubscriptionPastDue: row.alertSubscriptionPastDue !== false,
     alertDailyFinanceSummary: row.alertDailyFinanceSummary,
   };
 }
@@ -274,7 +286,11 @@ function toDbRow(
     smtpFromName: settings.smtpFromName,
     pushNotificationTitle: settings.pushNotificationTitle,
     alertNewPayments: settings.alertNewPayments,
+    alertNewRegistrations: settings.alertNewRegistrations,
     alertTransportCapacity: settings.alertTransportCapacity,
+    alertOrganizerRequests: settings.alertOrganizerRequests,
+    alertEventPublished: settings.alertEventPublished,
+    alertSubscriptionPastDue: settings.alertSubscriptionPastDue,
     alertDailyFinanceSummary: settings.alertDailyFinanceSummary,
   };
 }

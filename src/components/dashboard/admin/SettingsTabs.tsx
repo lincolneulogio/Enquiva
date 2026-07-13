@@ -8,8 +8,9 @@ import { toast } from "sonner";
 import {
     User, Mail, Shield, Globe, Sun, Moon,
     Send, Bell, Building, Save, Loader2,
-    Wifi, WifiOff, RefreshCw, Users, Copy, Server, Palette,
+    Wifi, WifiOff, RefreshCw,     Users, Copy, Server, Palette,
     Wrench, Megaphone, Clock,
+    CreditCard, Bus, Wallet, Ticket, UserPlus, CalendarDays, AlertTriangle,
 } from "lucide-react";
 import {
     saveSystemSettingsAction,
@@ -103,7 +104,11 @@ export function SettingsTabs({
             privacyUrl: initialPlatformSettings?.privacyUrl ?? "",
             pushNotificationTitle: initialPlatformSettings?.pushNotificationTitle ?? "",
             alertPayments: initialPlatformSettings?.alertNewPayments ?? true,
+            alertRegistrations: initialPlatformSettings?.alertNewRegistrations ?? true,
             alertTransport: initialPlatformSettings?.alertTransportCapacity ?? true,
+            alertOrganizerRequests: initialPlatformSettings?.alertOrganizerRequests ?? true,
+            alertEventPublished: initialPlatformSettings?.alertEventPublished ?? true,
+            alertSubscriptionPastDue: initialPlatformSettings?.alertSubscriptionPastDue ?? true,
             alertFinance: initialPlatformSettings?.alertDailyFinanceSummary ?? false,
             testEmail: "",
         },
@@ -124,7 +129,11 @@ export function SettingsTabs({
         privacyUrl,
         pushNotificationTitle,
         alertPayments,
+        alertRegistrations,
         alertTransport,
+        alertOrganizerRequests,
+        alertEventPublished,
+        alertSubscriptionPastDue,
         alertFinance,
         testEmail,
     } = settingsDraft;
@@ -421,7 +430,11 @@ export function SettingsTabs({
                 const res = await saveSystemSettingsAction({
                     pushNotificationTitle: (pushNotificationTitle ?? "").trim().slice(0, 64),
                     alertNewPayments: alertPayments,
+                    alertNewRegistrations: alertRegistrations,
                     alertTransportCapacity: alertTransport,
+                    alertOrganizerRequests: alertOrganizerRequests,
+                    alertEventPublished: alertEventPublished,
+                    alertSubscriptionPastDue: alertSubscriptionPastDue,
                     alertDailyFinanceSummary: alertFinance,
                 });
                 if (res.success) {
@@ -1845,57 +1858,192 @@ export function SettingsTabs({
                                 </h2>
                                 <p className="text-xs text-muted-foreground mt-0.5">
                                     {locale === "en"
-                                        ? "Platform-wide notifications for super administrators."
-                                        : "Notificaciones globales de la plataforma para superadministradores."}
+                                        ? "Choose which platform events notify super administrators. Each alert type uses its own color."
+                                        : "Elige qué eventos de plataforma notifican a los superadministradores. Cada tipo tiene su color."}
                                 </p>
                             </div>
 
-                            <div className="space-y-4">
-                                {[
-                                    {
-                                        checked: alertPayments,
-                                        onChange: () => setSettingsValue("alertPayments", !alertPayments),
-                                        titleEs: "Registro de nuevos pagos",
-                                        titleEn: "New payments uploaded",
-                                        descEs: "Aviso cuando un asistente suba un comprobante de pago manual.",
-                                        descEn: "Alert when an attendee uploads a manual payment receipt.",
-                                    },
-                                    {
-                                        checked: alertTransport,
-                                        onChange: () => setSettingsValue("alertTransport", !alertTransport),
-                                        titleEs: "Aforo crítico de transporte (90%)",
-                                        titleEn: "Transport route occupancy (90%)",
-                                        descEs: "Alerta cuando una ruta alcance el 90% de capacidad.",
-                                        descEn: "Alert when a route reaches 90% capacity.",
-                                    },
-                                    {
-                                        checked: alertFinance,
-                                        onChange: () => setSettingsValue("alertFinance", !alertFinance),
-                                        titleEs: "Resumen financiero diario",
-                                        titleEn: "Daily financial summary",
-                                        descEs:
-                                            "Al inicio del día (zona horaria de plataforma) envía a superadmins el balance del día anterior: eventos + SaaS.",
-                                        descEn:
-                                            "At the start of the day (platform timezone) sends super admins yesterday's balance: events + SaaS.",
-                                    },
-                                ].map((alert) => (
+                            <div className="space-y-3">
+                                {(
+                                    [
+                                        {
+                                            key: "payments",
+                                            checked: alertPayments,
+                                            onChange: () => setSettingsValue("alertPayments", !alertPayments),
+                                            Icon: CreditCard,
+                                            tone: {
+                                                row: "border-emerald-500/25 bg-emerald-500/[0.06]",
+                                                icon: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+                                                toggleOn: "bg-emerald-600",
+                                                chip: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+                                            },
+                                            chipEs: "Pagos",
+                                            chipEn: "Payments",
+                                            titleEs: "Nuevos pagos de eventos",
+                                            titleEn: "New event payments",
+                                            descEs:
+                                                "Aviso cuando se registre un pago de entrada o transporte (Culqi, efectivo u otros medios).",
+                                            descEn:
+                                                "Alert when a ticket or transport payment is registered (Culqi, cash, or other methods).",
+                                        },
+                                        {
+                                            key: "registrations",
+                                            checked: alertRegistrations,
+                                            onChange: () =>
+                                                setSettingsValue("alertRegistrations", !alertRegistrations),
+                                            Icon: Ticket,
+                                            tone: {
+                                                row: "border-violet-500/25 bg-violet-500/[0.06]",
+                                                icon: "bg-violet-500/15 text-violet-700 dark:text-violet-300",
+                                                toggleOn: "bg-violet-600",
+                                                chip: "bg-violet-500/15 text-violet-700 dark:text-violet-300",
+                                            },
+                                            chipEs: "Registros",
+                                            chipEn: "Registrations",
+                                            titleEs: "Nuevos registros",
+                                            titleEn: "New registrations",
+                                            descEs: "Aviso cuando un asistente se inscriba en un evento.",
+                                            descEn: "Alert when an attendee registers for an event.",
+                                        },
+                                        {
+                                            key: "transport",
+                                            checked: alertTransport,
+                                            onChange: () => setSettingsValue("alertTransport", !alertTransport),
+                                            Icon: Bus,
+                                            tone: {
+                                                row: "border-sky-500/25 bg-sky-500/[0.06]",
+                                                icon: "bg-sky-500/15 text-sky-700 dark:text-sky-300",
+                                                toggleOn: "bg-sky-600",
+                                                chip: "bg-sky-500/15 text-sky-700 dark:text-sky-300",
+                                            },
+                                            chipEs: "Transporte",
+                                            chipEn: "Transport",
+                                            titleEs: "Aforo crítico de transporte (90%)",
+                                            titleEn: "Transport route occupancy (90%)",
+                                            descEs: "Alerta cuando una ruta alcance el 90% de capacidad.",
+                                            descEn: "Alert when a route reaches 90% capacity.",
+                                        },
+                                        {
+                                            key: "organizers",
+                                            checked: alertOrganizerRequests,
+                                            onChange: () =>
+                                                setSettingsValue(
+                                                    "alertOrganizerRequests",
+                                                    !alertOrganizerRequests,
+                                                ),
+                                            Icon: UserPlus,
+                                            tone: {
+                                                row: "border-orange-500/25 bg-orange-500/[0.06]",
+                                                icon: "bg-orange-500/15 text-orange-700 dark:text-orange-300",
+                                                toggleOn: "bg-orange-600",
+                                                chip: "bg-orange-500/15 text-orange-700 dark:text-orange-300",
+                                            },
+                                            chipEs: "Equipo",
+                                            chipEn: "Team",
+                                            titleEs: "Solicitudes de organizador",
+                                            titleEn: "Organizer join requests",
+                                            descEs:
+                                                "Copia a superadmins cuando alguien pide unirse a una entidad como organizador.",
+                                            descEn:
+                                                "Also notify super admins when someone requests to join an entity as organizer.",
+                                        },
+                                        {
+                                            key: "events",
+                                            checked: alertEventPublished,
+                                            onChange: () =>
+                                                setSettingsValue("alertEventPublished", !alertEventPublished),
+                                            Icon: CalendarDays,
+                                            tone: {
+                                                row: "border-blue-500/25 bg-blue-500/[0.06]",
+                                                icon: "bg-blue-500/15 text-blue-700 dark:text-blue-300",
+                                                toggleOn: "bg-blue-600",
+                                                chip: "bg-blue-500/15 text-blue-700 dark:text-blue-300",
+                                            },
+                                            chipEs: "Eventos",
+                                            chipEn: "Events",
+                                            titleEs: "Eventos publicados",
+                                            titleEn: "Events published",
+                                            descEs: "Aviso de plataforma cuando se publica un evento nuevo.",
+                                            descEn: "Platform alert when a new event is published.",
+                                        },
+                                        {
+                                            key: "subscriptions",
+                                            checked: alertSubscriptionPastDue,
+                                            onChange: () =>
+                                                setSettingsValue(
+                                                    "alertSubscriptionPastDue",
+                                                    !alertSubscriptionPastDue,
+                                                ),
+                                            Icon: AlertTriangle,
+                                            tone: {
+                                                row: "border-rose-500/25 bg-rose-500/[0.06]",
+                                                icon: "bg-rose-500/15 text-rose-700 dark:text-rose-300",
+                                                toggleOn: "bg-rose-600",
+                                                chip: "bg-rose-500/15 text-rose-700 dark:text-rose-300",
+                                            },
+                                            chipEs: "SaaS",
+                                            chipEn: "SaaS",
+                                            titleEs: "Suscripciones en mora",
+                                            titleEn: "Past-due subscriptions",
+                                            descEs:
+                                                "Alerta operativa cuando un plan de organizador pasa a past_due.",
+                                            descEn:
+                                                "Ops alert when an organizer plan becomes past_due.",
+                                        },
+                                        {
+                                            key: "finance",
+                                            checked: alertFinance,
+                                            onChange: () => setSettingsValue("alertFinance", !alertFinance),
+                                            Icon: Wallet,
+                                            tone: {
+                                                row: "border-amber-500/25 bg-amber-500/[0.06]",
+                                                icon: "bg-amber-500/15 text-amber-800 dark:text-amber-300",
+                                                toggleOn: "bg-amber-600",
+                                                chip: "bg-amber-500/15 text-amber-800 dark:text-amber-300",
+                                            },
+                                            chipEs: "Finanzas",
+                                            chipEn: "Finance",
+                                            titleEs: "Resumen financiero diario",
+                                            titleEn: "Daily financial summary",
+                                            descEs:
+                                                "Al inicio del día (zona horaria de plataforma) envía el balance del día anterior: eventos + SaaS.",
+                                            descEn:
+                                                "At the start of the day (platform timezone) sends yesterday's balance: events + SaaS.",
+                                        },
+                                    ] as const
+                                ).map((alert) => (
                                     <div
-                                        key={alert.titleEn}
-                                        className="flex items-start sm:items-center justify-between p-4 rounded-xl border border-border bg-muted/10"
+                                        key={alert.key}
+                                        className={`flex items-start sm:items-center justify-between gap-3 rounded-xl border p-4 transition-colors ${alert.tone.row}`}
                                     >
-                                        <div className="space-y-0.5 pr-4">
-                                            <p className="text-sm font-semibold text-foreground">
-                                                {locale === "en" ? alert.titleEn : alert.titleEs}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {locale === "en" ? alert.descEn : alert.descEs}
-                                            </p>
+                                        <div className="flex min-w-0 flex-1 items-start gap-3">
+                                            <div
+                                                className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${alert.tone.icon}`}
+                                            >
+                                                <alert.Icon className="h-4 w-4" />
+                                            </div>
+                                            <div className="min-w-0 space-y-1 pr-1">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <p className="text-sm font-semibold text-foreground">
+                                                        {locale === "en" ? alert.titleEn : alert.titleEs}
+                                                    </p>
+                                                    <span
+                                                        className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${alert.tone.chip}`}
+                                                    >
+                                                        {locale === "en" ? alert.chipEn : alert.chipEs}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {locale === "en" ? alert.descEn : alert.descEs}
+                                                </p>
+                                            </div>
                                         </div>
                                         <button
                                             type="button"
                                             onClick={alert.onChange}
+                                            aria-pressed={alert.checked}
                                             className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                                                alert.checked ? "bg-primary" : "bg-muted-foreground/30"
+                                                alert.checked ? alert.tone.toggleOn : "bg-muted-foreground/30"
                                             }`}
                                         >
                                             <span

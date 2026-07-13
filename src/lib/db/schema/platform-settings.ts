@@ -45,7 +45,11 @@ export const platformSettings = pgTable("platform_settings", {
   /** Título de marca en notificaciones push web (vacío = nombre de organización). */
   pushNotificationTitle: text("push_notification_title").notNull().default(""),
   alertNewPayments: boolean("alert_new_payments").notNull().default(true),
+  alertNewRegistrations: boolean("alert_new_registrations").notNull().default(true),
   alertTransportCapacity: boolean("alert_transport_capacity").notNull().default(true),
+  alertOrganizerRequests: boolean("alert_organizer_requests").notNull().default(true),
+  alertEventPublished: boolean("alert_event_published").notNull().default(true),
+  alertSubscriptionPastDue: boolean("alert_subscription_past_due").notNull().default(true),
   alertDailyFinanceSummary: boolean("alert_daily_finance_summary").notNull().default(false),
   updatedBy: text("updated_by").references(() => users.id, { onDelete: "set null" }),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

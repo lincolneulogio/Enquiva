@@ -177,6 +177,7 @@ export class PaymentService {
           organizationId: event.organizationId,
           organizerId: event.organizerId,
           excludeUserId: userId,
+          superAdminAlert: "alertNewPayments",
         })
       : [];
 

@@ -1,13 +1,35 @@
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { and, eq, inArray } from "drizzle-orm";
-import { getSystemSettings } from "@/lib/settings";
+import { and, eq } from "drizzle-orm";
+import { getSystemSettings, type SystemSettings } from "@/lib/settings";
 
-/** Super admins de plataforma (opcionalmente solo si alertas de pagos están activas). */
-export async function getSuperAdminUserIds(options?: { requirePaymentAlerts?: boolean }) {
-  if (options?.requirePaymentAlerts) {
+/** Flags de alertas de plataforma que pueden condicionar notificaciones a superadmins. */
+export type PlatformAlertFlag = keyof Pick<
+  SystemSettings,
+  | "alertNewPayments"
+  | "alertNewRegistrations"
+  | "alertTransportCapacity"
+  | "alertOrganizerRequests"
+  | "alertEventPublished"
+  | "alertSubscriptionPastDue"
+  | "alertDailyFinanceSummary"
+>;
+
+/** Super admins de plataforma (opcionalmente filtrados por un toggle de alertas). */
+export async function getSuperAdminUserIds(options?: {
+  requireAlert?: PlatformAlertFlag;
+  /** @deprecated usa requireAlert: "alertNewPayments" */
+  requirePaymentAlerts?: boolean;
+}) {
+  const flag: PlatformAlertFlag | undefined = options?.requireAlert
+    ? options.requireAlert
+    : options?.requirePaymentAlerts
+      ? "alertNewPayments"
+      : undefined;
+
+  if (flag) {
     const settings = await getSystemSettings();
-    if (!settings.alertNewPayments) return [];
+    if (!settings[flag]) return [];
   }
 
   const rows = await db
@@ -18,11 +40,19 @@ export async function getSuperAdminUserIds(options?: { requirePaymentAlerts?: bo
   return rows.map((row) => row.id);
 }
 
-/** Administrador de entidad y super admins con alcance sobre la organización. */
+/**
+ * Staff de entidad (organizador + admins de org).
+ * Los superadmins solo se incluyen si `includeSuperAdmins` es true (default)
+ * o si pasas `superAdminAlert` y el toggle está activo.
+ */
 export async function getEntityStaffUserIds(input: {
   organizationId: string | null | undefined;
   organizerId: string | null | undefined;
   excludeUserId?: string;
+  /** Incluir todos los superadmins sin mirar toggles. Default true (compat). */
+  includeSuperAdmins?: boolean;
+  /** Si se indica, solo añade superadmins cuando ese toggle está ON. */
+  superAdminAlert?: PlatformAlertFlag;
 }) {
   const recipientIds = new Set<string>();
 
@@ -41,7 +71,13 @@ export async function getEntityStaffUserIds(input: {
     }
   }
 
-  const superAdmins = await getSuperAdminUserIds();
+  const includeAllSuperAdmins = input.includeSuperAdmins !== false && !input.superAdminAlert;
+  const superAdmins = includeAllSuperAdmins
+    ? await getSuperAdminUserIds()
+    : input.superAdminAlert
+      ? await getSuperAdminUserIds({ requireAlert: input.superAdminAlert })
+      : [];
+
   for (const id of superAdmins) {
     if (id !== input.excludeUserId) recipientIds.add(id);
   }
