@@ -7,6 +7,21 @@ export function normalizeHttpUrl(raw: string | null | undefined): string {
   return `https://${value}`;
 }
 
+/**
+ * URL legal: ruta interna (`/terms`) o URL absoluta.
+ * Vacío → "".
+ */
+export function normalizeLegalUrl(raw: string | null | undefined): string {
+  const value = (raw ?? "").trim();
+  if (!value) return "";
+  if (value.startsWith("/")) {
+    // Solo path relativo seguro (sin scheme ni //…).
+    if (value.startsWith("//") || value.includes("://")) return "";
+    return value.split(/[?#]/)[0] || "/";
+  }
+  return normalizeHttpUrl(value);
+}
+
 /** WhatsApp: URL completa, wa.me, o número (ej. +51999… / 51999…). */
 export function normalizeWhatsAppLink(raw: string | null | undefined): string {
   const value = (raw ?? "").trim();

@@ -28,6 +28,8 @@ export type PlatformBrand = {
   logo: typeof BRAND.logo;
   /** Color de acento por defecto de toda la plataforma. */
   defaultAccentColor: AccentColor;
+  termsUrl: string;
+  privacyUrl: string;
 };
 
 export function brandFromSettings(
@@ -59,6 +61,8 @@ export function brandFromSettings(
     botName: `${name.replace(/\s+/g, "")}Bot`,
     logo: BRAND.logo,
     defaultAccentColor: isAccentColor(accent) ? accent : DEFAULT_ACCENT_COLOR,
+    termsUrl: (input.termsUrl ?? "").trim(),
+    privacyUrl: (input.privacyUrl ?? "").trim(),
   };
 }
 

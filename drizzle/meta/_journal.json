@@ -64,6 +64,13 @@
       "when": 1774200000000,
       "tag": "0008_platform_maintenance_banner",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1774300000000,
+      "tag": "0009_platform_legal_urls",
+      "breakpoints": true
     }
   ]
 }

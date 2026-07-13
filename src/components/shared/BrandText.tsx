@@ -116,3 +116,110 @@ export function PublicContactBlock({
     </div>
   );
 }
+
+function legalHrefProps(href: string) {
+  const external = /^https?:\/\//i.test(href);
+  return external
+    ? { href, target: "_blank" as const, rel: "noopener noreferrer" }
+    : { href };
+}
+
+/** Enlaces legales configurados por Superadmin (footer / registro). */
+export function LegalLinks({
+  className,
+  separator = "·",
+  termsLabel = "Términos",
+  privacyLabel = "Privacidad",
+}: {
+  className?: string;
+  separator?: string;
+  termsLabel?: string;
+  privacyLabel?: string;
+}) {
+  const { termsUrl, privacyUrl } = usePlatformBrand();
+  const items: { href: string; label: string }[] = [];
+  if (termsUrl) items.push({ href: termsUrl, label: termsLabel });
+  if (privacyUrl) items.push({ href: privacyUrl, label: privacyLabel });
+  if (items.length === 0) return null;
+
+  return (
+    <nav
+      aria-label="Legal"
+      className={className ?? "inline-flex flex-wrap items-center gap-x-2 gap-y-1"}
+    >
+      {items.map((item, index) => (
+        <span key={item.href} className="inline-flex items-center gap-x-2">
+          {index > 0 ? (
+            <span className="text-muted-foreground/70" aria-hidden>
+              {separator}
+            </span>
+          ) : null}
+          <a
+            {...legalHrefProps(item.href)}
+            className="transition-colors hover:text-foreground underline-offset-2 hover:underline"
+          >
+            {item.label}
+          </a>
+        </span>
+      ))}
+    </nav>
+  );
+}
+
+/** Aviso de registro con enlaces a términos / privacidad cuando existen. */
+export function AuthTermsNotice({
+  locale = "es",
+  className,
+}: {
+  locale?: "es" | "en";
+  className?: string;
+}) {
+  const { termsUrl, privacyUrl } = usePlatformBrand();
+  const hasTerms = Boolean(termsUrl);
+  const hasPrivacy = Boolean(privacyUrl);
+  const en = locale === "en";
+
+  if (!hasTerms && !hasPrivacy) {
+    return (
+      <p className={className}>
+        {en
+          ? "By creating an account, you agree to our terms of service and privacy policy."
+          : "Al crear una cuenta, aceptas nuestros términos de servicio y política de privacidad."}
+      </p>
+    );
+  }
+
+  const termsLink = hasTerms ? (
+    <a
+      {...legalHrefProps(termsUrl)}
+      className="font-medium text-foreground underline-offset-2 hover:underline"
+    >
+      {en ? "terms of service" : "términos de servicio"}
+    </a>
+  ) : (
+    <span>{en ? "terms of service" : "términos de servicio"}</span>
+  );
+
+  const privacyLink = hasPrivacy ? (
+    <a
+      {...legalHrefProps(privacyUrl)}
+      className="font-medium text-foreground underline-offset-2 hover:underline"
+    >
+      {en ? "privacy policy" : "política de privacidad"}
+    </a>
+  ) : null;
+
+  return (
+    <p className={className}>
+      {en ? "By creating an account, you agree to our " : "Al crear una cuenta, aceptas nuestros "}
+      {termsLink}
+      {privacyLink ? (
+        <>
+          {en ? " and " : " y "}
+          {privacyLink}
+        </>
+      ) : null}
+      .
+    </p>
+  );
+}

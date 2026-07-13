@@ -26,6 +26,9 @@ export const platformSettings = pgTable("platform_settings", {
   /** info | warning | critical */
   announcementSeverity: text("announcement_severity").notNull().default("info"),
   announcementDismissible: boolean("announcement_dismissible").notNull().default(true),
+  /** URLs legales (http(s) o ruta relativa tipo /terms). */
+  termsUrl: text("terms_url").notNull().default(""),
+  privacyUrl: text("privacy_url").notNull().default(""),
   alertNewPayments: boolean("alert_new_payments").notNull().default(true),
   alertTransportCapacity: boolean("alert_transport_capacity").notNull().default(true),
   alertDailyFinanceSummary: boolean("alert_daily_finance_summary").notNull().default(false),

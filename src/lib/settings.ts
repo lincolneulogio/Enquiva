@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { platformSettings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { BRAND } from "@/lib/brand";
-import { normalizeHttpUrl, normalizeWhatsAppLink } from "@/lib/brand/social";
+import { normalizeHttpUrl, normalizeLegalUrl, normalizeWhatsAppLink } from "@/lib/brand/social";
 import {
   DEFAULT_ACCENT_COLOR,
   isAccentColor,
@@ -39,6 +39,10 @@ export interface SystemSettings {
   announcementMessage: string;
   announcementSeverity: AnnouncementSeverity;
   announcementDismissible: boolean;
+  /** URL o ruta de términos de servicio. */
+  termsUrl: string;
+  /** URL o ruta de política de privacidad. */
+  privacyUrl: string;
   alertNewPayments: boolean;
   alertTransportCapacity: boolean;
   alertDailyFinanceSummary: boolean;
@@ -66,6 +70,8 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   announcementMessage: "",
   announcementSeverity: "info",
   announcementDismissible: true,
+  termsUrl: "",
+  privacyUrl: "",
   alertNewPayments: true,
   alertTransportCapacity: true,
   alertDailyFinanceSummary: false,
@@ -93,6 +99,8 @@ function rowToSettings(row: typeof platformSettings.$inferSelect): SystemSetting
       ? row.announcementSeverity
       : "info",
     announcementDismissible: row.announcementDismissible !== false,
+    termsUrl: row.termsUrl ?? "",
+    privacyUrl: row.privacyUrl ?? "",
     alertNewPayments: row.alertNewPayments,
     alertTransportCapacity: row.alertTransportCapacity,
     alertDailyFinanceSummary: row.alertDailyFinanceSummary,
@@ -156,6 +164,12 @@ function sanitizeSettingsPatch(settings: Partial<SystemSettings>): Partial<Syste
   }
   if (typeof next.announcementDismissible === "boolean") {
     next.announcementDismissible = next.announcementDismissible;
+  }
+  if (typeof next.termsUrl === "string") {
+    next.termsUrl = normalizeLegalUrl(next.termsUrl);
+  }
+  if (typeof next.privacyUrl === "string") {
+    next.privacyUrl = normalizeLegalUrl(next.privacyUrl);
   }
 
   return next;

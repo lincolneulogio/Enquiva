@@ -10,10 +10,11 @@ import { getAuthErrorKind, getAuthErrorMessage, getValidationMessage } from "@/l
 import { signUpSchema, buildSignupPayload, type SignUpInput } from "@/lib/validations";
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2, Calendar, Users, Building2 } from "lucide-react";
-import { useTranslations } from "@/components/providers/LocaleProvider";
+import { useTranslations, useLocale } from "@/components/providers/LocaleProvider";
 import { cn } from "@/lib/utils";
 import { useFormPersistence } from "@/hooks/useFormPersistence";
 import { formStorageKey } from "@/lib/form-persistence";
+import { AuthTermsNotice } from "@/components/shared/BrandText";
 
 const ACCOUNT_TYPES = [
   {
@@ -42,6 +43,7 @@ const inputClassName =
 export function RegisterForm() {
   const router = useRouter();
   const t = useTranslations();
+  const { locale } = useLocale();
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -376,7 +378,10 @@ export function RegisterForm() {
         {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("auth.createAccount")}
       </button>
 
-      <p className="text-center text-xs text-muted-foreground">{t("auth.termsNotice")}</p>
+      <AuthTermsNotice
+        locale={locale === "en" ? "en" : "es"}
+        className="text-center text-xs text-muted-foreground"
+      />
     </form>
   );
 }

@@ -81,11 +81,12 @@ export function usePersistedState<T>(
     if (!enabled || hydratedRef.current) return;
     hydratedRef.current = true;
 
-    const saved = loadFormDraft<T>(storageKey);
-    if (saved !== null) {
-      setState(saved);
+    const saved = loadFormDraft<Partial<T>>(storageKey);
+    if (saved !== null && typeof saved === "object") {
+      // Merge para que claves nuevas (p. ej. termsUrl) no queden undefined.
+      setState({ ...initialValue, ...saved });
     }
-  }, [storageKey, enabled]);
+  }, [storageKey, enabled, initialValue]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -110,7 +111,9 @@ export function usePersistedFormFields<T extends Record<string, unknown>>(
   initialState: T,
   options?: PersistedStateOptions,
 ) {
-  const [values, setValues, clear] = usePersistedState(storageKey, initialState, options);
+  const initialRef = useRef(initialState);
+  // Solo usa el initialState de montaje para no re-fusionar en cada render del padre.
+  const [values, setValues, clear] = usePersistedState(storageKey, initialRef.current, options);
 
   const setValue = useCallback(<K extends keyof T>(key: K, value: T[K]) => {
     setValues((prev) => ({ ...prev, [key]: value }));

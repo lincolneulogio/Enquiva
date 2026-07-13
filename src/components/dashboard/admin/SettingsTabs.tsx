@@ -91,6 +91,8 @@ export function SettingsTabs({
             socialLinkedIn: initialPlatformSettings?.socialLinkedIn ?? "",
             socialWhatsApp: initialPlatformSettings?.socialWhatsApp ?? "",
             socialYoutube: initialPlatformSettings?.socialYoutube ?? "",
+            termsUrl: initialPlatformSettings?.termsUrl ?? "",
+            privacyUrl: initialPlatformSettings?.privacyUrl ?? "",
             alertPayments: initialPlatformSettings?.alertNewPayments ?? true,
             alertTransport: initialPlatformSettings?.alertTransportCapacity ?? true,
             alertFinance: initialPlatformSettings?.alertDailyFinanceSummary ?? false,
@@ -109,6 +111,8 @@ export function SettingsTabs({
         socialLinkedIn,
         socialWhatsApp,
         socialYoutube,
+        termsUrl,
+        privacyUrl,
         alertPayments,
         alertTransport,
         alertFinance,
@@ -308,12 +312,14 @@ export function SettingsTabs({
                     socialLinkedIn,
                     socialWhatsApp,
                     socialYoutube,
+                    termsUrl,
+                    privacyUrl,
                 });
                 if (res.success) {
                     toast.success(
                         locale === "en"
-                            ? "Platform identity & contact saved"
-                            : "Identidad y contacto de plataforma guardados",
+                            ? "Platform identity, contact & legal URLs saved"
+                            : "Identidad, contacto y URLs legales guardados",
                     );
                     router.refresh();
                 }
@@ -850,26 +856,76 @@ export function SettingsTabs({
                             </div>
                         </div>
 
+                        <div className="rounded-xl border border-border bg-card p-4 sm:p-6 space-y-4">
+                            <div>
+                                <h2 className="text-lg font-semibold text-foreground">
+                                    {locale === "en" ? "Legal pages" : "Páginas legales"}
+                                </h2>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                    {locale === "en"
+                                        ? "Shown in the public footer and signup notice. Use a full URL or an internal path like /terms."
+                                        : "Aparecen en el footer público y en el aviso de registro. Usa una URL completa o una ruta interna como /terms."}
+                                </p>
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-foreground">
+                                        {locale === "en" ? "Terms of service URL" : "URL de términos de servicio"}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={termsUrl ?? ""}
+                                        onChange={(e) => setSettingsValue("termsUrl", e.target.value)}
+                                        placeholder="https://…/terms  o  /terms"
+                                        className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-foreground">
+                                        {locale === "en" ? "Privacy policy URL" : "URL de política de privacidad"}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={privacyUrl ?? ""}
+                                        onChange={(e) => setSettingsValue("privacyUrl", e.target.value)}
+                                        placeholder="https://…/privacy  o  /privacy"
+                                        className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="pt-1 flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={handleSavePlatformIdentity}
+                                    disabled={isSaving}
+                                    className="w-full sm:w-auto justify-center flex items-center gap-2 rounded-lg bg-primary hover:bg-primary/95 text-primary-foreground font-semibold px-4 py-2 text-xs transition duration-200 disabled:opacity-50"
+                                >
+                                    {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                                    {locale === "en" ? "Save legal URLs" : "Guardar URLs legales"}
+                                </button>
+                            </div>
+                        </div>
+
                         <div className="rounded-xl border border-dashed border-border bg-muted/20 p-4 sm:p-5">
                             <h3 className="text-sm font-semibold text-foreground">
                                 {locale === "en" ? "Recommended next settings" : "Próximas configuraciones recomendadas"}
                             </h3>
                             <p className="mt-1 text-xs text-muted-foreground">
                                 {locale === "en"
-                                    ? "Already available: identity, public contact/socials, platform accent, maintenance & announcements, SMTP diagnostics, system alerts, DB backup."
-                                    : "Ya disponible: identidad, contacto/redes, acento, mantenimiento y avisos, diagnóstico SMTP, alertas y backup BD."}
+                                    ? "Already available: identity, public contact/socials, legal URLs, platform accent, maintenance & announcements, SMTP diagnostics, system alerts, DB backup."
+                                    : "Ya disponible: identidad, contacto/redes, URLs legales, acento, mantenimiento y avisos, diagnóstico SMTP, alertas y backup BD."}
                             </p>
                             <ul className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
                                 {(locale === "en"
                                     ? [
-                                        "Legal pages (terms, privacy) URLs",
                                         "Default locale & timezone",
                                         "SMTP credentials editable from UI (now env-only)",
                                         "Daily finance digest delivery (toggle exists, job pending)",
                                         "Push notification branding title",
                                       ]
                                     : [
-                                        "URLs legales (términos, privacidad)",
                                         "Idioma y zona horaria por defecto",
                                         "SMTP editable desde la UI (hoy solo env)",
                                         "Resumen financiero diario (toggle existe, falta el job)",

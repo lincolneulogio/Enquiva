@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, ChevronUp } from "lucide-react";
 import { BrandLogo } from "@/components/shared/BrandLogo";
-import { BrandText, PublicContactBlock } from "@/components/shared/BrandText";
+import { BrandText, PublicContactBlock, LegalLinks } from "@/components/shared/BrandText";
 
 interface FooterProps {
   t: (key: string) => string;
@@ -100,9 +100,16 @@ export function Footer({ t }: FooterProps) {
         </div>
 
         <div className="flex flex-col gap-3 border-t border-border/80 bg-background/70 px-6 py-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-10">
-          <p>
-            © {new Date().getFullYear()} <BrandText />. {t("public.home.footerBuilt")}
-          </p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <p>
+              © {new Date().getFullYear()} <BrandText />. {t("public.home.footerBuilt")}
+            </p>
+            <LegalLinks
+              termsLabel={t("public.home.footerTerms")}
+              privacyLabel={t("public.home.footerPrivacy")}
+              className="inline-flex flex-wrap items-center gap-x-2 gap-y-1"
+            />
+          </div>
           <Link
             href="#top"
             className="inline-flex items-center gap-1 self-start rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground transition-colors hover:bg-secondary sm:self-auto"
