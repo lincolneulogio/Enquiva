@@ -1,6 +1,14 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
+/**
+ * `next build` sets NODE_ENV=production while collecting page data.
+ * Secrets must be required at real runtime, not during the build phase.
+ */
+const isProdRuntime =
+  process.env.NODE_ENV === "production" &&
+  process.env.NEXT_PHASE !== "phase-production-build";
+
 export const env = createEnv({
   server: {
     DATABASE_URL: z.string().url(),
@@ -26,15 +34,13 @@ export const env = createEnv({
     CULQI_SECRET_KEY: z.string().min(1).optional(),
     CULQI_WEBHOOK_SECRET: z.string().min(1).optional(),
     PLATFORM_FEE_PERCENT: z.coerce.number().min(0).max(100).optional(),
-    CRON_SECRET:
-      process.env.NODE_ENV === "production"
-        ? z.string().min(16)
-        : z.string().min(16).optional(),
+    CRON_SECRET: isProdRuntime
+      ? z.string().min(16)
+      : z.string().min(16).optional(),
     BROADCAST_BATCH_SIZE: z.coerce.number().int().min(1).max(50).optional(),
-    PLATFORM_BOOTSTRAP_SECRET:
-      process.env.NODE_ENV === "production"
-        ? z.string().min(16)
-        : z.string().min(16).optional(),
+    PLATFORM_BOOTSTRAP_SECRET: isProdRuntime
+      ? z.string().min(16)
+      : z.string().min(16).optional(),
     VAPID_PUBLIC_KEY: z.string().min(1).optional(),
     VAPID_PRIVATE_KEY: z.string().min(1).optional(),
     VAPID_SUBJECT: z.string().min(1).optional(),
@@ -84,17 +90,14 @@ export const env = createEnv({
     NEXT_PUBLIC_UPLOADTHING_APP_ID: process.env.NEXT_PUBLIC_UPLOADTHING_APP_ID,
     NEXT_PUBLIC_CULQI_PUBLIC_KEY: process.env.NEXT_PUBLIC_CULQI_PUBLIC_KEY,
   },
+  emptyStringAsUndefined: true,
   /**
    * En producción, si Culqi está habilitado (secret key), el webhook secret es obligatorio.
    */
   createFinalSchema: (shape, isServer) =>
     z.object(shape).superRefine((data, ctx) => {
       if (!isServer) return;
-      if (
-        process.env.NODE_ENV === "production" &&
-        data.CULQI_SECRET_KEY &&
-        !data.CULQI_WEBHOOK_SECRET
-      ) {
+      if (isProdRuntime && data.CULQI_SECRET_KEY && !data.CULQI_WEBHOOK_SECRET) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["CULQI_WEBHOOK_SECRET"],
