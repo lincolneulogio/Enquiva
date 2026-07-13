@@ -1,73 +1,59 @@
 "use client";
 
-import { useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { updateRolePermission } from "@/actions/admin";
-import type { AppRole, Permission } from "@/lib/auth/rbac";
-import { useTranslations } from "@/components/providers/LocaleProvider";
 import { cn } from "@/lib/utils";
 
 interface PermissionToggleCellProps {
-  role: AppRole;
-  permission: Permission;
   allowed: boolean;
   canEdit: boolean;
-  /** `true` cuando el valor actual difiere del valor por defecto del rol. */
+  /** Differs from system default for that role. */
   isModified?: boolean;
+  /** Differs from last saved baseline (pending save). */
+  isUnsaved?: boolean;
+  title?: string;
+  onToggle: () => void;
 }
 
 export function PermissionToggleCell({
-  role,
-  permission,
   allowed,
   canEdit,
   isModified = false,
+  isUnsaved = false,
+  title,
+  onToggle,
 }: PermissionToggleCellProps) {
-  const [isPending, startTransition] = useTransition();
-  const router = useRouter();
-  const t = useTranslations();
-
-  const onToggle = () => {
-    if (!canEdit) return;
-
-    startTransition(async () => {
-      try {
-        await updateRolePermission({ role, permission, allowed: !allowed });
-        router.refresh();
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : t("dashboard.admin.unableToUpdateStatus"));
-      }
-    });
-  };
-
   return (
-    <label
-      className="relative inline-flex cursor-pointer items-center justify-center"
-      title={
-        !canEdit
-          ? t("dashboard.admin.readOnlyPermissions")
-          : isModified
-            ? t("dashboard.admin.permissionsLegendModified")
-            : t("common.update")
-      }
+    <button
+      type="button"
+      role="switch"
+      aria-checked={allowed}
+      disabled={!canEdit}
+      title={title}
+      onClick={onToggle}
+      className={cn(
+        "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-45",
+        allowed
+          ? "border-primary/30 bg-primary"
+          : "border-border bg-muted",
+        isUnsaved && "ring-2 ring-sky-400/80 ring-offset-1 ring-offset-background",
+        !isUnsaved && isModified && "ring-2 ring-amber-400/70 ring-offset-1 ring-offset-background",
+      )}
     >
-      <input
-        type="checkbox"
-        checked={allowed}
-        disabled={!canEdit || isPending}
-        onChange={onToggle}
+      <span
+        aria-hidden
         className={cn(
-          "h-4 w-4 cursor-pointer rounded border-border text-primary focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50",
-          isModified && "ring-2 ring-amber-400/70 ring-offset-1 ring-offset-background",
+          "pointer-events-none absolute h-4 w-4 rounded-full bg-white shadow transition-transform",
+          allowed ? "translate-x-[1.35rem]" : "translate-x-1",
         )}
       />
-      {canEdit && isModified && (
+      {canEdit && (isUnsaved || isModified) && (
         <span
           aria-hidden
-          className="absolute -right-1.5 -top-1.5 h-2 w-2 rounded-full bg-amber-500 shadow-sm"
+          className={cn(
+            "absolute -right-1 -top-1 h-2 w-2 rounded-full shadow-sm",
+            isUnsaved ? "bg-sky-500" : "bg-amber-500",
+          )}
         />
       )}
-    </label>
+    </button>
   );
 }

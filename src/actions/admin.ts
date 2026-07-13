@@ -4,6 +4,7 @@ export {
   setUserActive,
   getPermissionMatrix,
   updateRolePermission,
+  batchUpdateRolePermissions,
   resetRolePermissions,
 } from "./admin/users";
 export {

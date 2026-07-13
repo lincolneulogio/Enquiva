@@ -213,7 +213,55 @@ export async function updateRolePermission(input: {
     allowed: boolean;
 }) {
     const currentUser = await requireSuperAdmin();
+    await persistRolePermissionChange(currentUser, input);
+    revalidatePermissionSurfaces();
+    return { success: true };
+}
 
+/**
+ * Guarda varios cambios de la matriz en una sola acción (flujo borrador → Guardar).
+ */
+export async function batchUpdateRolePermissions(input: {
+    changes: { role: AppRole; permission: Permission; allowed: boolean }[];
+}) {
+    const currentUser = await requireSuperAdmin();
+
+    if (!input.changes.length) {
+        return { success: true, saved: 0 };
+    }
+
+    if (input.changes.length > 500) {
+        throw new Error("Too many permission changes in one save");
+    }
+
+    let saved = 0;
+    const summaryParts: string[] = [];
+    for (const change of input.changes) {
+        await persistRolePermissionChange(currentUser, change, { skipAudit: true });
+        summaryParts.push(
+            `${change.role}:${change.permission}=${change.allowed ? "on" : "off"}`,
+        );
+        saved += 1;
+    }
+
+    await logAdminAction({
+        actorId: currentUser.id,
+        actorName: currentUser.name ?? currentUser.email,
+        action: "permission.update",
+        entityType: "permission",
+        entityId: `batch:${saved}`,
+        details: `Matriz de permisos: ${saved} cambio(s). ${summaryParts.slice(0, 40).join("; ")}${summaryParts.length > 40 ? "…" : ""}`,
+    });
+
+    revalidatePermissionSurfaces();
+    return { success: true, saved };
+}
+
+async function persistRolePermissionChange(
+    currentUser: { id: string; name?: string | null; email: string },
+    input: { role: AppRole; permission: Permission; allowed: boolean },
+    options?: { skipAudit?: boolean },
+) {
     if (input.role === "super_admin") {
         throw new Error("Super Admin permissions are fixed and cannot be changed");
     }
@@ -233,12 +281,10 @@ export async function updateRolePermission(input: {
             .where(
                 and(
                     eq(rolePermissions.roleName, input.role),
-                    eq(rolePermissions.permission, input.permission)
-                )
+                    eq(rolePermissions.permission, input.permission),
+                ),
             );
     } else {
-        // Asegura que exista la fila del rol (FK role_permissions.role_name → roles.name),
-        // por si la tabla `roles` aún no fue sembrada. Idempotente.
         await db
             .insert(roles)
             .values({
@@ -267,25 +313,25 @@ export async function updateRolePermission(input: {
             });
     }
 
-    await logAdminAction({
-        actorId: currentUser.id,
-        actorName: currentUser.name ?? currentUser.email,
-        action: "permission.update",
-        entityType: "permission",
-        entityId: `${input.role}:${input.permission}`,
-        details: `Permiso ${input.permission} para rol ${input.role}: ${input.allowed ? "habilitado" : "deshabilitado"} (default=${defaultAllowed})`,
-    });
+    if (!options?.skipAudit) {
+        await logAdminAction({
+            actorId: currentUser.id,
+            actorName: currentUser.name ?? currentUser.email,
+            action: "permission.update",
+            entityType: "permission",
+            entityId: `${input.role}:${input.permission}`,
+            details: `Permiso ${input.permission} para rol ${input.role}: ${input.allowed ? "habilitado" : "deshabilitado"} (default=${defaultAllowed})`,
+        });
+    }
+}
 
+function revalidatePermissionSurfaces() {
     revalidatePath("/admin/permissions");
     revalidatePath("/superadmin/permissions");
-    // Sidebar de cada rol depende de la matriz efectiva.
     revalidatePath("/admin", "layout");
     revalidatePath("/superadmin", "layout");
     revalidatePath("/organizer", "layout");
-    // Portal docs filtra menú con /api/docs/auth (misma matriz).
     revalidatePath("/api/docs/auth");
-
-    return { success: true };
 }
 
 /** Elimina todos los overrides de un rol, restaurando sus permisos por defecto. */
@@ -307,12 +353,7 @@ export async function resetRolePermissions(input: { role: AppRole }) {
         details: `Permisos del rol ${input.role} restablecidos a los valores por defecto.`,
     });
 
-    revalidatePath("/admin/permissions");
-    revalidatePath("/superadmin/permissions");
-    revalidatePath("/admin", "layout");
-    revalidatePath("/superadmin", "layout");
-    revalidatePath("/organizer", "layout");
-    revalidatePath("/api/docs/auth");
+    revalidatePermissionSurfaces();
 
     return { success: true };
 }

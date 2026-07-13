@@ -33,6 +33,7 @@ export * from "./admin/PlansManager";
 export * from "./admin/AdminRevenuePanel";
 export * from "./admin/EntityInviteBanner";
 export * from "./admin/PermissionToggleCell";
+export * from "./admin/PermissionsMatrixEditor";
 
 // ─── Organizer / Management Components ────────────────────────────────────────
 export * from "./organizer/TransportRoutesManager";
