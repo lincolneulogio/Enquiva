@@ -3,10 +3,20 @@ import path from "path";
 import { db } from "@/lib/db";
 import { platformSettings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { BRAND } from "@/lib/brand";
+import { normalizeHttpUrl, normalizeWhatsAppLink } from "@/lib/brand/social";
 
 export interface SystemSettings {
   organizationName: string;
   supportEmail: string;
+  publicContactEmail: string;
+  publicLocation: string;
+  socialFacebook: string;
+  socialInstagram: string;
+  socialX: string;
+  socialLinkedIn: string;
+  socialWhatsApp: string;
+  socialYoutube: string;
   alertNewPayments: boolean;
   alertTransportCapacity: boolean;
   alertDailyFinanceSummary: boolean;
@@ -17,8 +27,16 @@ const SETTINGS_ROW_ID = "default";
 const LEGACY_SETTINGS_FILE_PATH = path.join(process.cwd(), "src/lib/db/system-settings.json");
 
 export const DEFAULT_SETTINGS: SystemSettings = {
-  organizationName: "Evora",
-  supportEmail: "soporte@evora.app",
+  organizationName: BRAND.name,
+  supportEmail: BRAND.supportEmail,
+  publicContactEmail: BRAND.contactEmail,
+  publicLocation: "Huánuco, Perú",
+  socialFacebook: "https://www.facebook.com/lincolneulogio",
+  socialInstagram: "",
+  socialX: "",
+  socialLinkedIn: "",
+  socialWhatsApp: "",
+  socialYoutube: "",
   alertNewPayments: true,
   alertTransportCapacity: true,
   alertDailyFinanceSummary: false,
@@ -28,10 +46,55 @@ function rowToSettings(row: typeof platformSettings.$inferSelect): SystemSetting
   return {
     organizationName: row.organizationName,
     supportEmail: row.supportEmail,
+    publicContactEmail: row.publicContactEmail || DEFAULT_SETTINGS.publicContactEmail,
+    publicLocation: row.publicLocation ?? "",
+    socialFacebook: row.socialFacebook ?? "",
+    socialInstagram: row.socialInstagram ?? "",
+    socialX: row.socialX ?? "",
+    socialLinkedIn: row.socialLinkedIn ?? "",
+    socialWhatsApp: row.socialWhatsApp ?? "",
+    socialYoutube: row.socialYoutube ?? "",
     alertNewPayments: row.alertNewPayments,
     alertTransportCapacity: row.alertTransportCapacity,
     alertDailyFinanceSummary: row.alertDailyFinanceSummary,
   };
+}
+
+function sanitizeSettingsPatch(settings: Partial<SystemSettings>): Partial<SystemSettings> {
+  const next: Partial<SystemSettings> = { ...settings };
+
+  if (typeof next.publicContactEmail === "string") {
+    next.publicContactEmail = next.publicContactEmail.trim();
+  }
+  if (typeof next.supportEmail === "string") {
+    next.supportEmail = next.supportEmail.trim();
+  }
+  if (typeof next.organizationName === "string") {
+    next.organizationName = next.organizationName.trim();
+  }
+  if (typeof next.publicLocation === "string") {
+    next.publicLocation = next.publicLocation.trim();
+  }
+  if (typeof next.socialFacebook === "string") {
+    next.socialFacebook = normalizeHttpUrl(next.socialFacebook);
+  }
+  if (typeof next.socialInstagram === "string") {
+    next.socialInstagram = normalizeHttpUrl(next.socialInstagram);
+  }
+  if (typeof next.socialX === "string") {
+    next.socialX = normalizeHttpUrl(next.socialX);
+  }
+  if (typeof next.socialLinkedIn === "string") {
+    next.socialLinkedIn = normalizeHttpUrl(next.socialLinkedIn);
+  }
+  if (typeof next.socialYoutube === "string") {
+    next.socialYoutube = normalizeHttpUrl(next.socialYoutube);
+  }
+  if (typeof next.socialWhatsApp === "string") {
+    next.socialWhatsApp = normalizeWhatsAppLink(next.socialWhatsApp);
+  }
+
+  return next;
 }
 
 async function readLegacyJsonSettings(): Promise<SystemSettings | null> {
@@ -89,7 +152,10 @@ export async function saveSystemSettings(
   actor?: { id: string; name: string },
 ): Promise<SystemSettings> {
   const current = await getSystemSettings();
-  const updated: SystemSettings = { ...current, ...settings };
+  const updated: SystemSettings = {
+    ...current,
+    ...sanitizeSettingsPatch(settings),
+  };
 
   await db
     .insert(platformSettings)

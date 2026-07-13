@@ -16,6 +16,8 @@ import {
     sendTestEmailAction,
 } from "@/actions/admin/settings";
 import { saveEntitySettingsAction } from "@/actions/organizations";
+import type { SystemSettings } from "@/lib/settings";
+import { useRouter } from "next/navigation";
 import {
     applyAccentColor,
     ACCENT_COLORS,
@@ -36,13 +38,7 @@ interface SettingsTabsProps {
         inviteCode: string;
         isOwner: boolean;
     };
-    initialPlatformSettings?: {
-        organizationName: string;
-        supportEmail: string;
-        alertNewPayments: boolean;
-        alertTransportCapacity: boolean;
-        alertDailyFinanceSummary: boolean;
-    };
+    initialPlatformSettings?: SystemSettings;
     adminUser: {
         name: string;
         email: string;
@@ -59,6 +55,7 @@ export function SettingsTabs({
     const { locale, setLocale, isPending: isLocalePending } = useLocale();
     const t = useTranslations();
     const { theme, setTheme } = useTheme();
+    const router = useRouter();
 
     const showEntity = Boolean(entityContext);
     const showPlatform = isSuperAdmin && Boolean(initialPlatformSettings);
@@ -71,11 +68,19 @@ export function SettingsTabs({
     const [platformSubTab, setPlatformSubTab] = useState<PlatformSubTab>("identity");
 
     const { values: settingsDraft, setValue: setSettingsValue } = usePersistedFormFields(
-        formStorageKey("admin.settings"),
+        formStorageKey("admin.settings.v2"),
         {
             entityName: entityContext?.name ?? "",
             platformOrgName: initialPlatformSettings?.organizationName ?? "",
             platformSupportEmail: initialPlatformSettings?.supportEmail ?? "",
+            platformContactEmail: initialPlatformSettings?.publicContactEmail ?? "",
+            platformLocation: initialPlatformSettings?.publicLocation ?? "",
+            socialFacebook: initialPlatformSettings?.socialFacebook ?? "",
+            socialInstagram: initialPlatformSettings?.socialInstagram ?? "",
+            socialX: initialPlatformSettings?.socialX ?? "",
+            socialLinkedIn: initialPlatformSettings?.socialLinkedIn ?? "",
+            socialWhatsApp: initialPlatformSettings?.socialWhatsApp ?? "",
+            socialYoutube: initialPlatformSettings?.socialYoutube ?? "",
             alertPayments: initialPlatformSettings?.alertNewPayments ?? true,
             alertTransport: initialPlatformSettings?.alertTransportCapacity ?? true,
             alertFinance: initialPlatformSettings?.alertDailyFinanceSummary ?? false,
@@ -86,6 +91,14 @@ export function SettingsTabs({
         entityName,
         platformOrgName,
         platformSupportEmail,
+        platformContactEmail,
+        platformLocation,
+        socialFacebook,
+        socialInstagram,
+        socialX,
+        socialLinkedIn,
+        socialWhatsApp,
+        socialYoutube,
         alertPayments,
         alertTransport,
         alertFinance,
@@ -140,15 +153,32 @@ export function SettingsTabs({
             toast.error(locale === "en" ? "Please enter a valid support email" : "Por favor, ingresa un correo de soporte válido");
             return;
         }
+        if (!platformContactEmail.trim() || !platformContactEmail.includes("@")) {
+            toast.error(locale === "en" ? "Please enter a valid public contact email" : "Ingresa un correo público de contacto válido");
+            return;
+        }
 
         startSaving(async () => {
             try {
                 const res = await saveSystemSettingsAction({
                     organizationName: platformOrgName,
                     supportEmail: platformSupportEmail,
+                    publicContactEmail: platformContactEmail,
+                    publicLocation: platformLocation,
+                    socialFacebook,
+                    socialInstagram,
+                    socialX,
+                    socialLinkedIn,
+                    socialWhatsApp,
+                    socialYoutube,
                 });
                 if (res.success) {
-                    toast.success(locale === "en" ? "Platform identity saved" : "Identidad de plataforma guardada");
+                    toast.success(
+                        locale === "en"
+                            ? "Platform identity & contact saved"
+                            : "Identidad y contacto de plataforma guardados",
+                    );
+                    router.refresh();
                 }
             } catch (err: unknown) {
                 const message = err instanceof Error ? err.message : "Error";
@@ -560,8 +590,8 @@ export function SettingsTabs({
                                 </h2>
                                 <p className="text-xs text-muted-foreground mt-0.5">
                                     {locale === "en"
-                                        ? "These values update the sidebar, landing, ticket PDFs, Culqi title, invites, and system emails (including support contact)."
-                                        : "Estos valores actualizan el sidebar, landing, PDF de tickets, Culqi, invitaciones y correos del sistema (incluido el contacto de soporte)."}
+                                        ? "Brand name and operational support email (system emails, tickets, sidebar)."
+                                        : "Nombre de marca y correo operativo de soporte (correos del sistema, tickets, sidebar)."}
                                 </p>
                             </div>
 
@@ -579,7 +609,7 @@ export function SettingsTabs({
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-semibold text-foreground">
-                                        {locale === "en" ? "Support email" : "Correo de soporte"}
+                                        {locale === "en" ? "Support email (operations)" : "Correo de soporte (operaciones)"}
                                     </label>
                                     <input
                                         type="email"
@@ -589,10 +619,76 @@ export function SettingsTabs({
                                     />
                                     <p className="text-[11px] text-muted-foreground">
                                         {locale === "en"
-                                            ? "Shown in welcome emails and the public contact block."
-                                            : "Se muestra en correos de bienvenida y en el bloque de contacto público."}
+                                            ? "Used in welcome / system email footers."
+                                            : "Se usa en el pie de correos de bienvenida y del sistema."}
                                     </p>
                                 </div>
+                            </div>
+                        </div>
+
+                        <div className="rounded-xl border border-border bg-card p-4 sm:p-6 space-y-4">
+                            <div>
+                                <h2 className="text-lg font-semibold text-foreground">
+                                    {locale === "en" ? "Public contact & social" : "Contacto público y redes"}
+                                </h2>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                    {locale === "en"
+                                        ? "Shown on the public landing footer. Leave a social field empty to hide that network."
+                                        : "Se muestra en el footer de la landing pública. Deja vacío un campo social para ocultar esa red."}
+                                </p>
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-foreground">
+                                        {locale === "en" ? "Public contact email" : "Correo público de contacto"}
+                                    </label>
+                                    <input
+                                        type="email"
+                                        value={platformContactEmail}
+                                        onChange={(e) => setSettingsValue("platformContactEmail", e.target.value)}
+                                        placeholder="hola@tu-dominio.com"
+                                        className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-foreground">
+                                        {locale === "en" ? "Location (optional)" : "Ubicación (opcional)"}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={platformLocation}
+                                        onChange={(e) => setSettingsValue("platformLocation", e.target.value)}
+                                        placeholder={locale === "en" ? "City, Country" : "Ciudad, País"}
+                                        className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                {(
+                                    [
+                                        { key: "socialFacebook" as const, labelEs: "Facebook", labelEn: "Facebook", placeholder: "https://facebook.com/tu-pagina", value: socialFacebook },
+                                        { key: "socialInstagram" as const, labelEs: "Instagram", labelEn: "Instagram", placeholder: "https://instagram.com/tu-cuenta", value: socialInstagram },
+                                        { key: "socialX" as const, labelEs: "X (Twitter)", labelEn: "X (Twitter)", placeholder: "https://x.com/tu-cuenta", value: socialX },
+                                        { key: "socialLinkedIn" as const, labelEs: "LinkedIn", labelEn: "LinkedIn", placeholder: "https://linkedin.com/company/…", value: socialLinkedIn },
+                                        { key: "socialYoutube" as const, labelEs: "YouTube", labelEn: "YouTube", placeholder: "https://youtube.com/@tu-canal", value: socialYoutube },
+                                        { key: "socialWhatsApp" as const, labelEs: "WhatsApp", labelEn: "WhatsApp", placeholder: "+51999999999 o https://wa.me/51…", value: socialWhatsApp },
+                                    ] as const
+                                ).map((field) => (
+                                    <div key={field.key} className="space-y-1.5">
+                                        <label className="text-xs font-semibold text-foreground">
+                                            {locale === "en" ? field.labelEn : field.labelEs}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={field.value}
+                                            onChange={(e) => setSettingsValue(field.key, e.target.value)}
+                                            placeholder={field.placeholder}
+                                            className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                                        />
+                                    </div>
+                                ))}
                             </div>
 
                             <div className="pt-2 flex justify-end">
@@ -603,7 +699,7 @@ export function SettingsTabs({
                                     className="w-full sm:w-auto justify-center flex items-center gap-2 rounded-lg bg-primary hover:bg-primary/95 text-primary-foreground font-semibold px-4 py-2 text-xs transition duration-200 disabled:opacity-50"
                                 >
                                     {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                                    {locale === "en" ? "Save platform identity" : "Guardar identidad de plataforma"}
+                                    {locale === "en" ? "Save identity & contact" : "Guardar identidad y contacto"}
                                 </button>
                             </div>
                         </div>
@@ -614,13 +710,12 @@ export function SettingsTabs({
                             </h3>
                             <p className="mt-1 text-xs text-muted-foreground">
                                 {locale === "en"
-                                    ? "As Super Admin you should own platform-wide controls. Already available: identity, SMTP diagnostics, system alerts, DB backup. Coming next candidates:"
-                                    : "Como Super Admin debes controlar la plataforma completa. Ya disponible: identidad, diagnóstico SMTP, alertas y backup BD. Candidatos siguientes:"}
+                                    ? "Already available: identity, public contact/socials, SMTP diagnostics, system alerts, DB backup."
+                                    : "Ya disponible: identidad, contacto/redes públicas, diagnóstico SMTP, alertas y backup BD."}
                             </p>
                             <ul className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
                                 {(locale === "en"
                                     ? [
-                                        "Public contact email / social links",
                                         "Default brand accent colors (server-wide)",
                                         "Maintenance mode & announcement banner",
                                         "Legal pages (terms, privacy) URLs",
@@ -630,7 +725,6 @@ export function SettingsTabs({
                                         "Push notification branding title",
                                       ]
                                     : [
-                                        "Correo público de contacto / redes",
                                         "Color de acento por defecto (toda la plataforma)",
                                         "Modo mantenimiento y banner de avisos",
                                         "URLs legales (términos, privacidad)",
