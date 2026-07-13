@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer } from "drizzle-orm/pg-core";
 import { users } from "./auth";
 
 /** Configuración global de plataforma (singleton: id = "default"). */
@@ -33,6 +33,15 @@ export const platformSettings = pgTable("platform_settings", {
   defaultLocale: text("default_locale").notNull().default("es"),
   /** Zona horaria IANA por defecto (ej. America/Lima). */
   defaultTimezone: text("default_timezone").notNull().default("America/Lima"),
+  /** Si true, SMTP usa campos de BD en lugar de variables de entorno. */
+  smtpUseCustom: boolean("smtp_use_custom").notNull().default(false),
+  smtpHost: text("smtp_host").notNull().default(""),
+  smtpPort: integer("smtp_port").notNull().default(587),
+  smtpUser: text("smtp_user").notNull().default(""),
+  /** Contraseña SMTP cifrada (AES-GCM); nunca exponer en API/UI. */
+  smtpPassEncrypted: text("smtp_pass_encrypted").notNull().default(""),
+  smtpFromEmail: text("smtp_from_email").notNull().default(""),
+  smtpFromName: text("smtp_from_name").notNull().default(""),
   alertNewPayments: boolean("alert_new_payments").notNull().default(true),
   alertTransportCapacity: boolean("alert_transport_capacity").notNull().default(true),
   alertDailyFinanceSummary: boolean("alert_daily_finance_summary").notNull().default(false),

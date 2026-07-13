@@ -1,4 +1,4 @@
-import { transporter, sender } from "./transporter";
+import { getMailTransporter, getMailSender } from "./transporter";
 import { appendEmailBrandLogoAttachment } from "./brand-header";
 import { generatePdfBuffer } from "./pdf";
 import {
@@ -18,11 +18,13 @@ import { mailGreeting, welcomeLoginPath, type MailLocale, type WelcomeAccountTyp
 import { env } from "@/env";
 
 import type { Attachment } from "nodemailer/lib/mailer";
+import type { SendMailOptions } from "nodemailer";
 
 type MailAttachment = Attachment;
 
-async function safeSendMail(options: Parameters<typeof transporter.sendMail>[0]) {
+async function safeSendMail(options: SendMailOptions) {
   try {
+    const transporter = await getMailTransporter();
     return await transporter.sendMail({
       ...options,
       attachments: appendEmailBrandLogoAttachment(options.attachments ?? []),
@@ -31,6 +33,10 @@ async function safeSendMail(options: Parameters<typeof transporter.sendMail>[0])
     console.error(`[SMTP Error] Failed to send email to ${options.to}:`, error);
     return null;
   }
+}
+
+async function fromAddress() {
+  return getMailSender();
 }
 
 export async function sendVerificationCodeEmail(input: {
@@ -50,7 +56,7 @@ export async function sendVerificationCodeEmail(input: {
   );
 
   await safeSendMail({
-    from: sender(),
+    from: await fromAddress(),
     to: input.email,
     subject,
     text,
@@ -79,7 +85,7 @@ export async function sendWelcomeEmail(input: {
   });
 
   await safeSendMail({
-    from: sender(),
+    from: await fromAddress(),
     to: input.email,
     subject,
     text,
@@ -110,7 +116,7 @@ export async function sendOrganizerRequestAdminEmail(input: {
   });
 
   await safeSendMail({
-    from: sender(),
+    from: await fromAddress(),
     to: input.email,
     subject,
     text,
@@ -137,7 +143,7 @@ export async function sendOrganizerApprovedEmail(input: {
   });
 
   await safeSendMail({
-    from: sender(),
+    from: await fromAddress(),
     to: input.email,
     subject,
     text,
@@ -162,7 +168,7 @@ export async function sendOrganizerRejectedEmail(input: {
   });
 
   await safeSendMail({
-    from: sender(),
+    from: await fromAddress(),
     to: input.email,
     subject,
     text,
@@ -179,7 +185,7 @@ export async function sendPasswordChangedEmail(input: {
   const { subject, text, html } = getPasswordChangedTemplate(greeting, organizationName);
 
   await safeSendMail({
-    from: sender(),
+    from: await fromAddress(),
     to: input.email,
     subject,
     text,
@@ -197,7 +203,7 @@ export async function sendPasswordResetEmail(input: {
   const { subject, text, html } = getPasswordResetTemplate(input.url, greeting, organizationName);
 
   await safeSendMail({
-    from: sender(),
+    from: await fromAddress(),
     to: input.email,
     subject,
     text,
@@ -235,7 +241,7 @@ export async function sendTicketEmail(input: {
   }
 
   await safeSendMail({
-    from: sender(),
+    from: await fromAddress(),
     to: input.email,
     subject,
     text,
@@ -284,7 +290,7 @@ export async function sendTicketEmailWithPdf(input: {
   }
 
   await safeSendMail({
-    from: sender(),
+    from: await fromAddress(),
     to: input.email,
     subject,
     text,
@@ -312,7 +318,7 @@ export async function sendCustomNotificationEmail(input: {
   });
 
   await safeSendMail({
-    from: sender(),
+    from: await fromAddress(),
     to: input.email,
     subject,
     text,
@@ -341,7 +347,7 @@ export async function sendBroadcastEmail(input: {
   });
 
   await safeSendMail({
-    from: sender(),
+    from: await fromAddress(),
     to: input.email,
     subject,
     text,
@@ -372,7 +378,7 @@ export async function sendSubscriptionRenewalReminderEmail(input: {
   });
 
   await safeSendMail({
-    from: sender(),
+    from: await fromAddress(),
     to: input.email,
     subject,
     text,

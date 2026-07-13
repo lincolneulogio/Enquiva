@@ -7,11 +7,11 @@ export function isDevMailProvider(host = env.SMTP_HOST): boolean {
   return DEV_MAIL_HOSTS.some((marker) => normalized.includes(marker));
 }
 
-export function getMailProviderLabel(): "resend" | "sendgrid" | "mailtrap" | "smtp" {
-  const host = env.SMTP_HOST.toLowerCase();
-  if (host.includes("resend")) return "resend";
-  if (host.includes("sendgrid")) return "sendgrid";
-  if (isDevMailProvider()) return "mailtrap";
+export function getMailProviderLabel(host = env.SMTP_HOST): "resend" | "sendgrid" | "mailtrap" | "smtp" {
+  const normalized = host.toLowerCase();
+  if (normalized.includes("resend")) return "resend";
+  if (normalized.includes("sendgrid")) return "sendgrid";
+  if (isDevMailProvider(host)) return "mailtrap";
   return "smtp";
 }
 
@@ -31,8 +31,10 @@ export function shouldEnforceProductionMail(): boolean {
 }
 
 /** Advertencia / bloqueo si producción desplegada sigue usando Mailtrap. */
-export function validateProductionMailConfig(): { ok: boolean; warning?: string } {
-  if (!isDevMailProvider()) return { ok: true };
+export function validateProductionMailConfig(
+  host = env.SMTP_HOST,
+): { ok: boolean; warning?: string } {
+  if (!isDevMailProvider(host)) return { ok: true };
   if (process.env.NODE_ENV !== "production") return { ok: true };
 
   const warning =

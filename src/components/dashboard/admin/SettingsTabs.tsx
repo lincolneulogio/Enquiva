@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import {
     saveSystemSettingsAction,
+    saveSmtpSettingsAction,
     testMailConnectionAction,
     sendTestEmailAction,
 } from "@/actions/admin/settings";
@@ -126,7 +127,30 @@ export function SettingsTabs({
         testEmail,
     } = settingsDraft;
     const [smtpStatus, setSmtpStatus] = useState<"idle" | "checking" | "connected" | "disconnected">("idle");
-    const [smtpInfo, setSmtpInfo] = useState<{ host?: string; port?: number; latencyMs?: number; error?: string } | null>(null);
+    const [smtpInfo, setSmtpInfo] = useState<{
+        host?: string;
+        port?: number;
+        latencyMs?: number;
+        error?: string;
+        source?: string;
+    } | null>(null);
+
+    const [smtpUseCustom, setSmtpUseCustom] = useState(
+        initialPlatformSettings?.smtpUseCustom ?? false,
+    );
+    const [smtpHost, setSmtpHost] = useState(initialPlatformSettings?.smtpHost ?? "");
+    const [smtpPort, setSmtpPort] = useState(String(initialPlatformSettings?.smtpPort ?? 587));
+    const [smtpUser, setSmtpUser] = useState(initialPlatformSettings?.smtpUser ?? "");
+    const [smtpPassword, setSmtpPassword] = useState("");
+    const [smtpFromEmail, setSmtpFromEmail] = useState(
+        initialPlatformSettings?.smtpFromEmail ?? "",
+    );
+    const [smtpFromName, setSmtpFromName] = useState(
+        initialPlatformSettings?.smtpFromName ?? "",
+    );
+    const [smtpPasswordSet, setSmtpPasswordSet] = useState(
+        initialPlatformSettings?.smtpPasswordSet ?? false,
+    );
     const [isTestingEmail, startTestingEmail] = useTransition();
     const [isSaving, startSaving] = useTransition();
 
@@ -184,6 +208,14 @@ export function SettingsTabs({
         setPlatformTimezoneDraft(
             normalizePlatformTimezone(initialPlatformSettings.defaultTimezone),
         );
+        setSmtpUseCustom(initialPlatformSettings.smtpUseCustom);
+        setSmtpHost(initialPlatformSettings.smtpHost);
+        setSmtpPort(String(initialPlatformSettings.smtpPort ?? 587));
+        setSmtpUser(initialPlatformSettings.smtpUser);
+        setSmtpFromEmail(initialPlatformSettings.smtpFromEmail);
+        setSmtpFromName(initialPlatformSettings.smtpFromName);
+        setSmtpPasswordSet(initialPlatformSettings.smtpPasswordSet);
+        setSmtpPassword("");
     }, [
         initialPlatformSettings?.maintenanceMode,
         initialPlatformSettings?.maintenanceMessage,
@@ -193,6 +225,13 @@ export function SettingsTabs({
         initialPlatformSettings?.announcementDismissible,
         initialPlatformSettings?.defaultLocale,
         initialPlatformSettings?.defaultTimezone,
+        initialPlatformSettings?.smtpUseCustom,
+        initialPlatformSettings?.smtpHost,
+        initialPlatformSettings?.smtpPort,
+        initialPlatformSettings?.smtpUser,
+        initialPlatformSettings?.smtpFromEmail,
+        initialPlatformSettings?.smtpFromName,
+        initialPlatformSettings?.smtpPasswordSet,
     ]);
 
     useEffect(() => {
@@ -398,7 +437,12 @@ export function SettingsTabs({
             const res = await testMailConnectionAction();
             if (res.success) {
                 setSmtpStatus("connected");
-                setSmtpInfo({ host: res.host, port: res.port, latencyMs: res.latencyMs });
+                setSmtpInfo({
+                    host: res.host,
+                    port: res.port,
+                    latencyMs: res.latencyMs,
+                    source: res.source,
+                });
                 toast.success(locale === "en" ? "SMTP connection test succeeded!" : "¡La prueba de conexión SMTP ha tenido éxito!");
             } else {
                 setSmtpStatus("disconnected");
@@ -410,6 +454,34 @@ export function SettingsTabs({
             setSmtpInfo({ error: err instanceof Error ? err.message : "Error de conexión" });
             toast.error("SMTP verification failed");
         }
+    };
+
+    const handleSaveSmtp = () => {
+        const portNum = Number.parseInt(smtpPort, 10);
+        startSaving(async () => {
+            try {
+                const res = await saveSmtpSettingsAction({
+                    smtpUseCustom,
+                    smtpHost,
+                    smtpPort: Number.isFinite(portNum) ? portNum : 587,
+                    smtpUser,
+                    smtpFromEmail,
+                    smtpFromName,
+                    smtpPassword: smtpPassword.trim() || undefined,
+                });
+                if (res.success) {
+                    setSmtpPassword("");
+                    setSmtpPasswordSet(res.settings.smtpPasswordSet);
+                    toast.success(
+                        locale === "en" ? "SMTP settings saved" : "Configuración SMTP guardada",
+                    );
+                    router.refresh();
+                }
+            } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : "Error";
+                toast.error(message);
+            }
+        });
     };
 
     const handleSendTestEmail = (e: React.FormEvent) => {
@@ -454,7 +526,7 @@ export function SettingsTabs({
     const platformNav: { id: PlatformSubTab; icon: typeof Server; labelEs: string; labelEn: string }[] = [
         { id: "identity", icon: Building, labelEs: "Identidad global", labelEn: "Global identity" },
         { id: "preferences", icon: Palette, labelEs: "Preferencias", labelEn: "Preferences" },
-        { id: "smtp", icon: Send, labelEs: "Diagnóstico SMTP", labelEn: "SMTP diagnostics" },
+        { id: "smtp", icon: Send, labelEs: "Correo SMTP", labelEn: "SMTP mail" },
         { id: "notifications", icon: Bell, labelEs: "Alertas del sistema", labelEn: "System alerts" },
     ];
 
@@ -958,18 +1030,16 @@ export function SettingsTabs({
                             </h3>
                             <p className="mt-1 text-xs text-muted-foreground">
                                 {locale === "en"
-                                    ? "Already available: identity, public contact/socials, legal URLs, platform accent, locale & timezone, maintenance & announcements, SMTP diagnostics, system alerts, DB backup."
-                                    : "Ya disponible: identidad, contacto/redes, URLs legales, acento, idioma/zona horaria, mantenimiento y avisos, diagnóstico SMTP, alertas y backup BD."}
+                                    ? "Already available: identity, public contact/socials, legal URLs, platform accent, locale & timezone, maintenance & announcements, editable SMTP, system alerts, DB backup."
+                                    : "Ya disponible: identidad, contacto/redes, URLs legales, acento, idioma/zona horaria, mantenimiento y avisos, SMTP editable, alertas y backup BD."}
                             </p>
                             <ul className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
                                 {(locale === "en"
                                     ? [
-                                        "SMTP credentials editable from UI (now env-only)",
                                         "Daily finance digest delivery (toggle exists, job pending)",
                                         "Push notification branding title",
                                       ]
                                     : [
-                                        "SMTP editable desde la UI (hoy solo env)",
                                         "Resumen financiero diario (toggle existe, falta el job)",
                                         "Título de notificaciones push",
                                       ]
@@ -1447,15 +1517,154 @@ export function SettingsTabs({
 
                     {section === "platform" && platformSubTab === "smtp" && (
                         <div className="space-y-6">
+                            <div className="rounded-xl border border-border bg-card p-4 sm:p-6 space-y-5">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                        <h2 className="text-lg font-semibold text-foreground">
+                                            {locale === "en" ? "SMTP credentials" : "Credenciales SMTP"}
+                                        </h2>
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                            {locale === "en"
+                                                ? "Override .env SMTP from the UI. Password is stored encrypted. Leave blank to keep the current password."
+                                                : "Sustituye el SMTP de .env desde la UI. La contraseña se guarda cifrada. Déjala en blanco para conservar la actual."}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSmtpUseCustom(!smtpUseCustom)}
+                                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                                            smtpUseCustom ? "bg-primary" : "bg-muted-foreground/30"
+                                        }`}
+                                        aria-pressed={smtpUseCustom}
+                                    >
+                                        <span
+                                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                                                smtpUseCustom ? "translate-x-5" : "translate-x-0"
+                                            }`}
+                                        />
+                                    </button>
+                                </div>
+
+                                <p className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-[11px] text-muted-foreground">
+                                    {smtpUseCustom
+                                        ? locale === "en"
+                                            ? "Active source: database (UI). Env values are ignored while this is on."
+                                            : "Origen activo: base de datos (UI). Las variables .env se ignoran mientras esté activo."
+                                        : locale === "en"
+                                          ? "Active source: environment variables (.env). Turn the switch on to edit from here."
+                                          : "Origen activo: variables de entorno (.env). Activa el interruptor para editar desde aquí."}
+                                </p>
+
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="space-y-1.5 sm:col-span-2">
+                                        <label className="text-xs font-semibold text-foreground">Host</label>
+                                        <input
+                                            type="text"
+                                            value={smtpHost}
+                                            onChange={(e) => setSmtpHost(e.target.value)}
+                                            disabled={!smtpUseCustom}
+                                            placeholder="smtp.resend.com"
+                                            className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground disabled:opacity-50"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold text-foreground">
+                                            {locale === "en" ? "Port" : "Puerto"}
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={smtpPort}
+                                            onChange={(e) => setSmtpPort(e.target.value)}
+                                            disabled={!smtpUseCustom}
+                                            placeholder="587"
+                                            className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground disabled:opacity-50"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold text-foreground">
+                                            {locale === "en" ? "Username" : "Usuario"}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={smtpUser}
+                                            onChange={(e) => setSmtpUser(e.target.value)}
+                                            disabled={!smtpUseCustom}
+                                            autoComplete="off"
+                                            className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground disabled:opacity-50"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5 sm:col-span-2">
+                                        <label className="text-xs font-semibold text-foreground">
+                                            {locale === "en" ? "Password" : "Contraseña"}
+                                        </label>
+                                        <input
+                                            type="password"
+                                            value={smtpPassword}
+                                            onChange={(e) => setSmtpPassword(e.target.value)}
+                                            disabled={!smtpUseCustom}
+                                            autoComplete="new-password"
+                                            placeholder={
+                                                smtpPasswordSet
+                                                    ? locale === "en"
+                                                        ? "•••••••• (leave blank to keep)"
+                                                        : "•••••••• (dejar en blanco para no cambiar)"
+                                                    : locale === "en"
+                                                      ? "SMTP password"
+                                                      : "Contraseña SMTP"
+                                            }
+                                            className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground disabled:opacity-50"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold text-foreground">
+                                            {locale === "en" ? "From email" : "Correo remitente"}
+                                        </label>
+                                        <input
+                                            type="email"
+                                            value={smtpFromEmail}
+                                            onChange={(e) => setSmtpFromEmail(e.target.value)}
+                                            disabled={!smtpUseCustom}
+                                            placeholder="noreply@tudominio.com"
+                                            className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground disabled:opacity-50"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold text-foreground">
+                                            {locale === "en" ? "From name" : "Nombre remitente"}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={smtpFromName}
+                                            onChange={(e) => setSmtpFromName(e.target.value)}
+                                            disabled={!smtpUseCustom}
+                                            placeholder="Evora"
+                                            className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground disabled:opacity-50"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="pt-1 flex justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={handleSaveSmtp}
+                                        disabled={isSaving}
+                                        className="w-full sm:w-auto justify-center flex items-center gap-2 rounded-lg bg-primary hover:bg-primary/95 text-primary-foreground font-semibold px-4 py-2 text-xs transition duration-200 disabled:opacity-50"
+                                    >
+                                        {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                                        {locale === "en" ? "Save SMTP" : "Guardar SMTP"}
+                                    </button>
+                                </div>
+                            </div>
+
                             <div className="rounded-xl border border-border bg-card p-4 sm:p-6 space-y-6">
                                 <div>
                                     <h2 className="text-lg font-semibold text-foreground">
-                                        {locale === "en" ? "SMTP mail server diagnostics" : "Diagnóstico del servidor de correo (SMTP)"}
+                                        {locale === "en" ? "SMTP diagnostics" : "Diagnóstico SMTP"}
                                     </h2>
                                     <p className="text-xs text-muted-foreground mt-0.5">
                                         {locale === "en"
-                                            ? "Verify SMTP credentials for platform-wide email delivery."
-                                            : "Verifica las credenciales SMTP para el envío de correos de toda la plataforma."}
+                                            ? "Verify the active SMTP configuration (database or .env)."
+                                            : "Verifica la configuración SMTP activa (base de datos o .env)."}
                                     </p>
                                 </div>
 
@@ -1514,6 +1723,7 @@ export function SettingsTabs({
                                             <div className="space-y-1">
                                                 <p><span className="text-slate-500">host:</span> <span className="text-green-400">{smtpInfo.host}</span></p>
                                                 <p><span className="text-slate-500">port:</span> <span className="text-green-400">{smtpInfo.port}</span></p>
+                                                <p><span className="text-slate-500">source:</span> <span className="text-cyan-400">{smtpInfo.source ?? "—"}</span></p>
                                                 <p><span className="text-slate-500">latency:</span> <span className="text-yellow-400">{smtpInfo.latencyMs}ms</span></p>
                                             </div>
                                         )}

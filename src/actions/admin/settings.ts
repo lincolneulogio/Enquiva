@@ -2,13 +2,23 @@
 
 import { requireSuperAdmin } from "./users";
 import { assertPermission } from "@/lib/auth/permission-guards";
-import { getSystemSettings, saveSystemSettings, describeSettingsChanges, type SystemSettings } from "@/lib/settings";
+import {
+    getSystemSettings,
+    saveSystemSettings,
+    saveSmtpSettings,
+    describeSettingsChanges,
+    type SystemSettings,
+    type SmtpSettingsInput,
+} from "@/lib/settings";
 import { logAdminAction } from "@/lib/analytics/log-admin-action";
 import { wrapInTemplate } from "@/lib/mail/templates";
 import { appendEmailBrandLogoAttachment } from "@/lib/mail/brand-header";
-import { transporter, sender } from "@/lib/mail/transporter";
+import {
+    getMailTransporter,
+    getMailSender,
+    getResolvedMailPublicInfo,
+} from "@/lib/mail/transporter";
 import { revalidatePath } from "next/cache";
-import { env } from "@/env";
 
 /**
  * Server action to get the current system settings.
@@ -47,6 +57,31 @@ export async function saveSystemSettingsAction(settings: Partial<SystemSettings>
     return { success: true, settings: updated };
 }
 
+/** Guarda credenciales SMTP editables (override de .env). */
+export async function saveSmtpSettingsAction(input: SmtpSettingsInput) {
+    const user = await requireSuperAdmin();
+    await assertPermission(user, "settings:manage");
+    const before = await getSystemSettings();
+
+    const updated = await saveSmtpSettings(input, {
+        id: user.id,
+        name: user.name ?? user.email,
+    });
+
+    await logAdminAction({
+        actorId: user.id,
+        actorName: user.name ?? user.email,
+        action: "settings.update",
+        entityType: "settings",
+        entityId: "platform-smtp",
+        details: describeSettingsChanges(before, updated) + (input.smtpPassword?.trim() ? "; smtpPassword: (actualizada)" : ""),
+    });
+
+    revalidatePath("/admin/settings");
+    revalidatePath("/superadmin/settings");
+    return { success: true, settings: updated };
+}
+
 /**
  * Server action to test the SMTP transporter connection.
  * Only accessible by Super Admins.
@@ -54,22 +89,25 @@ export async function saveSystemSettingsAction(settings: Partial<SystemSettings>
 export async function testMailConnectionAction() {
     const user = await requireSuperAdmin();
     await assertPermission(user, "settings:manage");
-    
+
     try {
         const start = Date.now();
+        const transporter = await getMailTransporter();
         await transporter.verify();
+        const info = await getResolvedMailPublicInfo();
         const duration = Date.now() - start;
-        
-        return { 
-            success: true, 
-            host: env.SMTP_HOST,
-            port: env.SMTP_PORT,
-            latencyMs: duration
+
+        return {
+            success: true,
+            host: info.host,
+            port: info.port,
+            source: info.source,
+            latencyMs: duration,
         };
     } catch (error: unknown) {
-        return { 
-            success: false, 
-            error: error instanceof Error ? error.message : "Error desconocido al conectar con el servidor SMTP." 
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Error desconocido al conectar con el servidor SMTP.",
         };
     }
 }
@@ -82,10 +120,11 @@ export async function sendTestEmailAction(email: string) {
     const user = await requireSuperAdmin();
     await assertPermission(user, "settings:manage");
     const settings = await getSystemSettings();
-    
+    const mailInfo = await getResolvedMailPublicInfo();
+
     try {
         const start = Date.now();
-        
+
         const greeting = user.name ? `Hola ${user.name},` : "Hola,";
         const bodyHtml = `
             <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #475569; font-family: 'Outfit', sans-serif;">
@@ -98,15 +137,19 @@ export async function sendTestEmailAction(email: string) {
                         <table border="0" cellpadding="0" cellspacing="0" width="100%">
                             <tr>
                                 <td style="padding: 4px 0; font-size: 13px; color: #64748b;"><strong>Servidor SMTP:</strong></td>
-                                <td style="padding: 4px 0; font-size: 13px; color: #0f172a; text-align: right;"><code>${env.SMTP_HOST}</code></td>
+                                <td style="padding: 4px 0; font-size: 13px; color: #0f172a; text-align: right;"><code>${mailInfo.host}</code></td>
                             </tr>
                             <tr>
                                 <td style="padding: 4px 0; font-size: 13px; color: #64748b;"><strong>Puerto:</strong></td>
-                                <td style="padding: 4px 0; font-size: 13px; color: #0f172a; text-align: right;"><code>${env.SMTP_PORT}</code></td>
+                                <td style="padding: 4px 0; font-size: 13px; color: #0f172a; text-align: right;"><code>${mailInfo.port}</code></td>
                             </tr>
                             <tr>
                                 <td style="padding: 4px 0; font-size: 13px; color: #64748b;"><strong>Remitente:</strong></td>
-                                <td style="padding: 4px 0; font-size: 13px; color: #0f172a; text-align: right;"><code>${env.MAIL_FROM_EMAIL}</code></td>
+                                <td style="padding: 4px 0; font-size: 13px; color: #0f172a; text-align: right;"><code>${mailInfo.fromEmail}</code></td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 4px 0; font-size: 13px; color: #64748b;"><strong>Origen config:</strong></td>
+                                <td style="padding: 4px 0; font-size: 13px; color: #0f172a; text-align: right;"><code>${mailInfo.source}</code></td>
                             </tr>
                         </table>
                     </td>
@@ -121,22 +164,23 @@ export async function sendTestEmailAction(email: string) {
             `Correo de diagnóstico de ${settings.organizationName}. Soporte: ${settings.supportEmail}`,
             settings.organizationName,
         );
-        
+
+        const transporter = await getMailTransporter();
         await transporter.sendMail({
-            from: sender(),
+            from: await getMailSender(),
             to: email,
             subject: `Prueba de correo SMTP — ${settings.organizationName}`,
             text: `¡Hola ${user.name}! Este es un correo de prueba SMTP exitoso de la plataforma ${settings.organizationName}. Soporte: ${settings.supportEmail}`,
             html,
             attachments: appendEmailBrandLogoAttachment(),
         });
-        
+
         const latencyMs = Date.now() - start;
         return { success: true, latencyMs };
     } catch (error: unknown) {
-        return { 
-            success: false, 
-            error: error instanceof Error ? error.message : "Error desconocido al intentar enviar el correo de prueba." 
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Error desconocido al intentar enviar el correo de prueba.",
         };
     }
 }

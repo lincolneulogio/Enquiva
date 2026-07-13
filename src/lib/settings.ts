@@ -53,6 +53,15 @@ export interface SystemSettings {
   defaultLocale: Locale;
   /** Zona horaria IANA por defecto. */
   defaultTimezone: string;
+  /** Usar credenciales SMTP de BD en lugar de .env. */
+  smtpUseCustom: boolean;
+  smtpHost: string;
+  smtpPort: number;
+  smtpUser: string;
+  smtpFromEmail: string;
+  smtpFromName: string;
+  /** True si hay contraseña cifrada guardada (nunca se expone el valor). */
+  smtpPasswordSet: boolean;
   alertNewPayments: boolean;
   alertTransportCapacity: boolean;
   alertDailyFinanceSummary: boolean;
@@ -84,6 +93,13 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   privacyUrl: "",
   defaultLocale: "es",
   defaultTimezone: DEFAULT_PLATFORM_TIMEZONE,
+  smtpUseCustom: false,
+  smtpHost: "",
+  smtpPort: 587,
+  smtpUser: "",
+  smtpFromEmail: "",
+  smtpFromName: "",
+  smtpPasswordSet: false,
   alertNewPayments: true,
   alertTransportCapacity: true,
   alertDailyFinanceSummary: false,
@@ -115,6 +131,13 @@ function rowToSettings(row: typeof platformSettings.$inferSelect): SystemSetting
     privacyUrl: row.privacyUrl ?? "",
     defaultLocale: normalizePlatformLocale(row.defaultLocale),
     defaultTimezone: normalizePlatformTimezone(row.defaultTimezone),
+    smtpUseCustom: Boolean(row.smtpUseCustom),
+    smtpHost: row.smtpHost ?? "",
+    smtpPort: Number(row.smtpPort) > 0 ? Number(row.smtpPort) : 587,
+    smtpUser: row.smtpUser ?? "",
+    smtpFromEmail: row.smtpFromEmail ?? "",
+    smtpFromName: row.smtpFromName ?? "",
+    smtpPasswordSet: Boolean(row.smtpPassEncrypted?.trim()),
     alertNewPayments: row.alertNewPayments,
     alertTransportCapacity: row.alertTransportCapacity,
     alertDailyFinanceSummary: row.alertDailyFinanceSummary,
@@ -191,8 +214,66 @@ function sanitizeSettingsPatch(settings: Partial<SystemSettings>): Partial<Syste
   if (typeof next.defaultTimezone === "string") {
     next.defaultTimezone = normalizePlatformTimezone(next.defaultTimezone);
   }
+  // Nunca aceptar smtpPasswordSet desde el cliente (es derivado).
+  delete (next as { smtpPasswordSet?: boolean }).smtpPasswordSet;
+
+  if (typeof next.smtpHost === "string") next.smtpHost = next.smtpHost.trim();
+  if (typeof next.smtpUser === "string") next.smtpUser = next.smtpUser.trim();
+  if (typeof next.smtpFromEmail === "string") next.smtpFromEmail = next.smtpFromEmail.trim();
+  if (typeof next.smtpFromName === "string") next.smtpFromName = next.smtpFromName.trim();
+  if (typeof next.smtpPort === "number") {
+    next.smtpPort = Number.isFinite(next.smtpPort) && next.smtpPort > 0 ? Math.round(next.smtpPort) : 587;
+  }
 
   return next;
+}
+
+function toDbRow(
+  settings: SystemSettings,
+  smtpPassEncrypted: string,
+): Omit<typeof platformSettings.$inferInsert, "id" | "updatedAt" | "updatedBy"> {
+  return {
+    organizationName: settings.organizationName,
+    supportEmail: settings.supportEmail,
+    publicContactEmail: settings.publicContactEmail,
+    publicLocation: settings.publicLocation,
+    socialFacebook: settings.socialFacebook,
+    socialInstagram: settings.socialInstagram,
+    socialX: settings.socialX,
+    socialLinkedIn: settings.socialLinkedIn,
+    socialWhatsApp: settings.socialWhatsApp,
+    socialYoutube: settings.socialYoutube,
+    defaultAccentColor: settings.defaultAccentColor,
+    maintenanceMode: settings.maintenanceMode,
+    maintenanceMessage: settings.maintenanceMessage,
+    announcementEnabled: settings.announcementEnabled,
+    announcementMessage: settings.announcementMessage,
+    announcementSeverity: settings.announcementSeverity,
+    announcementDismissible: settings.announcementDismissible,
+    termsUrl: settings.termsUrl,
+    privacyUrl: settings.privacyUrl,
+    defaultLocale: settings.defaultLocale,
+    defaultTimezone: settings.defaultTimezone,
+    smtpUseCustom: settings.smtpUseCustom,
+    smtpHost: settings.smtpHost,
+    smtpPort: settings.smtpPort,
+    smtpUser: settings.smtpUser,
+    smtpPassEncrypted,
+    smtpFromEmail: settings.smtpFromEmail,
+    smtpFromName: settings.smtpFromName,
+    alertNewPayments: settings.alertNewPayments,
+    alertTransportCapacity: settings.alertTransportCapacity,
+    alertDailyFinanceSummary: settings.alertDailyFinanceSummary,
+  };
+}
+
+async function readSmtpPassEncrypted(): Promise<string> {
+  const [row] = await db
+    .select({ smtpPassEncrypted: platformSettings.smtpPassEncrypted })
+    .from(platformSettings)
+    .where(eq(platformSettings.id, SETTINGS_ROW_ID))
+    .limit(1);
+  return row?.smtpPassEncrypted ?? "";
 }
 
 async function readLegacyJsonSettings(): Promise<SystemSettings | null> {
@@ -222,7 +303,7 @@ async function ensureSettingsRow(): Promise<SystemSettings> {
     .insert(platformSettings)
     .values({
       id: SETTINGS_ROW_ID,
-      ...initial,
+      ...toDbRow(initial, ""),
     })
     .onConflictDoNothing();
 
@@ -259,25 +340,111 @@ export async function saveSystemSettings(
     ...current,
     ...sanitizeSettingsPatch(settings),
   };
+  // Mantener flag derivado coherente
+  const passEncrypted = await readSmtpPassEncrypted();
+  updated.smtpPasswordSet = Boolean(passEncrypted.trim());
+
+  const dbValues = toDbRow(updated, passEncrypted);
 
   await db
     .insert(platformSettings)
     .values({
       id: SETTINGS_ROW_ID,
-      ...updated,
+      ...dbValues,
       updatedBy: actor?.id ?? null,
       updatedAt: new Date(),
     })
     .onConflictDoUpdate({
       target: platformSettings.id,
       set: {
-        ...updated,
+        ...dbValues,
         updatedBy: actor?.id ?? null,
         updatedAt: new Date(),
       },
     });
 
   invalidatePlatformOpsCache();
+  return updated;
+}
+
+export type SmtpSettingsInput = {
+  smtpUseCustom: boolean;
+  smtpHost: string;
+  smtpPort: number;
+  smtpUser: string;
+  smtpFromEmail: string;
+  smtpFromName: string;
+  /** Vacío = conservar la contraseña actual. */
+  smtpPassword?: string;
+};
+
+/** Guarda credenciales SMTP (contraseña cifrada). */
+export async function saveSmtpSettings(
+  input: SmtpSettingsInput,
+  actor?: { id: string; name: string },
+): Promise<SystemSettings> {
+  const { encryptSecret } = await import("@/lib/crypto/secret");
+  const current = await getSystemSettings();
+  let passEncrypted = await readSmtpPassEncrypted();
+
+  const password = input.smtpPassword?.trim() ?? "";
+  if (password) {
+    passEncrypted = encryptSecret(password);
+  }
+
+  if (input.smtpUseCustom) {
+    if (!input.smtpHost.trim()) {
+      throw new Error("El host SMTP es obligatorio cuando usas credenciales personalizadas.");
+    }
+    if (!input.smtpUser.trim()) {
+      throw new Error("El usuario SMTP es obligatorio cuando usas credenciales personalizadas.");
+    }
+    if (!passEncrypted.trim()) {
+      throw new Error("Debes indicar la contraseña SMTP al activar credenciales personalizadas.");
+    }
+    const fromEmail = input.smtpFromEmail.trim();
+    if (fromEmail && !fromEmail.includes("@")) {
+      throw new Error("El correo remitente no es válido.");
+    }
+  }
+
+  const updated: SystemSettings = {
+    ...current,
+    smtpUseCustom: Boolean(input.smtpUseCustom),
+    smtpHost: input.smtpHost.trim(),
+    smtpPort:
+      Number.isFinite(input.smtpPort) && input.smtpPort > 0
+        ? Math.round(input.smtpPort)
+        : 587,
+    smtpUser: input.smtpUser.trim(),
+    smtpFromEmail: input.smtpFromEmail.trim(),
+    smtpFromName: input.smtpFromName.trim(),
+    smtpPasswordSet: Boolean(passEncrypted.trim()),
+  };
+
+  const dbValues = toDbRow(updated, passEncrypted);
+
+  await db
+    .insert(platformSettings)
+    .values({
+      id: SETTINGS_ROW_ID,
+      ...dbValues,
+      updatedBy: actor?.id ?? null,
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: platformSettings.id,
+      set: {
+        ...dbValues,
+        updatedBy: actor?.id ?? null,
+        updatedAt: new Date(),
+      },
+    });
+
+  invalidatePlatformOpsCache();
+  const { invalidateMailTransporterCache } = await import("@/lib/mail/transporter");
+  invalidateMailTransporterCache();
+
   return updated;
 }
 
