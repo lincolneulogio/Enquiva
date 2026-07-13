@@ -71,6 +71,13 @@
       "when": 1774300000000,
       "tag": "0009_platform_legal_urls",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1774400000000,
+      "tag": "0010_platform_locale_timezone",
+      "breakpoints": true
     }
   ]
 }

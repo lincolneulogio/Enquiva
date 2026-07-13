@@ -9,7 +9,7 @@ import {
     User, Mail, Shield, Globe, Sun, Moon,
     Send, Bell, Building, Save, Loader2,
     Wifi, WifiOff, RefreshCw, Users, Copy, Server, Palette,
-    Wrench, Megaphone,
+    Wrench, Megaphone, Clock,
 } from "lucide-react";
 import {
     saveSystemSettingsAction,
@@ -19,6 +19,13 @@ import {
 import { saveEntitySettingsAction } from "@/actions/organizations";
 import type { SystemSettings } from "@/lib/settings";
 import type { AnnouncementSeverity } from "@/lib/settings/platform-ops";
+import {
+    PLATFORM_TIMEZONE_OPTIONS,
+    normalizePlatformLocale,
+    normalizePlatformTimezone,
+    DEFAULT_PLATFORM_TIMEZONE,
+} from "@/lib/settings/platform-locale";
+import type { Locale } from "@/lib/i18n/core";
 import { useRouter } from "next/navigation";
 import {
     ACCENT_COLORS,
@@ -152,6 +159,15 @@ export function SettingsTabs({
         initialPlatformSettings?.announcementDismissible ?? true,
     );
 
+    const [platformLocaleDraft, setPlatformLocaleDraft] = useState<Locale>(
+        normalizePlatformLocale(initialPlatformSettings?.defaultLocale),
+    );
+    const [platformTimezoneDraft, setPlatformTimezoneDraft] = useState(
+        normalizePlatformTimezone(
+            initialPlatformSettings?.defaultTimezone ?? DEFAULT_PLATFORM_TIMEZONE,
+        ),
+    );
+
     useEffect(() => {
         setPlatformAccentDraft(platformDefaultAccent);
     }, [platformDefaultAccent]);
@@ -164,6 +180,10 @@ export function SettingsTabs({
         setAnnouncementMessage(initialPlatformSettings.announcementMessage);
         setAnnouncementSeverity(initialPlatformSettings.announcementSeverity);
         setAnnouncementDismissible(initialPlatformSettings.announcementDismissible);
+        setPlatformLocaleDraft(normalizePlatformLocale(initialPlatformSettings.defaultLocale));
+        setPlatformTimezoneDraft(
+            normalizePlatformTimezone(initialPlatformSettings.defaultTimezone),
+        );
     }, [
         initialPlatformSettings?.maintenanceMode,
         initialPlatformSettings?.maintenanceMessage,
@@ -171,6 +191,8 @@ export function SettingsTabs({
         initialPlatformSettings?.announcementMessage,
         initialPlatformSettings?.announcementSeverity,
         initialPlatformSettings?.announcementDismissible,
+        initialPlatformSettings?.defaultLocale,
+        initialPlatformSettings?.defaultTimezone,
     ]);
 
     useEffect(() => {
@@ -221,6 +243,28 @@ export function SettingsTabs({
                         locale === "en"
                             ? "Platform default accent saved"
                             : "Color de acento por defecto guardado",
+                    );
+                    router.refresh();
+                }
+            } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : "Error";
+                toast.error(message);
+            }
+        });
+    };
+
+    const handleSavePlatformLocaleTimezone = () => {
+        startSaving(async () => {
+            try {
+                const res = await saveSystemSettingsAction({
+                    defaultLocale: platformLocaleDraft,
+                    defaultTimezone: platformTimezoneDraft,
+                });
+                if (res.success) {
+                    toast.success(
+                        locale === "en"
+                            ? "Default language & timezone saved"
+                            : "Idioma y zona horaria por defecto guardados",
                     );
                     router.refresh();
                 }
@@ -914,19 +958,17 @@ export function SettingsTabs({
                             </h3>
                             <p className="mt-1 text-xs text-muted-foreground">
                                 {locale === "en"
-                                    ? "Already available: identity, public contact/socials, legal URLs, platform accent, maintenance & announcements, SMTP diagnostics, system alerts, DB backup."
-                                    : "Ya disponible: identidad, contacto/redes, URLs legales, acento, mantenimiento y avisos, diagnóstico SMTP, alertas y backup BD."}
+                                    ? "Already available: identity, public contact/socials, legal URLs, platform accent, locale & timezone, maintenance & announcements, SMTP diagnostics, system alerts, DB backup."
+                                    : "Ya disponible: identidad, contacto/redes, URLs legales, acento, idioma/zona horaria, mantenimiento y avisos, diagnóstico SMTP, alertas y backup BD."}
                             </p>
                             <ul className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
                                 {(locale === "en"
                                     ? [
-                                        "Default locale & timezone",
                                         "SMTP credentials editable from UI (now env-only)",
                                         "Daily finance digest delivery (toggle exists, job pending)",
                                         "Push notification branding title",
                                       ]
                                     : [
-                                        "Idioma y zona horaria por defecto",
                                         "SMTP editable desde la UI (hoy solo env)",
                                         "Resumen financiero diario (toggle existe, falta el job)",
                                         "Título de notificaciones push",
@@ -1184,6 +1226,123 @@ export function SettingsTabs({
                                 </div>
                             </div>
 
+                            <div className="rounded-xl border border-border bg-card p-4 sm:p-6 space-y-5">
+                                <div className="flex items-start gap-3">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                        <Globe className="h-5 w-5" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <h2 className="text-lg font-semibold text-foreground">
+                                            {locale === "en"
+                                                ? "Default language & timezone"
+                                                : "Idioma y zona horaria por defecto"}
+                                        </h2>
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                            {locale === "en"
+                                                ? "These are platform defaults for everyone. Your personal language is only the ES/EN control in the top bar (cookie on this browser)."
+                                                : "Estos son valores por defecto de toda la plataforma. Tu idioma personal solo se cambia con ES/EN de la barra superior (cookie de este navegador)."}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="space-y-2">
+                                        <p className="text-xs font-semibold text-foreground">
+                                            {locale === "en" ? "Default language (for new users)" : "Idioma por defecto (nuevos usuarios)"}
+                                        </p>
+                                        <p className="text-[11px] text-muted-foreground -mt-1">
+                                            {locale === "en"
+                                                ? "Used only if the visitor has never chosen ES/EN."
+                                                : "Solo si el visitante aún no eligió ES/EN."}
+                                        </p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {(
+                                                [
+                                                    { id: "es" as const, label: "Español", flag: "🇪🇸" },
+                                                    { id: "en" as const, label: "English", flag: "🇺🇸" },
+                                                ] as const
+                                            ).map((opt) => (
+                                                <button
+                                                    key={opt.id}
+                                                    type="button"
+                                                    onClick={() => setPlatformLocaleDraft(opt.id)}
+                                                    className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition ${
+                                                        platformLocaleDraft === opt.id
+                                                            ? "border-primary bg-primary/10 text-primary ring-1 ring-primary"
+                                                            : "border-border bg-background text-foreground hover:bg-muted"
+                                                    }`}
+                                                >
+                                                    <span>{opt.flag}</span>
+                                                    {opt.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label
+                                            htmlFor="platform-timezone"
+                                            className="text-xs font-semibold text-foreground inline-flex items-center gap-1.5"
+                                        >
+                                            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                                            {locale === "en" ? "Default timezone" : "Zona horaria (no es idioma)"}
+                                        </label>
+                                        <p className="text-[11px] text-muted-foreground -mt-1">
+                                            {locale === "en"
+                                                ? "For timestamps in notes, digests and system records — not the UI language."
+                                                : "Para horas en notas, resúmenes y registros del sistema — no cambia el idioma de la interfaz."}
+                                        </p>
+                                        <select
+                                            id="platform-timezone"
+                                            value={platformTimezoneDraft}
+                                            onChange={(e) =>
+                                                setPlatformTimezoneDraft(
+                                                    normalizePlatformTimezone(e.target.value),
+                                                )
+                                            }
+                                            className="w-full rounded-lg border border-border bg-background px-3.5 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                                        >
+                                            {PLATFORM_TIMEZONE_OPTIONS.map((tz) => (
+                                                <option key={tz.value} value={tz.value}>
+                                                    {locale === "en" ? tz.labelEn : tz.labelEs}
+                                                </option>
+                                            ))}
+                                            {!PLATFORM_TIMEZONE_OPTIONS.some(
+                                                (tz) => tz.value === platformTimezoneDraft,
+                                            ) ? (
+                                                <option value={platformTimezoneDraft}>
+                                                    {platformTimezoneDraft}
+                                                </option>
+                                            ) : null}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="pt-1 flex justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={handleSavePlatformLocaleTimezone}
+                                        disabled={
+                                            isSaving ||
+                                            (platformLocaleDraft ===
+                                                normalizePlatformLocale(
+                                                    initialPlatformSettings.defaultLocale,
+                                                ) &&
+                                                platformTimezoneDraft ===
+                                                    normalizePlatformTimezone(
+                                                        initialPlatformSettings.defaultTimezone,
+                                                    ))
+                                        }
+                                        className="w-full sm:w-auto justify-center flex items-center gap-2 rounded-lg bg-primary hover:bg-primary/95 text-primary-foreground font-semibold px-4 py-2 text-xs transition duration-200 disabled:opacity-50"
+                                    >
+                                        {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                                        {locale === "en"
+                                            ? "Save language & timezone"
+                                            : "Guardar idioma y zona horaria"}
+                                    </button>
+                                </div>
+                            </div>
+
                             <div className="rounded-xl border border-border bg-card p-4 sm:p-6 space-y-6">
                                 <div>
                                     <h2 className="text-lg font-semibold text-foreground">
@@ -1277,41 +1436,11 @@ export function SettingsTabs({
                                     </div>
                                 </div>
 
-                                <hr className="border-border" />
-
-                                <div className="space-y-3">
-                                    <p className="text-sm font-medium text-foreground">
-                                        {locale === "en" ? "Panel language" : "Idioma de la interfaz"}
-                                    </p>
-                                    <div className="flex gap-3 select-none">
-                                        <button
-                                            type="button"
-                                            onClick={() => setLocale("es")}
-                                            disabled={isLocalePending}
-                                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 disabled:opacity-50 ${
-                                                locale === "es"
-                                                    ? "border-primary bg-primary/10 text-primary"
-                                                    : "border-border bg-background text-foreground hover:bg-muted"
-                                            }`}
-                                        >
-                                            <span>🇪🇸</span>
-                                            Español
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setLocale("en")}
-                                            disabled={isLocalePending}
-                                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 disabled:opacity-50 ${
-                                                locale === "en"
-                                                    ? "border-primary bg-primary/10 text-primary"
-                                                    : "border-border bg-background text-foreground hover:bg-muted"
-                                            }`}
-                                        >
-                                            <span>🇺🇸</span>
-                                            English
-                                        </button>
-                                    </div>
-                                </div>
+                                <p className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-[11px] text-muted-foreground leading-relaxed">
+                                    {locale === "en"
+                                        ? "Your personal interface language is controlled with ES / EN in the top bar. It overrides the platform default above for this browser only."
+                                        : "Tu idioma personal se cambia con ES / EN en la barra superior. Solo afecta este navegador y tiene prioridad sobre el idioma por defecto de arriba."}
+                                </p>
                             </div>
                         </div>
                     )}

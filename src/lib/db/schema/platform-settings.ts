@@ -29,6 +29,10 @@ export const platformSettings = pgTable("platform_settings", {
   /** URLs legales (http(s) o ruta relativa tipo /terms). */
   termsUrl: text("terms_url").notNull().default(""),
   privacyUrl: text("privacy_url").notNull().default(""),
+  /** Idioma por defecto de la plataforma (es|en) cuando el usuario no eligió cookie. */
+  defaultLocale: text("default_locale").notNull().default("es"),
+  /** Zona horaria IANA por defecto (ej. America/Lima). */
+  defaultTimezone: text("default_timezone").notNull().default("America/Lima"),
   alertNewPayments: boolean("alert_new_payments").notNull().default(true),
   alertTransportCapacity: boolean("alert_transport_capacity").notNull().default(true),
   alertDailyFinanceSummary: boolean("alert_daily_finance_summary").notNull().default(false),

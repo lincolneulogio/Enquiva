@@ -17,6 +17,12 @@ import {
   type AnnouncementSeverity,
   type PlatformOpsStatus,
 } from "@/lib/settings/platform-ops";
+import {
+  DEFAULT_PLATFORM_TIMEZONE,
+  normalizePlatformLocale,
+  normalizePlatformTimezone,
+} from "@/lib/settings/platform-locale";
+import type { Locale } from "@/lib/i18n/core";
 
 export type { AnnouncementSeverity, PlatformOpsStatus };
 
@@ -43,6 +49,10 @@ export interface SystemSettings {
   termsUrl: string;
   /** URL o ruta de política de privacidad. */
   privacyUrl: string;
+  /** Idioma por defecto (es|en) sin cookie de usuario. */
+  defaultLocale: Locale;
+  /** Zona horaria IANA por defecto. */
+  defaultTimezone: string;
   alertNewPayments: boolean;
   alertTransportCapacity: boolean;
   alertDailyFinanceSummary: boolean;
@@ -72,6 +82,8 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   announcementDismissible: true,
   termsUrl: "",
   privacyUrl: "",
+  defaultLocale: "es",
+  defaultTimezone: DEFAULT_PLATFORM_TIMEZONE,
   alertNewPayments: true,
   alertTransportCapacity: true,
   alertDailyFinanceSummary: false,
@@ -101,6 +113,8 @@ function rowToSettings(row: typeof platformSettings.$inferSelect): SystemSetting
     announcementDismissible: row.announcementDismissible !== false,
     termsUrl: row.termsUrl ?? "",
     privacyUrl: row.privacyUrl ?? "",
+    defaultLocale: normalizePlatformLocale(row.defaultLocale),
+    defaultTimezone: normalizePlatformTimezone(row.defaultTimezone),
     alertNewPayments: row.alertNewPayments,
     alertTransportCapacity: row.alertTransportCapacity,
     alertDailyFinanceSummary: row.alertDailyFinanceSummary,
@@ -170,6 +184,12 @@ function sanitizeSettingsPatch(settings: Partial<SystemSettings>): Partial<Syste
   }
   if (typeof next.privacyUrl === "string") {
     next.privacyUrl = normalizeLegalUrl(next.privacyUrl);
+  }
+  if (typeof next.defaultLocale === "string") {
+    next.defaultLocale = normalizePlatformLocale(next.defaultLocale);
+  }
+  if (typeof next.defaultTimezone === "string") {
+    next.defaultTimezone = normalizePlatformTimezone(next.defaultTimezone);
   }
 
   return next;

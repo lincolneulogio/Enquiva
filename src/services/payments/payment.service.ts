@@ -33,6 +33,11 @@ import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
 import { invalidateAdminDashboardStatsCache } from "@/lib/analytics/admin";
 import { computeManualHoldExpiresAt } from "@/lib/registrations/payment-hold";
 import { parseGuestRegistrationIds } from "@/lib/registrations/cleanup";
+import { getSystemSettings } from "@/lib/settings";
+import {
+  DEFAULT_PLATFORM_TIMEZONE,
+  formatDateTimeInTimezone,
+} from "@/lib/settings/platform-locale";
 
 export class PaymentService {
   /**
@@ -71,7 +76,18 @@ export class PaymentService {
     let notes = validated.notes ?? existingPayment.notes ?? null;
 
     if (existingPayment.status === "rejected") {
-      const dateStr = new Date().toLocaleString("es-PE", { timeZone: "America/Lima" });
+      let timeZone = DEFAULT_PLATFORM_TIMEZONE;
+      try {
+        timeZone = (await getSystemSettings()).defaultTimezone;
+      } catch {
+        /* defaults */
+      }
+      const dateStr = formatDateTimeInTimezone(new Date(), {
+        timeZone,
+        locale: "es",
+        dateStyle: "medium",
+        timeStyle: "medium",
+      });
       const previousHistoryEntry = `--- Historial de Comprobante Rechazado (${dateStr}) ---\n` +
         `• Método anterior: ${existingPayment.method}\n` +
         `• Referencia anterior: ${existingPayment.reference ?? "Ninguna"}\n` +

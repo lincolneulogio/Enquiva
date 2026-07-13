@@ -23,6 +23,8 @@ const defaultBrand: PlatformBrand = {
   defaultAccentColor: "amber",
   termsUrl: "",
   privacyUrl: "",
+  defaultLocale: "es",
+  defaultTimezone: "America/Lima",
 };
 
 const PlatformBrandContext = createContext<PlatformBrand>(defaultBrand);

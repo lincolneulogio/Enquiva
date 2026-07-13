@@ -6,6 +6,12 @@ import {
   isAccentColor,
   type AccentColor,
 } from "@/lib/brand/accent";
+import type { Locale } from "@/lib/i18n/core";
+import {
+  DEFAULT_PLATFORM_TIMEZONE,
+  normalizePlatformLocale,
+  normalizePlatformTimezone,
+} from "@/lib/settings/platform-locale";
 
 export type PlatformSocialLinks = {
   facebook: string;
@@ -30,6 +36,8 @@ export type PlatformBrand = {
   defaultAccentColor: AccentColor;
   termsUrl: string;
   privacyUrl: string;
+  defaultLocale: Locale;
+  defaultTimezone: string;
 };
 
 export function brandFromSettings(
@@ -63,6 +71,10 @@ export function brandFromSettings(
     defaultAccentColor: isAccentColor(accent) ? accent : DEFAULT_ACCENT_COLOR,
     termsUrl: (input.termsUrl ?? "").trim(),
     privacyUrl: (input.privacyUrl ?? "").trim(),
+    defaultLocale: normalizePlatformLocale(input.defaultLocale),
+    defaultTimezone: normalizePlatformTimezone(
+      input.defaultTimezone ?? DEFAULT_PLATFORM_TIMEZONE,
+    ),
   };
 }
 
