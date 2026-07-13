@@ -35,6 +35,12 @@ import {
 import { DownloadTicketButton } from "./DownloadTicketButton";
 import { CalendarSyncButtons } from "./CalendarSyncButtons";
 import { buildTicketQrDataUrlClient } from "@/lib/tickets/qr-client";
+import {
+  createTicketPdfDoc,
+  drawOfficialTicketPage,
+  getActiveTicketPrimaryRgb,
+  loadBrandLogoDataUrl,
+} from "@/lib/tickets/render-ticket-pdf";
 
 interface TicketCardProps {
   ticket?: Ticket | null;
@@ -212,12 +218,15 @@ export function TicketCard({
   const handleDownloadAll = async () => {
     setDownloadingAll(true);
     try {
-      const { jsPDF } = await import("jspdf");
-      const doc = new jsPDF({
-        orientation: "portrait",
-        unit: "pt",
-        format: [320, 520],
-      });
+      const [{ jsPDF }, logoDataUrl] = await Promise.all([
+        import("jspdf"),
+        loadBrandLogoDataUrl(),
+      ]);
+      const doc = createTicketPdfDoc(jsPDF);
+      const theme = {
+        primary: getActiveTicketPrimaryRgb(),
+        logoDataUrl,
+      };
 
       const ticketsToGenerate = (
         await Promise.all([
@@ -263,134 +272,43 @@ export function TicketCard({
         return;
       }
 
+      const locationText = event.isVirtual
+        ? locale === "en"
+          ? "Virtual Event"
+          : "Evento Virtual"
+        : event.location ||
+          (locale === "en" ? "To be confirmed" : "Por confirmar");
+      const formattedDate = formatEventDate(event.date, locale);
+      const ticketLocale = locale === "en" ? "en" : "es";
+
       for (let i = 0; i < ticketsToGenerate.length; i++) {
         if (i > 0) {
           doc.addPage([320, 520], "portrait");
         }
 
         const tInfo = ticketsToGenerate[i];
+        const statusStr =
+          tInfo.status === "checked_in"
+            ? locale === "en"
+              ? "Checked In"
+              : "Ingresó"
+            : locale === "en"
+              ? "Active / Registered"
+              : "Activo / Registrado";
 
-        // 1. HEADER
-        doc.setFillColor(109, 76, 217); // #6d4cd9
-        doc.rect(0, 0, 320, 95, "F");
-
-        doc.setFillColor(124, 93, 230);
-        doc.circle(280, 20, 40, "F");
-        doc.setFillColor(93, 58, 208);
-        doc.circle(30, 80, 25, "F");
-
-        doc.setTextColor(255, 255, 255);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(14);
-        doc.text("Evora", 160, 40, { align: "center" });
-
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
-        doc.setTextColor(215, 205, 255);
-        doc.text(
-          locale === "en" ? "Official Event Ticket" : "Entrada Oficial del Evento",
-          160,
-          58,
-          { align: "center" }
-        );
-
-        // 2. EVENT DETAILS
-        doc.setTextColor(30, 30, 30);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(15);
-        
-        const splitTitle = doc.splitTextToSize(event.title, 280);
-        doc.text(splitTitle, 20, 130);
-
-        const titleHeight = splitTitle.length * 18;
-        let currentY = 130 + titleHeight + 5;
-
-        doc.setDrawColor(230, 230, 230);
-        doc.setLineWidth(1);
-        doc.line(20, currentY, 300, currentY);
-        currentY += 20;
-
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(9);
-        doc.setTextColor(120, 120, 120);
-        doc.text(locale === "en" ? "DATE & TIME" : "FECHA Y HORA", 20, currentY);
-        doc.text(locale === "en" ? "LOCATION" : "LUGAR / UBICACIÓN", 165, currentY);
-
-        currentY += 14;
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        doc.setTextColor(40, 40, 40);
-        
-        const formattedDate = formatEventDate(event.date, locale);
-        const splitDate = doc.splitTextToSize(formattedDate, 135);
-        doc.text(splitDate, 20, currentY);
-
-        const locationText = event.isVirtual
-          ? (locale === "en" ? "Virtual Event" : "Evento Virtual")
-          : (event.location || (locale === "en" ? "To be confirmed" : "Por confirmar"));
-        const splitLoc = doc.splitTextToSize(locationText, 135);
-        doc.text(splitLoc, 165, currentY);
-
-        currentY += Math.max(splitDate.length * 12, splitLoc.length * 12) + 15;
-
-        doc.line(20, currentY, 300, currentY);
-        currentY += 20;
-
-        // 3. ATTENDEE & STATUS
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(9);
-        doc.setTextColor(120, 120, 120);
-        doc.text(locale === "en" ? "ATTENDEE" : "ASISTENTE", 20, currentY);
-        doc.text(locale === "en" ? "STATUS" : "ESTADO", 165, currentY);
-
-        currentY += 14;
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-        doc.setTextColor(40, 40, 40);
-        doc.text(tInfo.attendeeName || "—", 20, currentY);
-        
-        const statusStr = tInfo.status === "checked_in"
-          ? (locale === "en" ? "Checked In" : "Ingresó")
-          : (locale === "en" ? "Active / Registered" : "Activo / Registrado");
-        doc.text(statusStr, 165, currentY);
-
-        currentY += 20;
-
-        // 4. TEAR-OFF LINE
-        doc.setDrawColor(180, 180, 180);
-        doc.setLineDashPattern([4, 4], 0);
-        doc.line(15, currentY, 305, currentY);
-        doc.setLineDashPattern([], 0);
-
-        doc.setFillColor(240, 240, 240);
-        doc.circle(0, currentY, 8, "F");
-        doc.circle(320, currentY, 8, "F");
-
-        currentY += 25;
-
-        // 5. QR CODE
-        const qrSize = 100;
-        const qrX = (320 - qrSize) / 2;
-        doc.addImage(tInfo.qrCode, "PNG", qrX, currentY, qrSize, qrSize);
-        currentY += qrSize + 15;
-
-        // 6. TICKET CODE
-        doc.setTextColor(80, 80, 80);
-        doc.setFont("courier", "bold");
-        doc.setFontSize(12);
-        doc.text(tInfo.code, 160, currentY, { align: "center" });
-
-        currentY += 15;
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(7.5);
-        doc.setTextColor(140, 140, 140);
-        doc.text(
-          locale === "en"
-            ? "Please present this code at the event entrance."
-            : "Por favor, presente este código en el ingreso al evento.",
-          160,
-          currentY,
-          { align: "center" }
+        drawOfficialTicketPage(
+          doc,
+          {
+            eventTitle: event.title,
+            eventDateLabel: formattedDate,
+            locationLabel: locationText,
+            attendeeName: tInfo.attendeeName,
+            statusLabel: statusStr,
+            ticketCode: tInfo.code,
+            qrDataUrl: tInfo.qrCode,
+            locale: ticketLocale,
+          },
+          theme,
         );
       }
 
