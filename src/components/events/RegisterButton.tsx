@@ -26,6 +26,11 @@ import { translateRegistrationError } from "@/lib/errors/registration";
 import { confirmDeleteAction } from "@/lib/ui/confirm";
 import { usePersistedFormFields } from "@/hooks/useFormPersistence";
 import { formStorageKey } from "@/lib/form-persistence";
+import { useSession } from "@/lib/auth/client";
+import {
+  getAttendeeDestination,
+  paymentCheckoutPath,
+} from "@/lib/navigation/attendee-paths";
 
 interface RegisterButtonProps {
   eventId: string;
@@ -56,6 +61,7 @@ interface RegisterButtonProps {
   }>;
   eventPrice?: number;
   paymentStatus?: "pending" | "approved" | "rejected" | null;
+  eventSlug?: string;
 }
 
 export function RegisterButton({
@@ -70,9 +76,12 @@ export function RegisterButton({
   transportRoutes = [],
   eventPrice = 0,
   paymentStatus = null,
+  eventSlug,
 }: RegisterButtonProps) {
   const router = useRouter();
   const t = useTranslations();
+  const { data: session } = useSession();
+  const role = session?.user?.role;
   const [isPending, startTransition] = useTransition();
   const [optimisticStatus, setOptimisticStatus] = useState(currentStatus);
   const [mounted, setMounted] = useState(false);
@@ -243,9 +252,13 @@ export function RegisterButton({
           if (result.status === "waitlisted") {
             router.refresh();
           } else if (result.requiresPayment && result.registrationId) {
-            router.push(`/member/payments/new/${result.registrationId}`);
+            router.push(paymentCheckoutPath(result.registrationId));
           } else {
-            router.push(wantsTransport ? "/member/transport" : "/member/tickets");
+            router.push(
+              getAttendeeDestination(role, wantsTransport ? "transport" : "tickets", {
+                eventSlug,
+              }),
+            );
           }
         }
       } catch (error) {
@@ -397,9 +410,11 @@ export function RegisterButton({
                   setOptimisticStatus(result.status);
                   toastRegistrationSuccess(result);
                   if (result.requiresPayment && result.registrationId) {
-                    router.push(`/member/payments/new/${result.registrationId}`);
+                    router.push(paymentCheckoutPath(result.registrationId));
                   } else if (result.status === "registered") {
-                    router.push("/member/tickets");
+                    router.push(
+                      getAttendeeDestination(role, "tickets", { eventSlug }),
+                    );
                   }
                   router.refresh();
                 }
@@ -492,9 +507,11 @@ export function RegisterButton({
                   if (result.status === "waitlisted") {
                     router.refresh();
                   } else if (result.requiresPayment && result.registrationId) {
-                    router.push(`/member/payments/new/${result.registrationId}`);
+                    router.push(paymentCheckoutPath(result.registrationId));
                   } else {
-                    router.push("/member/tickets");
+                    router.push(
+                      getAttendeeDestination(role, "tickets", { eventSlug }),
+                    );
                   }
                 }
               } catch (error) {

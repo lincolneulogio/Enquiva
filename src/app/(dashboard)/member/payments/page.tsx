@@ -144,7 +144,7 @@ export default async function MemberPaymentsPage() {
                         )}
                         {payment.status === "rejected" && (
                           <Link
-                            href={`/member/payments/new/${payment.registrationId}`}
+                            href={`/checkout/${payment.registrationId}`}
                             className="inline-flex items-center gap-1 rounded-lg bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400 hover:bg-amber-500/25 transition-all border border-amber-500/20"
                           >
                             Actualizar comprobante
@@ -152,7 +152,7 @@ export default async function MemberPaymentsPage() {
                         )}
                         {!payment.receiptUrl && payment.status === "pending" && (
                           <Link
-                            href={`/member/payments/new/${payment.registrationId}`}
+                            href={`/checkout/${payment.registrationId}`}
                             className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400 hover:bg-amber-500/25 transition-all border border-amber-500/20"
                           >
                             {t("ticket.payOrUploadReceipt")}

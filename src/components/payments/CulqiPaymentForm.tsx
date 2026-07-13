@@ -10,6 +10,7 @@ import { loadCulqiCheckoutScript, openCulqiCheckout, closeActiveCulqiCheckout, i
 import { CULQI_ORDER_MIN_AMOUNT_PEN } from "@/lib/culqi/constants";
 import { useSession } from "@/lib/auth/client";
 import { PaymentBrandMark } from "@/components/payments/PaymentBrandMark";
+import { getAttendeeDestination } from "@/lib/navigation/attendee-paths";
 
 interface CulqiPaymentFormProps {
   paymentId: string;
@@ -18,6 +19,9 @@ interface CulqiPaymentFormProps {
   culqiPublicKey: string;
   holderName?: string;
   userEmail?: string | null;
+  eventSlug?: string;
+  /** Override post-pay redirect (defaults by role). */
+  successHref?: string;
 }
 
 export function CulqiPaymentForm({
@@ -27,6 +31,8 @@ export function CulqiPaymentForm({
   culqiPublicKey,
   holderName,
   userEmail,
+  eventSlug,
+  successHref,
 }: CulqiPaymentFormProps) {
   const t = useTranslations();
   const brand = usePlatformBrand();
@@ -36,6 +42,10 @@ export function CulqiPaymentForm({
   const [isLoading, setIsLoading] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
   const yapeAvailable = amount >= CULQI_ORDER_MIN_AMOUNT_PEN;
+
+  const resolveSuccessHref = () =>
+    successHref ??
+    getAttendeeDestination(session?.user?.role, "tickets", { eventSlug });
 
   useEffect(() => {
     let mounted = true;
@@ -94,7 +104,7 @@ export function CulqiPaymentForm({
 
       if (checkoutResult.type === "order_paid") {
         toast.success(t("payments.culqi.success"));
-        router.push("/member/tickets");
+        router.push(resolveSuccessHref());
         router.refresh();
         return;
       }
@@ -111,7 +121,7 @@ export function CulqiPaymentForm({
       }
 
       toast.success(t("payments.culqi.success"));
-      router.push("/member/tickets");
+      router.push(resolveSuccessHref());
       router.refresh();
     } catch (error) {
       if (isCulqiCheckoutCancelled(error)) return;

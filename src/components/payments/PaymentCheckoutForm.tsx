@@ -141,6 +141,7 @@ export function PaymentCheckoutForm({
             eventTitle={eventTitle}
             culqiPublicKey={culqiPublicKey!}
             holderName={culqiMethod?.holderName}
+            eventSlug={eventSlug}
           />
         )}
 

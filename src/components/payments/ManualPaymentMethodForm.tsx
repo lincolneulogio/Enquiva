@@ -12,6 +12,8 @@ import { UploadDropzone } from "@/lib/uploadthing/components";
 import Image from "next/image";
 import { PaymentMethodOption } from "@/components/payments/PaymentMethodOption";
 import { PaymentBrandMark } from "@/components/payments/PaymentBrandMark";
+import { useSession } from "@/lib/auth/client";
+import { getAttendeeDestination } from "@/lib/navigation/attendee-paths";
 
 interface EventMethod {
   id: string;
@@ -44,6 +46,7 @@ export function ManualPaymentMethodForm({
 }: ManualPaymentMethodFormProps) {
   const t = useTranslations();
   const router = useRouter();
+  const { data: session } = useSession();
   const firstMethodId = eventMethods[0]?.id ?? "";
   const { values, setValue, clear } = usePersistedFormFields(
     formStorageKey(`payment.manual.${registrationId}`),
@@ -116,7 +119,9 @@ export function ManualPaymentMethodForm({
       clear();
       toast.success(t("payments.manual.success"));
       setIsSaving(false);
-      router.push("/member/payments");
+      router.push(
+        getAttendeeDestination(session?.user?.role, "payments", { eventSlug }),
+      );
     } catch (error) {
       setIsSaving(false);
       toast.error(error instanceof Error ? error.message : t("payments.manual.failed"));

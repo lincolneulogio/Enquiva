@@ -326,7 +326,7 @@ export function MemberTransportClient({ options, myBookings }: MemberTransportCl
                               <CancelTransportButton bookingId={booking.id} />
                             )}
                             <Link
-                              href={`/member/payments/new/${booking.registrationId}`}
+                              href={`/checkout/${booking.registrationId}`}
                               className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/95 transition-all shadow-xs hover:shadow"
                             >
                               Pagar S/. {Number(booking.paymentAmount).toFixed(2)}

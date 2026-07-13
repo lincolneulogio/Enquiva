@@ -28,6 +28,7 @@ export async function createPayment(input: CreatePaymentInput) {
 
   // Revalidate relevant member dashboard paths on the server
   revalidatePath("/member/payments");
+  revalidatePath(`/checkout/${validated.registrationId}`);
   revalidatePath(`/member/payments/new/${validated.registrationId}`);
   revalidatePath("/organizer/payments");
   revalidatePath("/admin/payments");

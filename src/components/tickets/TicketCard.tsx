@@ -14,6 +14,7 @@ import { useState, useEffect } from "react";
 import { getPusherClient, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/client";
 import Swal from "@/lib/ui/swal-client";
 import { toast } from "sonner";
+import { paymentCheckoutPath } from "@/lib/navigation/attendee-paths";
 import {
   Ticket as TicketIcon,
   Coins,
@@ -528,7 +529,7 @@ export function TicketCard({
                           {locale === "en" ? "View Large" : "Ver Grande"}
                         </a>
                         <Link
-                          href={`/member/payments/new/${registration.id}`}
+                          href={paymentCheckoutPath(registration.id)}
                           className="rounded-lg bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 shadow-md transition active:scale-95"
                         >
                           <RefreshCw className="h-3.5 w-3.5" />
@@ -549,7 +550,7 @@ export function TicketCard({
                         {locale === "en" ? "View Large" : "Ver Grande"}
                       </a>
                       <Link
-                        href={`/member/payments/new/${registration.id}`}
+                        href={paymentCheckoutPath(registration.id)}
                         className="flex-1 rounded-xl bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition"
                       >
                         <RefreshCw className="h-3.5 w-3.5" />
@@ -578,7 +579,7 @@ export function TicketCard({
                   </div>
 
                   <Link
-                    href={`/member/payments/new/${registration.id}`}
+                    href={paymentCheckoutPath(registration.id)}
                     className="flex items-center justify-center gap-1.5 w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 text-xs font-bold shadow-sm transition active:scale-[0.98]"
                   >
                     <RefreshCw className="h-3.5 w-3.5" />
@@ -600,7 +601,7 @@ export function TicketCard({
                   </div>
                   
                   <Link
-                    href={`/member/payments/new/${registration.id}`}
+                    href={paymentCheckoutPath(registration.id)}
                     className="flex items-center justify-center gap-2 w-full rounded-xl bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 text-xs font-bold uppercase tracking-wider shadow-sm transition active:scale-[0.98]"
                   >
                     <Coins className="h-4 w-4" />
@@ -661,7 +662,7 @@ export function TicketCard({
                   </div>
 
                   <Link
-                    href={`/member/payments/new/${registration.id}`}
+                    href={paymentCheckoutPath(registration.id)}
                     className="flex items-center justify-center gap-2 w-full rounded-xl bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 text-xs font-bold uppercase tracking-wider shadow-sm transition active:scale-[0.98]"
                   >
                     <RefreshCw className="h-4 w-4" />

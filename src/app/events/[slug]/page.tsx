@@ -473,6 +473,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                 transportRoutes={serializedRoutes}
                 eventPrice={event.price ? Number(event.price) : 0}
                 paymentStatus={paymentForRegistration?.payment?.status}
+                eventSlug={event.slug}
               />
 
               {/* ASISTENTES */}
@@ -556,8 +557,8 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                 </div>
               </div>
 
-              {/* ACCESOS RÁPIDOS */}
-              {isAuthenticated && (
+              {/* ACCESOS RÁPIDOS (panel member; staff usa la página pública / checkout) */}
+              {isAuthenticated && session?.user?.role === "member" && (
                 <div className="fe-glass rounded-3xl p-6 shadow-md hover:shadow-lg transition-shadow duration-300 space-y-4">
                   <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/80 flex items-center gap-2 border-b border-border/50 pb-3">
                     <Info className="h-3.5 w-3.5 text-primary" />
