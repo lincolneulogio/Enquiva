@@ -27,7 +27,11 @@ import { runBackground } from "@/lib/background";
 import { assertCanRegisterAttendee } from "@/lib/billing/enforce";
 import { assertCanManageEvent } from "@/lib/organizations/admin-scope";
 import { RegistrationErrorCode, registrationError } from "@/lib/errors/registration";
-import { OCCUPYING_REGISTRATION_STATUSES } from "@/lib/registrations/constants";
+import { occupyingCapacityCondition } from "@/lib/registrations/capacity";
+import {
+  computeInitialHoldExpiresAt,
+  isPastSalesCutoff,
+} from "@/lib/registrations/payment-hold";
 import {
   promoteNextWaitlisted,
   releaseRegistrationResources,
@@ -86,6 +90,10 @@ export class RegistrationService {
         throw registrationError(RegistrationErrorCode.CLOSED_EVENT_EXPIRED);
       }
 
+      if (isPastSalesCutoff(event)) {
+        throw registrationError(RegistrationErrorCode.SALES_CUTOFF);
+      }
+
       const attendee = {
         id: userId,
         name: userName,
@@ -106,7 +114,22 @@ export class RegistrationService {
         if (existing.status === "waitlisted") {
           throw registrationError(RegistrationErrorCode.ALREADY_REGISTERED);
         }
-        if (existing.status !== "cancelled") {
+        const holdExpired =
+          existing.status === "registered" &&
+          existing.holdExpiresAt != null &&
+          existing.holdExpiresAt.getTime() <= Date.now();
+        if (holdExpired) {
+          await releaseRegistrationResources(tx, existing);
+          await tx
+            .update(registrations)
+            .set({
+              status: "cancelled",
+              holdExpiresAt: null,
+              holdReminderSentAt: null,
+            })
+            .where(eq(registrations.id, existing.id));
+          existing.status = "cancelled";
+        } else if (existing.status !== "cancelled") {
           throw registrationError(RegistrationErrorCode.ALREADY_REGISTERED);
         }
       }
@@ -120,12 +143,7 @@ export class RegistrationService {
         const [{ count: currentCount }] = await tx
           .select({ count: count() })
           .from(registrations)
-          .where(
-            and(
-              eq(registrations.eventId, eventId),
-              inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES]),
-            ),
-          );
+          .where(occupyingCapacityCondition(eventId));
 
         if (currentCount + totalNewRegistrations > effectiveCapacity) {
           if (guests.length > 0 || input.routeId) {
@@ -142,6 +160,7 @@ export class RegistrationService {
       // 4. Crear cuentas de usuarios invitados/fantasma si existen
       const guestRegIds: string[] = [];
       const guestUserIdMap = new Map<string, string>();
+      const now = new Date();
 
       if (status === "registered") {
       for (const guest of guests) {
@@ -166,6 +185,9 @@ export class RegistrationService {
             userId: guestUserId,
             status,
             contactPhone: guest.phone ?? null,
+            registeredAt: now,
+            holdExpiresAt: null,
+            holdReminderSentAt: null,
           })
           .returning();
 
@@ -187,8 +209,10 @@ export class RegistrationService {
             status,
             contactPhone,
             notes: finalNotes,
-            registeredAt: new Date(),
+            registeredAt: now,
             checkedInAt: null,
+            holdExpiresAt: null,
+            holdReminderSentAt: null,
           })
           .where(eq(registrations.id, existing.id))
           .returning();
@@ -202,6 +226,9 @@ export class RegistrationService {
             status,
             contactPhone,
             notes: finalNotes,
+            registeredAt: now,
+            holdExpiresAt: null,
+            holdReminderSentAt: null,
           })
           .onConflictDoUpdate({
             target: [registrations.eventId, registrations.userId],
@@ -209,7 +236,9 @@ export class RegistrationService {
               status,
               contactPhone,
               notes: finalNotes,
-              registeredAt: new Date(),
+              registeredAt: now,
+              holdExpiresAt: null,
+              holdReminderSentAt: null,
             },
           })
           .returning();
@@ -296,9 +325,23 @@ export class RegistrationService {
       const totalAmount = totalTicketPrice + transportPrice;
       const isPaid = totalAmount > 0;
       let requiresPayment = false;
+      let holdExpiresAt: Date | null = null;
+      let holdMinutes: number | null = null;
 
       if (isPaid) {
         requiresPayment = true;
+        const hold = computeInitialHoldExpiresAt(event, now);
+        holdExpiresAt = hold.expiresAt;
+        holdMinutes = hold.minutes;
+
+        const holdRegIds = [registration.id, ...guestRegIds];
+        await tx
+          .update(registrations)
+          .set({ holdExpiresAt, holdReminderSentAt: null })
+          .where(inArray(registrations.id, holdRegIds));
+
+        registration = { ...registration, holdExpiresAt, holdReminderSentAt: null };
+
         await tx.insert(payments).values({
           registrationId: registration.id,
           userId: attendee.id,
@@ -333,9 +376,17 @@ export class RegistrationService {
         {
           userId: attendee.id,
           type: "registration_confirmed",
-          title: "Registration Confirmed!",
-          message: `You're registered for "${event.title}"`,
-          metadata: { eventId, eventTitle: event.title, registrationId: registration.id },
+          title: requiresPayment ? "Reserva iniciada" : "¡Registro confirmado!",
+          message: requiresPayment && holdMinutes
+            ? `Reservaste tu lugar en "${event.title}". Tienes ${holdMinutes} min para pagar o se liberará el cupo.`
+            : `You're registered for "${event.title}"`,
+          metadata: {
+            eventId,
+            eventTitle: event.title,
+            registrationId: registration.id,
+            holdExpiresAt: holdExpiresAt?.toISOString() ?? null,
+            holdMinutes,
+          },
         },
       ];
 
@@ -400,12 +451,7 @@ export class RegistrationService {
         const [{ count: newCount }] = await db
           .select({ count: count() })
           .from(registrations)
-          .where(
-            and(
-              eq(registrations.eventId, eventId),
-              inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES]),
-            )
-          );
+          .where(occupyingCapacityCondition(eventId));
 
         // Notificar en tiempo real cambio en la cantidad de asistentes
         try {
@@ -444,7 +490,9 @@ export class RegistrationService {
         ticketCode: issuedTicket?.code ?? null,
         requiresPayment,
         registrationId: registration.id,
-        eventSlug: event.slug, // Retornamos el slug para que el controlador revalide la ruta
+        eventSlug: event.slug,
+        holdExpiresAt: holdExpiresAt?.toISOString() ?? null,
+        holdMinutes,
       };
     });
   }
@@ -496,7 +544,7 @@ export class RegistrationService {
 
       await tx
         .update(registrations)
-        .set({ status: "cancelled" })
+        .set({ status: "cancelled", holdExpiresAt: null, holdReminderSentAt: null })
         .where(eq(registrations.id, registrationId));
 
       const promotion = await promoteNextWaitlisted(tx, reg.eventId);
@@ -510,12 +558,7 @@ export class RegistrationService {
         const [{ count: newCount }] = await db
           .select({ count: count() })
           .from(registrations)
-          .where(
-            and(
-              eq(registrations.eventId, reg.eventId),
-              inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES]),
-            ),
-          );
+          .where(occupyingCapacityCondition(reg.eventId));
 
         try {
           await pusherServer.trigger(

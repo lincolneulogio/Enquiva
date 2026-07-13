@@ -72,6 +72,20 @@ const baseEventSchema = z.object({
   status: z.enum(eventStatusValues).default("draft"),
   isFeatured: z.boolean().default(false),
   hasTransport: z.boolean().default(false),
+  holdMinutesCard: z.coerce.number().int().min(5).max(120).optional().default(30),
+  holdHoursManual: z.coerce.number().int().min(1).max(72).optional().default(24),
+  nearEventWindowHours: z.coerce.number().int().min(1).max(168).optional().default(48),
+  nearEventHoldMinutes: z.coerce.number().int().min(5).max(60).optional().default(15),
+  salesCutoffHoursBefore: z
+    .union([z.string(), z.number()])
+    .optional()
+    .nullable()
+    .transform((value) => {
+      if (value === "" || value === null || value === undefined) return null;
+      const num = Number(value);
+      return Number.isNaN(num) ? null : num;
+    })
+    .pipe(z.number().int().min(1).max(168).nullable()),
 });
 
 export const createEventSchema = baseEventSchema

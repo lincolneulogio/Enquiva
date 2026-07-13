@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { events, registrations } from "@/lib/db/schema";
-import { and, count, eq, inArray } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import { SubscriptionService } from "./subscription.service";
 import type { PlanFeatures, ResolvedPlan } from "./types";
 import { getAiChatUsage } from "./ai-chat-usage";
@@ -9,6 +9,7 @@ import {
   resolveSubscriptionBillingContext,
 } from "./subscription-context";
 import { isPendingPlatformSetupPlan } from "./plans";
+import { occupyingStatusWithActiveHold } from "@/lib/registrations/capacity";
 
 export class PlanLimitError extends Error {
   code = "PLAN_LIMIT";
@@ -87,12 +88,7 @@ export async function assertCanRegisterAttendee(
   const [row] = await db
     .select({ total: count() })
     .from(registrations)
-    .where(
-      and(
-        eq(registrations.eventId, eventId),
-        inArray(registrations.status, ["registered", "checked_in"]),
-      ),
-    );
+    .where(and(eq(registrations.eventId, eventId), occupyingStatusWithActiveHold()));
 
   if ((row?.total ?? 0) >= plan.maxAttendeesPerEvent) {
     throw new PlanLimitError(

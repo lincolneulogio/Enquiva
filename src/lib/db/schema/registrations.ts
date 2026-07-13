@@ -48,11 +48,16 @@ export const registrations = pgTable(
     notes: text("notes"),
     registeredAt: timestamp("registered_at").notNull().defaultNow(),
     checkedInAt: timestamp("checked_in_at"),
+    /** Si hay pago pendiente: el cupo se libera al vencer si no pagó. */
+    holdExpiresAt: timestamp("hold_expires_at"),
+    /** Evita reenviar el recordatorio a mitad del plazo de pago. */
+    holdReminderSentAt: timestamp("hold_reminder_sent_at"),
   },
   (t) => [
     index("registrations_event_idx").on(t.eventId),
     index("registrations_user_idx").on(t.userId),
     uniqueIndex("registrations_event_user_unique_idx").on(t.eventId, t.userId),
+    index("registrations_hold_expires_idx").on(t.holdExpiresAt),
   ]
 );
 

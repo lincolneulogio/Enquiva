@@ -13,6 +13,10 @@
       "schedule": "*/15 * * * *"
     },
     {
+      "path": "/api/cron/registration-holds",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/cron/backup",
       "schedule": "0 5 * * 0"
     }

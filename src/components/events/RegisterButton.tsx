@@ -160,6 +160,26 @@ export function RegisterButton({
 
   const mapRegistrationError = (message: string) => translateRegistrationError(t, message);
 
+  const toastRegistrationSuccess = (result: {
+    status?: string;
+    requiresPayment?: boolean;
+    holdMinutes?: number | null;
+  }, opts?: { withTransport?: boolean }) => {
+    if (result.status === "waitlisted") {
+      toast.success(t("register.addedToWaitlist"));
+      return;
+    }
+    if (result.requiresPayment && result.holdMinutes) {
+      toast.success(t("register.registrationHoldSuccess", { minutes: result.holdMinutes }));
+      return;
+    }
+    toast.success(
+      opts?.withTransport
+        ? "¡Inscripción y reserva de transporte registradas!"
+        : t("register.registrationSuccess"),
+    );
+  };
+
   const activeRoute = transportRoutes.find((r) => r.id === selectedRouteId);
   const transportPricePerSeat = activeRoute ? Number(activeRoute.pricePerSeat) : 0;
   const transportTotalCost = wantsTransport ? transportPricePerSeat * seatsCount : 0;
@@ -216,13 +236,7 @@ export function RegisterButton({
         const result = await registerForEvent(payload);
         if (result.success) {
           setOptimisticStatus(result.status);
-          toast.success(
-            result.status === "waitlisted"
-              ? t("register.addedToWaitlist")
-              : wantsTransport
-                ? "¡Inscripción y reserva de transporte registradas!"
-                : t("register.registrationSuccess"),
-          );
+          toastRegistrationSuccess(result, { withTransport: wantsTransport });
           setIsModalOpen(false);
           clearRegistrationDraft();
 
@@ -381,11 +395,7 @@ export function RegisterButton({
                 const result = await registerForEvent({ eventId });
                 if (result.success) {
                   setOptimisticStatus(result.status);
-                  toast.success(
-                    result.status === "waitlisted"
-                      ? t("register.addedToWaitlist")
-                      : t("register.registrationSuccess"),
-                  );
+                  toastRegistrationSuccess(result);
                   if (result.requiresPayment && result.registrationId) {
                     router.push(`/member/payments/new/${result.registrationId}`);
                   } else if (result.status === "registered") {
@@ -478,11 +488,7 @@ export function RegisterButton({
                 const result = await registerForEvent({ eventId });
                 if (result.success) {
                   setOptimisticStatus(result.status);
-                  toast.success(
-                    result.status === "waitlisted"
-                      ? t("register.addedToWaitlist")
-                      : t("register.registrationSuccess"),
-                  );
+                  toastRegistrationSuccess(result);
                   if (result.status === "waitlisted") {
                     router.refresh();
                   } else if (result.requiresPayment && result.registrationId) {

@@ -7,7 +7,7 @@ import {
   transportBookings,
   transportRoutes,
 } from "@/lib/db/schema";
-import { eq, and, desc, count, type SQL } from "drizzle-orm";
+import { eq, and, desc, count, inArray, type SQL } from "drizzle-orm";
 import {
   type CreatePaymentInput,
   type UpdatePaymentStatusInput,
@@ -31,6 +31,8 @@ import { NotificationService, type NotificationPayload } from "@/lib/notificatio
 import { getEntityStaffUserIds } from "@/lib/notifications/notification-targets";
 import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
 import { invalidateAdminDashboardStatsCache } from "@/lib/analytics/admin";
+import { computeManualHoldExpiresAt } from "@/lib/registrations/payment-hold";
+import { parseGuestRegistrationIds } from "@/lib/registrations/cleanup";
 
 export class PaymentService {
   /**
@@ -106,15 +108,31 @@ export class PaymentService {
     }
 
     const [event] = await db
-      .select({
-        id: events.id,
-        title: events.title,
-        organizerId: events.organizerId,
-        organizationId: events.organizationId,
-      })
+      .select()
       .from(events)
       .where(eq(events.id, registration.eventId))
       .limit(1);
+
+    // Transferencia/Yape: ampliar hold al plazo manual (salvo ventana cercana al evento).
+    const isCardLike = validated.method === "culqi" || validated.method === "card";
+    if (event && !isCardLike) {
+      const { expiresAt } = computeManualHoldExpiresAt(event);
+      const guestIds = parseGuestRegistrationIds(registration.notes);
+      await db
+        .update(registrations)
+        .set({ holdExpiresAt: expiresAt, holdReminderSentAt: null })
+        .where(
+          and(
+            eq(registrations.id, registration.id),
+          ),
+        );
+      if (guestIds.length > 0) {
+        await db
+          .update(registrations)
+          .set({ holdExpiresAt: expiresAt, holdReminderSentAt: null })
+          .where(inArray(registrations.id, guestIds));
+      }
+    }
 
     const [payer] = await db
       .select({ name: users.name })
@@ -338,24 +356,24 @@ export class PaymentService {
       // 4. Generación de ticket consistente dentro de la transacción
       let ticket = null;
       if (updated.status === "approved") {
+        const guestIds = parseGuestRegistrationIds(registration.notes);
+        await tx
+          .update(registrations)
+          .set({ holdExpiresAt: null, holdReminderSentAt: null })
+          .where(inArray(registrations.id, [registration.id, ...guestIds]));
+
         ticket = await generateTicketForRegistration(registration.id, event.id, payment.userId, tx);
 
         // Generar tickets para invitados si existen registrados bajo esta inscripción
-        if (registration.notes && registration.notes.startsWith("[GUESTS:")) {
-          const match = registration.notes.match(/^\[GUESTS:([^\]]+)\]/);
-          if (match && match[1]) {
-            const guestRegIds = match[1].split(",");
-            for (const guestRegId of guestRegIds) {
-              const [guestReg] = await tx
-                .select({ userId: registrations.userId })
-                .from(registrations)
-                .where(eq(registrations.id, guestRegId))
-                .limit(1);
+        for (const guestRegId of guestIds) {
+          const [guestReg] = await tx
+            .select({ userId: registrations.userId })
+            .from(registrations)
+            .where(eq(registrations.id, guestRegId))
+            .limit(1);
 
-              if (guestReg) {
-                await generateTicketForRegistration(guestRegId, event.id, guestReg.userId, tx);
-              }
-            }
+          if (guestReg) {
+            await generateTicketForRegistration(guestRegId, event.id, guestReg.userId, tx);
           }
         }
       }

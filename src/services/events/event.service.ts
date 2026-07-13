@@ -14,7 +14,7 @@ import { pusherServer, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/serve
 import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
 import { generateUniqueSlug } from "@/lib/utils";
 import { assertCanManageEvent } from "@/lib/organizations/admin-scope";
-import { eq, and, desc, ilike, count, sql, asc, inArray, isNull, gte } from "drizzle-orm";
+import { eq, and, desc, ilike, count, sql, asc, inArray, isNull, gte, or, gt } from "drizzle-orm";
 import {
   createEventSchema,
   updateEventSchema,
@@ -26,6 +26,12 @@ import { OCCUPYING_REGISTRATION_STATUSES } from "@/lib/registrations/constants";
 import { cascadeEventCancellation } from "@/lib/events/lifecycle";
 import { runBackground } from "@/lib/background";
 import { NotificationService } from "@/lib/notifications/notification.service";
+
+/** registered/checked_in con hold vigente (o sin hold). */
+const activeOccupyingStatus = and(
+  inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES]),
+  or(isNull(registrations.holdExpiresAt), gt(registrations.holdExpiresAt, sql`now()`)),
+);
 
 const FALLBACK_CATEGORIES: Pick<Category, "slug" | "label" | "colorClass">[] = [
   { slug: "worship", label: "Música y espectáculos", colorClass: "bg-purple-100 text-purple-800" },
@@ -278,7 +284,7 @@ export class EventService {
           registrations,
           and(
             eq(registrations.eventId, events.id),
-            inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES]),
+            activeOccupyingStatus,
           ),
         )
         .where(and(...conditions))
@@ -297,7 +303,7 @@ export class EventService {
         .where(
           and(
             ...conditions,
-            inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES])
+            activeOccupyingStatus
           )
         ),
     ]);
@@ -339,7 +345,7 @@ export class EventService {
           registrations,
           and(
             eq(registrations.eventId, events.id),
-            inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES]),
+            activeOccupyingStatus,
           ),
         )
         .where(and(...baseConditions, eq(events.isFeatured, true)))
@@ -360,7 +366,7 @@ export class EventService {
           registrations,
           and(
             eq(registrations.eventId, events.id),
-            inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES]),
+            activeOccupyingStatus,
           ),
         )
         .where(and(...baseConditions))
@@ -400,7 +406,7 @@ export class EventService {
       .where(
         and(
           eq(registrations.eventId, event.id),
-          inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES])
+          activeOccupyingStatus
         )
       );
 
@@ -423,7 +429,7 @@ export class EventService {
         registrations,
         and(
           eq(registrations.eventId, events.id),
-          inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES]),
+          activeOccupyingStatus,
         ),
       )
       .where(eq(events.organizerId, organizerId))

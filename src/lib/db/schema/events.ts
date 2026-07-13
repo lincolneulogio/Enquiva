@@ -35,6 +35,16 @@ export const events = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
     price: numeric("price", { precision: 10, scale: 2 }),
     hasTransport: boolean("has_transport").notNull().default(false),
+    /** Minutos de reserva de cupo tras registrarse (pago con tarjeta/Culqi). */
+    holdMinutesCard: integer("hold_minutes_card").notNull().default(30),
+    /** Horas de reserva si elige transferencia/Yape u otro método manual. */
+    holdHoursManual: integer("hold_hours_manual").notNull().default(24),
+    /** Ventana previa al evento (horas) en la que el hold se acorta. */
+    nearEventWindowHours: integer("near_event_window_hours").notNull().default(48),
+    /** Minutos de hold dentro de la ventana cercana al evento. */
+    nearEventHoldMinutes: integer("near_event_hold_minutes").notNull().default(15),
+    /** Cierra ventas N horas antes del inicio (null = hasta el inicio). */
+    salesCutoffHoursBefore: integer("sales_cutoff_hours_before"),
     viewCount: integer("view_count").notNull().default(0),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

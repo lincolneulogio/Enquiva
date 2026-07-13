@@ -112,6 +112,16 @@ export default async function MemberPaymentCheckoutPage({ params }: Props) {
     pendingReview: Boolean(hasSubmittedManual),
   });
 
+  const holdExpiresAt = registration.holdExpiresAt ? new Date(registration.holdExpiresAt) : null;
+  const holdExpired = Boolean(holdExpiresAt && holdExpiresAt.getTime() <= Date.now() && !isAlreadyPaid);
+  const holdTimeLabel =
+    holdExpiresAt && !holdExpired
+      ? holdExpiresAt.toLocaleString(locale === "en" ? "en-US" : "es-PE", {
+          dateStyle: "short",
+          timeStyle: "short",
+        })
+      : null;
+
   const summaryCard = (
     <div className="fe-glass sticky top-6 space-y-4 rounded-3xl border border-border bg-card p-6 shadow-sm">
       <div>
@@ -241,6 +251,16 @@ export default async function MemberPaymentCheckoutPage({ params }: Props) {
         </div>
       </div>
 
+      {!isAlreadyPaid && holdExpired ? (
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {t("payments.checkout.holdExpiredBanner")}
+        </div>
+      ) : !isAlreadyPaid && holdTimeLabel ? (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+          {t("payments.checkout.holdBanner", { time: holdTimeLabel })}
+        </div>
+      ) : null}
+
       <div className="grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-start">
         {summaryCard}
 
@@ -252,6 +272,13 @@ export default async function MemberPaymentCheckoutPage({ params }: Props) {
           ) : hasSubmittedManual ? (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-800 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
               <p className="font-medium">{t("payments.checkout.paymentSubmitted")}</p>
+            </div>
+          ) : holdExpired ? (
+            <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-5 text-destructive">
+              <p className="font-medium">{t("payments.checkout.holdExpiredBanner")}</p>
+              <Link href={`/events/${event.slug}`} className="mt-2 inline-block text-sm font-medium underline">
+                {t("register.registerAgain")}
+              </Link>
             </div>
           ) : payment ? (
             <div className="fe-glass rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
