@@ -58,7 +58,7 @@ export function computeInitialHoldExpiresAt(event: EventHoldConfig, from = new D
   };
 }
 
-/** Extiende el hold al enviar comprobante manual (Yape/transferencia). */
+/** Extiende el hold al enviar pago manual (efectivo residual / Yape-Plin legacy). */
 export function computeManualHoldExpiresAt(event: EventHoldConfig, from = new Date()) {
   const cfg = normalizeHoldConfig(event);
   if (isNearEventWindow(cfg, from)) {

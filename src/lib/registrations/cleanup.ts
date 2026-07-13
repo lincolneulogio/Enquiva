@@ -11,22 +11,19 @@ import {
 import { generateTicketForRegistration } from "@/lib/tickets";
 import { NotificationService } from "@/lib/notifications/notification.service";
 import { computeInitialHoldExpiresAt } from "@/lib/registrations/payment-hold";
+import {
+  parseGuestRegistrationIds,
+  resolveGuestRegistrationIds,
+} from "@/lib/registrations/guests";
 
-const GUEST_NOTES_PREFIX = "[GUESTS:";
-
-export function parseGuestRegistrationIds(notes: string | null | undefined): string[] {
-  if (!notes?.startsWith(GUEST_NOTES_PREFIX)) return [];
-  const content = notes.slice(GUEST_NOTES_PREFIX.length).replace("]", "").trim();
-  if (!content) return [];
-  return content.split(",").map((id) => id.trim()).filter(Boolean);
-}
+export { parseGuestRegistrationIds, resolveGuestRegistrationIds } from "@/lib/registrations/guests";
 
 /** Libera transporte, pagos pendientes y tickets de una inscripción (y sus invitados). */
 export async function releaseRegistrationResources(
   tx: DBTransaction,
   reg: Pick<Registration, "id" | "eventId" | "userId" | "notes">,
 ) {
-  const guestIds = parseGuestRegistrationIds(reg.notes);
+  const guestIds = await resolveGuestRegistrationIds(reg, tx);
 
   const registrationIds = [reg.id, ...guestIds];
 

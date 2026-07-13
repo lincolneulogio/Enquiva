@@ -64,15 +64,13 @@ export default async function MemberTicketsPage() {
   }
 
   // ─── LOAD GUEST TICKETS AND DETAILS ────────────────────────────────────────
+  const { resolveGuestRegistrationIds } = await import("@/lib/registrations/guests");
   const guestRegIds: string[] = [];
+  const guestsByParentId = new Map<string, string[]>();
   for (const r of registrations) {
-    if (r.registration.notes && r.registration.notes.startsWith("[GUESTS:")) {
-      const match = r.registration.notes.match(/^\[GUESTS:([^\]]+)\]/);
-      if (match && match[1]) {
-        const ids = match[1].split(",").map((id) => id.trim()).filter(Boolean);
-        guestRegIds.push(...ids);
-      }
-    }
+    const ids = await resolveGuestRegistrationIds(r.registration);
+    guestRegIds.push(...ids);
+    guestsByParentId.set(r.registration.id, ids);
   }
 
   const guestDetailsMap = new Map<
@@ -129,16 +127,10 @@ export default async function MemberTicketsPage() {
       };
     }> = [];
 
-    if (registration.notes && registration.notes.startsWith("[GUESTS:")) {
-      const match = registration.notes.match(/^\[GUESTS:([^\]]+)\]/);
-      if (match && match[1]) {
-        const ids = match[1].split(",").map((id) => id.trim()).filter(Boolean);
-        for (const gId of ids) {
-          const guestDetail = guestDetailsMap.get(gId);
-          if (guestDetail) {
-            guestsList.push(guestDetail);
-          }
-        }
+    for (const gId of guestsByParentId.get(registration.id) ?? []) {
+      const guestDetail = guestDetailsMap.get(gId);
+      if (guestDetail) {
+        guestsList.push(guestDetail);
       }
     }
 

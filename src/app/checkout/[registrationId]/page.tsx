@@ -49,10 +49,10 @@ export default async function PaymentCheckoutPage({ params }: Props) {
   const holderName = holderUser?.name ?? "Titular";
 
   let guestsDetails: Array<{ name: string; price: number }> = [];
-  if (registration.notes && registration.notes.startsWith("[GUESTS:")) {
-    const match = registration.notes.match(/^\[GUESTS:([^\]]+)\]/);
-    if (match && match[1]) {
-      const guestRegIds = match[1].split(",");
+  {
+    const { resolveGuestRegistrationIds } = await import("@/lib/registrations/guests");
+    const guestRegIds = await resolveGuestRegistrationIds(registration);
+    if (guestRegIds.length > 0) {
       const guestRecords = await db
         .select({
           name: users.name,

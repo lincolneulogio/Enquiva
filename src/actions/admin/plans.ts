@@ -57,7 +57,7 @@ export async function createPlan(input: {
       featureTransport: input.featureTransport ?? false,
       featureAi: input.featureAi ?? false,
       featureExports: input.featureExports ?? false,
-      featureCustomBranding: input.featureCustomBranding ?? false,
+      featureCustomBranding: false,
       sortOrder: input.sortOrder ?? 99,
       isActive: true,
     })
@@ -131,7 +131,7 @@ export async function updatePlan(
       ...(input.featureTransport !== undefined && { featureTransport: input.featureTransport }),
       ...(input.featureAi !== undefined && { featureAi: input.featureAi }),
       ...(input.featureExports !== undefined && { featureExports: input.featureExports }),
-      ...(input.featureCustomBranding !== undefined && { featureCustomBranding: input.featureCustomBranding }),
+      featureCustomBranding: false,
       ...(input.isActive !== undefined && { isActive: input.isActive }),
       ...(input.sortOrder !== undefined && { sortOrder: input.sortOrder }),
       updatedAt: new Date(),

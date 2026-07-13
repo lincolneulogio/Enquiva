@@ -21,6 +21,8 @@ import { planIncludesFeature } from "@/lib/billing/enforce";
 import { Clock, CreditCard } from "lucide-react";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
 
+import { countGuestsFromNotes } from "@/lib/registrations/guests";
+
 function getPaymentDynamicCaption(
   notes: string | null,
   registrationNotes: string | null,
@@ -29,14 +31,7 @@ function getPaymentDynamicCaption(
 ) {
   const isEn = locale === "en";
   
-  // Calculate guests count from registrationNotes
-  let guestCount = 0;
-  if (registrationNotes && registrationNotes.startsWith("[GUESTS:")) {
-    const content = registrationNotes.replace("[GUESTS:", "").replace("]", "").trim();
-    if (content) {
-      guestCount = content.split(",").map(s => s.trim()).filter(Boolean).length;
-    }
-  }
+  let guestCount = countGuestsFromNotes(registrationNotes);
 
   // Fallback to regex on payment notes if database records are blank
   if (guestCount === 0 && notes) {

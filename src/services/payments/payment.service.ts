@@ -32,7 +32,7 @@ import { getEntityStaffUserIds } from "@/lib/notifications/notification-targets"
 import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
 import { invalidateAdminDashboardStatsCache } from "@/lib/analytics/admin";
 import { computeManualHoldExpiresAt } from "@/lib/registrations/payment-hold";
-import { parseGuestRegistrationIds } from "@/lib/registrations/cleanup";
+import { resolveGuestRegistrationIds } from "@/lib/registrations/cleanup";
 import { getSystemSettings } from "@/lib/settings";
 import {
   DEFAULT_PLATFORM_TIMEZONE,
@@ -133,7 +133,7 @@ export class PaymentService {
     const isCardLike = validated.method === "culqi" || validated.method === "card";
     if (event && !isCardLike) {
       const { expiresAt } = computeManualHoldExpiresAt(event);
-      const guestIds = parseGuestRegistrationIds(registration.notes);
+      const guestIds = await resolveGuestRegistrationIds(registration);
       await db
         .update(registrations)
         .set({ holdExpiresAt: expiresAt, holdReminderSentAt: null })
@@ -373,7 +373,7 @@ export class PaymentService {
       // 4. Generación de ticket consistente dentro de la transacción
       let ticket = null;
       if (updated.status === "approved") {
-        const guestIds = parseGuestRegistrationIds(registration.notes);
+        const guestIds = await resolveGuestRegistrationIds(registration, tx);
         await tx
           .update(registrations)
           .set({ holdExpiresAt: null, holdReminderSentAt: null })

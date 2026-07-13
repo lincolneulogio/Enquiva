@@ -848,7 +848,8 @@ export function RegisterButton({
                   <div className="space-y-0.5 text-xs text-blue-800 dark:text-blue-300 text-left">
                     <p className="font-semibold text-blue-700 dark:text-blue-400">Pago unificado disponible</p>
                     <p className="leading-relaxed">
-                      El monto de la entrada y el pasaje de transporte se sumarán en un único pago consolidado. Solo tendrás que transferir y adjuntar un único comprobante de pago.
+                      El monto de la entrada y el pasaje de transporte se sumarán en un único cobro. En el siguiente paso
+                      podrás pagar con Culqi (tarjeta, Yape o billeteras) o efectivo, según los medios del organizador.
                     </p>
                   </div>
                 </div>

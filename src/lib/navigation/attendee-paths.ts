@@ -8,7 +8,7 @@ export function paymentCheckoutPath(registrationId: string) {
 
 /**
  * Destinos post-pago / post-registro.
- * Staff (superadmin/admin/organizer) actúa como asistente fuera del panel /member.
+ * Staff actúa como asistente en /attendee/* (fuera del panel /member).
  */
 export function getAttendeeDestination(
   role: string | null | undefined,
@@ -29,8 +29,15 @@ export function getAttendeeDestination(
     }
   }
 
-  if (options?.eventSlug) {
-    return `/events/${options.eventSlug}`;
+  switch (kind) {
+    case "tickets":
+      return "/attendee/tickets";
+    case "payments":
+      return "/attendee/payments";
+    case "transport":
+      return options?.eventSlug ? `/events/${options.eventSlug}` : "/attendee/tickets";
+    case "events":
+      return options?.eventSlug ? `/events/${options.eventSlug}` : "/events";
   }
 
   return getDashboardHomeForRole(normalized);

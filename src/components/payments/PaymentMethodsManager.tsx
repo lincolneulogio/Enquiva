@@ -298,15 +298,9 @@ export function PaymentMethodsManager({
     showOrganizerCulqiHints && planIncludesCulqi && !culqiConfigured;
   const culqiActive =
     showOrganizerCulqiHints && planIncludesCulqi && culqiConfigured;
-  const hasCulqiHints =
-    needsPlanUpgrade ||
-    needsRenewal ||
-    culqiReadyToAdd ||
-    culqiActive;
 
   return (
     <div className="space-y-6">
-      {(isPlatform || hasCulqiHints) && (
       <div className="rounded-2xl border border-border bg-muted/20 p-4 dark:bg-muted/10">
         <div className="flex gap-3">
           <Info className="h-5 w-5 shrink-0 text-primary" />
@@ -316,7 +310,12 @@ export function PaymentMethodsManager({
                 <p className="font-medium text-foreground">{t("payments.config.platformTitle")}</p>
                 <p className="mt-1">{t("payments.config.platformDescription")}</p>
               </>
-            ) : null}
+            ) : (
+              <>
+                <p className="font-medium text-foreground">{t("payments.config.organizerTitle")}</p>
+                <p className="mt-1">{t("payments.config.organizerDescription")}</p>
+              </>
+            )}
             {needsPlanUpgrade && (
               <p className="mt-2 flex flex-wrap items-center gap-1.5 text-amber-700 dark:text-amber-400">
                 <Crown className="h-3.5 w-3.5 shrink-0" />
@@ -371,7 +370,6 @@ export function PaymentMethodsManager({
           </div>
         </div>
       </div>
-      )}
 
       {!showForm ? (
         canCreate ? (

@@ -62,7 +62,6 @@ const emptyForm = {
   featureTransport: false,
   featureAi: false,
   featureExports: false,
-  featureCustomBranding: false,
 };
 
 export function PlansManager({ initialPlans }: PlansManagerProps) {
@@ -113,7 +112,6 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
       featureTransport: form.featureTransport,
       featureAi: form.featureAi,
       featureExports: form.featureExports,
-      featureCustomBranding: form.featureCustomBranding,
     };
 
     startTransition(async () => {
@@ -153,7 +151,6 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
       featureTransport: plan.featureTransport,
       featureAi: plan.featureAi,
       featureExports: plan.featureExports,
-      featureCustomBranding: plan.featureCustomBranding,
     });
     setTab("editor");
   };
@@ -538,11 +535,6 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                 label={t("dashboard.admin.plansFeatureExports")}
                 checked={form.featureExports}
                 onChange={(v) => setForm({ ...form, featureExports: v })}
-              />
-              <FeatureToggle
-                label={t("dashboard.admin.plansFeatureBranding")}
-                checked={form.featureCustomBranding}
-                onChange={(v) => setForm({ ...form, featureCustomBranding: v })}
               />
             </div>
           </div>

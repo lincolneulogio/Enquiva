@@ -4,13 +4,13 @@ description: "Mapa completo de Evora: pantallas, APIs, estado y mejoras."
 layout: "../../layouts/DocLayout.astro"
 ---
 
-Resumen técnico del ecosistema **Evora** (actualizado desde el código).
+Resumen técnico del ecosistema **Evora** (actualizado desde el código, modelo Culqi-first).
 
 | Métrica | Cantidad |
 |---------|----------|
-| Pantallas (`page.tsx`) | ~88 |
-| Tablas PostgreSQL | 30 |
-| Rutas API | 20 (`/api/health` incluido) |
+| Pantallas (`page.tsx`) | ~90 |
+| Tablas PostgreSQL | 30+ |
+| Rutas API | 20+ (`/api/health` incluido) |
 
 ---
 
@@ -19,6 +19,8 @@ Resumen técnico del ecosistema **Evora** (actualizado desde el código).
 - **Home** — landing, carrusel destacados, eventos próximos
 - **Catálogo** — `/events`, filtros, búsqueda, categorías
 - **Detalle** — `/events/[slug]`, inscripción
+- **Checkout** — `/checkout/[registrationId]` (cualquier rol autenticado)
+- **Asistente (staff)** — `/attendee/tickets`, `/attendee/payments`
 - **Docs** — portal Astro en `/docs`
 
 ## 2. Autenticación y cuentas
@@ -34,11 +36,16 @@ Resumen técnico del ecosistema **Evora** (actualizado desde el código).
 
 ## 4. Inscripciones y tickets
 
-- Registrations, waitlist, tickets QR firmados, scanner, `/ticket/[code]`
+- Registrations (titular + invitados vía `parent_registration_id`), waitlist
+- Tickets QR firmados, scanner, `/ticket/[code]`
 
-## 5. Pagos
+## 5. Pagos (Culqi-first)
 
-- Manual (Yape/Plin/efectivo), métodos por organizador, Culqi (opcional), auditoría
+- **Primario:** Culqi en `/checkout/[registrationId]` (tarjeta, Yape y billeteras vía pasarela)
+- **Efectivo:** pago en puerta + aprobación del organizador
+- **Legacy residual:** Yape/Plin manual solo si aún están vinculados al evento (no se crean nuevos)
+- Métodos: Culqi **organizador** (eventos) ≠ Culqi **plataforma** (planes SaaS)
+- Planes/suscripciones: cobro automática vía Culqi (`/organizer/billing`, `/admin/plan`)
 
 ## 6. Transporte
 
@@ -51,19 +58,22 @@ Resumen técnico del ecosistema **Evora** (actualizado desde el código).
 ## 8. Planes y billing SaaS
 
 - Planes, suscripciones, renovaciones (cron + Culqi), UI billing
+- Features de plan: Culqi, transporte, IA, exports (branding personalizado reservado / no vendido aún)
 
 ## 9. Comunicaciones
 
 - Notificaciones in-app (Pusher), broadcasts (lotes configurables), SMTP
+- Web push opcional (requiere VAPID); sin claves se muestra aviso claro
 
 ## 10. Admin / operaciones
 
 - Paneles superadmin, admin, organizer, member
-- Auditoría, analytics, exportaciones, backup JSON v2.0
+- Auditoría, analytics (vistas reales; sin tráfico inventado), exportaciones, backup JSON
+- Mantenimiento programado + banner de anuncio
 
 ## 11. IA y extras
 
-- IA Copilot, i18n ES/EN, Redis, Uploadthing, Docker, CI, crons Vercel
+- IA Copilot (paths actualizados a Culqi + `/checkout` + `/attendee`), i18n ES/EN, Redis, Uploadthing, Docker, CI, crons Vercel
 
 ---
 
@@ -72,35 +82,23 @@ Resumen técnico del ecosistema **Evora** (actualizado desde el código).
 | Área | Notas |
 |------|--------|
 | Auth + OTP + roles | better-auth, guards, registro organizador |
-| Eventos públicos | Listado, detalle, portadas sin recorte |
-| Inscripciones + QR | Flujo completo |
+| Eventos públicos | Listado, detalle, portadas |
+| Inscripciones + QR | Flujo completo; invitados con FK |
 | Scanner | Check-in en puerta |
-| Pagos manuales | Comprobante + aprobación |
+| **Pagos Culqi + cash** | Checkout neutral; legacy residual opcional |
 | Organizaciones | Invite, compartir, unirse desde panel |
-| Paneles por rol | `/superadmin`, `/admin`, `/organizer`, `/member` |
-| Infra docs | Local vs prod, deploy, backup, CI pnpm 11 |
-
----
-
-## Mejoras implementadas recientemente
-
-- Carrusel **destacados** en home (estilo Joinnus)
-- Tarjetas sin **fecha duplicada** en meta
-- Onboarding organizador ampliado (4 pasos)
-- `/api/health` — chequeo BD, mail, crons
-- Workflow **Deploy** en GitHub Actions (requiere secrets Vercel)
-- `BROADCAST_BATCH_SIZE` configurable
-- Validación mail producción (alerta si Mailtrap)
+| Paneles por rol | `/superadmin`, `/admin`, `/organizer`, `/member`, `/attendee` |
+| Infra docs | Local vs prod, deploy, backup, CI pnpm |
 
 ---
 
 ## Pendiente (roadmap)
 
-**Alta:** SMTP Resend/SendGrid en prod, verificar crons en Vercel, Culqi en vivo, secrets deploy en GitHub.
+**Alta:** SMTP Resend/SendGrid en prod, verificar crons en Vercel, Culqi en vivo, secrets deploy.
 
-**Media:** migraciones unificadas, analytics ampliado, IA Copilot por plan.
+**Media:** branding por organización (feature de plan), analytics de vistas más rico.
 
-**Baja:** transporte móvil, videotutoriales con video real, push notifications.
+**Baja:** videotutoriales con video real (hoy placeholder “Próximamente”), push VAPID en todos los entornos.
 
 ---
 

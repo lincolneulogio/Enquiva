@@ -1,6 +1,5 @@
 "use server";
 
-import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { SubscriptionService } from "@/lib/billing/subscription.service";
 import { SubscriptionPaymentService } from "@/lib/billing/subscription-payment.service";
@@ -69,53 +68,6 @@ export async function getMySubscriptionPaymentHistory() {
   const billingUserId = getBillingUserId(ctx);
   if (!billingUserId) return [];
   return SubscriptionPaymentService.listPaymentsForUser(billingUserId);
-}
-
-const submitManualSchema = z.object({
-  planId: z.string().uuid(),
-  method: z.enum(["yape", "plin"]),
-  reference: z.string().max(100).optional(),
-  receiptUrl: z.string().url(),
-  receiptFileName: z.string().max(200).optional(),
-});
-
-export async function submitSubscriptionPayment(input: z.infer<typeof submitManualSchema>) {
-  await requireAuthUser();
-  const { user, billingUserId } = await requireBillingManager();
-  const data = submitManualSchema.parse(input);
-
-  const [plan] = await db.select().from(plans).where(eq(plans.id, data.planId)).limit(1);
-  if (!plan) throw new Error("Plan no encontrado");
-
-  const amount = Number(plan.priceMonthly);
-  if (amount <= 0) {
-    await SubscriptionService.assignPlanFromOrganizerPayment(user.id, user.role, plan.id);
-    revalidatePath("/organizer/billing");
-    revalidatePath("/admin/plan");
-    return { success: true, mode: "assigned" as const };
-  }
-
-  await SubscriptionPaymentService.fulfillManualSubscriptionPayment({
-    userId: billingUserId,
-    planId: plan.id,
-    amount,
-    method: data.method,
-    reference: data.reference,
-    receiptUrl: data.receiptUrl,
-    receiptFileName: data.receiptFileName,
-  });
-
-  revalidatePath("/organizer/billing");
-  revalidatePath("/admin/plan");
-  revalidatePath("/admin/billing");
-  revalidatePath("/organizer", "layout");
-  revalidatePath("/admin", "layout");
-
-  return {
-    success: true,
-    mode: "assigned" as const,
-    message: "Plan activado. Ya puedes usar Evora con tu nueva suscripción.",
-  };
 }
 
 export async function requestPlanUpgrade(planSlug: string, confirmed = false) {

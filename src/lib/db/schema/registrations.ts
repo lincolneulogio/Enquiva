@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, integer, pgEnum, uuid, index, uniqueIndex, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer, pgEnum, uuid, index, uniqueIndex, jsonb, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
 import { events } from "./events";
@@ -47,6 +47,14 @@ export const registrations = pgTable(
     contactPhone: text("contact_phone"),
     qrCode: text("qr_code"),
     notes: text("notes"),
+    /**
+     * Inscripciones hijas (invitados) apuntan al registro del titular.
+     * Sustituye el vínculo frágil `[GUESTS:…]` en notes.
+     */
+    parentRegistrationId: uuid("parent_registration_id").references(
+      (): AnyPgColumn => registrations.id,
+      { onDelete: "cascade" },
+    ),
     registeredAt: timestamp("registered_at").notNull().defaultNow(),
     checkedInAt: timestamp("checked_in_at"),
     /** Si hay pago pendiente: el cupo se libera al vencer si no pagó. */
@@ -59,6 +67,7 @@ export const registrations = pgTable(
     index("registrations_user_idx").on(t.userId),
     uniqueIndex("registrations_event_user_unique_idx").on(t.eventId, t.userId),
     index("registrations_hold_expires_idx").on(t.holdExpiresAt),
+    index("registrations_parent_idx").on(t.parentRegistrationId),
   ]
 );
 

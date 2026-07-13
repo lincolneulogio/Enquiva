@@ -37,7 +37,7 @@ export const events = pgTable(
     hasTransport: boolean("has_transport").notNull().default(false),
     /** Minutos de reserva de cupo tras registrarse (pago con tarjeta/Culqi). */
     holdMinutesCard: integer("hold_minutes_card").notNull().default(30),
-    /** Horas de reserva si elige transferencia/Yape u otro método manual. */
+    /** Horas de reserva si elige efectivo u otro método manual/legacy. */
     holdHoursManual: integer("hold_hours_manual").notNull().default(24),
     /** Ventana previa al evento (horas) en la que el hold se acorta. */
     nearEventWindowHours: integer("near_event_window_hours").notNull().default(48),

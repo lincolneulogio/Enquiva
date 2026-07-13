@@ -19,6 +19,7 @@ export function WebPushToggle() {
   const [enabled, setEnabled] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const [supported, setSupported] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -32,15 +33,27 @@ export function WebPushToggle() {
     void (async () => {
       const config = await getWebPushPublicKeyAction();
       setEnabled(config.enabled);
-      if (!pushSupported || !config.enabled) return;
-
-      const registration = await navigator.serviceWorker.getRegistration("/sw.js");
-      const existing = await registration?.pushManager.getSubscription();
-      setSubscribed(Boolean(existing));
+      if (pushSupported && config.enabled) {
+        const registration = await navigator.serviceWorker.getRegistration("/sw.js");
+        const existing = await registration?.pushManager.getSubscription();
+        setSubscribed(Boolean(existing));
+      }
+      setLoaded(true);
     })();
   }, []);
 
-  if (!supported || !enabled) return null;
+  if (!loaded) return null;
+
+  if (!supported) return null;
+
+  if (!enabled) {
+    return (
+      <p className="rounded-xl border border-dashed border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground leading-relaxed">
+        Notificaciones push no configuradas en el servidor (faltan claves VAPID). Las alertas in-app
+        siguen disponibles.
+      </p>
+    );
+  }
 
   const toggle = () => {
     startTransition(async () => {

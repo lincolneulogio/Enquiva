@@ -127,7 +127,23 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
 
   if (guestIds.length > 0) {
     try {
-      const parentRegistrations = await db
+      const guestRows = await db
+        .select({
+          guestId: registrations.id,
+          parentId: registrations.parentRegistrationId,
+          notes: registrations.notes,
+        })
+        .from(registrations)
+        .where(inArray(registrations.id, guestIds));
+
+      const parentIdsFromFk = guestRows
+        .map((g) => g.parentId)
+        .filter((id): id is string => Boolean(id));
+
+      // Legacy notes fallback for parents not yet backfilled
+      const { parseGuestRegistrationIds } = await import("@/lib/registrations/guests");
+      const eventId = allRegistrations[0].event.id;
+      const parentsWithNotes = await db
         .select({
           id: registrations.id,
           notes: registrations.notes,
@@ -138,22 +154,49 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
         .innerJoin(users, eq(registrations.userId, users.id))
         .where(
           and(
-            eq(registrations.eventId, allRegistrations[0].event.id),
-            sql`${registrations.notes} IS NOT NULL`
-          )
+            eq(registrations.eventId, eventId),
+            sql`${registrations.notes} IS NOT NULL`,
+          ),
         );
 
-      for (const parent of parentRegistrations) {
-        if (parent.notes && parent.notes.startsWith("[GUESTS:")) {
-          for (const gId of guestIds) {
-            if (parent.notes.includes(gId)) {
-              invitersMap.set(gId, {
-                name: parent.inviterName,
-                email: parent.inviterEmail,
-              });
-              guestToParentRegIdMap.set(gId, parent.id);
+      const parentIds = new Set([
+        ...parentIdsFromFk,
+        ...parentsWithNotes
+          .filter((p) => parseGuestRegistrationIds(p.notes).some((id) => guestIds.includes(id)))
+          .map((p) => p.id),
+      ]);
+
+      if (parentIds.size > 0) {
+        const parents = await db
+          .select({
+            id: registrations.id,
+            inviterName: users.name,
+            inviterEmail: users.email,
+          })
+          .from(registrations)
+          .innerJoin(users, eq(registrations.userId, users.id))
+          .where(inArray(registrations.id, Array.from(parentIds)));
+
+        const parentInfo = new Map(parents.map((p) => [p.id, p]));
+
+        for (const guest of guestRows) {
+          let parentId = guest.parentId;
+          if (!parentId) {
+            for (const p of parentsWithNotes) {
+              if (parseGuestRegistrationIds(p.notes).includes(guest.guestId)) {
+                parentId = p.id;
+                break;
+              }
             }
           }
+          if (!parentId) continue;
+          const info = parentInfo.get(parentId);
+          if (!info) continue;
+          invitersMap.set(guest.guestId, {
+            name: info.inviterName,
+            email: info.inviterEmail,
+          });
+          guestToParentRegIdMap.set(guest.guestId, parentId);
         }
       }
     } catch (err) {

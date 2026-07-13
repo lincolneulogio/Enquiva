@@ -157,50 +157,12 @@ export class RegistrationService {
         throw registrationError(RegistrationErrorCode.WAITLIST_NO_EXTRAS);
       }
 
-      // 4. Crear cuentas de usuarios invitados/fantasma si existen
+      // 4. Crear o reactivar el registro principal (sin embeber invitados en notes)
+      const finalNotes = input.notes ?? null;
       const guestRegIds: string[] = [];
       const guestUserIdMap = new Map<string, string>();
       const now = new Date();
 
-      if (status === "registered") {
-      for (const guest of guests) {
-        const guestUserId = `guest_${crypto.randomUUID()}`;
-        const guestEmail = `${guestUserId}@sistemaevents.com`;
-
-        // Insertar cuenta de usuario fantasma
-        await tx.insert(users).values({
-          id: guestUserId,
-          name: guest.name.trim(),
-          email: guestEmail,
-          phone: guest.phone ?? null,
-          emailVerified: false,
-          isActive: true,
-        });
-
-        // Crear registro para el invitado
-        const [guestReg] = await tx
-          .insert(registrations)
-          .values({
-            eventId,
-            userId: guestUserId,
-            status,
-            contactPhone: guest.phone ?? null,
-            registeredAt: now,
-            holdExpiresAt: null,
-            holdReminderSentAt: null,
-          })
-          .returning();
-
-        guestRegIds.push(guestReg.id);
-        guestUserIdMap.set(guestReg.id, guestUserId);
-      }
-      }
-
-      // Guardar el listado de IDs de invitados en la nota del registro principal
-      const guestPrefix = guestRegIds.length > 0 ? `[GUESTS:${guestRegIds.join(",")}]` : "";
-      const finalNotes = guestPrefix + (input.notes ?? "");
-
-      // 4b. Crear o reactivar el registro principal
       let registration;
       if (existing?.status === "cancelled") {
         const [reactivated] = await tx
@@ -213,6 +175,7 @@ export class RegistrationService {
             checkedInAt: null,
             holdExpiresAt: null,
             holdReminderSentAt: null,
+            parentRegistrationId: null,
           })
           .where(eq(registrations.id, existing.id))
           .returning();
@@ -239,10 +202,45 @@ export class RegistrationService {
               registeredAt: now,
               holdExpiresAt: null,
               holdReminderSentAt: null,
+              parentRegistrationId: null,
             },
           })
           .returning();
         registration = created;
+      }
+
+      // 5. Crear cuentas fantasma e inscripciones hijas vinculadas por FK
+      if (status === "registered") {
+        for (const guest of guests) {
+          const guestUserId = `guest_${crypto.randomUUID()}`;
+          const guestEmail = `${guestUserId}@sistemaevents.com`;
+
+          await tx.insert(users).values({
+            id: guestUserId,
+            name: guest.name.trim(),
+            email: guestEmail,
+            phone: guest.phone ?? null,
+            emailVerified: false,
+            isActive: true,
+          });
+
+          const [guestReg] = await tx
+            .insert(registrations)
+            .values({
+              eventId,
+              userId: guestUserId,
+              status,
+              contactPhone: guest.phone ?? null,
+              registeredAt: now,
+              holdExpiresAt: null,
+              holdReminderSentAt: null,
+              parentRegistrationId: registration.id,
+            })
+            .returning();
+
+          guestRegIds.push(guestReg.id);
+          guestUserIdMap.set(guestReg.id, guestUserId);
+        }
       }
 
       if (status === "waitlisted") {

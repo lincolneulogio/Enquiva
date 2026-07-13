@@ -80,24 +80,26 @@ export function AdminStatsCharts({
   const showUpRate = registeredCount > 0 ? Math.round((checkedInCount / registeredCount) * 100) : 0;
   const seatsOccupancy = totalCapacity > 0 ? Math.round((occupiedSeats / totalCapacity) * 100) : 0;
 
-  // Funnel: tráfico real (vistas) o estimado si aún no hay datos
-  const estimatedTraffic = Math.max((registeredCount + waitlistedCount) * 4.2 + 85, 120);
-  const trafficValue = totalEventViews > 0 ? totalEventViews : Math.round(estimatedTraffic);
-  const usesEstimatedTraffic = totalEventViews === 0;
+  const hasRealTraffic = totalEventViews > 0;
+  const trafficValue = totalEventViews;
   const totalSubmissions = registeredCount + waitlistedCount;
   const paidRegistrations = approvedPaymentsCount;
 
   const trafficPercent = 100;
-  const submissionsPercent = Math.round((totalSubmissions / Math.max(trafficValue, 1)) * 100) || 0;
+  const submissionsPercent = hasRealTraffic
+    ? Math.round((totalSubmissions / Math.max(trafficValue, 1)) * 100) || 0
+    : totalSubmissions > 0
+      ? 100
+      : 0;
   const approvedPercent = Math.round((paidRegistrations / Math.max(totalSubmissions, 1)) * 100) || 0;
   const attendancePercent = Math.round((checkedInCount / Math.max(paidRegistrations, 1)) * 100) || 0;
 
   const funnelData = [
     {
       stage: t("dashboard.admin.statsFunnelStageTraffic"),
-      value: trafficValue,
+      value: hasRealTraffic ? trafficValue : 0,
       color: "#8b5cf6",
-      percent: trafficPercent,
+      percent: hasRealTraffic ? trafficPercent : 0,
     },
     {
       stage: t("dashboard.admin.statsFunnelStageRegistration"),
@@ -425,9 +427,9 @@ export function AdminStatsCharts({
               {t("dashboard.admin.statsFunnelTitle")}
             </h3>
             <p className="text-xs text-muted-foreground">
-              {usesEstimatedTraffic
-                ? t("dashboard.admin.statsFunnelDescriptionEstimated")
-                : t("dashboard.admin.statsFunnelDescriptionReal")}
+              {hasRealTraffic
+                ? t("dashboard.admin.statsFunnelDescriptionReal")
+                : t("dashboard.admin.statsFunnelDescriptionNoViews")}
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs">
@@ -533,9 +535,9 @@ export function AdminStatsCharts({
               </div>
             </div>
             <div className="pt-2 text-[10px] text-muted-foreground leading-relaxed">
-              {usesEstimatedTraffic
-                ? t("dashboard.admin.statsFunnelFootnoteEstimated")
-                : t("dashboard.admin.statsFunnelFootnoteReal")}
+              {hasRealTraffic
+                ? t("dashboard.admin.statsFunnelFootnoteReal")
+                : t("dashboard.admin.statsFunnelFootnoteNoViews")}
             </div>
           </div>
         </div>

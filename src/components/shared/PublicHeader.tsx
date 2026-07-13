@@ -6,8 +6,8 @@ import { getI18n } from "@/lib/i18n/server";
 import { PublicMobileMenu } from "@/components/shared/PublicMobileMenu";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { BrandLogo } from "@/components/shared/BrandLogo";
-
 import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";
+import { getAttendeeDestination } from "@/lib/navigation/attendee-paths";
 
 function getDashboardPath(role?: string | null) {
   const normalizedRole = normalizeRole(role);
@@ -18,8 +18,8 @@ function getDashboardPath(role?: string | null) {
   return "/member";
 }
 
-function getProfilePath(role?: string | null) {
-  return `${getDashboardPath(role)}/profile`;
+function getMyTicketsPath(role?: string | null) {
+  return getAttendeeDestination(role, "tickets");
 }
 
 export async function PublicHeader() {
@@ -27,6 +27,7 @@ export async function PublicHeader() {
   const user = session?.user;
   const { t } = await getI18n();
   const dashboardPath = getDashboardPath(user?.role);
+  const ticketsPath = getMyTicketsPath(user?.role);
 
   return (
     <nav
@@ -68,6 +69,15 @@ export async function PublicHeader() {
           >
             {t("common.browseEvents")}
           </Link>
+
+          {user ? (
+            <Link
+              href={ticketsPath}
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {t("dashboard.member.ticketsTitle")}
+            </Link>
+          ) : null}
 
           {user ? (
             <div className="flex items-center gap-3 rounded-2xl border border-border bg-card/45 p-1 pl-1.5 pr-1.5  shadow-sm transition-all duration-300 hover:bg-card/90 hover:border-primary/20 hover:shadow-md backdrop-blur-sm">

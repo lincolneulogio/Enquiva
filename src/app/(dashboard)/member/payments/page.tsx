@@ -5,22 +5,18 @@ import Link from "next/link";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
 
+import { countGuestsFromNotes } from "@/lib/registrations/guests";
+
 function getPaymentDynamicCaption(
   notes: string | null,
   registrationNotes: string | null,
   seatsCount: number | null,
-  locale: string
+  locale: string,
+  guestCountFromFk = 0,
 ) {
   const isEn = locale === "en";
   
-  // Calculate guests count from registrationNotes
-  let guestCount = 0;
-  if (registrationNotes && registrationNotes.startsWith("[GUESTS:")) {
-    const content = registrationNotes.replace("[GUESTS:", "").replace("]", "").trim();
-    if (content) {
-      guestCount = content.split(",").map(s => s.trim()).filter(Boolean).length;
-    }
-  }
+  let guestCount = guestCountFromFk > 0 ? guestCountFromFk : countGuestsFromNotes(registrationNotes);
 
   // Fallback to regex on payment notes if database records are blank
   if (guestCount === 0 && notes) {
@@ -147,7 +143,9 @@ export default async function MemberPaymentsPage() {
                             href={`/checkout/${payment.registrationId}`}
                             className="inline-flex items-center gap-1 rounded-lg bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400 hover:bg-amber-500/25 transition-all border border-amber-500/20"
                           >
-                            Actualizar comprobante
+                            {payment.method === "yape" || payment.method === "plin"
+                              ? "Actualizar comprobante"
+                              : t("ticket.payOrUploadReceipt")}
                           </Link>
                         )}
                         {!payment.receiptUrl && payment.status === "pending" && (
@@ -158,8 +156,18 @@ export default async function MemberPaymentsPage() {
                             {t("ticket.payOrUploadReceipt")}
                           </Link>
                         )}
-                        {!payment.receiptUrl && payment.status !== "pending" && payment.status !== "rejected" && (
+                        {!payment.receiptUrl &&
+                          payment.status !== "pending" &&
+                          payment.status !== "rejected" &&
+                          (payment.method === "yape" || payment.method === "plin") && (
                           <span className="text-xs text-muted-foreground">{t("common.awaitingReceipt")}</span>
+                        )}
+                        {!payment.receiptUrl &&
+                          payment.status !== "pending" &&
+                          payment.status !== "rejected" &&
+                          payment.method !== "yape" &&
+                          payment.method !== "plin" && (
+                          <span className="text-xs text-muted-foreground">{t("common.noDataDash")}</span>
                         )}
                       </div>
                     </td>
