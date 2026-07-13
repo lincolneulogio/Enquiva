@@ -5,10 +5,12 @@ import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { ProfileEditor } from "@/components/dashboard";
 import { getI18n } from "@/lib/i18n/server";
+import { getSystemSettings } from "@/lib/settings";
 
 export default async function MemberProfilePage() {
     const { t } = await getI18n();
     const session = await auth.api.getSession({ headers: await headers() });
+    const platformSettings = await getSystemSettings();
     const [user] = await db
         .select({
             name: users.name,
@@ -40,7 +42,10 @@ export default async function MemberProfilePage() {
                 <p className="mt-1 text-muted-foreground">{t("dashboard.member.accountInfo")}</p>
             </div>
 
-            <ProfileEditor user={profileUser} />
+            <ProfileEditor
+                user={profileUser}
+                platformDefaultAccent={platformSettings.defaultAccentColor}
+            />
         </div>
     );
 }

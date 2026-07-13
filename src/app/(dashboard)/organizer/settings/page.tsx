@@ -6,6 +6,8 @@ import { getRoleLabel } from "@/lib/i18n/core";
 import { ROLE_BADGE_STYLES, normalizeRole } from "@/lib/auth/rbac";
 import { OrganizationService } from "@/lib/organizations/organization.service";
 import { JoinEntityForm } from "@/components/dashboard/organizer/JoinEntityForm";
+import { PersonalAppearancePreferences } from "@/components/dashboard/appearance/PersonalAppearancePreferences";
+import { getSystemSettings } from "@/lib/settings";
 
 const roleIcons = {
     super_admin: Crown,
@@ -22,6 +24,7 @@ export default async function OrganizerSettingsPage() {
     const normalizedRole = normalizeRole(user.role);
     const RoleIcon = roleIcons[normalizedRole];
     const organization = await OrganizationService.getOrganizationForUser(user.id);
+    const platformSettings = await getSystemSettings();
 
     return (
         <div className="space-y-8">
@@ -44,6 +47,10 @@ export default async function OrganizerSettingsPage() {
                         </span>
                     </div>
                 </div>
+
+                <PersonalAppearancePreferences
+                    platformDefaultAccent={platformSettings.defaultAccentColor}
+                />
 
                 {organization ? (
                     <div className="rounded-xl border border-border bg-card p-6">

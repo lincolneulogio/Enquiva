@@ -3,12 +3,11 @@
 import { useState, useTransition, useEffect } from "react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
-import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import {
-    User, Mail, Shield, Globe, Sun, Moon,
+    User, Mail, Shield, Globe,
     Send, Bell, Building, Save, Loader2,
-    Wifi, WifiOff, RefreshCw,     Users, Copy, Server, Palette,
+    Wifi, WifiOff, RefreshCw, Users, Copy, Server, Palette,
     Wrench, Megaphone, Clock,
     CreditCard, Bus, Wallet, Ticket, UserPlus, CalendarDays, AlertTriangle,
 } from "lucide-react";
@@ -31,14 +30,13 @@ import type { Locale } from "@/lib/i18n/core";
 import { useRouter } from "next/navigation";
 import {
     ACCENT_COLORS,
-    setAccentOverride,
     clearAccentOverride,
     hasAccentOverride,
-    resolveEffectiveAccent,
     DEFAULT_ACCENT_COLOR,
     isAccentColor,
     type AccentColor,
 } from "./AccentColorInitializer";
+import { PersonalAppearancePreferences } from "@/components/dashboard/appearance/PersonalAppearancePreferences";
 import { usePersistedFormFields } from "@/hooks/useFormPersistence";
 import { formStorageKey } from "@/lib/form-persistence";
 
@@ -73,7 +71,6 @@ export function SettingsTabs({
 }: SettingsTabsProps) {
     const { locale, setLocale, isPending: isLocalePending } = useLocale();
     const t = useTranslations();
-    const { theme, setTheme } = useTheme();
     const router = useRouter();
 
     const showEntity = Boolean(entityContext);
@@ -172,8 +169,6 @@ export function SettingsTabs({
           : DEFAULT_ACCENT_COLOR;
 
     const [platformAccentDraft, setPlatformAccentDraft] = useState<AccentColor>(platformDefaultAccent);
-    const [activeAccent, setActiveAccent] = useState<AccentColor>(platformDefaultAccent);
-    const [followsPlatformAccent, setFollowsPlatformAccent] = useState(true);
 
     const [maintenanceMode, setMaintenanceMode] = useState(
         initialPlatformSettings?.maintenanceMode ?? false,
@@ -245,39 +240,6 @@ export function SettingsTabs({
         initialPlatformSettings?.smtpPasswordSet,
     ]);
 
-    useEffect(() => {
-        const sync = () => {
-            const follows = !hasAccentOverride();
-            setFollowsPlatformAccent(follows);
-            setActiveAccent(resolveEffectiveAccent(platformDefaultAccent));
-        };
-        sync();
-        window.addEventListener("brand-accent-changed", sync);
-        return () => window.removeEventListener("brand-accent-changed", sync);
-    }, [platformDefaultAccent]);
-
-    const handlePersonalAccent = (color: AccentColor) => {
-        setAccentOverride(color);
-        setActiveAccent(color);
-        setFollowsPlatformAccent(false);
-        toast.success(
-            locale === "en"
-                ? `Accent color set to ${ACCENT_COLORS[color].name}`
-                : `Color de acento: ${ACCENT_COLORS[color].name}`,
-        );
-    };
-
-    const handleFollowPlatformAccent = () => {
-        clearAccentOverride(platformDefaultAccent);
-        setActiveAccent(platformDefaultAccent);
-        setFollowsPlatformAccent(true);
-        toast.success(
-            locale === "en"
-                ? "Using platform default accent"
-                : "Usando el color de acento de la plataforma",
-        );
-    };
-
     const handleSavePlatformAccent = () => {
         startSaving(async () => {
             try {
@@ -287,7 +249,6 @@ export function SettingsTabs({
                 if (res.success) {
                     if (!hasAccentOverride()) {
                         clearAccentOverride(platformAccentDraft);
-                        setActiveAccent(platformAccentDraft);
                     }
                     toast.success(
                         locale === "en"
@@ -740,131 +701,43 @@ export function SettingsTabs({
 
                     {section === "entity" && entitySubTab === "appearance" && (
                         <div className="space-y-6">
-                            <div className="rounded-xl border border-border bg-card p-4 sm:p-6 space-y-6">
-                                <div className="space-y-3">
-                                    <div>
-                                        <h2 className="text-lg font-semibold text-foreground">
-                                            {locale === "en" ? "Accent color" : "Color de acento"}
-                                        </h2>
-                                        <p className="text-xs text-muted-foreground mt-0.5">
-                                            {locale === "en"
-                                                ? "Personal preference for this browser. Leave it on the platform default, or pick your own."
-                                                : "Preferencia personal de este navegador. Puedes seguir el color de la plataforma o elegir el tuyo."}
-                                        </p>
-                                    </div>
-                                    <div className="flex flex-wrap gap-3 items-center pt-1">
-                                        <button
-                                            type="button"
-                                            onClick={handleFollowPlatformAccent}
-                                            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all ${
-                                                followsPlatformAccent
-                                                    ? "border-primary bg-primary/10 text-primary ring-1 ring-primary"
-                                                    : "border-border bg-background text-foreground hover:border-primary/50"
-                                            }`}
-                                        >
-                                            <Palette className="h-3.5 w-3.5" />
-                                            {locale === "en"
-                                                ? `Platform default (${ACCENT_COLORS[platformDefaultAccent].name})`
-                                                : `De la plataforma (${ACCENT_COLORS[platformDefaultAccent].name})`}
-                                        </button>
-                                    </div>
-                                    <div className="flex flex-wrap gap-4 items-center pt-1">
-                                        {(Object.keys(ACCENT_COLORS) as AccentColor[]).map((key) => {
-                                            const config = ACCENT_COLORS[key];
-                                            const isSelected = !followsPlatformAccent && activeAccent === key;
-                                            return (
-                                                <button
-                                                    key={key}
-                                                    type="button"
-                                                    onClick={() => handlePersonalAccent(key)}
-                                                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all duration-300 hover:scale-103 ${
-                                                        isSelected
-                                                            ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary"
-                                                            : "border-border bg-background hover:border-primary/50"
-                                                    }`}
-                                                >
-                                                    <span className={`h-4.5 w-4.5 rounded-full shrink-0 flex items-center justify-center text-white text-[10px] font-bold ${config.class} shadow-inner`}>
-                                                        {isSelected && "✓"}
-                                                    </span>
-                                                    <span className="text-foreground text-xs font-semibold">{config.name}</span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
+                            <PersonalAppearancePreferences
+                                platformDefaultAccent={platformDefaultAccent}
+                            />
+
+                            <div className="rounded-xl border border-border bg-card p-4 sm:p-6 space-y-3">
+                                <div>
+                                    <h2 className="text-lg font-semibold text-foreground">
+                                        {locale === "en" ? "Panel language" : "Idioma de la interfaz"}
+                                    </h2>
                                 </div>
-
-                                <hr className="border-border" />
-
-                                <div className="space-y-3">
-                                    <div>
-                                        <h2 className="text-lg font-semibold text-foreground">
-                                            {locale === "en" ? "App theme" : "Tema del sistema"}
-                                        </h2>
-                                    </div>
-                                    <div className="flex flex-wrap gap-3 pt-1 select-none">
-                                        <button
-                                            type="button"
-                                            onClick={() => setTheme("light")}
-                                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 ${
-                                                theme === "light"
-                                                    ? "border-primary bg-primary/10 text-primary"
-                                                    : "border-border bg-background text-foreground hover:bg-muted"
-                                            }`}
-                                        >
-                                            <Sun className="h-4 w-4" />
-                                            {locale === "en" ? "Light" : "Modo claro"}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setTheme("dark")}
-                                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 ${
-                                                theme === "dark"
-                                                    ? "border-primary bg-primary/10 text-primary"
-                                                    : "border-border bg-background text-foreground hover:bg-muted"
-                                            }`}
-                                        >
-                                            <Moon className="h-4 w-4" />
-                                            {locale === "en" ? "Dark" : "Modo oscuro"}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <hr className="border-border" />
-
-                                <div className="space-y-3">
-                                    <div>
-                                        <h2 className="text-lg font-semibold text-foreground">
-                                            {locale === "en" ? "Panel language" : "Idioma de la interfaz"}
-                                        </h2>
-                                    </div>
-                                    <div className="flex gap-3 pt-1 select-none">
-                                        <button
-                                            type="button"
-                                            onClick={() => setLocale("es")}
-                                            disabled={isLocalePending}
-                                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 disabled:opacity-50 ${
-                                                locale === "es"
-                                                    ? "border-primary bg-primary/10 text-primary"
-                                                    : "border-border bg-background text-foreground hover:bg-muted"
-                                            }`}
-                                        >
-                                            <span>🇪🇸</span>
-                                            Español
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setLocale("en")}
-                                            disabled={isLocalePending}
-                                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 disabled:opacity-50 ${
-                                                locale === "en"
-                                                    ? "border-primary bg-primary/10 text-primary"
-                                                    : "border-border bg-background text-foreground hover:bg-muted"
-                                            }`}
-                                        >
-                                            <span>🇺🇸</span>
-                                            English
-                                        </button>
-                                    </div>
+                                <div className="flex gap-3 pt-1 select-none">
+                                    <button
+                                        type="button"
+                                        onClick={() => setLocale("es")}
+                                        disabled={isLocalePending}
+                                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 disabled:opacity-50 ${
+                                            locale === "es"
+                                                ? "border-primary bg-primary/10 text-primary"
+                                                : "border-border bg-background text-foreground hover:bg-muted"
+                                        }`}
+                                    >
+                                        <span>🇪🇸</span>
+                                        Español
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setLocale("en")}
+                                        disabled={isLocalePending}
+                                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 disabled:opacity-50 ${
+                                            locale === "en"
+                                                ? "border-primary bg-primary/10 text-primary"
+                                                : "border-border bg-background text-foreground hover:bg-muted"
+                                        }`}
+                                    >
+                                        <span>🇺🇸</span>
+                                        English
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -1417,99 +1290,11 @@ export function SettingsTabs({
                                 </div>
                             </div>
 
-                            <div className="rounded-xl border border-border bg-card p-4 sm:p-6 space-y-6">
-                                <div>
-                                    <h2 className="text-lg font-semibold text-foreground">
-                                        {locale === "en" ? "My preferences" : "Mis preferencias"}
-                                    </h2>
-                                    <p className="text-xs text-muted-foreground mt-0.5">
-                                        {locale === "en"
-                                            ? "Only for this browser / session. Does not change the platform default."
-                                            : "Solo para este navegador / sesión. No cambia el valor por defecto de la plataforma."}
-                                    </p>
-                                </div>
+                            <PersonalAppearancePreferences
+                                platformDefaultAccent={platformDefaultAccent}
+                            />
 
-                                <div className="space-y-3">
-                                    <p className="text-sm font-medium text-foreground">
-                                        {locale === "en" ? "Personal accent" : "Acento personal"}
-                                    </p>
-                                    <div className="flex flex-wrap gap-3 items-center">
-                                        <button
-                                            type="button"
-                                            onClick={handleFollowPlatformAccent}
-                                            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all ${
-                                                followsPlatformAccent
-                                                    ? "border-primary bg-primary/10 text-primary ring-1 ring-primary"
-                                                    : "border-border bg-background text-foreground hover:border-primary/50"
-                                            }`}
-                                        >
-                                            <Palette className="h-3.5 w-3.5" />
-                                            {locale === "en"
-                                                ? `Follow platform (${ACCENT_COLORS[platformDefaultAccent].name})`
-                                                : `Seguir plataforma (${ACCENT_COLORS[platformDefaultAccent].name})`}
-                                        </button>
-                                    </div>
-                                    <div className="flex flex-wrap gap-4 items-center">
-                                        {(Object.keys(ACCENT_COLORS) as AccentColor[]).map((key) => {
-                                            const config = ACCENT_COLORS[key];
-                                            const isSelected = !followsPlatformAccent && activeAccent === key;
-                                            return (
-                                                <button
-                                                    key={key}
-                                                    type="button"
-                                                    onClick={() => handlePersonalAccent(key)}
-                                                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all duration-300 hover:scale-103 ${
-                                                        isSelected
-                                                            ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary"
-                                                            : "border-border bg-background hover:border-primary/50"
-                                                    }`}
-                                                >
-                                                    <span
-                                                        className={`h-4.5 w-4.5 rounded-full shrink-0 flex items-center justify-center text-white text-[10px] font-bold ${config.class} shadow-inner`}
-                                                    >
-                                                        {isSelected && "✓"}
-                                                    </span>
-                                                    <span className="text-foreground text-xs font-semibold">{config.name}</span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-
-                                <hr className="border-border" />
-
-                                <div className="space-y-3">
-                                    <p className="text-sm font-medium text-foreground">
-                                        {locale === "en" ? "App theme" : "Tema del sistema"}
-                                    </p>
-                                    <div className="flex flex-wrap gap-3 select-none">
-                                        <button
-                                            type="button"
-                                            onClick={() => setTheme("light")}
-                                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 ${
-                                                theme === "light"
-                                                    ? "border-primary bg-primary/10 text-primary"
-                                                    : "border-border bg-background text-foreground hover:bg-muted"
-                                            }`}
-                                        >
-                                            <Sun className="h-4 w-4" />
-                                            {locale === "en" ? "Light" : "Modo claro"}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setTheme("dark")}
-                                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200 ${
-                                                theme === "dark"
-                                                    ? "border-primary bg-primary/10 text-primary"
-                                                    : "border-border bg-background text-foreground hover:bg-muted"
-                                            }`}
-                                        >
-                                            <Moon className="h-4 w-4" />
-                                            {locale === "en" ? "Dark" : "Modo oscuro"}
-                                        </button>
-                                    </div>
-                                </div>
-
+                            <div className="rounded-xl border border-border bg-card p-4 sm:p-6 space-y-3">
                                 <p className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-[11px] text-muted-foreground leading-relaxed">
                                     {locale === "en"
                                         ? "Your personal interface language is controlled with ES / EN in the top bar. It overrides the platform default above for this browser only."

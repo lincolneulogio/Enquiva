@@ -17,6 +17,7 @@ export * from "./scanner/QRScannerView";
 
 // ─── Profile Components ──────────────────────────────────────────────────────
 export * from "./profile/ProfileEditor";
+export * from "./appearance/PersonalAppearancePreferences";
 
 // ─── Admin Tools ─────────────────────────────────────────────────────────────
 export * from "./admin/BackfillPendingPaymentsButton";

@@ -6,6 +6,8 @@ import { ProfileForm } from "./ProfileForm";
 import { PasswordForm } from "./PasswordForm";
 import { Crown, ShieldCheck, Briefcase, UserRound } from "lucide-react";
 import { ROLE_BADGE_STYLES, normalizeRole } from "@/lib/auth/rbac";
+import { PersonalAppearancePreferences } from "@/components/dashboard/appearance/PersonalAppearancePreferences";
+import type { AccentColor } from "@/lib/brand/accent";
 
 interface ProfileEditorProps {
   user: {
@@ -17,6 +19,8 @@ interface ProfileEditorProps {
     bio: string | null;
     image: string | null;
   };
+  /** Acento por defecto de plataforma (para seguir o personalizar). */
+  platformDefaultAccent?: AccentColor | string;
 }
 
 const roleIcons = {
@@ -26,7 +30,7 @@ const roleIcons = {
   member: UserRound,
 };
 
-export function ProfileEditor({ user }: ProfileEditorProps) {
+export function ProfileEditor({ user, platformDefaultAccent }: ProfileEditorProps) {
   const t = useTranslations();
   const { locale } = useLocale();
   const initials = (user.name || "U").charAt(0).toUpperCase();
@@ -62,6 +66,10 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
         </div>
       </div>
 
+      {platformDefaultAccent ? (
+        <PersonalAppearancePreferences platformDefaultAccent={platformDefaultAccent} />
+      ) : null}
+
       {/* Formulario de Información de Perfil */}
       <ProfileForm user={user} />
 
@@ -70,3 +78,4 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
     </div>
   );
 }
+
