@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { BrowserMultiFormatReader } from "@zxing/library";
+import {
+  BarcodeFormat,
+  BrowserMultiFormatReader,
+  DecodeHintType,
+} from "@zxing/library";
 
 interface QRScannerProps {
   onResult: (code: string) => void;
@@ -9,97 +13,172 @@ interface QRScannerProps {
   onScanStart?: () => void;
 }
 
+function isBenignScanMiss(error: unknown): boolean {
+  if (!error) return true;
+  const message =
+    error instanceof Error
+      ? `${error.name} ${error.message}`
+      : String(error);
+  const kind =
+    typeof error === "object" &&
+    error !== null &&
+    "getKind" in error &&
+    typeof (error as { getKind: () => string }).getKind === "function"
+      ? (error as { getKind: () => string }).getKind()
+      : "";
+
+  return (
+    kind === "NotFoundException" ||
+    kind === "ChecksumException" ||
+    kind === "FormatException" ||
+    /NotFoundException|ChecksumException|FormatException|No MultiFormat Readers|No barcode/i.test(
+      message,
+    )
+  );
+}
+
+async function openCameraStream(): Promise<MediaStream> {
+  const attempts: MediaStreamConstraints[] = [
+    {
+      audio: false,
+      video: {
+        facingMode: { ideal: "environment" },
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      },
+    },
+    {
+      audio: false,
+      video: {
+        facingMode: "user",
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      },
+    },
+    { audio: false, video: true },
+  ];
+
+  let lastError: unknown;
+  for (const constraints of attempts) {
+    try {
+      return await navigator.mediaDevices.getUserMedia(constraints);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError ?? new Error("No se pudo acceder a la cámara");
+}
+
 export default function QRScanner({ onResult, onError, onScanStart }: QRScannerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+  const onResultRef = useRef(onResult);
+  const onErrorRef = useRef(onError);
+  const onScanStartRef = useRef(onScanStart);
+  const lastCodeRef = useRef<string | null>(null);
+  const lastScanAtRef = useRef(0);
+
+  useEffect(() => {
+    onResultRef.current = onResult;
+    onErrorRef.current = onError;
+    onScanStartRef.current = onScanStart;
+  });
 
   useEffect(() => {
     let active = true;
-    const codeReader = new BrowserMultiFormatReader();
-    readerRef.current = codeReader;
+    let stream: MediaStream | null = null;
+    let scanTimer: number | undefined;
+    const videoEl = videoRef.current;
+    if (!videoEl) return;
 
-    // Suppress noisy internal logs from @zxing/library
-    const origLog = console.log;
-    const origWarn = console.warn;
-    const origError = console.error;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      onErrorRef.current?.(new Error("Este navegador no soporta acceso a cámara"));
+      return;
+    }
 
-    console.log = (...args: unknown[]) => {
-      if (typeof args[0] === "string" && args[0].includes("MultiFormatReader")) return;
-      origLog.apply(console, args as Parameters<typeof console.log>);
-    };
-    console.warn = (...args: unknown[]) => {
-      if (typeof args[0] === "string" && (args[0].includes("MultiFormatReader") || args[0].includes("non-ReaderException"))) return;
-      origWarn.apply(console, args as Parameters<typeof console.warn>);
-    };
-    console.error = (...args: unknown[]) => {
-      if (typeof args[0] === "string" && args[0].includes("MultiFormatReader")) return;
-      origError.apply(console, args as Parameters<typeof console.error>);
+    const hints = new Map<DecodeHintType, unknown>();
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.QR_CODE]);
+    hints.set(DecodeHintType.TRY_HARDER, true);
+    const codeReader = new BrowserMultiFormatReader(hints, 300);
+
+    const stopTracks = () => {
+      if (!stream) return;
+      stream.getTracks().forEach((track) => track.stop());
+      stream = null;
+      if (videoEl.srcObject) videoEl.srcObject = null;
     };
 
-    async function startScanning() {
+    const scanFrame = () => {
+      if (!active || !videoEl) return;
+      if (videoEl.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || videoEl.videoWidth === 0) {
+        return;
+      }
       try {
-        await codeReader.decodeFromVideoDevice(null, videoRef.current, (result, error) => {
-          if (!active) return;
-          if (result?.getText()) {
-            onResult(result.getText());
-            return;
+        const result = codeReader.decode(videoEl);
+        const text = result?.getText()?.trim();
+        if (text) {
+          const now = Date.now();
+          // Avoid firing the same code repeatedly while held in front of the camera.
+          if (text !== lastCodeRef.current || now - lastScanAtRef.current > 2500) {
+            lastCodeRef.current = text;
+            lastScanAtRef.current = now;
+            onResultRef.current(text);
           }
-          if (error && !(error.name === "NotFoundException")) {
-            // zxing constantly throws NotFoundException while looking for code, which is normal.
-            console.debug(error);
-          }
-        });
-        if (active && onScanStart) {
-          onScanStart();
         }
+      } catch (error) {
+        if (!isBenignScanMiss(error)) {
+          console.debug("[scanner] decode miss:", error);
+        }
+      }
+    };
+
+    async function start() {
+      try {
+        stream = await openCameraStream();
+        if (!active || !videoEl) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+
+        const video = videoEl;
+        video.srcObject = stream;
+        video.setAttribute("playsinline", "true");
+        video.muted = true;
+        await video.play();
+
+        if (!active) {
+          stopTracks();
+          return;
+        }
+
+        onScanStartRef.current?.();
+        scanTimer = window.setInterval(scanFrame, 280);
       } catch (err) {
         console.error("Error starting QR scanner:", err);
-        if (active && onError) {
-          onError(err);
-        }
+        if (active) onErrorRef.current?.(err);
       }
     }
 
-    const timerId = setTimeout(() => {
-      if (active) {
-        startScanning();
-      }
-    }, 250);
+    void start();
 
     return () => {
       active = false;
-      clearTimeout(timerId);
-      console.log = origLog;
-      console.warn = origWarn;
-      console.error = origError;
-
-      // Stop active media stream tracks manually to force release the hardware camera lock immediately
-      if (videoRef.current && videoRef.current.srcObject) {
-        try {
-          const stream = videoRef.current.srcObject as MediaStream;
-          stream.getTracks().forEach((track) => track.stop());
-        } catch (e) {
-          console.error("Failed to stop media tracks on cleanup:", e);
-        }
-        videoRef.current.srcObject = null;
-      }
-
-      if (readerRef.current) {
-        try {
-          readerRef.current.reset();
-        } catch (e) {
-          console.error("Failed to reset zxing reader:", e);
-        }
+      if (scanTimer) window.clearInterval(scanTimer);
+      stopTracks();
+      try {
+        codeReader.reset();
+      } catch {
+        /* ignore */
       }
     };
-  }, [onResult, onError, onScanStart]);
+  }, []);
 
   return (
     <video
       ref={videoRef}
-      className="w-full h-full object-cover"
+      className="absolute inset-0 h-full w-full object-cover bg-black"
       playsInline
       muted
+      autoPlay
     />
   );
 }
