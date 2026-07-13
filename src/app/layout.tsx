@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Outfit } from "next/font/google";
 import { Toaster } from "sonner";
 import { LocaleProvider } from "@/components/providers/LocaleProvider";
@@ -17,6 +18,8 @@ const outfit = Outfit({
   variable: "--font-outfit",
   display: "swap",
 });
+
+const THEME_BOOTSTRAP = `(function(){try{var m=document.cookie.match(/(?:^|;\\s*)evora-theme=([^;]*)/);var c=m?decodeURIComponent(m[1]):null;var t=(c==="dark"||c==="light")?c:null;if(!t){t=localStorage.getItem("theme");}if(t!=="dark"&&t!=="light"){t="light";}localStorage.setItem("theme",t);document.documentElement.classList.toggle("dark",t==="dark");var parts=["evora-theme="+encodeURIComponent(t),"Path=/","Max-Age=31536000","SameSite=Lax"];if(location.protocol==="https:")parts.push("Secure");document.cookie=parts.join("; ");}catch(e){}})();`;
 
 export async function generateMetadata(): Promise<Metadata> {
   const brand = await getPlatformBrand();
@@ -67,15 +70,13 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning className={outfit.variable}>
-      <head>
-        {/* Cookie compartida con docs (evora-theme) → localStorage theme antes del paint */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var m=document.cookie.match(/(?:^|;\\s*)evora-theme=([^;]*)/);var c=m?decodeURIComponent(m[1]):null;var t=(c==="dark"||c==="light")?c:null;if(!t){t=localStorage.getItem("theme");}if(t!=="dark"&&t!=="light"){t="light";}localStorage.setItem("theme",t);document.documentElement.classList.toggle("dark",t==="dark");var parts=["evora-theme="+encodeURIComponent(t),"Path=/","Max-Age=31536000","SameSite=Lax"];if(location.protocol==="https:")parts.push("Secure");document.cookie=parts.join("; ");}catch(e){}})();`,
-          }}
-        />
-      </head>
       <body suppressHydrationWarning className="font-sans">
+        {/* Cookie compartida con docs (evora-theme) → localStorage theme antes del paint */}
+        <Script
+          id="evora-theme-bootstrap"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }}
+        />
         <AccentColorInitializer platformDefault={brand.defaultAccentColor} />
         <PlatformBrandProvider brand={brand}>
           <LocaleProvider initialLocale={locale}>

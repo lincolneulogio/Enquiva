@@ -86,3 +86,41 @@ export function getPreviousDateKey(now: Date, timeZone: string): string {
   const today = formatDateKeyInTimeZone(now, timeZone);
   return addDaysToDateKey(today, -1);
 }
+
+/** Valor para `<input type="datetime-local">` en la zona indicada. */
+export function toDatetimeLocalValue(
+  date: Date | string | null | undefined,
+  timeZone: string,
+): string {
+  if (!date) return "";
+  const d = typeof date === "string" ? new Date(date) : date;
+  if (Number.isNaN(d.getTime())) return "";
+  const p = getZonedParts(d, normalizePlatformTimezone(timeZone));
+  return `${p.year}-${String(p.month).padStart(2, "0")}-${String(p.day).padStart(2, "0")}T${String(p.hour).padStart(2, "0")}:${String(p.minute).padStart(2, "0")}`;
+}
+
+/** Interpreta datetime-local como hora de pared en la zona de plataforma → Instant UTC. */
+export function fromDatetimeLocalValue(
+  value: string | null | undefined,
+  timeZone: string,
+): Date | null {
+  const raw = (value ?? "").trim();
+  if (!raw) return null;
+  const [datePart, timePart = "00:00"] = raw.split("T");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return null;
+  const [hourStr = "0", minuteStr = "0"] = timePart.split(":");
+  const hour = Number(hourStr);
+  const minute = Number(minuteStr);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+  return zonedLocalToUtc(datePart, hour, minute, 0, timeZone);
+}
+
+export function isWithinInclusiveStartWindow(
+  now: Date,
+  startsAt: Date | null | undefined,
+  endsAt: Date | null | undefined,
+): boolean {
+  if (startsAt && now.getTime() < startsAt.getTime()) return false;
+  if (endsAt && now.getTime() >= endsAt.getTime()) return false;
+  return true;
+}

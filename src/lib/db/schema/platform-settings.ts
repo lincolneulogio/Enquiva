@@ -20,12 +20,20 @@ export const platformSettings = pgTable("platform_settings", {
   /** Modo mantenimiento: bloquea la app excepto superadmin y rutas excepcionadas. */
   maintenanceMode: boolean("maintenance_mode").notNull().default(false),
   maintenanceMessage: text("maintenance_message").notNull().default(""),
+  /** Ventana programada de mantenimiento (UTC); vacío = solo el toggle manual. */
+  maintenanceStartsAt: timestamp("maintenance_starts_at"),
+  maintenanceEndsAt: timestamp("maintenance_ends_at"),
   /** Banner de aviso global (landing + paneles). */
   announcementEnabled: boolean("announcement_enabled").notNull().default(false),
   announcementMessage: text("announcement_message").notNull().default(""),
   /** info | warning | critical */
   announcementSeverity: text("announcement_severity").notNull().default("info"),
   announcementDismissible: boolean("announcement_dismissible").notNull().default(true),
+  /** Cuándo empezar / dejar de mostrar el banner. */
+  announcementStartsAt: timestamp("announcement_starts_at"),
+  announcementEndsAt: timestamp("announcement_ends_at"),
+  /** Fecha/hora del evento anunciado (ej. inicio del mantenimiento). */
+  announcementEventAt: timestamp("announcement_event_at"),
   /** URLs legales (http(s) o ruta relativa tipo /terms). */
   termsUrl: text("terms_url").notNull().default(""),
   privacyUrl: text("privacy_url").notNull().default(""),

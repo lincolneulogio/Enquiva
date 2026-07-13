@@ -27,6 +27,14 @@ import { normalizePushNotificationTitle } from "@/lib/push/branding";
 
 export type { AnnouncementSeverity, PlatformOpsStatus };
 
+function normalizeOptionalIsoDate(value: unknown): string | null {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value !== "string") return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
 export interface SystemSettings {
   organizationName: string;
   supportEmail: string;
@@ -42,10 +50,16 @@ export interface SystemSettings {
   defaultAccentColor: AccentColor;
   maintenanceMode: boolean;
   maintenanceMessage: string;
+  /** ISO o null — programación de mantenimiento. */
+  maintenanceStartsAt: string | null;
+  maintenanceEndsAt: string | null;
   announcementEnabled: boolean;
   announcementMessage: string;
   announcementSeverity: AnnouncementSeverity;
   announcementDismissible: boolean;
+  announcementStartsAt: string | null;
+  announcementEndsAt: string | null;
+  announcementEventAt: string | null;
   /** URL o ruta de términos de servicio. */
   termsUrl: string;
   /** URL o ruta de política de privacidad. */
@@ -95,10 +109,15 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   defaultAccentColor: DEFAULT_ACCENT_COLOR,
   maintenanceMode: false,
   maintenanceMessage: "",
+  maintenanceStartsAt: null,
+  maintenanceEndsAt: null,
   announcementEnabled: false,
   announcementMessage: "",
   announcementSeverity: "info",
   announcementDismissible: true,
+  announcementStartsAt: null,
+  announcementEndsAt: null,
+  announcementEventAt: null,
   termsUrl: "",
   privacyUrl: "",
   defaultLocale: "es",
@@ -136,12 +155,17 @@ function rowToSettings(row: typeof platformSettings.$inferSelect): SystemSetting
     defaultAccentColor: isAccentColor(accent) ? accent : DEFAULT_ACCENT_COLOR,
     maintenanceMode: Boolean(row.maintenanceMode),
     maintenanceMessage: row.maintenanceMessage ?? "",
+    maintenanceStartsAt: row.maintenanceStartsAt?.toISOString() ?? null,
+    maintenanceEndsAt: row.maintenanceEndsAt?.toISOString() ?? null,
     announcementEnabled: Boolean(row.announcementEnabled),
     announcementMessage: row.announcementMessage ?? "",
     announcementSeverity: isAnnouncementSeverity(row.announcementSeverity)
       ? row.announcementSeverity
       : "info",
     announcementDismissible: row.announcementDismissible !== false,
+    announcementStartsAt: row.announcementStartsAt?.toISOString() ?? null,
+    announcementEndsAt: row.announcementEndsAt?.toISOString() ?? null,
+    announcementEventAt: row.announcementEventAt?.toISOString() ?? null,
     termsUrl: row.termsUrl ?? "",
     privacyUrl: row.privacyUrl ?? "",
     defaultLocale: normalizePlatformLocale(row.defaultLocale),
@@ -222,6 +246,17 @@ function sanitizeSettingsPatch(settings: Partial<SystemSettings>): Partial<Syste
   if (typeof next.announcementDismissible === "boolean") {
     next.announcementDismissible = next.announcementDismissible;
   }
+  for (const key of [
+    "maintenanceStartsAt",
+    "maintenanceEndsAt",
+    "announcementStartsAt",
+    "announcementEndsAt",
+    "announcementEventAt",
+  ] as const) {
+    if (key in next) {
+      next[key] = normalizeOptionalIsoDate(next[key]);
+    }
+  }
   if (typeof next.termsUrl === "string") {
     next.termsUrl = normalizeLegalUrl(next.termsUrl);
   }
@@ -269,10 +304,23 @@ function toDbRow(
     defaultAccentColor: settings.defaultAccentColor,
     maintenanceMode: settings.maintenanceMode,
     maintenanceMessage: settings.maintenanceMessage,
+    maintenanceStartsAt: settings.maintenanceStartsAt
+      ? new Date(settings.maintenanceStartsAt)
+      : null,
+    maintenanceEndsAt: settings.maintenanceEndsAt ? new Date(settings.maintenanceEndsAt) : null,
     announcementEnabled: settings.announcementEnabled,
     announcementMessage: settings.announcementMessage,
     announcementSeverity: settings.announcementSeverity,
     announcementDismissible: settings.announcementDismissible,
+    announcementStartsAt: settings.announcementStartsAt
+      ? new Date(settings.announcementStartsAt)
+      : null,
+    announcementEndsAt: settings.announcementEndsAt
+      ? new Date(settings.announcementEndsAt)
+      : null,
+    announcementEventAt: settings.announcementEventAt
+      ? new Date(settings.announcementEventAt)
+      : null,
     termsUrl: settings.termsUrl,
     privacyUrl: settings.privacyUrl,
     defaultLocale: settings.defaultLocale,

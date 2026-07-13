@@ -39,6 +39,10 @@ import {
 import { PersonalAppearancePreferences } from "@/components/dashboard/appearance/PersonalAppearancePreferences";
 import { usePersistedFormFields } from "@/hooks/useFormPersistence";
 import { formStorageKey } from "@/lib/form-persistence";
+import {
+    fromDatetimeLocalValue,
+    toDatetimeLocalValue,
+} from "@/lib/datetime/zoned-day";
 
 type EntitySubTab = "profile" | "entity" | "appearance";
 type PlatformSubTab = "identity" | "preferences" | "smtp" | "notifications";
@@ -176,6 +180,8 @@ export function SettingsTabs({
     const [maintenanceMessage, setMaintenanceMessage] = useState(
         initialPlatformSettings?.maintenanceMessage ?? "",
     );
+    const [maintenanceStartsLocal, setMaintenanceStartsLocal] = useState("");
+    const [maintenanceEndsLocal, setMaintenanceEndsLocal] = useState("");
     const [announcementEnabled, setAnnouncementEnabled] = useState(
         initialPlatformSettings?.announcementEnabled ?? false,
     );
@@ -188,6 +194,9 @@ export function SettingsTabs({
     const [announcementDismissible, setAnnouncementDismissible] = useState(
         initialPlatformSettings?.announcementDismissible ?? true,
     );
+    const [announcementStartsLocal, setAnnouncementStartsLocal] = useState("");
+    const [announcementEndsLocal, setAnnouncementEndsLocal] = useState("");
+    const [announcementEventLocal, setAnnouncementEventLocal] = useState("");
 
     const [platformLocaleDraft, setPlatformLocaleDraft] = useState<Locale>(
         normalizePlatformLocale(initialPlatformSettings?.defaultLocale),
@@ -210,6 +219,22 @@ export function SettingsTabs({
         setAnnouncementMessage(initialPlatformSettings.announcementMessage);
         setAnnouncementSeverity(initialPlatformSettings.announcementSeverity);
         setAnnouncementDismissible(initialPlatformSettings.announcementDismissible);
+        const tz = normalizePlatformTimezone(initialPlatformSettings.defaultTimezone);
+        setMaintenanceStartsLocal(
+            toDatetimeLocalValue(initialPlatformSettings.maintenanceStartsAt, tz),
+        );
+        setMaintenanceEndsLocal(
+            toDatetimeLocalValue(initialPlatformSettings.maintenanceEndsAt, tz),
+        );
+        setAnnouncementStartsLocal(
+            toDatetimeLocalValue(initialPlatformSettings.announcementStartsAt, tz),
+        );
+        setAnnouncementEndsLocal(
+            toDatetimeLocalValue(initialPlatformSettings.announcementEndsAt, tz),
+        );
+        setAnnouncementEventLocal(
+            toDatetimeLocalValue(initialPlatformSettings.announcementEventAt, tz),
+        );
         setPlatformLocaleDraft(normalizePlatformLocale(initialPlatformSettings.defaultLocale));
         setPlatformTimezoneDraft(
             normalizePlatformTimezone(initialPlatformSettings.defaultTimezone),
@@ -225,10 +250,15 @@ export function SettingsTabs({
     }, [
         initialPlatformSettings?.maintenanceMode,
         initialPlatformSettings?.maintenanceMessage,
+        initialPlatformSettings?.maintenanceStartsAt,
+        initialPlatformSettings?.maintenanceEndsAt,
         initialPlatformSettings?.announcementEnabled,
         initialPlatformSettings?.announcementMessage,
         initialPlatformSettings?.announcementSeverity,
         initialPlatformSettings?.announcementDismissible,
+        initialPlatformSettings?.announcementStartsAt,
+        initialPlatformSettings?.announcementEndsAt,
+        initialPlatformSettings?.announcementEventAt,
         initialPlatformSettings?.defaultLocale,
         initialPlatformSettings?.defaultTimezone,
         initialPlatformSettings?.smtpUseCustom,
@@ -296,15 +326,62 @@ export function SettingsTabs({
             return;
         }
 
+        const tz = normalizePlatformTimezone(
+            platformTimezoneDraft ||
+                initialPlatformSettings?.defaultTimezone ||
+                DEFAULT_PLATFORM_TIMEZONE,
+        );
+
+        const maintenanceStartsAt =
+            fromDatetimeLocalValue(maintenanceStartsLocal, tz)?.toISOString() ?? null;
+        const maintenanceEndsAt =
+            fromDatetimeLocalValue(maintenanceEndsLocal, tz)?.toISOString() ?? null;
+        const announcementStartsAt =
+            fromDatetimeLocalValue(announcementStartsLocal, tz)?.toISOString() ?? null;
+        const announcementEndsAt =
+            fromDatetimeLocalValue(announcementEndsLocal, tz)?.toISOString() ?? null;
+        const announcementEventAt =
+            fromDatetimeLocalValue(announcementEventLocal, tz)?.toISOString() ?? null;
+
+        if (
+            maintenanceStartsAt &&
+            maintenanceEndsAt &&
+            new Date(maintenanceEndsAt) <= new Date(maintenanceStartsAt)
+        ) {
+            toast.error(
+                locale === "en"
+                    ? "Maintenance end must be after the start"
+                    : "El fin del mantenimiento debe ser posterior al inicio",
+            );
+            return;
+        }
+        if (
+            announcementStartsAt &&
+            announcementEndsAt &&
+            new Date(announcementEndsAt) <= new Date(announcementStartsAt)
+        ) {
+            toast.error(
+                locale === "en"
+                    ? "Banner end must be after the start"
+                    : "El fin del banner debe ser posterior al inicio",
+            );
+            return;
+        }
+
         startSaving(async () => {
             try {
                 const res = await saveSystemSettingsAction({
                     maintenanceMode,
                     maintenanceMessage: maintenanceMessage.trim(),
+                    maintenanceStartsAt,
+                    maintenanceEndsAt,
                     announcementEnabled,
                     announcementMessage: announcementMessage.trim(),
                     announcementSeverity,
                     announcementDismissible,
+                    announcementStartsAt,
+                    announcementEndsAt,
+                    announcementEventAt,
                 });
                 if (res.success) {
                     toast.success(
@@ -944,8 +1021,8 @@ export function SettingsTabs({
                                         </h2>
                                         <p className="text-xs text-muted-foreground mt-0.5">
                                             {locale === "en"
-                                                ? "Blocks the public site and dashboards. Super admins keep full access. Tickets and login stay available."
-                                                : "Bloquea el sitio público y los paneles. Los superadministradores siguen con acceso total. Tickets e inicio de sesión permanecen disponibles."}
+                                                ? "Manual switch or scheduled window. Super admins keep access; tickets and login stay available."
+                                                : "Activación manual o ventana programada. Los superadmins conservan acceso; tickets e inicio de sesión siguen disponibles."}
                                         </p>
                                     </div>
                                     <button
@@ -968,8 +1045,8 @@ export function SettingsTabs({
                                 {maintenanceMode && (
                                     <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-xs text-amber-900 dark:text-amber-100">
                                         {locale === "en"
-                                            ? "Users will be redirected to /maintenance until you turn this off."
-                                            : "Los usuarios serán redirigidos a /maintenance hasta que lo desactives."}
+                                            ? "Manual maintenance is ON — users are redirected to /maintenance until you turn this off."
+                                            : "Mantenimiento manual ACTIVO — los usuarios van a /maintenance hasta que lo desactives."}
                                     </div>
                                 )}
 
@@ -993,6 +1070,58 @@ export function SettingsTabs({
                                         {maintenanceMessage.length}/500
                                     </p>
                                 </div>
+
+                                <div className="rounded-xl border border-dashed border-amber-500/30 bg-amber-500/[0.04] p-4 space-y-3">
+                                    <div className="flex items-center gap-2">
+                                        <Clock className="h-4 w-4 text-amber-700 dark:text-amber-300" />
+                                        <p className="text-xs font-semibold text-foreground">
+                                            {locale === "en"
+                                                ? "Scheduled window (optional)"
+                                                : "Ventana programada (opcional)"}
+                                        </p>
+                                    </div>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        {locale === "en"
+                                            ? "Auto-activates maintenance between these times (platform timezone), even if the manual switch is off. Clear both to disable schedule."
+                                            : "Activa el mantenimiento solo entre estas horas (zona de plataforma), aunque el interruptor manual esté apagado. Vacía ambos para quitar la programación."}
+                                    </p>
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                        <div className="space-y-1">
+                                            <label className="text-[11px] font-semibold text-foreground">
+                                                {locale === "en" ? "Starts" : "Inicio"}
+                                            </label>
+                                            <input
+                                                type="datetime-local"
+                                                value={maintenanceStartsLocal}
+                                                onChange={(e) => setMaintenanceStartsLocal(e.target.value)}
+                                                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[11px] font-semibold text-foreground">
+                                                {locale === "en" ? "Ends" : "Fin"}
+                                            </label>
+                                            <input
+                                                type="datetime-local"
+                                                value={maintenanceEndsLocal}
+                                                onChange={(e) => setMaintenanceEndsLocal(e.target.value)}
+                                                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                                            />
+                                        </div>
+                                    </div>
+                                    {(maintenanceStartsLocal || maintenanceEndsLocal) && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setMaintenanceStartsLocal("");
+                                                setMaintenanceEndsLocal("");
+                                            }}
+                                            className="text-[11px] font-semibold text-amber-800 dark:text-amber-200 underline-offset-2 hover:underline"
+                                        >
+                                            {locale === "en" ? "Clear schedule" : "Limpiar programación"}
+                                        </button>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="rounded-xl border border-border bg-card p-4 sm:p-6 space-y-5">
@@ -1006,8 +1135,8 @@ export function SettingsTabs({
                                         </h2>
                                         <p className="text-xs text-muted-foreground mt-0.5">
                                             {locale === "en"
-                                                ? "Sticky notice at the top of every page (landing and dashboards)."
-                                                : "Aviso fijo en la parte superior de todas las páginas (landing y paneles)."}
+                                                ? "Site-wide notice with optional schedule and event time (e.g. “maintenance on Jul 20 at 3pm”)."
+                                                : "Aviso en toda la app con horario opcional y fecha del evento (ej. mantenimiento el 20 jul a las 15:00)."}
                                         </p>
                                     </div>
                                     <button
@@ -1039,13 +1168,73 @@ export function SettingsTabs({
                                         disabled={!announcementEnabled}
                                         placeholder={
                                             locale === "en"
-                                                ? "Scheduled maintenance tonight at 11pm…"
-                                                : "Mantenimiento programado esta noche a las 23:00…"
+                                                ? "We will perform platform maintenance. Expect brief interruptions."
+                                                : "Realizaremos mantenimiento de plataforma. Puede haber interrupciones breves."
                                         }
                                         className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground resize-y min-h-[64px] disabled:opacity-50"
                                     />
                                     <p className="text-[11px] text-muted-foreground text-right">
                                         {announcementMessage.length}/400
+                                    </p>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-foreground inline-flex items-center gap-1.5">
+                                        <Clock className="h-3.5 w-3.5" />
+                                        {locale === "en"
+                                            ? "Highlighted event time (shown on banner)"
+                                            : "Fecha/hora del evento (chip en el banner)"}
+                                    </label>
+                                    <input
+                                        type="datetime-local"
+                                        value={announcementEventLocal}
+                                        onChange={(e) => setAnnouncementEventLocal(e.target.value)}
+                                        disabled={!announcementEnabled}
+                                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground disabled:opacity-50"
+                                    />
+                                    <p className="text-[11px] text-muted-foreground">
+                                        {locale === "en"
+                                            ? "Example: Jul 20, 3:00 PM — users see the date + relative time (“in 2 days”)."
+                                            : "Ejemplo: 20 jul, 15:00 — el usuario ve la fecha y el tiempo relativo (“en 2 días”)."}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-xl border border-border bg-muted/10 p-4 space-y-3">
+                                    <p className="text-xs font-semibold text-foreground">
+                                        {locale === "en"
+                                            ? "When to show the banner"
+                                            : "Cuándo mostrar el banner"}
+                                    </p>
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                        <div className="space-y-1">
+                                            <label className="text-[11px] font-semibold text-foreground">
+                                                {locale === "en" ? "Show from" : "Mostrar desde"}
+                                            </label>
+                                            <input
+                                                type="datetime-local"
+                                                value={announcementStartsLocal}
+                                                onChange={(e) => setAnnouncementStartsLocal(e.target.value)}
+                                                disabled={!announcementEnabled}
+                                                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground disabled:opacity-50"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[11px] font-semibold text-foreground">
+                                                {locale === "en" ? "Hide after" : "Ocultar después de"}
+                                            </label>
+                                            <input
+                                                type="datetime-local"
+                                                value={announcementEndsLocal}
+                                                onChange={(e) => setAnnouncementEndsLocal(e.target.value)}
+                                                disabled={!announcementEnabled}
+                                                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground disabled:opacity-50"
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        {locale === "en"
+                                            ? "Leave empty to show whenever the banner is enabled. Times use the platform timezone."
+                                            : "Vacío = se muestra mientras el banner esté activo. Las horas usan la zona horaria de la plataforma."}
                                     </p>
                                 </div>
 
