@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { getEventPassengerManifest } from "@/actions/transport";
-import { Bus, Users, Search, Download, AlertCircle, FileText, CheckCircle2, MapPin } from "lucide-react";
+import { Bus, Search, Download, AlertCircle, MapPin, Printer } from "lucide-react";
+import { toast } from "sonner";
+import { printJsPdf } from "@/lib/export/print-pdf";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 
 interface BookingItem {
   id: string;
@@ -23,12 +26,14 @@ interface PassengerManifestProps {
 }
 
 export function PassengerManifest({ eventId }: PassengerManifestProps) {
+  const t = useTranslations();
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [driverName, setDriverName] = useState("");
   const [vehiclePlate, setVehiclePlate] = useState("");
+  const [busy, setBusy] = useState<"pdf" | "print" | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -60,9 +65,7 @@ export function PassengerManifest({ eventId }: PassengerManifestProps) {
     );
   });
 
-  const exportPDF = async () => {
-    if (bookings.length === 0) return;
-
+  const buildManifestPdf = async () => {
     const [{ jsPDF }, { default: autoTable }] = await Promise.all([
       import("jspdf"),
       import("jspdf-autotable"),
@@ -188,7 +191,35 @@ export function PassengerManifest({ eventId }: PassengerManifestProps) {
     doc.text("Firma del Conductor / Transportista", 30, currentY + 25);
     doc.text("Firma del Organizador Responsable", 128, currentY + 25);
 
-    doc.save(`Manifiesto-Pasajeros-${new Date().toISOString().slice(0, 10)}.pdf`);
+    return doc;
+  };
+
+  const exportPDF = async () => {
+    if (bookings.length === 0) return;
+    try {
+      setBusy("pdf");
+      const doc = await buildManifestPdf();
+      doc.save(`Manifiesto-Pasajeros-${new Date().toISOString().slice(0, 10)}.pdf`);
+      toast.success(t("common.exportPdf") + " ✓");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.genericExportError"));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const printPDF = async () => {
+    if (bookings.length === 0) return;
+    try {
+      setBusy("print");
+      const doc = await buildManifestPdf();
+      await printJsPdf(doc);
+      toast.success(t("common.printOpened"));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("common.printError"));
+    } finally {
+      setBusy(null);
+    }
   };
 
   if (loading) {
@@ -254,15 +285,26 @@ export function PassengerManifest({ eventId }: PassengerManifestProps) {
             className="w-full rounded-xl border border-border bg-background pl-9 pr-4 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
-        <button
-          type="button"
-          onClick={exportPDF}
-          disabled={bookings.length === 0}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground shadow-sm transition-all hover:bg-accent/90 disabled:opacity-50"
-        >
-          <Download className="h-4 w-4" />
-          Descargar Manifiesto PDF (Hojas de Ruta)
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={exportPDF}
+            disabled={bookings.length === 0 || busy !== null}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground shadow-sm transition-all hover:bg-accent/90 disabled:opacity-50"
+          >
+            <Download className="h-4 w-4" />
+            {busy === "pdf" ? t("common.exporting") : "Descargar PDF"}
+          </button>
+          <button
+            type="button"
+            onClick={printPDF}
+            disabled={bookings.length === 0 || busy !== null}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground shadow-sm transition-all hover:bg-muted/50 disabled:opacity-50"
+          >
+            <Printer className="h-4 w-4" />
+            {busy === "print" ? t("common.printing") : t("common.print")}
+          </button>
+        </div>
       </div>
 
       {bookings.length === 0 ? (

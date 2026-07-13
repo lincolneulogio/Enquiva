@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Download, FileSpreadsheet, FileText, Filter } from "lucide-react";
+import { Download, FileSpreadsheet, FileText, Filter, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { getExportData, type ExportCategoryOption, type ExportEventOption, type ExportPayload, type ExportResource, type ExportScope } from "@/actions/exports";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
+import { printJsPdf } from "@/lib/export/print-pdf";
 import { cn } from "@/lib/utils";
 
 type StatusOption = {
@@ -38,7 +39,7 @@ function downloadExcel(payload: ExportPayload) {
     });
 }
 
-async function downloadPdf(payload: ExportPayload) {
+async function buildExportPdf(payload: ExportPayload) {
     const [{ jsPDF }, autoTableModule] = await Promise.all([
         import("jspdf"),
         import("jspdf-autotable"),
@@ -83,7 +84,7 @@ async function downloadPdf(payload: ExportPayload) {
         margin: { top: 36, right: 24, bottom: 28, left: 24 },
     });
 
-    doc.save(`${payload.suggestedFileName}.pdf`);
+    return doc;
 }
 
 export function ExportDataPanel({
@@ -103,17 +104,13 @@ export function ExportDataPanel({
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
-    // Sync state from URL query parameters
-    const urlEventId = searchParams.get("eventId") || "";
-    const urlStatus = searchParams.get("status") || initialStatus;
-    const urlCategory = searchParams.get("category") || initialCategory;
     // Sync state directly from URL query parameters (single source of truth)
     const eventId = searchParams.get("eventId") || "";
     const status = searchParams.get("status") || initialStatus;
     const category = searchParams.get("category") || initialCategory;
     const fromDate = searchParams.get("fromDate") || "";
     const toDate = searchParams.get("toDate") || "";
-    const [loadingFormat, setLoadingFormat] = useState<"pdf" | "excel" | null>(null);
+    const [loadingFormat, setLoadingFormat] = useState<"pdf" | "excel" | "print" | null>(null);
 
     const updateFilter = (key: string, value: string) => {
         const params = new URLSearchParams(searchParams.toString());
@@ -142,7 +139,7 @@ export function ExportDataPanel({
             : "El PDF se parte automáticamente en varias páginas; Excel funciona mejor para volúmenes masivos.";
     }, [locale, resource]);
 
-    const handleExport = async (format: "pdf" | "excel") => {
+    const handleExport = async (format: "pdf" | "excel" | "print") => {
         try {
             setLoadingFormat(format);
             const payload = await getExportData({
@@ -158,16 +155,29 @@ export function ExportDataPanel({
             if (format === "excel") {
                 await downloadExcel(payload);
             } else {
-                await downloadPdf(payload);
+                const doc = await buildExportPdf(payload);
+                if (format === "print") {
+                    await printJsPdf(doc);
+                } else {
+                    doc.save(`${payload.suggestedFileName}.pdf`);
+                }
             }
 
             toast.success(
-                locale === "en"
-                    ? `${format.toUpperCase()} export generated successfully`
-                    : `Exportación ${format.toUpperCase()} generada correctamente`
+                format === "print"
+                    ? t("common.printOpened")
+                    : locale === "en"
+                      ? `${format.toUpperCase()} export generated successfully`
+                      : `Exportación ${format.toUpperCase()} generada correctamente`
             );
         } catch (error) {
-            toast.error(error instanceof Error ? error.message : t("common.genericExportError"));
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : format === "print"
+                      ? t("common.printError")
+                      : t("common.genericExportError")
+            );
         } finally {
             setLoadingFormat(null);
         }
@@ -331,6 +341,18 @@ export function ExportDataPanel({
                     >
                         <FileText className="h-4 w-4" />
                         <span>{loadingFormat === "pdf" ? t("common.exporting") : t("common.exportPdf")}</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => handleExport("print")}
+                        disabled={loadingFormat !== null}
+                        className={cn(
+                            "flex-1 sm:flex-initial flex items-center justify-center gap-1.5 h-10 px-4 rounded-xl text-xs font-semibold shadow-sm transition-all duration-200 active:scale-[0.98] disabled:opacity-50",
+                            "bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 dark:bg-sky-950/20 dark:text-sky-400 dark:border-sky-900/30 dark:hover:bg-sky-950/40"
+                        )}
+                    >
+                        <Printer className="h-4 w-4" />
+                        <span>{loadingFormat === "print" ? t("common.printing") : t("common.print")}</span>
                     </button>
                 </div>
             </div>

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Download, FileSpreadsheet, FileText } from "lucide-react";
+import { Download, FileSpreadsheet, FileText, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+import { printJsPdf } from "@/lib/export/print-pdf";
 import type { AdminDashboardStatsResult } from "@/lib/analytics/admin";
 import type { AdminAnalyticsMode } from "./AdminAnalyticsView";
 
@@ -36,7 +37,7 @@ function statsToRows(stats: AdminDashboardStatsResult) {
 
 export function AdminAnalyticsExportBar({ stats, mode, title }: AdminAnalyticsExportBarProps) {
   const t = useTranslations();
-  const [loading, setLoading] = useState<"csv" | "pdf" | null>(null);
+  const [loading, setLoading] = useState<"csv" | "pdf" | "print" | null>(null);
 
   const metricLabel = (key: string) => {
     const map: Record<string, string> = {
@@ -80,32 +81,50 @@ export function AdminAnalyticsExportBar({ stats, mode, title }: AdminAnalyticsEx
     }
   };
 
+  const buildAnalyticsPdf = async () => {
+    const [{ jsPDF }, autoTableModule] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text(title, 14, 20);
+    doc.setFontSize(10);
+    doc.text(`${t("dashboard.admin.exportGenerated")}: ${new Date().toLocaleString()}`, 14, 28);
+    doc.text(`${t("dashboard.admin.exportRange")}: ${stats.range}`, 14, 36);
+
+    autoTableModule.default(doc, {
+      startY: 44,
+      head: [[t("dashboard.admin.exportMetric"), t("dashboard.admin.exportValue")]],
+      body: statsToRows(stats).map((row) => [metricLabel(row.metric), String(row.value)]),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [109, 76, 217] },
+    });
+
+    return doc;
+  };
+
   const exportPdf = async () => {
     setLoading("pdf");
     try {
-      const [{ jsPDF }, autoTableModule] = await Promise.all([
-        import("jspdf"),
-        import("jspdf-autotable"),
-      ]);
-      const doc = new jsPDF();
-      doc.setFontSize(16);
-      doc.text(title, 14, 20);
-      doc.setFontSize(10);
-      doc.text(`${t("dashboard.admin.exportGenerated")}: ${new Date().toLocaleString()}`, 14, 28);
-      doc.text(`${t("dashboard.admin.exportRange")}: ${stats.range}`, 14, 36);
-
-      autoTableModule.default(doc, {
-        startY: 44,
-        head: [[t("dashboard.admin.exportMetric"), t("dashboard.admin.exportValue")]],
-        body: statsToRows(stats).map((row) => [metricLabel(row.metric), String(row.value)]),
-        styles: { fontSize: 9 },
-        headStyles: { fillColor: [109, 76, 217] },
-      });
-
+      const doc = await buildAnalyticsPdf();
       doc.save(`analytics-${mode}-${stats.range}.pdf`);
       toast.success(t("dashboard.admin.exportPdfSuccess"));
     } catch {
       toast.error(t("dashboard.admin.exportError"));
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const printPdf = async () => {
+    setLoading("print");
+    try {
+      const doc = await buildAnalyticsPdf();
+      await printJsPdf(doc);
+      toast.success(t("dashboard.admin.exportPrintSuccess"));
+    } catch {
+      toast.error(t("common.printError"));
     } finally {
       setLoading(null);
     }
@@ -130,6 +149,15 @@ export function AdminAnalyticsExportBar({ stats, mode, title }: AdminAnalyticsEx
       >
         <FileText className="h-4 w-4" />
         {loading === "pdf" ? t("common.loading") : "PDF"}
+      </button>
+      <button
+        type="button"
+        onClick={printPdf}
+        disabled={loading !== null}
+        className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-muted/50 disabled:opacity-50"
+      >
+        <Printer className="h-4 w-4" />
+        {loading === "print" ? t("common.printing") : t("common.print")}
       </button>
       <span className="text-xs text-muted-foreground">
         <Download className="mr-1 inline h-3.5 w-3.5" />
