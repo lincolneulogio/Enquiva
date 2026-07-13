@@ -1,7 +1,7 @@
 /* Evora service worker — Web Push */
 /* eslint-disable no-undef */
 self.addEventListener("push", (event) => {
-  let data = { title: "Evora", body: "", url: "/" };
+  let data = { title: "", body: "", url: "/", brand: "" };
   try {
     if (event.data) {
       data = { ...data, ...event.data.json() };
@@ -10,8 +10,10 @@ self.addEventListener("push", (event) => {
     // ignore malformed payloads
   }
 
+  const title = (data.title || data.brand || "Evora").trim() || "Evora";
+
   event.waitUntil(
-    self.registration.showNotification(data.title || "Evora", {
+    self.registration.showNotification(title, {
       body: data.body || "",
       data: { url: data.url || "/" },
     }),

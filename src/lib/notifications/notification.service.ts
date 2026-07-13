@@ -79,12 +79,20 @@ export class NotificationService {
     );
 
     const { sendWebPushToUser } = await import("@/lib/push/web-push");
+    const { getSystemSettings } = await import("@/lib/settings");
+    const { resolvePushNotificationTitle } = await import("@/lib/push/branding");
+    const brandTitle = resolvePushNotificationTitle(await getSystemSettings());
+
     await Promise.all(
       payloads.map((payload) =>
-        sendWebPushToUser(payload.userId, {
-          title: payload.title,
-          body: payload.message,
-        }).catch((error) => {
+        sendWebPushToUser(
+          payload.userId,
+          {
+            title: payload.title,
+            body: payload.message,
+          },
+          { brandTitle },
+        ).catch((error) => {
           console.error("[web-push] deliver failed", error);
         }),
       ),

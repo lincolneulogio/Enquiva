@@ -101,6 +101,7 @@ export function SettingsTabs({
             socialYoutube: initialPlatformSettings?.socialYoutube ?? "",
             termsUrl: initialPlatformSettings?.termsUrl ?? "",
             privacyUrl: initialPlatformSettings?.privacyUrl ?? "",
+            pushNotificationTitle: initialPlatformSettings?.pushNotificationTitle ?? "",
             alertPayments: initialPlatformSettings?.alertNewPayments ?? true,
             alertTransport: initialPlatformSettings?.alertTransportCapacity ?? true,
             alertFinance: initialPlatformSettings?.alertDailyFinanceSummary ?? false,
@@ -121,6 +122,7 @@ export function SettingsTabs({
         socialYoutube,
         termsUrl,
         privacyUrl,
+        pushNotificationTitle,
         alertPayments,
         alertTransport,
         alertFinance,
@@ -417,12 +419,18 @@ export function SettingsTabs({
         startSaving(async () => {
             try {
                 const res = await saveSystemSettingsAction({
+                    pushNotificationTitle: (pushNotificationTitle ?? "").trim().slice(0, 64),
                     alertNewPayments: alertPayments,
                     alertTransportCapacity: alertTransport,
                     alertDailyFinanceSummary: alertFinance,
                 });
                 if (res.success) {
-                    toast.success(locale === "en" ? "System alerts updated" : "Alertas del sistema actualizadas");
+                    toast.success(
+                        locale === "en"
+                            ? "Push branding and system alerts updated"
+                            : "Marca push y alertas del sistema actualizadas",
+                    );
+                    router.refresh();
                 }
             } catch (err: unknown) {
                 const message = err instanceof Error ? err.message : "Error";
@@ -1030,18 +1038,16 @@ export function SettingsTabs({
                             </h3>
                             <p className="mt-1 text-xs text-muted-foreground">
                                 {locale === "en"
-                                    ? "Already available: identity, public contact/socials, legal URLs, platform accent, locale & timezone, maintenance & announcements, editable SMTP, system alerts, DB backup."
-                                    : "Ya disponible: identidad, contacto/redes, URLs legales, acento, idioma/zona horaria, mantenimiento y avisos, SMTP editable, alertas y backup BD."}
+                                    ? "Already available: identity, public contact/socials, legal URLs, platform accent, locale & timezone, maintenance & announcements, editable SMTP, push branding title, system alerts, DB backup."
+                                    : "Ya disponible: identidad, contacto/redes, URLs legales, acento, idioma/zona horaria, mantenimiento y avisos, SMTP editable, título push, alertas y backup BD."}
                             </p>
                             <ul className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
                                 {(locale === "en"
                                     ? [
                                         "Daily finance digest delivery (toggle exists, job pending)",
-                                        "Push notification branding title",
                                       ]
                                     : [
                                         "Resumen financiero diario (toggle existe, falta el job)",
-                                        "Título de notificaciones push",
                                       ]
                                 ).map((item) => (
                                     <li key={item} className="flex gap-2 rounded-lg border border-border/60 bg-card/60 px-3 py-2">
@@ -1761,6 +1767,92 @@ export function SettingsTabs({
                     )}
 
                     {section === "platform" && platformSubTab === "notifications" && (
+                        <div className="space-y-6">
+                            <div className="rounded-xl border border-border bg-card p-4 sm:p-6 space-y-5">
+                                <div className="flex items-start gap-3">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                        <Bell className="h-5 w-5" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <h2 className="text-lg font-semibold text-foreground">
+                                            {locale === "en"
+                                                ? "Push notification title"
+                                                : "Título de notificaciones push"}
+                                        </h2>
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                            {locale === "en"
+                                                ? "Brand name shown as the OS notification title. Event details appear in the body. Leave empty to use your organization name."
+                                                : "Nombre de marca que aparece como título en el sistema operativo. El detalle del evento va en el cuerpo. Déjalo vacío para usar el nombre de la organización."}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-foreground">
+                                        {locale === "en" ? "Display title" : "Título visible"}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        maxLength={64}
+                                        value={pushNotificationTitle ?? ""}
+                                        onChange={(e) =>
+                                            setSettingsValue("pushNotificationTitle", e.target.value.slice(0, 64))
+                                        }
+                                        placeholder={
+                                            (platformOrgName || initialPlatformSettings?.organizationName || "Evora").trim()
+                                        }
+                                        className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                                    />
+                                    <p className="text-[11px] text-muted-foreground">
+                                        {(pushNotificationTitle ?? "").trim().length}/64
+                                        {locale === "en"
+                                            ? " · Empty falls back to organization name"
+                                            : " · Vacío usa el nombre de la organización"}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-xl border border-border/80 bg-muted/20 p-4">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+                                        {locale === "en" ? "Preview" : "Vista previa"}
+                                    </p>
+                                    <div className="mx-auto max-w-sm rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+                                        <div className="flex items-start gap-3 px-3.5 py-3">
+                                            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-[10px] font-bold text-primary-foreground">
+                                                {(
+                                                    (pushNotificationTitle ?? "").trim() ||
+                                                    (platformOrgName || initialPlatformSettings?.organizationName || "E").trim()
+                                                )
+                                                    .charAt(0)
+                                                    .toUpperCase()}
+                                            </div>
+                                            <div className="min-w-0 flex-1 space-y-0.5">
+                                                <div className="flex items-baseline justify-between gap-2">
+                                                    <p className="truncate text-sm font-semibold text-foreground">
+                                                        {(pushNotificationTitle ?? "").trim() ||
+                                                            (platformOrgName ||
+                                                                initialPlatformSettings?.organizationName ||
+                                                                "Evora").trim()}
+                                                    </p>
+                                                    <span className="shrink-0 text-[10px] text-muted-foreground">
+                                                        {locale === "en" ? "now" : "ahora"}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs font-medium text-foreground/90 line-clamp-1">
+                                                    {locale === "en"
+                                                        ? "Payment approved"
+                                                        : "Pago aprobado"}
+                                                </p>
+                                                <p className="text-[11px] text-muted-foreground line-clamp-2">
+                                                    {locale === "en"
+                                                        ? "Your payment for Summer Summit was confirmed."
+                                                        : "Tu pago para Summer Summit fue confirmado."}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                         <div className="rounded-xl border border-border bg-card p-4 sm:p-6 space-y-6">
                             <div>
                                 <h2 className="text-lg font-semibold text-foreground">
@@ -1837,9 +1929,10 @@ export function SettingsTabs({
                                     className="w-full sm:w-auto justify-center flex items-center gap-2 rounded-lg bg-primary hover:bg-primary/95 text-primary-foreground font-semibold px-4 py-2 text-xs transition duration-200 disabled:opacity-50"
                                 >
                                     {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                                    {locale === "en" ? "Save alerts" : "Guardar alertas"}
+                                    {locale === "en" ? "Save push & alerts" : "Guardar push y alertas"}
                                 </button>
                             </div>
+                        </div>
                         </div>
                     )}
                 </div>

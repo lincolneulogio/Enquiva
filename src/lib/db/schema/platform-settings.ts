@@ -42,6 +42,8 @@ export const platformSettings = pgTable("platform_settings", {
   smtpPassEncrypted: text("smtp_pass_encrypted").notNull().default(""),
   smtpFromEmail: text("smtp_from_email").notNull().default(""),
   smtpFromName: text("smtp_from_name").notNull().default(""),
+  /** Título de marca en notificaciones push web (vacío = nombre de organización). */
+  pushNotificationTitle: text("push_notification_title").notNull().default(""),
   alertNewPayments: boolean("alert_new_payments").notNull().default(true),
   alertTransportCapacity: boolean("alert_transport_capacity").notNull().default(true),
   alertDailyFinanceSummary: boolean("alert_daily_finance_summary").notNull().default(false),

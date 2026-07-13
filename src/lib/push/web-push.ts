@@ -3,6 +3,11 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { pushSubscriptions } from "@/lib/db/schema";
 import { env } from "@/env";
+import { getSystemSettings } from "@/lib/settings";
+import {
+  buildBrandedWebPushPayload,
+  resolvePushNotificationTitle,
+} from "@/lib/push/branding";
 
 export function isWebPushConfigured(): boolean {
   return Boolean(env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY && env.VAPID_SUBJECT);
@@ -60,6 +65,7 @@ export async function removePushSubscription(userId: string, endpoint: string) {
 export async function sendWebPushToUser(
   userId: string,
   payload: { title: string; body: string; url?: string },
+  options?: { /** Si ya resolviste el título de marca, evita otra lectura de settings. */ brandTitle?: string },
 ) {
   if (!configureWebPush()) return { sent: 0, skipped: true as const };
 
@@ -69,6 +75,11 @@ export async function sendWebPushToUser(
     .where(eq(pushSubscriptions.userId, userId));
 
   if (subs.length === 0) return { sent: 0, skipped: false as const };
+
+  const brandTitle =
+    options?.brandTitle ??
+    resolvePushNotificationTitle(await getSystemSettings());
+  const branded = buildBrandedWebPushPayload(payload, brandTitle);
 
   let sent = 0;
   await Promise.all(
@@ -80,9 +91,10 @@ export async function sendWebPushToUser(
             keys: { p256dh: sub.p256dh, auth: sub.auth },
           },
           JSON.stringify({
-            title: payload.title,
-            body: payload.body,
-            url: payload.url ?? "/",
+            title: branded.title,
+            body: branded.body,
+            url: branded.url,
+            brand: brandTitle,
           }),
         );
         sent += 1;

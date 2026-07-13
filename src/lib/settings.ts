@@ -23,6 +23,7 @@ import {
   normalizePlatformTimezone,
 } from "@/lib/settings/platform-locale";
 import type { Locale } from "@/lib/i18n/core";
+import { normalizePushNotificationTitle } from "@/lib/push/branding";
 
 export type { AnnouncementSeverity, PlatformOpsStatus };
 
@@ -62,6 +63,11 @@ export interface SystemSettings {
   smtpFromName: string;
   /** True si hay contraseña cifrada guardada (nunca se expone el valor). */
   smtpPasswordSet: boolean;
+  /**
+   * Título de marca en notificaciones push (máx. 64).
+   * Vacío = nombre de organización / marca.
+   */
+  pushNotificationTitle: string;
   alertNewPayments: boolean;
   alertTransportCapacity: boolean;
   alertDailyFinanceSummary: boolean;
@@ -100,6 +106,7 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   smtpFromEmail: "",
   smtpFromName: "",
   smtpPasswordSet: false,
+  pushNotificationTitle: "",
   alertNewPayments: true,
   alertTransportCapacity: true,
   alertDailyFinanceSummary: false,
@@ -138,6 +145,7 @@ function rowToSettings(row: typeof platformSettings.$inferSelect): SystemSetting
     smtpFromEmail: row.smtpFromEmail ?? "",
     smtpFromName: row.smtpFromName ?? "",
     smtpPasswordSet: Boolean(row.smtpPassEncrypted?.trim()),
+    pushNotificationTitle: row.pushNotificationTitle ?? "",
     alertNewPayments: row.alertNewPayments,
     alertTransportCapacity: row.alertTransportCapacity,
     alertDailyFinanceSummary: row.alertDailyFinanceSummary,
@@ -224,6 +232,9 @@ function sanitizeSettingsPatch(settings: Partial<SystemSettings>): Partial<Syste
   if (typeof next.smtpPort === "number") {
     next.smtpPort = Number.isFinite(next.smtpPort) && next.smtpPort > 0 ? Math.round(next.smtpPort) : 587;
   }
+  if (typeof next.pushNotificationTitle === "string") {
+    next.pushNotificationTitle = normalizePushNotificationTitle(next.pushNotificationTitle);
+  }
 
   return next;
 }
@@ -261,6 +272,7 @@ function toDbRow(
     smtpPassEncrypted,
     smtpFromEmail: settings.smtpFromEmail,
     smtpFromName: settings.smtpFromName,
+    pushNotificationTitle: settings.pushNotificationTitle,
     alertNewPayments: settings.alertNewPayments,
     alertTransportCapacity: settings.alertTransportCapacity,
     alertDailyFinanceSummary: settings.alertDailyFinanceSummary,
