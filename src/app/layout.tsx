@@ -8,6 +8,7 @@ import { LenisProvider } from "@/components/providers/LenisProvider";
 import { PlatformBrandProvider } from "@/components/providers/PlatformBrandProvider";
 import { getLocale } from "@/lib/i18n/server";
 import { AccentColorInitializer } from "@/components/dashboard/admin/AccentColorInitializer";
+import { PlatformAnnouncementBannerHost } from "@/components/shared/PlatformAnnouncementBannerHost";
 import { getPlatformBrand } from "@/lib/brand/platform-brand";
 import "./globals.css";
 
@@ -81,6 +82,7 @@ export default async function RootLayout({
             <AppThemeProvider>
               <LenisProvider>
                 <AOSProvider>
+                  <PlatformAnnouncementBannerHost />
                   {children}
                   <Toaster
                     position="bottom-right"

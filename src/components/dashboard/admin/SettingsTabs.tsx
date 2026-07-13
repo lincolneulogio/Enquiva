@@ -9,6 +9,7 @@ import {
     User, Mail, Shield, Globe, Sun, Moon,
     Send, Bell, Building, Save, Loader2,
     Wifi, WifiOff, RefreshCw, Users, Copy, Server, Palette,
+    Wrench, Megaphone,
 } from "lucide-react";
 import {
     saveSystemSettingsAction,
@@ -17,6 +18,7 @@ import {
 } from "@/actions/admin/settings";
 import { saveEntitySettingsAction } from "@/actions/organizations";
 import type { SystemSettings } from "@/lib/settings";
+import type { AnnouncementSeverity } from "@/lib/settings/platform-ops";
 import { useRouter } from "next/navigation";
 import {
     ACCENT_COLORS,
@@ -127,9 +129,45 @@ export function SettingsTabs({
     const [activeAccent, setActiveAccent] = useState<AccentColor>(platformDefaultAccent);
     const [followsPlatformAccent, setFollowsPlatformAccent] = useState(true);
 
+    const [maintenanceMode, setMaintenanceMode] = useState(
+        initialPlatformSettings?.maintenanceMode ?? false,
+    );
+    const [maintenanceMessage, setMaintenanceMessage] = useState(
+        initialPlatformSettings?.maintenanceMessage ?? "",
+    );
+    const [announcementEnabled, setAnnouncementEnabled] = useState(
+        initialPlatformSettings?.announcementEnabled ?? false,
+    );
+    const [announcementMessage, setAnnouncementMessage] = useState(
+        initialPlatformSettings?.announcementMessage ?? "",
+    );
+    const [announcementSeverity, setAnnouncementSeverity] = useState<AnnouncementSeverity>(
+        initialPlatformSettings?.announcementSeverity ?? "info",
+    );
+    const [announcementDismissible, setAnnouncementDismissible] = useState(
+        initialPlatformSettings?.announcementDismissible ?? true,
+    );
+
     useEffect(() => {
         setPlatformAccentDraft(platformDefaultAccent);
     }, [platformDefaultAccent]);
+
+    useEffect(() => {
+        if (!initialPlatformSettings) return;
+        setMaintenanceMode(initialPlatformSettings.maintenanceMode);
+        setMaintenanceMessage(initialPlatformSettings.maintenanceMessage);
+        setAnnouncementEnabled(initialPlatformSettings.announcementEnabled);
+        setAnnouncementMessage(initialPlatformSettings.announcementMessage);
+        setAnnouncementSeverity(initialPlatformSettings.announcementSeverity);
+        setAnnouncementDismissible(initialPlatformSettings.announcementDismissible);
+    }, [
+        initialPlatformSettings?.maintenanceMode,
+        initialPlatformSettings?.maintenanceMessage,
+        initialPlatformSettings?.announcementEnabled,
+        initialPlatformSettings?.announcementMessage,
+        initialPlatformSettings?.announcementSeverity,
+        initialPlatformSettings?.announcementDismissible,
+    ]);
 
     useEffect(() => {
         const sync = () => {
@@ -179,6 +217,41 @@ export function SettingsTabs({
                         locale === "en"
                             ? "Platform default accent saved"
                             : "Color de acento por defecto guardado",
+                    );
+                    router.refresh();
+                }
+            } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : "Error";
+                toast.error(message);
+            }
+        });
+    };
+
+    const handleSavePlatformOps = () => {
+        if (announcementEnabled && !announcementMessage.trim()) {
+            toast.error(
+                locale === "en"
+                    ? "Write an announcement message or disable the banner"
+                    : "Escribe el mensaje del aviso o desactiva el banner",
+            );
+            return;
+        }
+
+        startSaving(async () => {
+            try {
+                const res = await saveSystemSettingsAction({
+                    maintenanceMode,
+                    maintenanceMessage: maintenanceMessage.trim(),
+                    announcementEnabled,
+                    announcementMessage: announcementMessage.trim(),
+                    announcementSeverity,
+                    announcementDismissible,
+                });
+                if (res.success) {
+                    toast.success(
+                        locale === "en"
+                            ? "Maintenance & announcement settings saved"
+                            : "Mantenimiento y avisos guardados",
                     );
                     router.refresh();
                 }
@@ -783,13 +856,12 @@ export function SettingsTabs({
                             </h3>
                             <p className="mt-1 text-xs text-muted-foreground">
                                 {locale === "en"
-                                    ? "Already available: identity, public contact/socials, platform accent, SMTP diagnostics, system alerts, DB backup."
-                                    : "Ya disponible: identidad, contacto/redes, acento de plataforma, diagnóstico SMTP, alertas y backup BD."}
+                                    ? "Already available: identity, public contact/socials, platform accent, maintenance & announcements, SMTP diagnostics, system alerts, DB backup."
+                                    : "Ya disponible: identidad, contacto/redes, acento, mantenimiento y avisos, diagnóstico SMTP, alertas y backup BD."}
                             </p>
                             <ul className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
                                 {(locale === "en"
                                     ? [
-                                        "Maintenance mode & announcement banner",
                                         "Legal pages (terms, privacy) URLs",
                                         "Default locale & timezone",
                                         "SMTP credentials editable from UI (now env-only)",
@@ -797,7 +869,6 @@ export function SettingsTabs({
                                         "Push notification branding title",
                                       ]
                                     : [
-                                        "Modo mantenimiento y banner de avisos",
                                         "URLs legales (términos, privacidad)",
                                         "Idioma y zona horaria por defecto",
                                         "SMTP editable desde la UI (hoy solo env)",
@@ -817,6 +888,193 @@ export function SettingsTabs({
 
                     {section === "platform" && platformSubTab === "preferences" && initialPlatformSettings && (
                         <div className="space-y-6">
+                            <div className="rounded-xl border border-border bg-card p-4 sm:p-6 space-y-5">
+                                <div className="flex items-start gap-3">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-300">
+                                        <Wrench className="h-5 w-5" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <h2 className="text-lg font-semibold text-foreground">
+                                            {locale === "en" ? "Maintenance mode" : "Modo mantenimiento"}
+                                        </h2>
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                            {locale === "en"
+                                                ? "Blocks the public site and dashboards. Super admins keep full access. Tickets and login stay available."
+                                                : "Bloquea el sitio público y los paneles. Los superadministradores siguen con acceso total. Tickets e inicio de sesión permanecen disponibles."}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setMaintenanceMode(!maintenanceMode)}
+                                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                                            maintenanceMode ? "bg-amber-600" : "bg-muted-foreground/30"
+                                        }`}
+                                        aria-pressed={maintenanceMode}
+                                        aria-label={locale === "en" ? "Toggle maintenance mode" : "Activar modo mantenimiento"}
+                                    >
+                                        <span
+                                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                                                maintenanceMode ? "translate-x-5" : "translate-x-0"
+                                            }`}
+                                        />
+                                    </button>
+                                </div>
+
+                                {maintenanceMode && (
+                                    <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-xs text-amber-900 dark:text-amber-100">
+                                        {locale === "en"
+                                            ? "Users will be redirected to /maintenance until you turn this off."
+                                            : "Los usuarios serán redirigidos a /maintenance hasta que lo desactives."}
+                                    </div>
+                                )}
+
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-foreground">
+                                        {locale === "en" ? "Message shown to users" : "Mensaje mostrado a los usuarios"}
+                                    </label>
+                                    <textarea
+                                        value={maintenanceMessage}
+                                        onChange={(e) => setMaintenanceMessage(e.target.value)}
+                                        rows={3}
+                                        maxLength={500}
+                                        placeholder={
+                                            locale === "en"
+                                                ? "We are upgrading the platform. Back shortly…"
+                                                : "Estamos mejorando la plataforma. Volvemos en breve…"
+                                        }
+                                        className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground resize-y min-h-[80px]"
+                                    />
+                                    <p className="text-[11px] text-muted-foreground text-right">
+                                        {maintenanceMessage.length}/500
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="rounded-xl border border-border bg-card p-4 sm:p-6 space-y-5">
+                                <div className="flex items-start gap-3">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-500/10 text-sky-700 dark:text-sky-300">
+                                        <Megaphone className="h-5 w-5" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <h2 className="text-lg font-semibold text-foreground">
+                                            {locale === "en" ? "Announcement banner" : "Banner de avisos"}
+                                        </h2>
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                            {locale === "en"
+                                                ? "Sticky notice at the top of every page (landing and dashboards)."
+                                                : "Aviso fijo en la parte superior de todas las páginas (landing y paneles)."}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setAnnouncementEnabled(!announcementEnabled)}
+                                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                                            announcementEnabled ? "bg-primary" : "bg-muted-foreground/30"
+                                        }`}
+                                        aria-pressed={announcementEnabled}
+                                        aria-label={locale === "en" ? "Toggle announcement banner" : "Activar banner de avisos"}
+                                    >
+                                        <span
+                                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                                                announcementEnabled ? "translate-x-5" : "translate-x-0"
+                                            }`}
+                                        />
+                                    </button>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-foreground">
+                                        {locale === "en" ? "Banner message" : "Mensaje del banner"}
+                                    </label>
+                                    <textarea
+                                        value={announcementMessage}
+                                        onChange={(e) => setAnnouncementMessage(e.target.value)}
+                                        rows={2}
+                                        maxLength={400}
+                                        disabled={!announcementEnabled}
+                                        placeholder={
+                                            locale === "en"
+                                                ? "Scheduled maintenance tonight at 11pm…"
+                                                : "Mantenimiento programado esta noche a las 23:00…"
+                                        }
+                                        className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground resize-y min-h-[64px] disabled:opacity-50"
+                                    />
+                                    <p className="text-[11px] text-muted-foreground text-right">
+                                        {announcementMessage.length}/400
+                                    </p>
+                                </div>
+
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="space-y-2">
+                                        <p className="text-xs font-semibold text-foreground">
+                                            {locale === "en" ? "Severity" : "Severidad"}
+                                        </p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {(
+                                                [
+                                                    { id: "info", labelEs: "Info", labelEn: "Info" },
+                                                    { id: "warning", labelEs: "Aviso", labelEn: "Warning" },
+                                                    { id: "critical", labelEs: "Crítico", labelEn: "Critical" },
+                                                ] as const
+                                            ).map((opt) => (
+                                                <button
+                                                    key={opt.id}
+                                                    type="button"
+                                                    disabled={!announcementEnabled}
+                                                    onClick={() => setAnnouncementSeverity(opt.id)}
+                                                    className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
+                                                        announcementSeverity === opt.id
+                                                            ? "border-primary bg-primary/10 text-primary"
+                                                            : "border-border bg-background text-foreground hover:bg-muted"
+                                                    }`}
+                                                >
+                                                    {locale === "en" ? opt.labelEn : opt.labelEs}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/10 p-3">
+                                        <div>
+                                            <p className="text-xs font-semibold text-foreground">
+                                                {locale === "en" ? "Dismissible" : "Se puede cerrar"}
+                                            </p>
+                                            <p className="text-[11px] text-muted-foreground">
+                                                {locale === "en"
+                                                    ? "Users can hide it for this browser session"
+                                                    : "Los usuarios pueden ocultarlo en esta sesión"}
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            disabled={!announcementEnabled}
+                                            onClick={() => setAnnouncementDismissible(!announcementDismissible)}
+                                            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors disabled:opacity-50 ${
+                                                announcementDismissible ? "bg-primary" : "bg-muted-foreground/30"
+                                            }`}
+                                        >
+                                            <span
+                                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                                                    announcementDismissible ? "translate-x-5" : "translate-x-0"
+                                                }`}
+                                            />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="pt-1 flex justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={handleSavePlatformOps}
+                                        disabled={isSaving}
+                                        className="w-full sm:w-auto justify-center flex items-center gap-2 rounded-lg bg-primary hover:bg-primary/95 text-primary-foreground font-semibold px-4 py-2 text-xs transition duration-200 disabled:opacity-50"
+                                    >
+                                        {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                                        {locale === "en" ? "Save status & banner" : "Guardar estado y avisos"}
+                                    </button>
+                                </div>
+                            </div>
+
                             <div className="rounded-xl border border-border bg-card p-4 sm:p-6 space-y-5">
                                 <div>
                                     <h2 className="text-lg font-semibold text-foreground">

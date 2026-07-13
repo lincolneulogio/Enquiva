@@ -10,6 +10,15 @@ import {
   isAccentColor,
   type AccentColor,
 } from "@/lib/brand/accent";
+import {
+  invalidatePlatformOpsCache,
+  isAnnouncementSeverity,
+  opsStatusFromSettings,
+  type AnnouncementSeverity,
+  type PlatformOpsStatus,
+} from "@/lib/settings/platform-ops";
+
+export type { AnnouncementSeverity, PlatformOpsStatus };
 
 export interface SystemSettings {
   organizationName: string;
@@ -24,6 +33,12 @@ export interface SystemSettings {
   socialYoutube: string;
   /** Color de acento por defecto de toda la plataforma. */
   defaultAccentColor: AccentColor;
+  maintenanceMode: boolean;
+  maintenanceMessage: string;
+  announcementEnabled: boolean;
+  announcementMessage: string;
+  announcementSeverity: AnnouncementSeverity;
+  announcementDismissible: boolean;
   alertNewPayments: boolean;
   alertTransportCapacity: boolean;
   alertDailyFinanceSummary: boolean;
@@ -45,6 +60,12 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   socialWhatsApp: "",
   socialYoutube: "",
   defaultAccentColor: DEFAULT_ACCENT_COLOR,
+  maintenanceMode: false,
+  maintenanceMessage: "",
+  announcementEnabled: false,
+  announcementMessage: "",
+  announcementSeverity: "info",
+  announcementDismissible: true,
   alertNewPayments: true,
   alertTransportCapacity: true,
   alertDailyFinanceSummary: false,
@@ -64,6 +85,14 @@ function rowToSettings(row: typeof platformSettings.$inferSelect): SystemSetting
     socialWhatsApp: row.socialWhatsApp ?? "",
     socialYoutube: row.socialYoutube ?? "",
     defaultAccentColor: isAccentColor(accent) ? accent : DEFAULT_ACCENT_COLOR,
+    maintenanceMode: Boolean(row.maintenanceMode),
+    maintenanceMessage: row.maintenanceMessage ?? "",
+    announcementEnabled: Boolean(row.announcementEnabled),
+    announcementMessage: row.announcementMessage ?? "",
+    announcementSeverity: isAnnouncementSeverity(row.announcementSeverity)
+      ? row.announcementSeverity
+      : "info",
+    announcementDismissible: row.announcementDismissible !== false,
     alertNewPayments: row.alertNewPayments,
     alertTransportCapacity: row.alertTransportCapacity,
     alertDailyFinanceSummary: row.alertDailyFinanceSummary,
@@ -107,6 +136,26 @@ function sanitizeSettingsPatch(settings: Partial<SystemSettings>): Partial<Syste
     next.defaultAccentColor = isAccentColor(next.defaultAccentColor)
       ? next.defaultAccentColor
       : DEFAULT_ACCENT_COLOR;
+  }
+  if (typeof next.maintenanceMessage === "string") {
+    next.maintenanceMessage = next.maintenanceMessage.trim().slice(0, 500);
+  }
+  if (typeof next.announcementMessage === "string") {
+    next.announcementMessage = next.announcementMessage.trim().slice(0, 400);
+  }
+  if (typeof next.announcementSeverity === "string") {
+    next.announcementSeverity = isAnnouncementSeverity(next.announcementSeverity)
+      ? next.announcementSeverity
+      : "info";
+  }
+  if (typeof next.maintenanceMode === "boolean") {
+    next.maintenanceMode = next.maintenanceMode;
+  }
+  if (typeof next.announcementEnabled === "boolean") {
+    next.announcementEnabled = next.announcementEnabled;
+  }
+  if (typeof next.announcementDismissible === "boolean") {
+    next.announcementDismissible = next.announcementDismissible;
   }
 
   return next;
@@ -162,6 +211,11 @@ export async function getSystemSettings(): Promise<SystemSettings> {
   }
 }
 
+export async function getPlatformOpsStatus(): Promise<PlatformOpsStatus> {
+  const settings = await getSystemSettings();
+  return opsStatusFromSettings(settings);
+}
+
 export async function saveSystemSettings(
   settings: Partial<SystemSettings>,
   actor?: { id: string; name: string },
@@ -189,6 +243,7 @@ export async function saveSystemSettings(
       },
     });
 
+  invalidatePlatformOpsCache();
   return updated;
 }
 

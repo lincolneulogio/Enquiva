@@ -7,6 +7,11 @@ import {
   mapAdminPathToSuperadmin,
   mapSuperadminPathToAdmin,
 } from "@/lib/navigation/dashboard-paths";
+import {
+  getCachedPlatformOpsStatus,
+  isMaintenanceAllowedPath,
+} from "@/lib/settings/platform-ops";
+import { getPlatformOpsStatus } from "@/lib/settings";
 
 /**
  * Gate de páginas autenticadas.
@@ -23,6 +28,7 @@ const publicRoutes = new Set([
   "/forgot-password",
   "/reset-password",
   "/events",
+  "/maintenance",
   "/superadmin/login",
   "/superadmin/register",
 ]);
@@ -92,19 +98,49 @@ function roleAllowsPath(role: string, pathname: string): string | null {
   return null;
 }
 
+async function getSessionSafe(request: NextRequest) {
+  try {
+    return await auth.api.getSession({ headers: request.headers });
+  } catch {
+    return null;
+  }
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Modo mantenimiento: superadmin bypass; tickets y auth siguen disponibles.
+  try {
+    const ops = await getCachedPlatformOpsStatus(() => getPlatformOpsStatus());
+    if (ops.maintenanceMode && !isMaintenanceAllowedPath(pathname)) {
+      const session = await getSessionSafe(request);
+      const isSuperAdmin =
+        session?.user && normalizeRole(session.user.role) === "super_admin";
+      if (!isSuperAdmin) {
+        return NextResponse.redirect(new URL("/maintenance", request.url));
+      }
+      if (session?.user) {
+        if (session.user.isActive === false) {
+          const disabledUrl = new URL("/login", request.url);
+          disabledUrl.searchParams.set("error", "account_disabled");
+          return NextResponse.redirect(disabledUrl);
+        }
+        const wrongRoleTarget = roleAllowsPath(session.user.role ?? "member", pathname);
+        if (wrongRoleTarget) {
+          return NextResponse.redirect(new URL(wrongRoleTarget, request.url));
+        }
+        return withPathname(request, pathname);
+      }
+    }
+  } catch {
+    // Si falla el check de ops, no bloquear la plataforma.
+  }
 
   if (isPublicRoute(pathname)) {
     return withPathname(request, pathname);
   }
 
-  let session: Awaited<ReturnType<typeof auth.api.getSession>> = null;
-  try {
-    session = await auth.api.getSession({ headers: request.headers });
-  } catch {
-    session = null;
-  }
+  const session = await getSessionSafe(request);
 
   if (!session?.user) {
     return loginRedirect(request, pathname);

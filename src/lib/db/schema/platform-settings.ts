@@ -17,6 +17,15 @@ export const platformSettings = pgTable("platform_settings", {
   socialYoutube: text("social_youtube").notNull().default(""),
   /** Color de acento por defecto de toda la plataforma (amber|emerald|rose|blue). */
   defaultAccentColor: text("default_accent_color").notNull().default("amber"),
+  /** Modo mantenimiento: bloquea la app excepto superadmin y rutas excepcionadas. */
+  maintenanceMode: boolean("maintenance_mode").notNull().default(false),
+  maintenanceMessage: text("maintenance_message").notNull().default(""),
+  /** Banner de aviso global (landing + paneles). */
+  announcementEnabled: boolean("announcement_enabled").notNull().default(false),
+  announcementMessage: text("announcement_message").notNull().default(""),
+  /** info | warning | critical */
+  announcementSeverity: text("announcement_severity").notNull().default("info"),
+  announcementDismissible: boolean("announcement_dismissible").notNull().default(true),
   alertNewPayments: boolean("alert_new_payments").notNull().default(true),
   alertTransportCapacity: boolean("alert_transport_capacity").notNull().default(true),
   alertDailyFinanceSummary: boolean("alert_daily_finance_summary").notNull().default(false),
