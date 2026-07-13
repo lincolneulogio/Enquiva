@@ -42,8 +42,20 @@ Una vez confirmado, podrás iniciar sesión de inmediato y acceder a tu panel de
 
 ## ¿Cómo navegar esta documentación?
 
-Usa el menú lateral responsivo para saltar directamente a la guía que corresponda a tus necesidades:
-* **Guía del Miembro (Asistente):** Aprende a comprar entradas, pagar con tu Yape/Plin desde tu celular, descargar tu ticket QR y reservar tus pasajes de bus.
-* **Guía del Organizador:** Descubre cómo publicar eventos, habilitar cuentas de pago, configurar rutas de autobuses, escanear entradas y auditar los comprobantes de pago.
-* **Guía del Administrador:** Administra usuarios, gestiona roles del sistema y exporta métricas en Excel o PDF.
-* **Arquitectura Técnica:** Documentación técnica sobre nuestro stack (Next.js 15, Drizzle ORM, Pusher, caching y base de datos) para desarrolladores.
+Usa el menú lateral: solo verás las guías disponibles para **tu rol activo**. Las secciones compartidas (FAQ, videotutoriales, soporte y changelog) están disponibles para todos los usuarios autenticados.
+
+<div data-docs-perm="docs:view:member">
+* **Guía del Miembro:** comprar entradas, pagar, ticket QR y transporte.
+</div>
+
+<div data-docs-perm="docs:view:organizer">
+* **Guía del Organizador:** publicar eventos, pagos, buses, escaneo QR y comprobantes.
+</div>
+
+<div data-docs-perm="docs:view:admin">
+* **Guía del Administrador:** usuarios, roles del sistema y métricas/exportaciones.
+</div>
+
+<div data-docs-perm="docs:view:dev">
+* **Arquitectura Técnica y Desarrolladores:** stack, despliegue, BD, permisos y tiempo real.
+</div>

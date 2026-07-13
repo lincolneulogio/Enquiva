@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { checkAuthIdentityByEmail, sendVerificationCode } from "@/actions/auth";
 import { signIn } from "@/lib/auth/client";
 import { getAuthErrorKind, getAuthErrorMessage, getValidationMessage } from "@/lib/auth/messages";
+import { resolveSafeAuthRedirect } from "@/lib/auth/safe-redirect";
 import { signInSchema, type SignInInput } from "@/lib/validations";
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
@@ -17,9 +18,14 @@ import { formStorageKey } from "@/lib/form-persistence";
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations();
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
+  const postLoginRedirect = useMemo(
+    () => resolveSafeAuthRedirect(searchParams.get("redirect"), "/dashboard"),
+    [searchParams],
+  );
 
   const form = useForm<SignInInput>({
     resolver: zodResolver(signInSchema),
@@ -56,7 +62,7 @@ export function LoginForm() {
           email: data.email,
           password: data.password,
           rememberMe: data.rememberMe ?? false,
-          callbackURL: "/dashboard",
+          callbackURL: postLoginRedirect,
         });
 
         if (result.error) {
@@ -90,7 +96,11 @@ export function LoginForm() {
 
         clearDraft();
         toast.success(t("auth.loginSuccess"));
-        router.push("/dashboard");
+        if (/^https?:\/\//i.test(postLoginRedirect)) {
+          window.location.assign(postLoginRedirect);
+          return;
+        }
+        router.push(postLoginRedirect);
         router.refresh();
       } catch (error) {
         const rawMessage = error instanceof Error ? error.message : t("auth.unexpectedAuthError");

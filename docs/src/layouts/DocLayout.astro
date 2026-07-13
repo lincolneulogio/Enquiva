@@ -46,17 +46,6 @@ const rawMainAppUrl =
   import.meta.env.PUBLIC_MAIN_APP_URL || "http://localhost:3000";
 const mainAppUrl = rawMainAppUrl.endsWith("/") ? rawMainAppUrl.slice(0, -1) : rawMainAppUrl;
 
-// Search Index Generation
-const allDocs = await Astro.glob('../pages/docs/*.md');
-const searchIndex = allDocs.map(doc => ({
-  title: doc.frontmatter.title || 'Documentación',
-  url: doc.url?.replace(/\/$/, '') || '',
-  headings: doc.getHeadings().map((h) => ({
-    text: h.text,
-    slug: h.slug
-  }))
-}));
-
 // Helper to check active nav link
 const isActive = (path: string) => {
   const normCurrent = currentPath.replace(/\/$/, ""); // Remove trailing slash
@@ -99,17 +88,17 @@ const navigation: NavGroup[] = [
     group: "Desarrolladores",
     requiredPermission: "docs:view:dev",
     items: [
-      { label: "Arquitectura Técnica", path: "/arquitectura", icon: Cpu },
-      { label: "Setup Local", path: "/setup-local", icon: TerminalSquare },
-      { label: "Local vs Producción", path: "/datos-local-vs-produccion", icon: Database },
-      { label: "Despliegue", path: "/despliegue", icon: Rocket },
-      { label: "Staging pre-prod", path: "/staging-pre-prod", icon: Shield },
-      { label: "Operaciones", path: "/operaciones", icon: Shield },
-      { label: "Migraciones", path: "/migraciones", icon: History },
-      { label: "Inventario Módulos", path: "/inventario-modulos", icon: BookOpen },
-      { label: "Esquema de BD", path: "/base-de-datos", icon: Database },
-      { label: "Roles y Permisos", path: "/auth-roles", icon: Shield },
-      { label: "Tiempo Real (WS)", path: "/websockets", icon: Activity },
+      { label: "Arquitectura Técnica", path: "/arquitectura", icon: Cpu, requiredPermission: "docs:view:dev" },
+      { label: "Setup Local", path: "/setup-local", icon: TerminalSquare, requiredPermission: "docs:view:dev" },
+      { label: "Local vs Producción", path: "/datos-local-vs-produccion", icon: Database, requiredPermission: "docs:view:dev" },
+      { label: "Despliegue", path: "/despliegue", icon: Rocket, requiredPermission: "docs:view:dev" },
+      { label: "Staging pre-prod", path: "/staging-pre-prod", icon: Shield, requiredPermission: "docs:view:dev" },
+      { label: "Operaciones", path: "/operaciones", icon: Shield, requiredPermission: "docs:view:dev" },
+      { label: "Migraciones", path: "/migraciones", icon: History, requiredPermission: "docs:view:dev" },
+      { label: "Inventario Módulos", path: "/inventario-modulos", icon: BookOpen, requiredPermission: "docs:view:dev" },
+      { label: "Esquema de BD", path: "/base-de-datos", icon: Database, requiredPermission: "docs:view:dev" },
+      { label: "Roles y Permisos", path: "/auth-roles", icon: Shield, requiredPermission: "docs:view:dev" },
+      { label: "Tiempo Real (WS)", path: "/websockets", icon: Activity, requiredPermission: "docs:view:dev" },
     ],
   },
   {
@@ -121,8 +110,40 @@ const navigation: NavGroup[] = [
   },
 ];
 
+/** Path -> permiso requerido. Sin entrada = visible a cualquier usuario autenticado. */
+const pagePermissions: Record<string, string> = Object.fromEntries(
+  navigation
+    .flatMap((g) => g.items)
+    .filter((item) => item.requiredPermission)
+    .map((item) => [
+      `/docs${item.path === "/" ? "" : item.path}`,
+      item.requiredPermission as string,
+    ]),
+);
+
+// Search Index Generation (after pagePermissions for RBAC filtering)
+const allDocs = await Astro.glob('../pages/docs/*.md');
+const searchIndex = allDocs.map(doc => {
+  const url = doc.url?.replace(/\/$/, "") || "";
+  return {
+    title: doc.frontmatter.title || "Documentación",
+    url,
+    requiredPermission: pagePermissions[url] || "",
+    headings: doc.getHeadings().map((h) => ({
+      text: h.text,
+      slug: h.slug,
+    })),
+  };
+});
+
 // Determine Next and Previous pages for the bottom navigation
 const flatNav = navigation.flatMap((g) => g.items);
+/** Serializable for client RBAC (no icons). */
+const flatNavClient = flatNav.map((item) => ({
+  label: item.label,
+  path: item.path,
+  requiredPermission: item.requiredPermission || "",
+}));
 const currentIndex = flatNav.findIndex((item) => isActive(item.path));
 const prevPage = currentIndex > 0 ? flatNav[currentIndex - 1] : null;
 const nextPage =
@@ -161,35 +182,235 @@ const nextPage =
       }
       window.localStorage.setItem("theme", theme);
     </script>
-    <script define:vars={{ mainAppUrl }}>
-      async function checkAuth() {
-        try {
-          const res = await fetch(`${mainAppUrl}/api/auth/get-session`, {
-            credentials: "include"
-          });
-          if (!res.ok) throw new Error("No autenticado");
-          
-          const data = await res.json();
-          if (!data || !data.session) {
-            throw new Error("No hay sesión activa");
-          } else {
-            // Mostrar avatar del usuario si se verificó correctamente
-            const profileDiv = document.getElementById("docs-user-profile");
-            if (profileDiv && data.user) {
-              profileDiv.classList.remove("hidden");
-              profileDiv.classList.add("flex");
-              profileDiv.innerHTML = `
-                <div title="${data.user.email}" class="h-8 w-8 shrink-0 rounded-full bg-[#cb6916] text-white flex items-center justify-center text-xs font-bold shadow-sm ring-2 ring-background">
-                  ${data.user.name.charAt(0).toUpperCase()}
-                </div>
-              `;
-            }
-          }
-        } catch (e) {
-          window.location.href = `${mainAppUrl}/login?redirect=${encodeURIComponent(window.location.href)}`;
+    <script define:vars={{ mainAppUrl, pagePermissions, flatNavClient }}>
+      (function () {
+        const flatNav = flatNavClient;
+        const ROLE_LABELS = {
+          super_admin: "Súper Admin",
+          admin: "Administrador",
+          organizer: "Organizador",
+          member: "Miembro",
+        };
+
+        const ROLE_COLORS = {
+          super_admin: "bg-[#15803d]",
+          admin: "bg-[#cb6916]",
+          organizer: "bg-[#2563eb]",
+          member: "bg-[#57534e]",
+        };
+
+        function escapeHtml(value) {
+          return String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
         }
-      }
-      checkAuth();
+
+        function redirectToLogin() {
+          const returnUrl = encodeURIComponent(window.location.href);
+          window.location.href = `${mainAppUrl}/login?redirect=${returnUrl}`;
+        }
+
+        function currentDocsPath() {
+          return (window.location.pathname || "/docs").replace(/\/$/, "") || "/docs";
+        }
+
+        function canAccessPath(path, permissions) {
+          const required = pagePermissions[path];
+          if (!required) return true;
+          return permissions.includes(required);
+        }
+
+        function enforcePageAccess(permissions) {
+          const path = currentDocsPath();
+          if (!canAccessPath(path, permissions)) {
+            window.location.replace("/docs");
+            return false;
+          }
+          return true;
+        }
+
+        function renderProfile(user, role) {
+          const profileDiv = document.getElementById("docs-user-profile");
+          if (!profileDiv || !user) return;
+
+          const normalizedRole = role || user.role || "member";
+          const roleLabel = ROLE_LABELS[normalizedRole] || ROLE_LABELS.member;
+          const roleColor = ROLE_COLORS[normalizedRole] || ROLE_COLORS.member;
+          const name = escapeHtml(user.name || "Usuario");
+          const email = escapeHtml(user.email || "");
+          const initial = escapeHtml((user.name || "U").charAt(0).toUpperCase());
+          const image = user.image ? escapeHtml(user.image) : "";
+
+          profileDiv.innerHTML = `
+            <div class="hidden sm:flex flex-col items-end mr-1 min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-bold text-foreground leading-tight max-w-[140px] truncate">${name}</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold text-white shadow-sm ${roleColor}">${roleLabel}</span>
+              </div>
+              <span class="text-[10px] text-muted-foreground leading-none max-w-[180px] truncate mt-0.5">${email}</span>
+            </div>
+            <div title="${name} · ${roleLabel}" class="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-foreground/15 bg-foreground/5 shadow-sm ring-2 ring-[#cb6916]/20">
+              ${
+                image
+                  ? `<img src="${image}" alt="${name}" class="h-full w-full object-cover" />`
+                  : `<span class="text-xs font-bold text-[#cb6916]">${initial}</span>`
+              }
+            </div>
+          `;
+          profileDiv.classList.remove("hidden");
+          profileDiv.classList.add("flex");
+        }
+
+        function applyNavPermissions(permissions) {
+          const userPermissions = new Set(permissions || []);
+
+          document.querySelectorAll(".nav-item").forEach((el) => {
+            const perm = el.getAttribute("data-permission");
+            const gated = el.getAttribute("data-docs-gated") === "1";
+            if (gated) {
+              if (perm && userPermissions.has(perm)) {
+                el.classList.add("docs-allowed");
+              } else {
+                el.classList.remove("docs-allowed");
+              }
+            }
+          });
+
+          document.querySelectorAll(".nav-group").forEach((el) => {
+            const groupPerm = el.getAttribute("data-permission");
+            const gated = el.getAttribute("data-docs-gated") === "1";
+
+            if (gated) {
+              if (groupPerm && userPermissions.has(groupPerm)) {
+                el.classList.add("docs-allowed");
+              } else {
+                el.classList.remove("docs-allowed");
+                return;
+              }
+            }
+
+            const items = el.querySelectorAll(".nav-item");
+            if (items.length > 0) {
+              const visibleChildren = Array.from(items).some((child) => {
+                const childGated = child.getAttribute("data-docs-gated") === "1";
+                if (!childGated) return true;
+                return child.classList.contains("docs-allowed");
+              });
+              if (!visibleChildren) {
+                el.classList.remove("docs-allowed");
+                el.setAttribute("data-docs-empty", "1");
+              } else {
+                el.removeAttribute("data-docs-empty");
+                if (!gated) el.style.display = "";
+              }
+            }
+          });
+
+          document.querySelectorAll("[data-docs-perm]").forEach((el) => {
+            const perm = el.getAttribute("data-docs-perm");
+            if (perm && !userPermissions.has(perm)) {
+              el.style.display = "none";
+            } else {
+              el.style.display = "";
+            }
+          });
+        }
+
+        function updateBottomNav(permissions) {
+          const container = document.getElementById("docs-bottom-nav");
+          if (!container || !Array.isArray(flatNav)) return;
+
+          const visible = flatNav.filter((item) => {
+            if (item.requiredPermission && !permissions.includes(item.requiredPermission)) {
+              return false;
+            }
+            return true;
+          });
+
+          const current = currentDocsPath();
+          const idx = visible.findIndex((item) => {
+            const path = `/docs${item.path === "/" ? "" : item.path}`;
+            return path === current;
+          });
+
+          const prev = idx > 0 ? visible[idx - 1] : null;
+          const next =
+            idx >= 0 && idx < visible.length - 1 ? visible[idx + 1] : null;
+
+          const linkHtml = (page, side) => {
+            if (!page) return `<div></div>`;
+            const href = `/docs${page.path === "/" ? "" : page.path}`;
+            const label = escapeHtml(page.label);
+            if (side === "prev") {
+              return `
+                <a href="${href}" class="flex flex-col gap-1 px-4 py-3 rounded-xl border border-foreground/10 hover:border-[#cb6916] hover:bg-[#cb6916]/5 transition-all text-left max-w-[48%] group/prev">
+                  <span class="text-[10px] uppercase tracking-wider text-foreground/45 font-bold select-none">Anterior</span>
+                  <span class="text-sm font-semibold text-[#cb6916] flex items-center gap-1.5">← ${label}</span>
+                </a>`;
+            }
+            return `
+              <a href="${href}" class="flex flex-col gap-1 px-4 py-3 rounded-xl border border-foreground/10 hover:border-[#cb6916] hover:bg-[#cb6916]/5 transition-all text-right max-w-[48%] group/next ml-auto">
+                <span class="text-[10px] uppercase tracking-wider text-foreground/45 font-bold select-none">Siguiente</span>
+                <span class="text-sm font-semibold text-[#cb6916] flex items-center gap-1.5 justify-end">${label} →</span>
+              </a>`;
+          };
+
+          if (!prev && !next) {
+            container.style.display = "none";
+            return;
+          }
+
+          container.style.display = "flex";
+          container.innerHTML = `${linkHtml(prev, "prev")}${linkHtml(next, "next")}`;
+        }
+
+        async function initDocsSession() {
+          const profileDiv = document.getElementById("docs-user-profile");
+          if (profileDiv && profileDiv.dataset.loaded !== "1") {
+            profileDiv.classList.remove("hidden");
+            profileDiv.classList.add("flex");
+            profileDiv.innerHTML = `
+              <div class="h-9 w-28 rounded-lg bg-foreground/10 animate-pulse hidden sm:block"></div>
+              <div class="h-9 w-9 rounded-xl bg-foreground/10 animate-pulse"></div>
+            `;
+          }
+
+          try {
+            const res = await fetch(`${mainAppUrl}/api/docs/auth`, {
+              credentials: "include",
+              headers: { Accept: "application/json" },
+            });
+
+            if (!res.ok) throw new Error("No autenticado");
+
+            const data = await res.json();
+            if (!data?.user || data.role === "guest") {
+              throw new Error("No hay sesión activa");
+            }
+
+            const permissions = data.permissions || [];
+            window.__docsPermissions = permissions;
+            if (!enforcePageAccess(permissions)) return;
+
+            renderProfile(data.user, data.role);
+            applyNavPermissions(permissions);
+            updateBottomNav(permissions);
+            if (profileDiv) profileDiv.dataset.loaded = "1";
+          } catch (e) {
+            redirectToLogin();
+          }
+        }
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", initDocsSession);
+        } else {
+          initDocsSession();
+        }
+        document.addEventListener("astro:page-load", initDocsSession);
+      })();
     </script>
   </head>
   <body
@@ -293,20 +514,26 @@ const nextPage =
       <!-- Left Sidebar: Category Navigation -->
       <aside
         id="mobile-sidebar"
-        class="fixed inset-y-0 left-0 z-50 w-72 shrink-0 border-r border-foreground/10 bg-background lg:bg-foreground/[0.01] transform -translate-x-full lg:translate-x-0 transition-transform duration-300 lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:block overflow-y-auto"
+        class="fixed inset-y-0 left-0 z-50 flex w-72 shrink-0 -translate-x-full flex-col border-r border-foreground/10 bg-background transition-transform duration-300 lg:sticky lg:top-16 lg:z-0 lg:h-[calc(100dvh-4rem)] lg:translate-x-0 lg:inset-auto lg:left-auto lg:bg-foreground/[0.01]"
       >
         <!-- Mobile Header (Only visible on small screens inside sidebar) -->
-        <div class="flex lg:hidden items-center justify-between p-4 border-b border-foreground/5 mb-4">
+        <div class="flex shrink-0 lg:hidden items-center justify-between p-4 border-b border-foreground/5">
           <span class="font-display font-bold text-foreground">Menú de Docs</span>
           <button id="close-mobile-menu" class="p-2 rounded-xl border border-foreground/15 bg-foreground/3 text-muted-foreground hover:text-foreground active:scale-95 transition-all">
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div class="space-y-6 lg:py-6 lg:pl-4 lg:pr-6 pb-12 px-6">
+        <!-- Scrollable nav only (keeps header clear; last items reachable) -->
+        <nav class="docs-sidebar-nav flex-1 overflow-y-auto overscroll-contain px-6 py-6 pb-20 lg:pl-4 lg:pr-6" aria-label="Documentación">
+          <div class="space-y-6">
           {
             navigation.map((group) => (
-              <div class="space-y-2 nav-group" data-permission={group.requiredPermission || ""}>
+              <div
+                class="space-y-2 nav-group"
+                data-permission={group.requiredPermission || undefined}
+                data-docs-gated={group.requiredPermission ? "1" : undefined}
+              >
                 <h4 class="px-3 text-xs font-bold text-foreground/50 tracking-wider uppercase select-none">
                   {group.group}
                 </h4>
@@ -315,7 +542,11 @@ const nextPage =
                     const active = isActive(item.path);
                     const IconComponent = item.icon;
                     return (
-                      <li class="nav-item transition-all duration-300" data-permission={item.requiredPermission || ""}>
+                      <li
+                        class="nav-item transition-all duration-300"
+                        data-permission={item.requiredPermission || undefined}
+                        data-docs-gated={item.requiredPermission ? "1" : undefined}
+                      >
                         <a
                           href={`/docs${item.path === "/" ? "" : item.path}`}
                           class={`group flex items-center gap-2.5 pl-4 py-1.5 text-sm font-medium border-l-2 -ml-[1.5px] transition-all ${
@@ -336,7 +567,8 @@ const nextPage =
               </div>
             ))
           }
-        </div>
+          </div>
+        </nav>
       </aside>
 
       <!-- Center Article Column -->
@@ -350,46 +582,13 @@ const nextPage =
           <slot />
         </article>
 
-        <!-- Bottom Navigation: Prev / Next buttons -->
-        {
-          (prevPage || nextPage) && (
-            <div class="mt-12 pt-6 border-t border-foreground/8 flex items-center justify-between gap-4">
-              {prevPage ? (
-                <a
-                  href={`/docs${prevPage.path === "/" ? "" : prevPage.path}`}
-                  class="flex flex-col gap-1 px-4 py-3 rounded-xl border border-foreground/10 hover:border-[#cb6916] hover:bg-[#cb6916]/5 transition-all text-left max-w-[48%] group/prev"
-                >
-                  <span class="text-[10px] uppercase tracking-wider text-foreground/45 font-bold select-none">
-                    Anterior
-                  </span>
-                  <span class="text-sm font-semibold text-[#cb6916] flex items-center gap-1.5">
-                    <ChevronLeft className="h-4 w-4 shrink-0 transition-transform group-hover/prev:-translate-x-0.5" />
-                    {prevPage.label}
-                  </span>
-                </a>
-              ) : (
-                <div />
-              )}
-
-              {nextPage ? (
-                <a
-                  href={`/docs${nextPage.path === "/" ? "" : nextPage.path}`}
-                  class="flex flex-col gap-1 px-4 py-3 rounded-xl border border-foreground/10 hover:border-[#cb6916] hover:bg-[#cb6916]/5 transition-all text-right max-w-[48%] group/next"
-                >
-                  <span class="text-[10px] uppercase tracking-wider text-foreground/45 font-bold select-none">
-                    Siguiente
-                  </span>
-                  <span class="text-sm font-semibold text-[#cb6916] flex items-center gap-1.5 justify-end">
-                    {nextPage.label}
-                    <ChevronRight className="h-4 w-4 shrink-0 transition-transform group-hover/next:translate-x-0.5" />
-                  </span>
-                </a>
-              ) : (
-                <div />
-              )}
-            </div>
-          )
-        }
+        <!-- Bottom Navigation: Prev / Next (rebuilt client-side by role) -->
+        <div
+          id="docs-bottom-nav"
+          class="mt-12 pt-6 border-t border-foreground/8 flex items-center justify-between gap-4"
+          data-ssr-prev={prevPage?.path || ""}
+          data-ssr-next={nextPage?.path || ""}
+        ></div>
       </main>
 
       <!-- Right Sidebar: Table of Contents & Helpers (docs.astro.build inspired) -->
@@ -692,6 +891,13 @@ const nextPage =
             let count = 0;
 
             index.forEach(page => {
+              const required = page.requiredPermission;
+              const allowed =
+                !required ||
+                (Array.isArray(window.__docsPermissions) &&
+                  window.__docsPermissions.includes(required));
+              if (!allowed) return;
+
               let pageMatched = page.title.toLowerCase().includes(q);
               const matchedHeadings = page.headings.filter(h => h.text.toLowerCase().includes(q));
 
@@ -730,77 +936,8 @@ const nextPage =
       })();
     </script>
     
-    <!-- Client-side RBAC Sync Script -->
+    <!-- Client-side UI helpers (auth/RBAC viven en el script unificado del head) -->
     <script is:inline>
-      const initDocsAuth = async () => {
-        try {
-          const rawMainAppUrl = window.location.hostname === 'localhost' 
-              ? 'http://localhost:3000' 
-              : 'https://' + window.location.hostname.replace('docs.', '');
-          const mainAppUrl = rawMainAppUrl.endsWith('/') ? rawMainAppUrl.slice(0, -1) : rawMainAppUrl;
-              
-          const res = await fetch(`${mainAppUrl}/api/docs/auth`, { 
-            credentials: 'include',
-            headers: { 'Accept': 'application/json' }
-          });
-          
-          if (res.ok) {
-            const data = await res.json();
-            const userPermissions = data.permissions || [];
-            
-            // 1. Hide nav-items
-            document.querySelectorAll('.nav-item').forEach(el => {
-              const perm = el.getAttribute('data-permission');
-              if (perm && !userPermissions.includes(perm)) {
-                el.style.display = 'none';
-              }
-            });
-
-            // 2. Hide nav-groups
-            document.querySelectorAll('.nav-group').forEach(el => {
-              const groupPerm = el.getAttribute('data-permission');
-              if (groupPerm && !userPermissions.includes(groupPerm)) {
-                el.style.display = 'none';
-              } else {
-                const items = el.querySelectorAll('.nav-item');
-                if (items.length > 0) {
-                  const visibleChildren = Array.from(items).some(child => child.style.display !== 'none');
-                  if (!visibleChildren) el.style.display = 'none';
-                }
-              }
-            });
-
-            // 3. Render User Profile Widget
-            const profileContainer = document.getElementById('docs-user-profile');
-            if (profileContainer && data.user) {
-              const user = data.user;
-              const roleColor = user.role === 'super_admin' ? 'bg-[#15803d]' : user.role === 'admin' ? 'bg-[#cb6916]' : 'bg-[#2563eb]';
-              const roleDisplay = user.role === 'super_admin' ? 'Súper Admin' : user.role === 'admin' ? 'Administrador' : user.role === 'organizer' ? 'Organizador' : 'Miembro';
-              
-              profileContainer.innerHTML = `
-                <span class="hidden lg:flex mr-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white shadow-sm items-center ${roleColor}">${roleDisplay}</span>
-                <div class="hidden md:flex flex-col text-right ml-1">
-                  <span class="text-xs font-bold text-foreground leading-tight max-w-[120px] truncate">${user.name || 'Usuario'}</span>
-                  <span class="text-[10px] text-muted-foreground leading-none max-w-[120px] truncate mt-0.5">${user.email || ''}</span>
-                </div>
-                <div class="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-foreground/15 bg-foreground/5 shadow-sm">
-                  ${user.image 
-                    ? `<img src="${user.image}" alt="${user.name}" class="h-full w-full object-cover" />` 
-                    : `<span class="text-xs font-bold text-[#cb6916]">${(user.name || 'U').charAt(0).toUpperCase()}</span>`
-                  }
-                </div>
-              `;
-              profileContainer.classList.remove('hidden');
-              profileContainer.classList.add('flex');
-            }
-          }
-        } catch(e) {
-          console.warn("RBAC Docs Sync failed. Silently ignoring.", e);
-        }
-      };
-
-      document.addEventListener('astro:page-load', initDocsAuth);
-
       // Mobile Menu Logic
       const initMobileMenu = () => {
         const btn = document.getElementById('mobile-menu-btn');
@@ -996,5 +1133,43 @@ const nextPage =
     padding: 0 !important;
     color: inherit !important;
     font-weight: 400 !important;
+  }
+
+  /* Fail-closed: hide gated docs links until RBAC marks them allowed */
+  .nav-item[data-docs-gated="1"],
+  .nav-group[data-docs-gated="1"] {
+    display: none !important;
+  }
+
+  .nav-item[data-docs-gated="1"].docs-allowed {
+    display: list-item !important;
+  }
+
+  .nav-group[data-docs-gated="1"].docs-allowed {
+    display: block !important;
+  }
+
+  .nav-group[data-docs-empty="1"] {
+    display: none !important;
+  }
+
+  /* Left sidebar: internal scroll only, never under the top header */
+  .docs-sidebar-nav {
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(203, 105, 22, 0.35) transparent;
+  }
+
+  .docs-sidebar-nav::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .docs-sidebar-nav::-webkit-scrollbar-thumb {
+    background: rgba(203, 105, 22, 0.35);
+    border-radius: 999px;
+  }
+
+  .docs-sidebar-nav::-webkit-scrollbar-track {
+    background: transparent;
   }
 </style>

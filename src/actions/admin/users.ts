@@ -12,6 +12,7 @@ import {
     PERMISSIONS,
     ROLE_LABELS,
     getDefaultPermissionMatrix,
+    isDocsViewAssignableToRole,
     normalizeRole,
     type AppRole,
     type Permission,
@@ -217,6 +218,12 @@ export async function updateRolePermission(input: {
         throw new Error("Super Admin permissions are fixed and cannot be changed");
     }
 
+    if (input.allowed && !isDocsViewAssignableToRole(input.role, input.permission)) {
+        throw new Error(
+            "Esta guía de documentación no corresponde a este rol. Solo Super Admin ve todas las guías.",
+        );
+    }
+
     const defaults = getDefaultPermissionMatrix();
     const defaultAllowed = defaults[input.role][input.permission];
 
@@ -275,6 +282,8 @@ export async function updateRolePermission(input: {
     revalidatePath("/admin", "layout");
     revalidatePath("/superadmin", "layout");
     revalidatePath("/organizer", "layout");
+    // Portal docs filtra menú con /api/docs/auth (misma matriz).
+    revalidatePath("/api/docs/auth");
 
     return { success: true };
 }
@@ -303,6 +312,7 @@ export async function resetRolePermissions(input: { role: AppRole }) {
     revalidatePath("/admin", "layout");
     revalidatePath("/superadmin", "layout");
     revalidatePath("/organizer", "layout");
+    revalidatePath("/api/docs/auth");
 
     return { success: true };
 }

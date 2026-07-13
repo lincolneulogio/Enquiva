@@ -208,9 +208,6 @@ export const PERMISSIONS_BY_ROLE: Record<AppRole, Permission[]> = {
         "data:export",
         "permissions:view",
         "docs:view:admin",
-        "docs:view:organizer",
-        "docs:view:member",
-        "docs:view:dev",
     ],
     organizer: [
         "events:create",
@@ -225,7 +222,6 @@ export const PERMISSIONS_BY_ROLE: Record<AppRole, Permission[]> = {
         "analytics:view:own",
         "data:export",
         "docs:view:organizer",
-        "docs:view:member",
     ],
     member: [
         "docs:view:member",
@@ -237,6 +233,54 @@ export function normalizeRole(role: string | null | undefined): AppRole {
         return role;
     }
     return "member";
+}
+
+/** Permisos de docs estrictos por rol (portal /docs). Solo super_admin ve todas las guías + dev. */
+export const DOCS_VIEW_PERMISSIONS = [
+    "docs:view:admin",
+    "docs:view:organizer",
+    "docs:view:member",
+    "docs:view:dev",
+] as const satisfies readonly Permission[];
+
+export function getDocsViewPermissionsForRole(
+    roleInput: string | null | undefined,
+): Permission[] {
+    const role = normalizeRole(roleInput);
+    if (role === "super_admin") {
+        return [...DOCS_VIEW_PERMISSIONS];
+    }
+    return PERMISSIONS_BY_ROLE[role].filter((permission) =>
+        DOCS_VIEW_PERMISSIONS.includes(permission as (typeof DOCS_VIEW_PERMISSIONS)[number]),
+    );
+}
+
+/** Un rol no-super_admin solo puede tener su propia guía docs (y nunca :dev). */
+export function isDocsViewAssignableToRole(
+    roleInput: string | null | undefined,
+    permission: Permission,
+): boolean {
+    if (!DOCS_VIEW_PERMISSIONS.includes(permission as (typeof DOCS_VIEW_PERMISSIONS)[number])) {
+        return true;
+    }
+    return getDocsViewPermissionsForRole(roleInput).includes(permission);
+}
+
+/**
+ * Alinea la matriz efectiva con el tope por rol en docs:view:*.
+ * Evita que overrides viejos en BD den a Admin las guías de Miembro/Organizador/Dev.
+ */
+export function applyDocsViewRoleCaps(matrix: PermissionMatrix): PermissionMatrix {
+    for (const role of ROLE_ORDER) {
+        if (role === "super_admin") continue;
+        const allowed = new Set(getDocsViewPermissionsForRole(role));
+        for (const permission of DOCS_VIEW_PERMISSIONS) {
+            if (!allowed.has(permission)) {
+                matrix[role][permission] = false;
+            }
+        }
+    }
+    return matrix;
 }
 
 /**

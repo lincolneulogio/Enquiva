@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/LoginForm";
 import Link from "next/link";
 import { getI18n } from "@/lib/i18n/server";
@@ -28,7 +29,9 @@ export default async function LoginPage() {
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
-          <LoginForm />
+          <Suspense fallback={<div className="h-48 animate-pulse rounded-xl bg-muted/40" />}>
+            <LoginForm />
+          </Suspense>
         </div>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">

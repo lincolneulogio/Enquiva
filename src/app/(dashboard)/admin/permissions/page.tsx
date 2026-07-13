@@ -6,6 +6,7 @@ import {
     ROLE_BADGE_STYLES,
     PERMISSION_GROUPS,
     getDefaultPermissionMatrix,
+    isDocsViewAssignableToRole,
     normalizeRole,
 } from "@/lib/auth/rbac";
 import { getPermissionMatrix } from "@/actions/admin";
@@ -151,7 +152,10 @@ function PermissionGroupRows({
                                     role={role}
                                     permission={permission}
                                     allowed={matrix[role][permission]}
-                                    canEdit={role !== "super_admin"}
+                                    canEdit={
+                                        role !== "super_admin" &&
+                                        isDocsViewAssignableToRole(role, permission)
+                                    }
                                     isModified={matrix[role][permission] !== defaults[role][permission]}
                                 />
                             </td>

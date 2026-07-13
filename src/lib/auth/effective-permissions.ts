@@ -6,6 +6,7 @@ import {
   PERMISSIONS,
   getDefaultPermissionMatrix,
   normalizeRole,
+  applyDocsViewRoleCaps,
   type Permission,
   type PermissionMatrix,
 } from "@/lib/auth/rbac";
@@ -39,7 +40,7 @@ export const getFullEffectivePermissionMatrix = cache(async (): Promise<Permissi
     .from(rolePermissions);
 
   applyOverrides(matrix, overrides);
-  return matrix;
+  return applyDocsViewRoleCaps(matrix);
 });
 
 const getOverridesForRole = cache(async (role: string) => {
@@ -70,6 +71,7 @@ export async function hasEffectivePermission(
     }
   }
 
+  applyDocsViewRoleCaps(matrix);
   return matrix[role][permission] ?? false;
 }
 
