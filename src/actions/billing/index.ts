@@ -11,7 +11,6 @@ import { eq } from "drizzle-orm";
 import {
   requireAuthUser,
   requireOrganizerOrStaff,
-  requireSuperAdmin,
 } from "@/lib/auth/guards";
 import {
   resolveSubscriptionBillingContext,
@@ -158,39 +157,6 @@ export async function requestPlanUpgrade(planSlug: string, confirmed = false) {
     amount: Number(plan.priceMonthly),
     preview: preview ?? undefined,
   };
-}
-
-export async function getPendingSubscriptionPayments() {
-  await requireSuperAdmin();
-  return SubscriptionPaymentService.listPendingPayments();
-}
-
-export async function approveSubscriptionPayment(paymentId: string) {
-  const admin = await requireSuperAdmin();
-  await SubscriptionPaymentService.approvePayment(paymentId, admin.id);
-  const { invalidateAdminDashboardStatsCache } = await import("@/lib/analytics/admin");
-  await invalidateAdminDashboardStatsCache();
-  revalidatePath("/organizer/billing");
-  revalidatePath("/admin/plan");
-  revalidatePath("/admin/billing");
-  revalidatePath("/superadmin/billing");
-  revalidatePath("/admin");
-  revalidatePath("/superadmin");
-  return { success: true };
-}
-
-export async function rejectSubscriptionPayment(paymentId: string, notes?: string) {
-  const admin = await requireSuperAdmin();
-  await SubscriptionPaymentService.rejectPayment(paymentId, admin.id, notes);
-  const { invalidateAdminDashboardStatsCache } = await import("@/lib/analytics/admin");
-  await invalidateAdminDashboardStatsCache();
-  revalidatePath("/organizer/billing");
-  revalidatePath("/admin/plan");
-  revalidatePath("/admin/billing");
-  revalidatePath("/superadmin/billing");
-  revalidatePath("/admin");
-  revalidatePath("/superadmin");
-  return { success: true };
 }
 
 export async function updateSubscriptionAutoRenew(enabled: boolean) {

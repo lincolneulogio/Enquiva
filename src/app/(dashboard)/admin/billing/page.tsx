@@ -3,12 +3,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { getI18n } from "@/lib/i18n/server";
 import { getPlatformRevenue } from "@/actions/admin/plans";
-import { getPendingSubscriptionPayments } from "@/actions/billing";
 import { AdminRevenuePanel } from "@/components/dashboard/admin/AdminRevenuePanel";
-import { AdminSubscriptionPaymentsPanel } from "@/components/dashboard/admin/AdminSubscriptionPaymentsPanel";
-import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import { eq, inArray } from "drizzle-orm";
 
 import { getStaffDashboardHome, staffDashboardPath } from "@/lib/navigation/dashboard-paths";
 import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
@@ -20,27 +15,7 @@ export default async function AdminBillingPage() {
   if (session?.user?.role !== "super_admin") redirect(getStaffDashboardHome(session?.user?.role));
 
   const staffBase = await getStaffBaseFromRequest();
-
-  const [revenue, pendingRows] = await Promise.all([
-    getPlatformRevenue(),
-    getPendingSubscriptionPayments(),
-  ]);
-
-  const userIds = [...new Set(pendingRows.map((r) => r.payment.userId))];
-  const userRows =
-    userIds.length > 0
-      ? await db
-          .select({ id: users.id, name: users.name, email: users.email })
-          .from(users)
-          .where(inArray(users.id, userIds))
-      : [];
-  const userMap = Object.fromEntries(userRows.map((u) => [u.id, u]));
-
-  const pending = pendingRows.map((row) => ({
-    ...row,
-    userName: userMap[row.payment.userId]?.name,
-    userEmail: userMap[row.payment.userId]?.email,
-  }));
+  const revenue = await getPlatformRevenue();
 
   return (
     <div className="space-y-6">
@@ -54,8 +29,6 @@ export default async function AdminBillingPage() {
           {t("dashboard.admin.saasBillingEventsLink")} →
         </Link>
       </div>
-
-      <AdminSubscriptionPaymentsPanel pending={pending} />
 
       <AdminRevenuePanel
         paidOrganizerSubscriptions={revenue.paidOrganizerSubscriptions}

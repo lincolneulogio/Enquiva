@@ -15,7 +15,6 @@ import { getIntlLocale } from "@/lib/i18n/core";
 import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
 import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
 import { resolveAdminScope, getOrganizationIdFromScope } from "@/lib/organizations/admin-scope";
-import { getPendingSubscriptionPayments } from "@/actions/billing";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
@@ -29,10 +28,7 @@ export default async function AdminDashboardPage() {
   const isPlatformSuperAdmin =
     adminScope.mode === "platform" && session?.user?.role === "super_admin";
 
-  const [stats, pendingSubs] = await Promise.all([
-    getAdminDashboardStats({ organizationId }),
-    isPlatformSuperAdmin ? getPendingSubscriptionPayments() : Promise.resolve([]),
-  ]);
+  const stats = await getAdminDashboardStats({ organizationId });
   const revenueSnapshot =
     isPlatformSuperAdmin && !isEntityScope
       ? await getDashboardRevenueSnapshot(stats.totalRevenue)
@@ -101,11 +97,7 @@ export default async function AdminDashboardPage() {
         />
       ) : null}
 
-      <AdminPendingPaymentsAlert
-        count={stats.pendingPaymentsCount}
-        subscriptionPendingCount={pendingSubs.length}
-        staffBase={staffBase}
-      />
+      <AdminPendingPaymentsAlert count={stats.pendingPaymentsCount} staffBase={staffBase} />
 
       {isEntityScope ? (
         <AdminStatsSectionHeader scope="entity" />

@@ -73,12 +73,14 @@ export async function createPlan(input: {
   });
 
   revalidatePath("/admin/plans");
+  revalidatePath("/organizer/billing");
   return { success: true, plan: created };
 }
 
 export async function updatePlan(
   id: string,
   input: {
+    slug?: string;
     name?: string;
     description?: string;
     priceMonthly?: number;
@@ -100,9 +102,22 @@ export async function updatePlan(
   const user = await requireSuperAdmin();
   await assertPermission(user, "plans:manage");
 
+  let nextSlug: string | undefined;
+  if (input.slug !== undefined) {
+    nextSlug = input.slug.trim().toLowerCase();
+    if (!/^[a-z0-9_-]+$/.test(nextSlug)) {
+      throw new Error("Slug inválido");
+    }
+    const [taken] = await db.select({ id: plans.id }).from(plans).where(eq(plans.slug, nextSlug)).limit(1);
+    if (taken && taken.id !== id) {
+      throw new Error("Ya existe un plan con ese slug");
+    }
+  }
+
   await db
     .update(plans)
     .set({
+      ...(nextSlug !== undefined && { slug: nextSlug }),
       ...(input.name !== undefined && { name: input.name.trim() }),
       ...(input.description !== undefined && { description: input.description?.trim() ?? null }),
       ...(input.priceMonthly !== undefined && { priceMonthly: String(input.priceMonthly) }),
@@ -123,6 +138,8 @@ export async function updatePlan(
     })
     .where(eq(plans.id, id));
 
+  const [updated] = await db.select().from(plans).where(eq(plans.id, id)).limit(1);
+
   await logAdminAction({
     actorId: user.id,
     actorName: user.name ?? user.email,
@@ -134,7 +151,7 @@ export async function updatePlan(
 
   revalidatePath("/admin/plans");
   revalidatePath("/organizer/billing");
-  return { success: true };
+  return { success: true, plan: updated };
 }
 
 export async function deletePlan(id: string) {

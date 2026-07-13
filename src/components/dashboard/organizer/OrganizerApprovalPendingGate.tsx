@@ -45,7 +45,7 @@ export function OrganizerApprovalPendingGate({
         const pending = await getMyPendingOrganizerRequest();
         if (cancelled) return;
         if (!pending) {
-          router.replace("/organizer");
+          // Soft update del layout (ya no hay loading.tsx → sin skeleton).
           router.refresh();
           return;
         }

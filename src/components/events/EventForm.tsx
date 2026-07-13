@@ -9,8 +9,9 @@ import { createEvent, updateEvent } from "@/actions/events";
 import { getPaymentMethodsForEventForm, setEventPaymentMethods } from "@/actions/payment-methods";
 import { UploadDropzone } from "@/lib/uploadthing/components";
 import { toast } from "sonner";
-import { Loader2, ImageIcon, MapPin, Video, Star, Bus, Smartphone, QrCode, Wallet, CreditCard } from "lucide-react";
+import { Loader2, ImageIcon, MapPin, Video, Star, Bus, Smartphone, QrCode, Wallet, CreditCard, Plus } from "lucide-react";
 import { EventCoverFrame } from "@/components/events/EventCoverFrame";
+import { CreateCategoryModal } from "@/components/events/CreateCategoryModal";
 import type { Event } from "@/lib/db/schema";
 import type { FieldErrors } from "react-hook-form";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
@@ -92,6 +93,12 @@ export function EventForm({
     const highlightTimeoutRef = useRef<number | null>(null);
     const [routes, setRoutes] = useState<any[]>([]);
     const [loadingRoutes, setLoadingRoutes] = useState(false);
+    const [categoryOptions, setCategoryOptions] = useState(categories);
+    const [createCategoryOpen, setCreateCategoryOpen] = useState(false);
+
+    useEffect(() => {
+        setCategoryOptions(categories);
+    }, [categories]);
 
     const getLocalizedValidationMessage = (message?: string) => {
         if (!message) return t("events.form.requiredFieldsError");
@@ -440,21 +447,41 @@ export function EventForm({
 
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div>
-                            <label className="mb-1.5 block text-sm font-medium text-foreground">{t("events.form.category")}</label>
+                            <div className="mb-1.5 flex items-center justify-between gap-2">
+                                <label className="block text-sm font-medium text-foreground">{t("events.form.category")}</label>
+                                <button
+                                    type="button"
+                                    onClick={() => setCreateCategoryOpen(true)}
+                                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                                >
+                                    <Plus className="h-3.5 w-3.5" />
+                                    {t("events.form.createCategoryAction")}
+                                </button>
+                            </div>
                             <select
                                 {...register("category")}
                                 className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("category")}`}
                             >
                                 <option value="">{t("events.form.selectCategory")}</option>
-                                {categories.map((cat) => (
+                                {categoryOptions.map((cat) => (
                                     <option key={cat.slug} value={cat.slug}>
-                                        {categoryLabel(cat.slug, locale)}
+                                        {cat.label || categoryLabel(cat.slug, locale)}
                                     </option>
                                 ))}
                             </select>
                             {errors.category && (
                                 <p className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.category.message)}</p>
                             )}
+                            <CreateCategoryModal
+                                open={createCategoryOpen}
+                                onOpenChange={setCreateCategoryOpen}
+                                onCreated={(cat) => {
+                                    setCategoryOptions((prev) =>
+                                        prev.some((c) => c.slug === cat.slug) ? prev : [...prev, cat],
+                                    );
+                                    setValue("category", cat.slug, { shouldValidate: true, shouldDirty: true });
+                                }}
+                            />
                         </div>
 
                         <div>

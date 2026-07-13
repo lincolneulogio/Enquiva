@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CreditCard, Loader2, RefreshCw } from "lucide-react";
 import { updateSubscriptionAutoRenew } from "@/actions/billing";
@@ -15,6 +16,7 @@ interface AutoRenewSettingsProps {
 
 export function AutoRenewSettings({ subscription, culqiAvailable }: AutoRenewSettingsProps) {
   const t = useTranslations();
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const isPaidPlan =
@@ -34,7 +36,7 @@ export function AutoRenewSettings({ subscription, culqiAvailable }: AutoRenewSet
             ? t("billing.organizer.autoRenewEnabled")
             : t("billing.organizer.autoRenewDisabled"),
         );
-        window.location.reload();
+        router.refresh();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t("billing.organizer.autoRenewFailed"));
       }

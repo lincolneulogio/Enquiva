@@ -169,3 +169,25 @@ export function planFeaturesFromInput(input: {
     customBranding: input.featureCustomBranding ?? false,
   };
 }
+
+type PlanRecommendPick = Pick<Plan, "id" | "slug" | "priceMonthly">;
+
+/**
+ * Plan “recomendado” en catálogo: slug pro/profesional, o el de pago intermedio
+ * (el más accesible si hay dos de pago).
+ */
+export function isRecommendedBillingPlan(
+  plan: PlanRecommendPick,
+  catalog: PlanRecommendPick[],
+): boolean {
+  const slug = plan.slug.toLowerCase();
+  if (slug === "pro" || slug === "profesional") return true;
+
+  const paid = catalog
+    .filter((p) => Number(p.priceMonthly) > 0)
+    .sort((a, b) => Number(a.priceMonthly) - Number(b.priceMonthly));
+
+  if (paid.length === 0) return false;
+  const recommended = paid[Math.max(0, Math.ceil(paid.length / 2) - 1)];
+  return recommended.id === plan.id;
+}

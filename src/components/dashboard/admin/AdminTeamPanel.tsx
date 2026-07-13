@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   approveOrganizerRequest,
@@ -39,6 +40,7 @@ export function AdminTeamPanel({
 }: AdminTeamPanelProps) {
   const { locale } = useLocale();
   const t = useTranslations();
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const copyCode = () => {
@@ -51,7 +53,7 @@ export function AdminTeamPanel({
       try {
         await promoteOrgMember(userId, role);
         toast.success(t("dashboard.admin.roleUpdatedTo", { role: getRoleLabel(role, locale) }));
-        window.location.reload();
+        router.refresh();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t("dashboard.admin.failedToUpdateRole"));
       }
@@ -63,7 +65,7 @@ export function AdminTeamPanel({
       try {
         await approveOrganizerRequest(userId);
         toast.success(t("dashboard.admin.organizerRequestApproved"));
-        window.location.reload();
+        router.refresh();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t("dashboard.admin.failedToApproveRequest"));
       }
@@ -75,7 +77,7 @@ export function AdminTeamPanel({
       try {
         await rejectOrganizerRequest(userId);
         toast.success(t("dashboard.admin.organizerRequestRejected"));
-        window.location.reload();
+        router.refresh();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t("dashboard.admin.failedToRejectRequest"));
       }

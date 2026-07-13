@@ -4,10 +4,8 @@ import { getPaymentCheckoutContext } from "@/actions/payments";
 import { getEventPaymentMethods, getActivePaymentMethodsForEventOrganizer } from "@/actions/payment-methods";
 import { getI18n } from "@/lib/i18n/server";
 import { PaymentCheckoutForm } from "@/components/payments/PaymentCheckoutForm";
-import {
-  CheckoutStepper,
-  checkoutStepFromPaymentStatus,
-} from "@/components/payments/CheckoutStepper";
+import { CheckoutStepper } from "@/components/payments/CheckoutStepper";
+import { checkoutStepFromPaymentStatus } from "@/lib/payments/checkout-step";
 import { notFound, redirect } from "next/navigation";
 import { isCulqiEnabledForEvent, getCulqiPublicKeyForEvent } from "@/lib/culqi/capabilities";
 import { db } from "@/lib/db";

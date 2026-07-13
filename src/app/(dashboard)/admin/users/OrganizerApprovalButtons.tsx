@@ -1,12 +1,14 @@
 "use client";
 
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { approveOrganizerRequest, rejectOrganizerRequest } from "@/actions/organizations";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 
 export function OrganizerApprovalButtons({ userId }: { userId: string }) {
   const t = useTranslations();
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const approve = () => {
@@ -14,7 +16,7 @@ export function OrganizerApprovalButtons({ userId }: { userId: string }) {
       try {
         await approveOrganizerRequest(userId);
         toast.success(t("dashboard.admin.organizerRequestApproved"));
-        window.location.reload();
+        router.refresh();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t("dashboard.admin.failedToApproveRequest"));
       }
@@ -26,7 +28,7 @@ export function OrganizerApprovalButtons({ userId }: { userId: string }) {
       try {
         await rejectOrganizerRequest(userId);
         toast.success(t("dashboard.admin.organizerRequestRejected"));
-        window.location.reload();
+        router.refresh();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t("dashboard.admin.failedToRejectRequest"));
       }

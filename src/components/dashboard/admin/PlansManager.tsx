@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
   createPlan,
@@ -8,17 +8,32 @@ import {
   deletePlan,
 } from "@/actions/admin/plans";
 import { Loader2, Plus, Trash2, Pencil, Crown, List, FilePenLine } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, slugify } from "@/lib/utils";
 import type { Plan } from "@/lib/db/schema";
 import { usePersistedState } from "@/hooks/useFormPersistence";
 import { formStorageKey } from "@/lib/form-persistence";
 import { confirmDeleteAction } from "@/lib/ui/confirm";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+import { isRecommendedBillingPlan } from "@/lib/billing/plans";
 
 type PlansTab = "list" | "editor";
 
 interface PlansManagerProps {
   initialPlans: Plan[];
+}
+
+/**
+ * Slug canónico desde el nombre: minúsculas, sin acentos, guiones.
+ * Si el nombre queda vacío, el slug también.
+ */
+function planSlugFromName(name: string) {
+  const normalized = name
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ñ/g, "n");
+  return slugify(normalized);
 }
 
 const inputClass =
@@ -58,6 +73,14 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // El slug siempre sigue al nombre (crear y editar; también limpia borradores desfasados).
+  const liveSlug = useMemo(() => planSlugFromName(form.name), [form.name]);
+
+  useEffect(() => {
+    if (form.slug === liveSlug) return;
+    setForm((prev) => ({ ...prev, slug: liveSlug }));
+  }, [form.slug, liveSlug, setForm]);
+
   const resetForm = () => {
     clearForm();
     setEditingId(null);
@@ -69,14 +92,16 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
   };
 
   const onSubmit = () => {
-    if (!form.slug.trim() || !form.name.trim()) {
+    const name = form.name.trim();
+    const slug = planSlugFromName(name).trim();
+    if (!name || !slug) {
       toast.error(t("dashboard.admin.plansSlugRequired"));
       return;
     }
 
     const payload = {
-      slug: form.slug,
-      name: form.name,
+      slug,
+      name,
       description: form.description || undefined,
       priceMonthly: Number(form.priceMonthly) || 0,
       maxActiveEvents: form.maxActiveEvents ? Number(form.maxActiveEvents) : null,
@@ -94,16 +119,18 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
     startTransition(async () => {
       try {
         if (editingId) {
-          await updatePlan(editingId, payload);
+          const res = await updatePlan(editingId, payload);
+          if (res.plan) {
+            setPlans((prev) => prev.map((p) => (p.id === editingId ? res.plan! : p)));
+          }
           toast.success(t("dashboard.admin.plansUpdated"));
         } else {
           const res = await createPlan(payload);
-          if (res.plan) setPlans((prev) => [...prev, res.plan!]);
+          if (res.plan) setPlans((prev) => [...prev, res.plan!].sort((a, b) => a.sortOrder - b.sortOrder));
           toast.success(t("dashboard.admin.plansCreated"));
         }
         resetForm();
         setTab("list");
-        window.location.reload();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t("dashboard.admin.plansSaveError"));
       }
@@ -243,10 +270,17 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                 </button>
               </div>
             ) : (
-              plans.map((plan) => (
+              plans.map((plan) => {
+                const isRecommended = isRecommendedBillingPlan(plan, plans);
+                return (
                 <div
                   key={plan.id}
-                  className="rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-border/80"
+                  className={cn(
+                    "rounded-2xl border bg-card p-5 shadow-sm transition hover:border-border/80",
+                    isRecommended
+                      ? "border-primary/40 ring-1 ring-primary/20"
+                      : "border-border",
+                  )}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -255,6 +289,11 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                         <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
                           {plan.slug}
                         </span>
+                        {isRecommended && (
+                          <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary dark:bg-primary/25">
+                            {t("dashboard.admin.plansRecommendedBadge")}
+                          </span>
+                        )}
                         {!plan.isActive && (
                           <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
                             {t("dashboard.admin.plansInactive")}
@@ -321,7 +360,8 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                     </div>
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
@@ -332,90 +372,179 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
             {editingId ? t("dashboard.admin.plansEditTitle") : t("dashboard.admin.plansCreateTitle")}
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
-            <input
-              className={inputClass}
-              placeholder={t("dashboard.admin.plansPlaceholderSlug")}
-              value={form.slug}
-              onChange={(e) => setForm({ ...form, slug: e.target.value })}
-              disabled={!!editingId}
-            />
-            <input
-              className={inputClass}
-              placeholder={t("dashboard.admin.plansPlaceholderName")}
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-            />
-            <input
-              className={cn(inputClass, "md:col-span-2")}
-              placeholder={t("dashboard.admin.plansPlaceholderDescription")}
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-            />
-            <input
-              className={inputClass}
-              placeholder={t("dashboard.admin.plansPlaceholderPrice")}
-              type="number"
-              value={form.priceMonthly}
-              onChange={(e) => setForm({ ...form, priceMonthly: e.target.value })}
-            />
-            <input
-              className={inputClass}
-              placeholder={t("dashboard.admin.plansPlaceholderCommission")}
-              type="number"
-              value={form.commissionPercent}
-              onChange={(e) => setForm({ ...form, commissionPercent: e.target.value })}
-            />
-            <input
-              className={inputClass}
-              placeholder={t("dashboard.admin.plansPlaceholderMaxEvents")}
-              type="number"
-              value={form.maxActiveEvents}
-              onChange={(e) => setForm({ ...form, maxActiveEvents: e.target.value })}
-            />
-            <input
-              className={inputClass}
-              placeholder={t("dashboard.admin.plansPlaceholderMaxAttendees")}
-              type="number"
-              value={form.maxAttendeesPerEvent}
-              onChange={(e) => setForm({ ...form, maxAttendeesPerEvent: e.target.value })}
-            />
-            <input
-              className={inputClass}
-              placeholder={t("dashboard.admin.plansPlaceholderMaxBroadcasts")}
-              type="number"
-              value={form.maxBroadcastsPerMonth}
-              onChange={(e) => setForm({ ...form, maxBroadcastsPerMonth: e.target.value })}
-            />
-            <input
-              className={inputClass}
-              placeholder={t("dashboard.admin.plansPlaceholderMaxAi")}
-              type="number"
-              value={form.maxAiMessagesPerMonth}
-              onChange={(e) => setForm({ ...form, maxAiMessagesPerMonth: e.target.value })}
-            />
+            <div className="space-y-1.5">
+              <label htmlFor="plan-name" className="text-sm font-medium text-foreground">
+                {t("dashboard.admin.plansLabelName")}
+              </label>
+              <input
+                id="plan-name"
+                type="text"
+                autoComplete="off"
+                className={inputClass}
+                placeholder={t("dashboard.admin.plansPlaceholderName")}
+                value={form.name}
+                onChange={(e) => {
+                  const name = e.target.value;
+                  setForm((prev) => ({
+                    ...prev,
+                    name,
+                    slug: planSlugFromName(name),
+                  }));
+                }}
+                autoFocus={!editingId}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="plan-slug" className="text-sm font-medium text-foreground">
+                {t("dashboard.admin.plansLabelSlug")}
+              </label>
+              <input
+                id="plan-slug"
+                type="text"
+                className={cn(inputClass, "bg-muted/40 font-mono text-muted-foreground")}
+                placeholder={t("dashboard.admin.plansPlaceholderSlug")}
+                value={liveSlug}
+                readOnly
+                disabled
+                tabIndex={-1}
+                aria-readonly="true"
+              />
+              <p className="text-xs text-muted-foreground">{t("dashboard.admin.plansHintSlug")}</p>
+            </div>
+            <div className="space-y-1.5 md:col-span-2">
+              <label htmlFor="plan-description" className="text-sm font-medium text-foreground">
+                {t("dashboard.admin.plansLabelDescription")}
+              </label>
+              <input
+                id="plan-description"
+                type="text"
+                className={inputClass}
+                placeholder={t("dashboard.admin.plansPlaceholderDescription")}
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="plan-price" className="text-sm font-medium text-foreground">
+                {t("dashboard.admin.plansLabelPrice")}
+              </label>
+              <input
+                id="plan-price"
+                type="number"
+                min={0}
+                step="0.01"
+                className={inputClass}
+                placeholder={t("dashboard.admin.plansPlaceholderPrice")}
+                value={form.priceMonthly}
+                onChange={(e) => setForm({ ...form, priceMonthly: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="plan-commission" className="text-sm font-medium text-foreground">
+                {t("dashboard.admin.plansLabelCommission")}
+              </label>
+              <input
+                id="plan-commission"
+                type="number"
+                min={0}
+                step="0.01"
+                className={inputClass}
+                placeholder={t("dashboard.admin.plansPlaceholderCommission")}
+                value={form.commissionPercent}
+                onChange={(e) => setForm({ ...form, commissionPercent: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">{t("dashboard.admin.plansHintCommission")}</p>
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="plan-max-events" className="text-sm font-medium text-foreground">
+                {t("dashboard.admin.plansLabelMaxEvents")}
+              </label>
+              <input
+                id="plan-max-events"
+                type="number"
+                min={0}
+                className={inputClass}
+                placeholder={t("dashboard.admin.plansPlaceholderMaxEvents")}
+                value={form.maxActiveEvents}
+                onChange={(e) => setForm({ ...form, maxActiveEvents: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">{t("dashboard.admin.plansHintUnlimited")}</p>
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="plan-max-attendees" className="text-sm font-medium text-foreground">
+                {t("dashboard.admin.plansLabelMaxAttendees")}
+              </label>
+              <input
+                id="plan-max-attendees"
+                type="number"
+                min={0}
+                className={inputClass}
+                placeholder={t("dashboard.admin.plansPlaceholderMaxAttendees")}
+                value={form.maxAttendeesPerEvent}
+                onChange={(e) => setForm({ ...form, maxAttendeesPerEvent: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">{t("dashboard.admin.plansHintUnlimited")}</p>
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="plan-max-broadcasts" className="text-sm font-medium text-foreground">
+                {t("dashboard.admin.plansLabelMaxBroadcasts")}
+              </label>
+              <input
+                id="plan-max-broadcasts"
+                type="number"
+                min={0}
+                className={inputClass}
+                placeholder={t("dashboard.admin.plansPlaceholderMaxBroadcasts")}
+                value={form.maxBroadcastsPerMonth}
+                onChange={(e) => setForm({ ...form, maxBroadcastsPerMonth: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">{t("dashboard.admin.plansHintUnlimited")}</p>
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="plan-max-ai" className="text-sm font-medium text-foreground">
+                {t("dashboard.admin.plansLabelMaxAi")}
+              </label>
+              <input
+                id="plan-max-ai"
+                type="number"
+                min={0}
+                className={inputClass}
+                placeholder={t("dashboard.admin.plansPlaceholderMaxAi")}
+                value={form.maxAiMessagesPerMonth}
+                onChange={(e) => setForm({ ...form, maxAiMessagesPerMonth: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">{t("dashboard.admin.plansHintUnlimited")}</p>
+            </div>
           </div>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2 md:grid-cols-3">
-            <FeatureToggle label="Culqi" checked={form.featureCulqi} onChange={(v) => setForm({ ...form, featureCulqi: v })} />
-            <FeatureToggle
-              label={t("dashboard.admin.plansFeatureTransport")}
-              checked={form.featureTransport}
-              onChange={(v) => setForm({ ...form, featureTransport: v })}
-            />
-            <FeatureToggle
-              label={t("dashboard.admin.plansFeatureAi")}
-              checked={form.featureAi}
-              onChange={(v) => setForm({ ...form, featureAi: v })}
-            />
-            <FeatureToggle
-              label={t("dashboard.admin.plansFeatureExports")}
-              checked={form.featureExports}
-              onChange={(v) => setForm({ ...form, featureExports: v })}
-            />
-            <FeatureToggle
-              label={t("dashboard.admin.plansFeatureBranding")}
-              checked={form.featureCustomBranding}
-              onChange={(v) => setForm({ ...form, featureCustomBranding: v })}
-            />
+          <div className="mt-4 space-y-2">
+            <p className="text-sm font-medium text-foreground">{t("dashboard.admin.plansLabelFeatures")}</p>
+            <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+              <FeatureToggle
+                label={t("dashboard.admin.plansFeatureCulqi")}
+                checked={form.featureCulqi}
+                onChange={(v) => setForm({ ...form, featureCulqi: v })}
+              />
+              <FeatureToggle
+                label={t("dashboard.admin.plansFeatureTransport")}
+                checked={form.featureTransport}
+                onChange={(v) => setForm({ ...form, featureTransport: v })}
+              />
+              <FeatureToggle
+                label={t("dashboard.admin.plansFeatureAi")}
+                checked={form.featureAi}
+                onChange={(v) => setForm({ ...form, featureAi: v })}
+              />
+              <FeatureToggle
+                label={t("dashboard.admin.plansFeatureExports")}
+                checked={form.featureExports}
+                onChange={(v) => setForm({ ...form, featureExports: v })}
+              />
+              <FeatureToggle
+                label={t("dashboard.admin.plansFeatureBranding")}
+                checked={form.featureCustomBranding}
+                onChange={(v) => setForm({ ...form, featureCustomBranding: v })}
+              />
+            </div>
           </div>
           <div className="mt-5 flex flex-wrap gap-2 border-t border-border/40 pt-4">
             <button

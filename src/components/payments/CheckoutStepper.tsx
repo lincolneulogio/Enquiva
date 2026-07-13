@@ -3,8 +3,10 @@
 import { Check, CreditCard, ShoppingCart, ShieldCheck, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+import type { CheckoutStepId } from "@/lib/payments/checkout-step";
 
-export type CheckoutStepId = "cart" | "pay" | "validate" | "confirmed";
+export type { CheckoutStepId } from "@/lib/payments/checkout-step";
+export { checkoutStepFromPaymentStatus } from "@/lib/payments/checkout-step";
 
 interface CheckoutStepperProps {
   /** Paso activo (el actual del flujo). */
@@ -87,13 +89,4 @@ export function CheckoutStepper({ current, className, compact = false }: Checkou
       </ol>
     </nav>
   );
-}
-
-export function checkoutStepFromPaymentStatus(opts: {
-  approved: boolean;
-  pendingReview: boolean;
-}): CheckoutStepId {
-  if (opts.approved) return "confirmed";
-  if (opts.pendingReview) return "validate";
-  return "pay";
 }

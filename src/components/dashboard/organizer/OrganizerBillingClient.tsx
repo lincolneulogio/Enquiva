@@ -18,6 +18,7 @@ import {
   resetCulqiCheckoutUi,
   loadCulqiCheckoutScript,
 } from "@/lib/culqi/open-checkout";
+import { isRecommendedBillingPlan } from "@/lib/billing/plans";
 
 interface PendingPayment {
   payment: {
@@ -358,25 +359,25 @@ export function OrganizerBillingClient({
         <span>{t("billing.organizer.choosePlan")}</span>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 pt-2 md:grid-cols-3">
         {availablePlans.map((p) => {
           const isCurrent = subscription.status === "active" && p.slug === plan.slug;
           const isBilledCurrent = billedPlan?.slug === p.slug;
-          const isPro = p.slug === "pro";
+          const isRecommended = isRecommendedBillingPlan(p, availablePlans);
           const isPaid = Number(p.priceMonthly) > 0;
           return (
             <div
               key={p.id}
               className={cn(
-                "flex flex-col rounded-2xl border p-5 shadow-sm transition",
+                "relative flex flex-col rounded-2xl border p-5 shadow-sm transition",
                 isCurrent || isBilledCurrent
                   ? "border-primary bg-primary/5 ring-2 ring-primary/25 dark:bg-primary/10"
                   : "border-border bg-card hover:border-primary/30 hover:shadow-md",
-                isPro && !isCurrent && !isBilledCurrent && "border-primary/20 dark:border-primary/30",
+                isRecommended && !isCurrent && !isBilledCurrent && "border-primary/40 ring-1 ring-primary/20",
               )}
             >
-              {isPro && (
-                <span className="mb-2 w-fit rounded-full bg-primary/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary dark:bg-primary/25">
+              {isRecommended && (
+                <span className="absolute -top-2.5 left-1/2 z-10 -translate-x-1/2 rounded-full bg-primary px-3 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-foreground shadow-sm">
                   {t("billing.organizer.recommended")}
                 </span>
               )}
