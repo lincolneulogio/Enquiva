@@ -73,6 +73,7 @@
 
 @layer base {
   :root {
+    --evora-banner-offset: 0px;
     --background: 34 44% 93%;
     --foreground: 25 60% 16%;
     --card: 0 0% 99%;

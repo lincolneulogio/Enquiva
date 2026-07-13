@@ -29,7 +29,10 @@ export async function PublicHeader() {
   const dashboardPath = getDashboardPath(user?.role);
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+    <nav
+      className="sticky z-50 border-b border-border bg-background/80 backdrop-blur-md"
+      style={{ top: "var(--evora-banner-offset, 0px)" }}
+    >
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
         <div className="flex items-center gap-2.5">
           <BrandLogo href="/" size="md" priority className="shrink-0" />
