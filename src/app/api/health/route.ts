@@ -50,6 +50,8 @@ export async function GET() {
           "/api/cron/events",
           "/api/cron/subscriptions",
           "/api/cron/broadcasts",
+          "/api/cron/registration-holds",
+          "/api/cron/finance-digest",
           "/api/cron/backup",
         ],
       };

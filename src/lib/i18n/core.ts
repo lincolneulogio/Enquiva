@@ -3803,6 +3803,12 @@ export function translateNotification(
                 translatedTitle = "Ruta de transporte casi llena";
             }
             break;
+
+        case "finance_digest":
+            if (title.startsWith("Daily finance digest")) {
+                translatedTitle = title.replace("Daily finance digest", "Resumen financiero");
+            }
+            break;
     }
 
     return { title: translatedTitle, message: translatedMessage };

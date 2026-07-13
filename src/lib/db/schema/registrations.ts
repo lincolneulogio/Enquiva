@@ -24,6 +24,7 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "organizer_rejected",
   "subscription_alert",
   "transport_alert",
+  "finance_digest",
 ]);
 
 export const ticketStatusEnum = pgEnum("ticket_status", [

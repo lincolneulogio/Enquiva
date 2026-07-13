@@ -55,6 +55,8 @@ function iconForType(type: string) {
             return Users;
         case "subscription_alert":
             return Wallet;
+        case "finance_digest":
+            return Wallet;
         case "transport_alert":
             return Bus;
         default:

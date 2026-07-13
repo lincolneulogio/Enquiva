@@ -18,7 +18,8 @@ export type NotificationType =
   | "organizer_approved"
   | "organizer_rejected"
   | "subscription_alert"
-  | "transport_alert";
+  | "transport_alert"
+  | "finance_digest";
 
 export type NotificationPayload = {
   userId: string;
@@ -121,6 +122,7 @@ function tableResourcesForNotification(payload: NotificationPayload) {
     organizer_rejected: ["users", "team"],
     transport_alert: ["transport", "registrations", "attendees"],
     subscription_alert: ["plans", "payments"],
+    finance_digest: ["payments", "plans"],
   };
 
   return map[payload.type];

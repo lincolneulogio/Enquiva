@@ -61,6 +61,8 @@ function notificationIcon(type: string) {
       return <Users className={`${base} text-orange-500`} />;
     case "subscription_alert":
       return <Wallet className={`${base} text-amber-500`} />;
+    case "finance_digest":
+      return <Wallet className={`${base} text-primary`} />;
     case "transport_alert":
       return <Bus className={`${base} text-sky-500`} />;
     case "event_published":
@@ -91,6 +93,8 @@ function notificationIconBg(type: string, read: boolean) {
       return "bg-orange-500/10";
     case "subscription_alert":
       return "bg-amber-500/10";
+    case "finance_digest":
+      return "bg-primary/10";
     case "transport_alert":
       return "bg-sky-500/10";
     case "event_published":

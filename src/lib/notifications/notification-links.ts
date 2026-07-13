@@ -57,6 +57,8 @@ export function getNotificationHref(
       return `${staffBase}/users`;
     case "subscription_alert":
       return `${staffBase}/plan`;
+    case "finance_digest":
+      return `${staffBase}/billing`;
     case "payment_submitted":
     case "payment_status_updated":
       return `${staffBase}/payments`;

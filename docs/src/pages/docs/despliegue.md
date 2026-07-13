@@ -60,6 +60,8 @@ El archivo `vercel.json` en la raíz programa:
 | `/api/cron/events` | 03:00 diario | Marcar eventos pasados como completados |
 | `/api/cron/subscriptions` | 04:00 diario | Renovaciones y ciclo de planes |
 | `/api/cron/broadcasts` | Cada 15 min | Cola de emails masivos |
+| `/api/cron/registration-holds` | Cada 5 min | Liberar reservas de inscripción vencidas |
+| `/api/cron/finance-digest` | Cada hora (:05) | Resumen financiero diario (hora 00 zona plataforma) |
 | `/api/cron/backup` | 05:00 domingos | Verificación y conteo de tablas |
 
 Vercel envía `Authorization: Bearer <CRON_SECRET>` en las invocaciones programadas.

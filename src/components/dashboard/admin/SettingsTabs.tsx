@@ -1034,28 +1034,13 @@ export function SettingsTabs({
 
                         <div className="rounded-xl border border-dashed border-border bg-muted/20 p-4 sm:p-5">
                             <h3 className="text-sm font-semibold text-foreground">
-                                {locale === "en" ? "Recommended next settings" : "Próximas configuraciones recomendadas"}
+                                {locale === "en" ? "Platform settings status" : "Estado de la configuración"}
                             </h3>
                             <p className="mt-1 text-xs text-muted-foreground">
                                 {locale === "en"
-                                    ? "Already available: identity, public contact/socials, legal URLs, platform accent, locale & timezone, maintenance & announcements, editable SMTP, push branding title, system alerts, DB backup."
-                                    : "Ya disponible: identidad, contacto/redes, URLs legales, acento, idioma/zona horaria, mantenimiento y avisos, SMTP editable, título push, alertas y backup BD."}
+                                    ? "Identity, legal URLs, accent, locale & timezone, maintenance, SMTP, push branding, system alerts (including daily finance digest) and DB backup are available."
+                                    : "Identidad, URLs legales, acento, idioma/zona horaria, mantenimiento, SMTP, marca push, alertas (incluido resumen financiero diario) y backup BD están disponibles."}
                             </p>
-                            <ul className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
-                                {(locale === "en"
-                                    ? [
-                                        "Daily finance digest delivery (toggle exists, job pending)",
-                                      ]
-                                    : [
-                                        "Resumen financiero diario (toggle existe, falta el job)",
-                                      ]
-                                ).map((item) => (
-                                    <li key={item} className="flex gap-2 rounded-lg border border-border/60 bg-card/60 px-3 py-2">
-                                        <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/70" />
-                                        <span>{item}</span>
-                                    </li>
-                                ))}
-                            </ul>
                         </div>
                         </div>
                     )}
@@ -1888,8 +1873,10 @@ export function SettingsTabs({
                                         onChange: () => setSettingsValue("alertFinance", !alertFinance),
                                         titleEs: "Resumen financiero diario",
                                         titleEn: "Daily financial summary",
-                                        descEs: "Balance consolidado a medianoche.",
-                                        descEn: "Consolidated report at midnight.",
+                                        descEs:
+                                            "Al inicio del día (zona horaria de plataforma) envía a superadmins el balance del día anterior: eventos + SaaS.",
+                                        descEn:
+                                            "At the start of the day (platform timezone) sends super admins yesterday's balance: events + SaaS.",
                                     },
                                 ].map((alert) => (
                                     <div
