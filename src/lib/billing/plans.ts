@@ -55,7 +55,7 @@ export const DEFAULT_PLAN_DEFINITIONS: Array<{
     featureTransport: true,
     featureAi: true,
     featureExports: true,
-    featureCustomBranding: false,
+    featureCustomBranding: true,
     sortOrder: 2,
   },
   {
@@ -74,7 +74,7 @@ export const DEFAULT_PLAN_DEFINITIONS: Array<{
     featureTransport: true,
     featureAi: true,
     featureExports: true,
-    featureCustomBranding: false,
+    featureCustomBranding: true,
     sortOrder: 3,
   },
 ];
@@ -156,8 +156,7 @@ export function mapPlanRow(plan: Plan): ResolvedPlan {
       transport: plan.featureTransport,
       ai: plan.featureAi,
       exports: plan.featureExports,
-      /** Reservado: no se vende ni se aplica hasta haber branding por org. */
-      customBranding: false,
+      customBranding: plan.featureCustomBranding,
     },
   };
 }
@@ -174,7 +173,7 @@ export function planFeaturesFromInput(input: {
     transport: input.featureTransport ?? false,
     ai: input.featureAi ?? false,
     exports: input.featureExports ?? false,
-    customBranding: false,
+    customBranding: input.featureCustomBranding ?? false,
   };
 }
 

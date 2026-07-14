@@ -1,7 +1,9 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { AdminAnalyticsView } from "@/components/dashboard/admin/AdminAnalyticsView";
+import { FunnelAnalyticsCard } from "@/components/dashboard/analytics/FunnelAnalyticsCard";
 import { getAdminDashboardStats, type AdminStatsRange } from "@/lib/analytics/admin";
+import { getOrganizerFunnelStats } from "@/lib/analytics/funnel";
 import { getI18n } from "@/lib/i18n/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -39,10 +41,13 @@ export default async function OrganizerAnalyticsPage({
   const { range: rawRange } = await searchParams;
   const selectedRange = normalizeRange(rawRange);
 
-  const stats = await getAdminDashboardStats({
-    range: selectedRange,
-    organizerId: session.user.id,
-  });
+  const [stats, funnel] = await Promise.all([
+    getAdminDashboardStats({
+      range: selectedRange,
+      organizerId: session.user.id,
+    }),
+    getOrganizerFunnelStats({ organizerId: session.user.id }),
+  ]);
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -52,6 +57,8 @@ export default async function OrganizerAnalyticsPage({
         </h1>
         <p className="mt-1 text-muted-foreground">{t("dashboard.organizer.analyticsIntro")}</p>
       </div>
+
+      <FunnelAnalyticsCard funnel={funnel} />
 
       <Suspense fallback={null}>
         <AdminAnalyticsView

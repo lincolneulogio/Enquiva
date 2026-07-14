@@ -16,7 +16,7 @@ export type EnqueueBroadcastInput = {
   senderName: string;
   subject: string;
   message: string;
-  recipientStatus: "all" | "registered" | "checked_in" | "waitlisted";
+  recipientStatus: "all" | "registered" | "checked_in" | "waitlisted" | "unpaid";
   channels: MassCommunicationChannels;
   locale: Locale;
   ipAddress?: string;

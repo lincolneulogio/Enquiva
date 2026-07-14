@@ -22,15 +22,31 @@ export default async function AdminSettingsPage() {
         name: string;
         inviteCode: string;
         isOwner: boolean;
+        logoUrl?: string | null;
+        accentColor?: string | null;
+        brandingEnabled?: boolean;
+        whatsappNumber?: string | null;
+        canUseBranding?: boolean;
     } | undefined;
 
     if (adminScope.mode === "org") {
         const isOwner = await OrganizationService.isOrgAdmin(user.id, user.role);
+        const org = await OrganizationService.getOrganizationForUser(user.id);
+        const { getOrganizerPlanSummary, planIncludesFeature } = await import("@/lib/billing/enforce");
+        const planSummary = await getOrganizerPlanSummary(user.id, user.role).catch(() => null);
+        const canUseBranding = planSummary
+            ? planIncludesFeature(planSummary.plan, "customBranding", planSummary.isUnlimited)
+            : false;
         entityContext = {
             organizationId: adminScope.organizationId,
             name: adminScope.organizationName,
             inviteCode: adminScope.inviteCode,
             isOwner,
+            logoUrl: org?.logoUrl ?? null,
+            accentColor: org?.accentColor ?? null,
+            brandingEnabled: org?.brandingEnabled ?? false,
+            whatsappNumber: org?.whatsappNumber ?? null,
+            canUseBranding,
         };
     }
 

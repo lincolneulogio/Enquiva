@@ -155,10 +155,36 @@ const PROFILES: Record<AppRole, RoleScopeProfile> = {
     refuseTemplateEs:
       "Eso solo lo puede ver el staff (Organizador, Admin o Superadmin). Como Miembro te ayudo con tus entradas, pagos y eventos en los que participas.",
   },
+  scanner: {
+    roleKey: "scanner",
+    labelEs: "Scanner",
+    labelEn: "Scanner",
+    dataScopeEs: "check-in de asistentes de tu entidad",
+    allowedTopicsEs: [
+      "cómo escanear tickets QR",
+      "errores comunes de check-in",
+      "flujo de ingreso el día del evento",
+    ],
+    forbiddenTopicsEs: [
+      "métricas de billing o planes",
+      "gestión de usuarios o permisos",
+      "pagos y reembolsos",
+      "broadcasts o configuración de organización",
+    ],
+    allowedToolsHint: ["getCheckInStats", "getPlatformKnowledge"],
+    refuseTemplateEs:
+      "Como Scanner solo te ayudo con el check-in. Para pagos, eventos o administración cambia a la cuenta con el rol adecuado.",
+  },
 };
 
 export function getRoleScopeProfile(role: string): RoleScopeProfile {
-  if (role === "super_admin" || role === "admin" || role === "organizer" || role === "member") {
+  if (
+    role === "super_admin" ||
+    role === "admin" ||
+    role === "organizer" ||
+    role === "member" ||
+    role === "scanner"
+  ) {
     return PROFILES[role];
   }
   return PROFILES.member;

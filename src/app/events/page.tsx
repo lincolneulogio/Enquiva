@@ -3,6 +3,7 @@ import { getCategories, getPublicEvents } from "@/actions/events";
 import { EventCard } from "@/components/events/EventCard";
 import { EventFilters } from "@/components/events/EventFilters";
 import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
+import { EventsPagination } from "@/components/events/EventsPagination";
 import { PublicHeader } from "@/components/shared/PublicHeader";
 import { getI18n } from "@/lib/i18n/server";
 
@@ -58,6 +59,13 @@ async function EventsGrid({
           <EventCard key={event.id} event={event} categoryMap={categoryMap} />
         ))}
       </div>
+      <EventsPagination
+        page={page}
+        total={total}
+        limit={limit}
+        category={searchParams.category}
+        search={searchParams.search}
+      />
     </>
   );
 }

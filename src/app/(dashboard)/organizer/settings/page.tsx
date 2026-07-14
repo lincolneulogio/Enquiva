@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { User, Mail, Shield, Crown, ShieldCheck, Briefcase, UserRound, Building2 } from "lucide-react";
+import { User, Mail, Shield, Crown, ShieldCheck, Briefcase, UserRound, Building2, QrCode } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getRoleLabel } from "@/lib/i18n/core";
 import { ROLE_BADGE_STYLES, normalizeRole } from "@/lib/auth/rbac";
@@ -14,6 +14,7 @@ const roleIcons = {
     admin: ShieldCheck,
     organizer: Briefcase,
     member: UserRound,
+    scanner: QrCode,
 };
 
 export default async function OrganizerSettingsPage() {

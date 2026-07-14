@@ -294,7 +294,11 @@ export async function assertCanManageEvent(
 ): Promise<void> {
   const normalized = normalizeRole(role);
 
-  if (normalized === "super_admin" || normalized === "organizer") {
+  if (normalized === "super_admin") {
+    return;
+  }
+
+  if (normalized === "organizer") {
     if (event.organizerId !== userId) {
       throw new Error(
         "Solo puedes modificar eventos que creaste. Los de otras entidades los gestiona su administrador u organizador.",
@@ -315,6 +319,39 @@ export async function assertCanManageEvent(
   }
 
   throw new Error("No autorizado para gestionar este evento");
+}
+
+/** Check-in / scanner: staff de la misma entidad (o dueño del evento). */
+export async function assertCanScanEvent(
+  event: EventScopeRecord,
+  userId: string,
+  role: string | null | undefined,
+): Promise<void> {
+  const normalized = normalizeRole(role);
+
+  if (normalized === "super_admin" || normalized === "admin" || normalized === "organizer") {
+    await assertCanManageEvent(event, userId, role);
+    return;
+  }
+
+  if (normalized === "scanner") {
+    const scope = await resolveAdminScopeForUser(userId, role);
+    if (scope.mode === "org" && event.organizationId === scope.organizationId) {
+      return;
+    }
+    // Fallback: usuario.scanner vinculado por organizationId en el perfil
+    const [scannerUser] = await db
+      .select({ organizationId: users.organizationId })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (scannerUser?.organizationId && scannerUser.organizationId === event.organizationId) {
+      return;
+    }
+    throw new Error("No autorizado para escanear tickets de este evento");
+  }
+
+  throw new Error("No autorizado para escanear tickets");
 }
 
 export async function assertEventInAdminScope(

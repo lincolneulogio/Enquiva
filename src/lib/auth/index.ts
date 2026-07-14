@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { twoFactor } from "better-auth/plugins";
 import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import { env } from "@/env";
@@ -32,6 +33,10 @@ function getTrustedOrigins(): string[] {
   );
 }
 
+const googleClientId = env.GOOGLE_CLIENT_ID;
+const googleClientSecret = env.GOOGLE_CLIENT_SECRET;
+const googleEnabled = Boolean(googleClientId && googleClientSecret);
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -40,6 +45,7 @@ export const auth = betterAuth({
       session: schema.sessions,
       account: schema.accounts,
       verification: schema.verifications,
+      twoFactor: schema.twoFactor,
     },
   }),
   secret: env.BETTER_AUTH_SECRET,
@@ -61,6 +67,20 @@ export const auth = betterAuth({
     sendOnSignUp: false,
     sendOnSignIn: false,
   },
+  socialProviders: googleEnabled
+    ? {
+        google: {
+          clientId: googleClientId!,
+          clientSecret: googleClientSecret!,
+          prompt: "select_account",
+        },
+      }
+    : undefined,
+  plugins: [
+    twoFactor({
+      issuer: "Evora",
+    }),
+  ],
   user: {
     additionalFields: {
       role: {
@@ -98,3 +118,5 @@ export const auth = betterAuth({
 
 export type Auth = typeof auth;
 export type Session = typeof auth.$Infer.Session;
+
+export const isGoogleAuthEnabled = googleEnabled;

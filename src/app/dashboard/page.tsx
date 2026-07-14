@@ -12,5 +12,6 @@ export default async function DashboardRedirectPage() {
 
     if (role === "super_admin" || role === "admin") redirect(getStaffDashboardHome(role));
     if (role === "organizer") redirect("/organizer");
+    if (role === "scanner") redirect("/scanner");
     redirect("/member");
 }

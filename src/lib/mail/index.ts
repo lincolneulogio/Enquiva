@@ -385,3 +385,31 @@ export async function sendSubscriptionRenewalReminderEmail(input: {
     html,
   });
 }
+
+export async function sendCommissionInvoiceEmail(input: {
+  email: string;
+  name?: string | null;
+  amount: number;
+  invoiceId: string;
+  periodStart?: Date | null;
+  periodEnd?: Date | null;
+}) {
+  const greeting = input.name ? `Hola ${input.name},` : "Hola,";
+  const periodLabel =
+    input.periodStart || input.periodEnd
+      ? `Periodo: ${input.periodStart?.toLocaleDateString("es-PE") ?? "…"} – ${input.periodEnd?.toLocaleDateString("es-PE") ?? "…"}`
+      : "Periodo: acumulado hasta la fecha";
+  const amountLabel = `S/ ${input.amount.toFixed(2)}`;
+  const billingUrl = `${env.NEXT_PUBLIC_APP_URL}/organizer/billing`;
+  const subject = `Factura de comisión Evora · ${amountLabel}`;
+  const text = `${greeting}\n\nSe emitió una factura de comisión de plataforma por ${amountLabel}.\n${periodLabel}\nReferencia: ${input.invoiceId}\nCoordinar pago cash/transferencia o Culqi con el dueño de Evora.\n${billingUrl}`;
+  const html = `<p>${greeting}</p><p>Se ha emitido una factura de comisión de plataforma por <strong>${amountLabel}</strong>.</p><p>${periodLabel}</p><p>Referencia: <code>${input.invoiceId}</code></p><p>Puedes coordinar el pago cash/transferencia o Culqi con el dueño de la plataforma.</p><p><a href="${billingUrl}">Ver billing</a></p>`;
+
+  await safeSendMail({
+    from: await fromAddress(),
+    to: input.email,
+    subject,
+    text,
+    html,
+  });
+}

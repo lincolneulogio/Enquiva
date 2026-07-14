@@ -17,6 +17,8 @@ export function getDashboardHomeForRole(role?: string | null): string {
       return "/admin";
     case "organizer":
       return "/organizer";
+    case "scanner":
+      return "/scanner";
     default:
       return "/member";
   }

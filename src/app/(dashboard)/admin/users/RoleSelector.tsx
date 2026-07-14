@@ -107,7 +107,7 @@ export function RoleSelector({
         });
     };
 
-    const platformRoles: AppRole[] = ["member", "organizer", "admin", "super_admin"];
+    const platformRoles: AppRole[] = ["member", "organizer", "scanner", "admin", "super_admin"];
     const options = isOrgScope
         ? [...ENTITY_ASSIGNABLE_ROLES]
         : platformRoles.filter(

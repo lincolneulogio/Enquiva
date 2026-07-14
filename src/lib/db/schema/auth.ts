@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, pgEnum, uuid, uniqueIndex, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, pgEnum, uuid, uniqueIndex, index, integer } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 export const roleEnum = pgEnum("role", [
@@ -6,6 +6,7 @@ export const roleEnum = pgEnum("role", [
   "admin",
   "organizer",
   "member",
+  "scanner",
 ]);
 
 export const users = pgTable("users", {
@@ -20,9 +21,23 @@ export const users = pgTable("users", {
   organizationId: uuid("organization_id"),
   bio: text("bio"),
   isActive: boolean("is_active").notNull().default(true),
+  twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
   lastSeenAt: timestamp("last_seen_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+/** Better Auth two-factor plugin storage. */
+export const twoFactor = pgTable("two_factor", {
+  id: text("id").primaryKey(),
+  secret: text("secret").notNull(),
+  backupCodes: text("backup_codes").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  verified: boolean("verified").default(true),
+  failedVerificationCount: integer("failed_verification_count").default(0),
+  lockedUntil: timestamp("locked_until"),
 });
 
 export const sessions = pgTable("sessions", {

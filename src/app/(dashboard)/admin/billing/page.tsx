@@ -4,6 +4,9 @@ import { headers } from "next/headers";
 import { getI18n } from "@/lib/i18n/server";
 import { getPlatformRevenue } from "@/actions/admin/plans";
 import { AdminRevenuePanel } from "@/components/dashboard/admin/AdminRevenuePanel";
+import { CommissionSettlementPanel } from "@/components/dashboard/admin/CommissionSettlementPanel";
+import { getCommissionSettlementSummary } from "@/lib/billing/commission-settlement";
+import { CommissionInvoiceService } from "@/lib/billing/commission-invoice.service";
 
 import { getStaffDashboardHome, staffDashboardPath } from "@/lib/navigation/dashboard-paths";
 import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
@@ -15,7 +18,11 @@ export default async function AdminBillingPage() {
   if (session?.user?.role !== "super_admin") redirect(getStaffDashboardHome(session?.user?.role));
 
   const staffBase = await getStaffBaseFromRequest();
-  const revenue = await getPlatformRevenue();
+  const [revenue, commissionSummary, invoices] = await Promise.all([
+    getPlatformRevenue(),
+    getCommissionSettlementSummary(),
+    CommissionInvoiceService.listRecent(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -36,6 +43,8 @@ export default async function AdminBillingPage() {
         totals={revenue.totals}
         recent={revenue.recent}
       />
+
+      <CommissionSettlementPanel summary={commissionSummary} invoices={invoices} />
     </div>
   );
 }

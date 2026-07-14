@@ -15,6 +15,8 @@ import Link from "next/link";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import { useFormPersistence } from "@/hooks/useFormPersistence";
 import { formStorageKey } from "@/lib/form-persistence";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { env } from "@/env";
 
 export function LoginForm() {
   const router = useRouter();
@@ -23,7 +25,11 @@ export function LoginForm() {
   const [isPending, startTransition] = useTransition();
   const [showPassword, setShowPassword] = useState(false);
   const postLoginRedirect = useMemo(
-    () => resolveSafeAuthRedirect(searchParams.get("redirect"), "/dashboard"),
+    () =>
+      resolveSafeAuthRedirect(
+        searchParams.get("redirect") ?? searchParams.get("callbackUrl"),
+        "/dashboard",
+      ),
     [searchParams],
   );
 
@@ -117,8 +123,19 @@ export function LoginForm() {
     });
   };
 
+  const googleEnabled = env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === true;
+
   return (
     <div className="space-y-5">
+      {googleEnabled ? (
+        <>
+          <GoogleSignInButton callbackURL={postLoginRedirect} />
+          <div className="relative py-1 text-center text-xs text-muted-foreground">
+            <span className="bg-background relative z-10 px-2">{t("auth.orContinueWithEmail")}</span>
+            <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
+          </div>
+        </>
+      ) : null}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {errors.root?.message && (
           <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">

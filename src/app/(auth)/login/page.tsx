@@ -4,8 +4,17 @@ import Link from "next/link";
 import { getI18n } from "@/lib/i18n/server";
 import { BrandLogo } from "@/components/shared/BrandLogo";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ redirect?: string; callbackUrl?: string }>;
+}) {
   const { t } = await getI18n();
+  const params = await searchParams;
+  const redirectTo = params.redirect ?? params.callbackUrl;
+  const registerHref = redirectTo
+    ? `/register?redirect=${encodeURIComponent(redirectTo)}`
+    : "/register";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-6">
@@ -36,7 +45,7 @@ export default async function LoginPage() {
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           {t("auth.noAccountQuestion")}{" "}
-          <Link href="/register" className="text-primary hover:underline font-medium">
+          <Link href={registerHref} className="text-primary hover:underline font-medium">
             {t("auth.createOne")}
           </Link>
         </p>

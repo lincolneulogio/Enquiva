@@ -4,9 +4,10 @@ import { useLocale, useTranslations } from "@/components/providers/LocaleProvide
 import { getRoleLabel } from "@/lib/i18n/core";
 import { ProfileForm } from "./ProfileForm";
 import { PasswordForm } from "./PasswordForm";
-import { Crown, ShieldCheck, Briefcase, UserRound } from "lucide-react";
+import { Crown, ShieldCheck, Briefcase, UserRound, QrCode } from "lucide-react";
 import { ROLE_BADGE_STYLES, normalizeRole } from "@/lib/auth/rbac";
 import { PersonalAppearancePreferences } from "@/components/dashboard/appearance/PersonalAppearancePreferences";
+import { TwoFactorSettings } from "@/components/auth/TwoFactorSettings";
 import type { AccentColor } from "@/lib/brand/accent";
 
 interface ProfileEditorProps {
@@ -18,6 +19,7 @@ interface ProfileEditorProps {
     address: string | null;
     bio: string | null;
     image: string | null;
+    twoFactorEnabled?: boolean | null;
   };
   /** Acento por defecto de plataforma (para seguir o personalizar). */
   platformDefaultAccent?: AccentColor | string;
@@ -28,6 +30,7 @@ const roleIcons = {
   admin: ShieldCheck,
   organizer: Briefcase,
   member: UserRound,
+  scanner: QrCode,
 };
 
 export function ProfileEditor({ user, platformDefaultAccent }: ProfileEditorProps) {
@@ -36,7 +39,7 @@ export function ProfileEditor({ user, platformDefaultAccent }: ProfileEditorProp
   const initials = (user.name || "U").charAt(0).toUpperCase();
 
   const normalizedRole = normalizeRole(user.role);
-  const RoleIcon = roleIcons[normalizedRole];
+  const RoleIcon = roleIcons[normalizedRole] ?? UserRound;
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -75,6 +78,8 @@ export function ProfileEditor({ user, platformDefaultAccent }: ProfileEditorProp
 
       {/* Formulario de Cambio de Contraseña */}
       <PasswordForm />
+
+      <TwoFactorSettings enabled={Boolean(user.twoFactorEnabled)} />
     </div>
   );
 }

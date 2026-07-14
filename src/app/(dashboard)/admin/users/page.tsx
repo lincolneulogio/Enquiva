@@ -1,7 +1,7 @@
 ﻿import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { and, count, desc, eq, ilike, or } from "drizzle-orm";
-import { UserCog, Crown, ShieldCheck, Briefcase, UserRound, Search, X } from "lucide-react";
+import { UserCog, Crown, ShieldCheck, Briefcase, UserRound, Search, X, QrCode } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { RoleSelector } from "./RoleSelector";
@@ -34,6 +34,7 @@ const roleIcons = {
     admin: ShieldCheck,
     organizer: Briefcase,
     member: UserRound,
+    scanner: QrCode,
 };
 
 export default async function AdminUsersPage({ searchParams }: AdminUsersPageProps) {

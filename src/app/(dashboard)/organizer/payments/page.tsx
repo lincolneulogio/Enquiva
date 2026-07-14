@@ -15,6 +15,7 @@ import { categoryLabel } from "@/lib/utils";
 import { getPaymentStatusLabel } from "@/lib/i18n/core";
 import { PaymentNotesButton } from "@/components/payments/PaymentNotesButton";
 import { PaymentStatusSelect } from "@/components/payments/PaymentStatusSelect";
+import { PaymentRefundButton } from "@/components/payments/PaymentRefundButton";
 import { getPaymentMethodLabel } from "@/lib/payments/labels";
 import { getMyPlanSummary } from "@/actions/billing";
 import { planIncludesFeature } from "@/lib/billing/enforce";
@@ -286,9 +287,9 @@ export default async function OrganizerPaymentsPage({ searchParams }: PageProps)
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-4 min-w-[140px]">
+                    <td className="px-4 py-4 min-w-[140px] space-y-2">
                       {payment.method === "culqi" && payment.status === "approved" ? (
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <PaymentRefundButton paymentId={payment.id} />
                       ) : (
                         <PaymentStatusSelect paymentId={payment.id} currentStatus={payment.status} />
                       )}

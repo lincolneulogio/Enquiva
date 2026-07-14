@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Briefcase,
   UserRound,
+  QrCode,
 } from "lucide-react";
 import type { Role } from "@/lib/db/schema";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
@@ -60,10 +61,11 @@ const roleIcons = {
   admin: ShieldCheck,
   organizer: Briefcase,
   member: UserRound,
+  scanner: QrCode,
 };
 
 const isStandardRole = (name: string): name is AppRole => {
-  return ["super_admin", "admin", "organizer", "member"].includes(name);
+  return ["super_admin", "admin", "organizer", "member", "scanner"].includes(name);
 };
 
 export function RoleEditor({ role }: { role: Role }) {

@@ -58,10 +58,10 @@ export function HeroSection({ t, features }: HeroSectionProps) {
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              href="/register"
+              href="/pricing"
               className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/80 px-8 py-3.5 font-medium text-foreground transition-colors hover:bg-secondary"
             >
-              {t("public.home.createAccount")}
+              Ver planes
             </Link>
           </div>
         </div>

@@ -8,3 +8,4 @@ export * from "./billing";
 export * from "./organizations";
 export * from "./platform-settings";
 export * from "./chat";
+export * from "./commission-invoices";

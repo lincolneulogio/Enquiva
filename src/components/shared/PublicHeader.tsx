@@ -69,6 +69,12 @@ export async function PublicHeader() {
           >
             {t("common.browseEvents")}
           </Link>
+          <Link
+            href="/pricing"
+            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Planes
+          </Link>
 
           {user ? (
             <Link

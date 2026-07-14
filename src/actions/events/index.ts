@@ -250,7 +250,7 @@ export async function sendBroadcastAction(input: {
   eventId: string;
   subject: string;
   message: string;
-  recipientStatus: "all" | "registered" | "checked_in" | "waitlisted";
+  recipientStatus: "all" | "registered" | "checked_in" | "waitlisted" | "unpaid";
   channels?: Partial<MassCommunicationChannels>;
 }) {
   await requireAuth();
@@ -323,7 +323,7 @@ export async function sendBroadcastEmailAction(input: {
   eventId: string;
   subject: string;
   message: string;
-  recipientStatus: "all" | "registered" | "checked_in" | "waitlisted";
+  recipientStatus: "all" | "registered" | "checked_in" | "waitlisted" | "unpaid";
 }) {
   await requireAuth();
   const result = await sendBroadcastAction({

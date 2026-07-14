@@ -234,3 +234,30 @@ export async function getCulqiOrder(orderId: string, credentials: CulqiCredentia
     metadata?: Record<string, string>;
   }>(`/orders/${orderId}`, credentials, { method: "GET" });
 }
+
+/** Solicita reembolso de un cargo Culqi (parcial o total). amount en soles. */
+export async function createCulqiRefund(
+  input: {
+    chargeId: string;
+    amount?: number;
+    reason?: string;
+  },
+  credentials: CulqiCredentials,
+) {
+  const body: Record<string, unknown> = {
+    charge_id: input.chargeId,
+    reason: input.reason ?? "solicitud_comprador",
+  };
+  if (input.amount != null) {
+    body.amount = Math.round(input.amount * 100);
+  }
+
+  return culqiApiRequest<{
+    id: string;
+    amount: number;
+    charge_id: string;
+  }>("/refunds", credentials, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}

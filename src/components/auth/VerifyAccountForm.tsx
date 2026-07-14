@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { confirmVerificationCode, resendVerificationCode } from "@/actions/auth";
 import { getAuthErrorMessage, getValidationMessage } from "@/lib/auth/messages";
+import { resolveSafeAuthRedirect } from "@/lib/auth/safe-redirect";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
@@ -28,10 +29,15 @@ export function VerifyAccountForm({
   flow?: "superadmin";
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations();
   const [isPending, startTransition] = useTransition();
   const [resendPending, startResendTransition] = useTransition();
   const [hasCode, setHasCode] = useState(false);
+  const continuePath = resolveSafeAuthRedirect(
+    searchParams.get("redirect") ?? searchParams.get("callbackUrl"),
+    "",
+  );
 
   const form = useForm<VerifyAccountInput>({
     resolver: zodResolver(verifyAccountSchema),
@@ -77,7 +83,12 @@ export function VerifyAccountForm({
               : "auth.accountVerified";
         toast.success(t(messageKey));
         clearDraft();
-        router.replace(result.loginPath ?? (flow === "superadmin" ? "/superadmin/login" : "/login"));
+        const baseLogin = result.loginPath ?? (flow === "superadmin" ? "/superadmin/login" : "/login");
+        const loginUrl =
+          continuePath && baseLogin.includes("/login")
+            ? `${baseLogin}${baseLogin.includes("?") ? "&" : "?"}redirect=${encodeURIComponent(continuePath)}`
+            : baseLogin;
+        router.replace(loginUrl);
       } catch (error) {
         const message = getAuthErrorMessage(error instanceof Error ? error.message : t("auth.unexpectedAuthError"), t);
         setError("root", { type: "server", message });

@@ -18,6 +18,7 @@ import {
     sendTestEmailAction,
 } from "@/actions/admin/settings";
 import { saveEntitySettingsAction } from "@/actions/organizations";
+import { OrgBrandingForm } from "@/components/dashboard/admin/OrgBrandingForm";
 import type { SystemSettings } from "@/lib/settings";
 import type { AnnouncementSeverity } from "@/lib/settings/platform-ops";
 import {
@@ -55,6 +56,11 @@ interface SettingsTabsProps {
         name: string;
         inviteCode: string;
         isOwner: boolean;
+        logoUrl?: string | null;
+        accentColor?: string | null;
+        brandingEnabled?: boolean;
+        whatsappNumber?: string | null;
+        canUseBranding?: boolean;
     };
     initialPlatformSettings?: SystemSettings;
     /** Default de plataforma (también para roles sin acceso a settings globales). */
@@ -773,6 +779,20 @@ export function SettingsTabs({
                                     </button>
                                 </div>
                             )}
+
+                            {entityContext.isOwner ? (
+                                <OrgBrandingForm
+                                    locale={locale === "en" ? "en" : "es"}
+                                    canUseBranding={Boolean(entityContext.canUseBranding)}
+                                    initial={{
+                                        logoUrl: entityContext.logoUrl ?? null,
+                                        accentColor: entityContext.accentColor ?? null,
+                                        brandingEnabled: Boolean(entityContext.brandingEnabled),
+                                        whatsappNumber: entityContext.whatsappNumber ?? null,
+                                        organizationName: entityContext.name,
+                                    }}
+                                />
+                            ) : null}
                         </div>
                     )}
 

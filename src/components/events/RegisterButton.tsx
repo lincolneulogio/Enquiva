@@ -184,7 +184,7 @@ export function RegisterButton({
     }
     toast.success(
       opts?.withTransport
-        ? "¡Inscripción y reserva de transporte registradas!"
+        ? t("register.registrationWithTransportSuccess")
         : t("register.registrationSuccess"),
     );
   };
@@ -198,12 +198,12 @@ export function RegisterButton({
     // Basic phone validation if transport selected
     if (wantsTransport) {
       if (contactPhone.trim() === "") {
-        toast.error("El teléfono de contacto es obligatorio para coordinar el transporte.");
+        toast.error(t("register.phoneRequiredForTransport"));
         return;
       }
       const cleanPhone = contactPhone.replace(/\D/g, "");
       if (cleanPhone.length !== 9 || !cleanPhone.startsWith("9")) {
-        toast.error("El número de teléfono debe tener exactamente 9 dígitos y empezar con 9 (ej. 912345678).");
+        toast.error(t("register.phoneMustBePeruMobile"));
         return;
       }
 
@@ -213,7 +213,9 @@ export function RegisterButton({
         if (guest.phone) {
           const cleanGuestPhone = guest.phone.replace(/\D/g, "");
           if (cleanGuestPhone.length !== 9 || !cleanGuestPhone.startsWith("9")) {
-            toast.error(`El teléfono del invitado ${i + 1} (${guest.name}) debe tener exactamente 9 dígitos y empezar con 9.`);
+            toast.error(
+              t("register.guestPhoneInvalid", { index: i + 1, name: guest.name }),
+            );
             return;
           }
         }
@@ -223,7 +225,7 @@ export function RegisterButton({
     // Validar nombres de invitados
     for (let i = 0; i < guests.length; i++) {
       if (guests[i].name.trim().length < 2) {
-        toast.error(`Por favor, ingresa un nombre válido para el invitado ${i + 1}.`);
+        toast.error(t("register.guestNameInvalid", { index: i + 1 }));
         return;
       }
     }
@@ -287,10 +289,10 @@ export function RegisterButton({
   const handleCancelClick = async () => {
     // 1. Confirm cancellation with the user first
     const confirmed = await confirmDeleteAction({
-      title: "¿Cancelar tu inscripción?",
-      text: "¿Estás seguro de que deseas cancelar tu inscripción al evento? Esta acción liberará tu cupo y cancelará automáticamente cualquier reserva de transporte asociada.",
-      confirmText: "Sí, continuar",
-      cancelText: "No, mantener activa",
+      title: t("register.cancelRegistrationTitle"),
+      text: t("register.cancelRegistrationText"),
+      confirmText: t("register.cancelConfirmContinue"),
+      cancelText: t("register.cancelKeepActive"),
       tone: "danger",
     });
 
@@ -298,18 +300,18 @@ export function RegisterButton({
 
     // 2. Request user's password for security verification using a custom premium SweetAlert2 dialog
     const { value: password, isConfirmed } = await Swal.fire({
-      title: "Verificación de Seguridad",
-      text: "Ingresa tu contraseña para confirmar la cancelación de tu reserva:",
+      title: t("register.securityVerificationTitle"),
+      text: t("register.securityVerificationText"),
       input: "password",
-      inputPlaceholder: "Contraseña",
+      inputPlaceholder: t("register.passwordPlaceholder"),
       inputAttributes: {
         autocapitalize: "off",
         autocorrect: "off",
         required: "true",
       },
       showCancelButton: true,
-      confirmButtonText: "Confirmar Cancelación",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: t("register.confirmCancellation"),
+      cancelButtonText: t("common.cancel"),
       reverseButtons: true,
       buttonsStyling: false,
       focusCancel: true,
@@ -324,7 +326,7 @@ export function RegisterButton({
       },
       inputValidator: (value) => {
         if (!value) {
-          return "¡Debes ingresar tu contraseña para continuar!";
+          return t("register.passwordRequiredContinue");
         }
       }
     });
@@ -340,7 +342,7 @@ export function RegisterButton({
           toast.success(t("register.registrationCancelled"));
           router.refresh();
         } else {
-          throw new Error("Contraseña incorrecta.");
+          throw new Error(t("register.wrongPassword"));
         }
       } catch (error) {
         setOptimisticStatus("registered");
@@ -348,12 +350,12 @@ export function RegisterButton({
         
         // Show premium red SweetAlert2 error dialog if password was incorrect
         await Swal.fire({
-          title: "Error de Seguridad",
-          text: errorMessage.includes("Contraseña") || errorMessage.includes("incorrecta")
-            ? "La contraseña ingresada es incorrecta. Tu inscripción permanece activa."
-            : "No se pudo procesar la cancelación. Inténtalo de nuevo.",
+          title: t("register.securityErrorTitle"),
+          text: errorMessage.includes("Contraseña") || errorMessage.includes("incorrecta") || errorMessage.toLowerCase().includes("password")
+            ? t("register.wrongPasswordKeepActive")
+            : t("register.cancelFailedRetry"),
           icon: "error",
-          confirmButtonText: "Entendido",
+          confirmButtonText: t("register.understood"),
           buttonsStyling: false,
           customClass: {
             popup: "fe-swal-popup fe-swal-popup--danger",
@@ -377,8 +379,8 @@ export function RegisterButton({
         {optimisticStatus === "registered" && registrationId && (
           paymentStatus === "approved" ? (
             <div className="rounded-xl bg-muted/60 p-3 border border-border/80 text-center text-xs text-muted-foreground leading-relaxed">
-              <span className="font-semibold text-foreground">Inscripción confirmada y pagada</span>
-              <p className="mt-0.5 text-[11px]">Si necesitas cancelar o solicitar un reembolso, por favor ponte en contacto con el organizador.</p>
+              <span className="font-semibold text-foreground">{t("register.paidConfirmedTitle")}</span>
+              <p className="mt-0.5 text-[11px]">{t("register.paidConfirmedHelp")}</p>
             </div>
           ) : (
             <button
@@ -438,9 +440,14 @@ export function RegisterButton({
 
   if (optimisticStatus === "waitlisted") {
     return (
-      <div className="flex items-center justify-center gap-2 rounded-xl bg-amber-50 py-3 text-sm font-medium text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
-        <Clock className="h-4 w-4" />
-        {t("register.onWaitlist")}
+      <div className="space-y-2 rounded-xl border border-amber-500/25 bg-amber-500/5 px-4 py-3 text-sm text-amber-800 dark:text-amber-200">
+        <div className="flex items-center justify-center gap-2 font-medium">
+          <Clock className="h-4 w-4" />
+          {t("register.onWaitlist")}
+        </div>
+        <p className="text-center text-xs text-amber-700/90 dark:text-amber-300/90">
+          {t("register.waitlistNoExtras")}
+        </p>
       </div>
     );
   }
@@ -461,7 +468,7 @@ export function RegisterButton({
           {t("register.signInToRegister")}
         </p>
         <Link
-          href="/login?callbackUrl=/events"
+          href={`/login?redirect=${encodeURIComponent(eventSlug ? `/events/${eventSlug}` : "/events")}`}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           {t("register.signInOptional")}
@@ -552,8 +559,8 @@ export function RegisterButton({
                   <Sparkles className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-foreground text-base">Inscripción y Transporte</h3>
-                  <p className="text-xs text-muted-foreground">Completa tu registro para el evento</p>
+                  <h3 className="font-semibold text-foreground text-base">{t("register.modalTitle")}</h3>
+                  <p className="text-xs text-muted-foreground">{t("register.modalSubtitle")}</p>
                 </div>
               </div>
               <button 
@@ -571,10 +578,10 @@ export function RegisterButton({
               <div className="space-y-3">
                 <label className="text-sm font-semibold text-foreground flex items-center gap-1.5">
                   <Bus className="h-4 w-4 text-primary" />
-                  ¿Deseas servicio de transporte ida y vuelta? (Opcional)
+                  {t("register.transportQuestion")}
                 </label>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Ofrecemos servicio de transporte coordinado para garantizar tu traslado seguro al evento y de regreso.
+                  {t("register.transportHelp")}
                 </p>
                 
                 <div className="grid grid-cols-2 gap-3 pt-1">
@@ -588,7 +595,7 @@ export function RegisterButton({
                     }`}
                   >
                     {wantsTransport && <Check className="h-4 w-4" />}
-                    Sí, deseo transporte
+                    {t("register.transportYes")}
                   </button>
                   <button
                     type="button"
@@ -606,7 +613,7 @@ export function RegisterButton({
                     }`}
                   >
                     {!wantsTransport && <Check className="h-4 w-4" />}
-                    No, solo la entrada
+                    {t("register.transportNo")}
                   </button>
                 </div>
               </div>
@@ -618,7 +625,7 @@ export function RegisterButton({
                   {/* Route Selection */}
                   <div className="space-y-2">
                     <label className="text-xs font-semibold text-foreground uppercase tracking-wider block">
-                      Seleccionar Ruta de salida y retorno disponible:
+                      {t("register.selectRouteLabel")}
                     </label>
                     <div className="grid gap-3 pt-1">
                       {transportRoutes.map((route) => (
@@ -645,18 +652,18 @@ export function RegisterButton({
                               )}
                             </div>
                             <span className="font-bold text-xs bg-primary/15 text-primary px-2 py-0.5 rounded-lg shrink-0">
-                              S/ {Number(route.pricePerSeat).toFixed(2)} por asiento
+                              {t("register.pricePerSeat", { price: Number(route.pricePerSeat).toFixed(2) })}
                             </span>
                           </div>
                           
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground pt-1.5 border-t border-border/40">
                             <div className="flex items-center gap-1.5">
                               <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
-                              <span className="truncate"><strong>Partida:</strong> {route.departurePoint}</span>
+                              <span className="truncate"><strong>{t("register.departureLabel")}</strong> {route.departurePoint}</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                               <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
-                              <span><strong>Salida:</strong> {formatRouteTime(route.departureTime)}</span>
+                              <span><strong>{t("register.departureTimeLabel")}</strong> {formatRouteTime(route.departureTime)}</span>
                             </div>
                           </div>
                         </div>
@@ -670,7 +677,7 @@ export function RegisterButton({
                         htmlFor="register-stop-id"
                         className="text-xs font-semibold text-foreground uppercase tracking-wider block"
                       >
-                        Punto de recojo (opcional)
+                        {t("register.pickupStopOptional")}
                       </label>
                       <select
                         id="register-stop-id"
@@ -678,7 +685,7 @@ export function RegisterButton({
                         onChange={(e) => setRegistrationValue("selectedStopId", e.target.value)}
                         className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                       >
-                        <option value="">Punto de partida general ({activeRoute.departurePoint})</option>
+                        <option value="">{t("register.generalDeparturePoint", { point: activeRoute.departurePoint })}</option>
                         {activeRoute.stops.map((stop) => (
                           <option key={stop.id} value={stop.id}>
                             {stop.name}
@@ -691,7 +698,8 @@ export function RegisterButton({
                   {/* Contact Phone (Optional but highly recommended) */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-foreground uppercase tracking-wider block">
-                      Teléfono de contacto para el bus <span className="text-rose-500 font-bold">* (Obligatorio)</span>:
+                      {t("register.contactPhoneForBus")}{" "}
+                      <span className="text-rose-500 font-bold">{t("register.requiredMark")}</span>:
                     </label>
                     <div className="relative flex items-center">
                       <span className="absolute left-3.5 text-sm text-muted-foreground font-medium select-none pointer-events-none border-r border-border/80 pr-2.5">
@@ -729,15 +737,18 @@ export function RegisterButton({
                           : "text-green-500"
                       }`}>
                         {contactPhone.length < 9
-                          ? `⚠️ Faltan ${9 - contactPhone.length} dígito${9 - contactPhone.length > 1 ? "s" : ""} para completar.`
+                          ? t("register.digitsMissing", {
+                              count: 9 - contactPhone.length,
+                              plural: 9 - contactPhone.length > 1 ? "s" : "",
+                            })
                           : !contactPhone.startsWith("9")
-                          ? "❌ El número de celular peruano debe iniciar con 9."
-                          : "✅ ¡Número de teléfono completo y válido!"}
+                          ? t("register.phoneMustStartWith9")
+                          : t("register.phoneCompleteValid")}
                       </p>
                     )}
                     {contactPhone.length === 0 && (
                       <p className="text-[10px] text-muted-foreground">
-                        * El número debe tener exactamente 9 dígitos (ej. 912345678).
+                        {t("register.phoneExactly9Help")}
                       </p>
                     )}
                   </div>
@@ -750,10 +761,10 @@ export function RegisterButton({
                   <div className="space-y-0.5 text-left">
                     <label className="text-sm font-semibold text-foreground flex items-center gap-1.5">
                       <Users className="h-4 w-4 text-primary" />
-                      ¿Deseas registrar invitados? (Opcional)
+                      {t("register.guestsQuestion")}
                     </label>
                     <p className="text-[11px] text-muted-foreground">
-                      Registra amigos o familiares sin smartphone ni correo propio.
+                      {t("register.guestsHelp")}
                     </p>
                   </div>
                   {guests.length < 5 && (
@@ -762,7 +773,7 @@ export function RegisterButton({
                       onClick={() => setRegistrationValue("guests", [...guests, { name: "", phone: "" }])}
                       className="px-2.5 py-1 text-xs font-semibold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all rounded-lg select-none"
                     >
-                      + Añadir
+                      {t("register.addGuest")}
                     </button>
                   )}
                 </div>
@@ -773,7 +784,7 @@ export function RegisterButton({
                       <div key={idx} className="relative p-3.5 rounded-xl bg-card border border-border flex flex-col gap-2.5">
                         <div className="flex justify-between items-center">
                           <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                            Invitado #{idx + 1}
+                            {t("register.guestNumber", { index: idx + 1 })}
                           </span>
                           <button
                             type="button"
@@ -783,7 +794,7 @@ export function RegisterButton({
                             }}
                             className="text-xs font-bold text-rose-500 hover:text-rose-600 transition-colors flex items-center gap-0.5 select-none"
                           >
-                            <X className="h-3.5 w-3.5" /> Quitar
+                            <X className="h-3.5 w-3.5" /> {t("register.removeGuest")}
                           </button>
                         </div>
 
@@ -791,12 +802,12 @@ export function RegisterButton({
                           {/* Guest Name */}
                           <div className="space-y-1 text-left">
                             <label className="text-[10px] font-bold text-foreground uppercase block">
-                              Nombre Completo *
+                              {t("register.guestFullName")}
                             </label>
                             <input
                               type="text"
                               required
-                              placeholder="Nombre completo"
+                              placeholder={t("register.guestFullNamePlaceholder")}
                               value={guest.name}
                               onChange={(e) => {
                                 const newGuests = [...guests];
@@ -810,7 +821,7 @@ export function RegisterButton({
                           {/* Guest Phone (Optional) */}
                           <div className="space-y-1 text-left">
                             <label className="text-[10px] font-bold text-foreground uppercase block">
-                              Teléfono (Opcional)
+                              {t("register.guestPhoneOptional")}
                             </label>
                             <div className="relative flex items-center">
                               <span className="absolute left-2.5 text-xs text-muted-foreground font-medium select-none border-r border-border pr-2">
@@ -846,10 +857,9 @@ export function RegisterButton({
                 <div className="rounded-xl bg-blue-500/5 border border-blue-500/10 p-3.5 flex items-start gap-2.5">
                   <Info className="h-4.5 w-4.5 text-blue-500 shrink-0 mt-0.5" />
                   <div className="space-y-0.5 text-xs text-blue-800 dark:text-blue-300 text-left">
-                    <p className="font-semibold text-blue-700 dark:text-blue-400">Pago unificado disponible</p>
+                    <p className="font-semibold text-blue-700 dark:text-blue-400">{t("register.unifiedPaymentTitle")}</p>
                     <p className="leading-relaxed">
-                      El monto de la entrada y el pasaje de transporte se sumarán en un único cobro. En el siguiente paso
-                      podrás pagar con Culqi (tarjeta, Yape o billeteras) o efectivo, según los medios del organizador.
+                      {t("register.unifiedPaymentHelp")}
                     </p>
                   </div>
                 </div>
@@ -858,32 +868,48 @@ export function RegisterButton({
               {/* Dynamic Consolidated Breakdown */}
               <div className="border-t border-border pt-4 space-y-2.5 text-left">
                 <span className="text-xs font-semibold text-foreground uppercase tracking-wider block">
-                  Desglose de Pago Consolidado:
+                  {t("register.consolidatedBreakdown")}
                 </span>
                 
                 <div className="space-y-1.5 text-xs text-muted-foreground">
                   <div className="flex justify-between">
-                    <span>Costo de Entrada ({eventPrice > 0 ? "De Pago" : "Gratuito"}{guests.length > 0 ? ` x ${1 + guests.length}` : ""}):</span>
+                    <span>
+                      {t("register.ticketCostLabel", {
+                        paidLabel: eventPrice > 0 ? t("register.paidTicket") : t("register.freeTicket"),
+                        guestsSuffix: guests.length > 0 ? ` x ${1 + guests.length}` : "",
+                      })}
+                    </span>
                     <span className="font-medium text-foreground">
-                      {eventPrice > 0 ? `S/ ${(eventPrice * (1 + guests.length)).toFixed(2)}` : "Gratis"}
+                      {eventPrice > 0
+                        ? `S/ ${(eventPrice * (1 + guests.length)).toFixed(2)}`
+                        : t("register.free")}
                     </span>
                   </div>
 
                   {wantsTransport && (
                     <div className="flex justify-between animate-fadeIn">
-                      <span>Transporte ({seatsCount} asiento{seatsCount > 1 ? "s" : ""}):</span>
+                      <span>
+                        {t("register.transportSeatsLabel", {
+                          count: seatsCount,
+                          plural: seatsCount > 1 ? "s" : "",
+                        })}
+                      </span>
                       <span className="font-medium text-foreground">
-                        {transportTotalCost > 0 ? `S/ ${transportTotalCost.toFixed(2)}` : "Gratis"}
+                        {transportTotalCost > 0
+                          ? `S/ ${transportTotalCost.toFixed(2)}`
+                          : t("register.free")}
                       </span>
                     </div>
                   )}
 
                   <div className="flex justify-between text-sm text-foreground font-semibold pt-2 border-t border-dashed border-border">
                     <span className="flex items-center gap-1">
-                      Total Consolidado a Pagar:
+                      {t("register.consolidatedTotal")}
                     </span>
                     <span className="text-primary text-base font-bold bg-primary/5 px-2.5 py-0.5 rounded-lg">
-                      {consolidatedTotalCost > 0 ? `S/ ${consolidatedTotalCost.toFixed(2)}` : "Gratis"}
+                      {consolidatedTotalCost > 0
+                        ? `S/ ${consolidatedTotalCost.toFixed(2)}`
+                        : t("register.free")}
                     </span>
                   </div>
                 </div>
@@ -899,7 +925,7 @@ export function RegisterButton({
                 className="flex-1 py-3 px-4 rounded-xl border border-border hover:bg-muted text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                 disabled={isPending}
               >
-                Cancelar
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -910,7 +936,7 @@ export function RegisterButton({
                 {isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  "Confirmar Registro"
+                  t("register.confirmRegistration")
                 )}
               </button>
             </div>

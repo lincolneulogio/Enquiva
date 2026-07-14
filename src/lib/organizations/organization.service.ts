@@ -368,7 +368,7 @@ export class OrganizationService {
     actorId: string;
     actorRole: string | null | undefined;
     targetUserId: string;
-    newRole: "organizer" | "member";
+    newRole: "organizer" | "member" | "scanner";
   }) {
     const actorOrg = await this.getOrganizationForUser(input.actorId);
     if (!actorOrg) throw new Error("No perteneces a una entidad.");
@@ -408,7 +408,12 @@ export class OrganizationService {
       await this.assertCanAddOrganizerToOrg(actorOrg.id);
     }
 
-    const globalRole = input.newRole === "organizer" ? "organizer" : "member";
+    const globalRole =
+      input.newRole === "organizer"
+        ? "organizer"
+        : input.newRole === "scanner"
+          ? "scanner"
+          : "member";
     const memberStatus = "active" as const;
     const memberRole = input.newRole;
 
@@ -449,7 +454,7 @@ export class OrganizationService {
    */
   static async syncUserRoleWithOrganizationMembership(
     userId: string,
-    globalRole: "member" | "organizer" | "admin" | "super_admin",
+    globalRole: "member" | "organizer" | "admin" | "super_admin" | "scanner",
   ) {
     const [user] = await db
       .select({ organizationId: users.organizationId })
@@ -485,7 +490,9 @@ export class OrganizationService {
         ? "owner"
         : globalRole === "organizer" || globalRole === "admin"
           ? "organizer"
-          : "member";
+          : globalRole === "scanner"
+            ? "scanner"
+            : "member";
 
     if (!memberRow) {
       await db.insert(organizationMembers).values({

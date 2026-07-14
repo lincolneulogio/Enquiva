@@ -138,12 +138,46 @@ export async function deliverMassCommunication(
   return { successCount, failureCount };
 }
 
+export type BroadcastRecipientFilter =
+  | "all"
+  | "registered"
+  | "checked_in"
+  | "waitlisted"
+  | "unpaid";
+
 export async function resolveBroadcastRecipients(
   eventId: string,
-  recipientStatus: "all" | "registered" | "checked_in" | "waitlisted",
+  recipientStatus: BroadcastRecipientFilter,
 ): Promise<MassCommunicationRecipient[]> {
-  const { registrations, users } = await import("@/lib/db/schema");
-  const { eq, and, inArray } = await import("drizzle-orm");
+  const { registrations, users, payments } = await import("@/lib/db/schema");
+  const { eq, and, inArray, or, isNull, ne } = await import("drizzle-orm");
+
+  if (recipientStatus === "unpaid") {
+    const rows = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+      })
+      .from(registrations)
+      .innerJoin(users, eq(registrations.userId, users.id))
+      .leftJoin(payments, eq(payments.registrationId, registrations.id))
+      .where(
+        and(
+          eq(registrations.eventId, eventId),
+          inArray(registrations.status, ["registered", "checked_in"]),
+          or(isNull(payments.id), ne(payments.status, "approved")),
+        ),
+      );
+
+    const unique = new Map<string, MassCommunicationRecipient>();
+    for (const row of rows) {
+      if (row.email) {
+        unique.set(row.id, { id: row.id, name: row.name, email: row.email });
+      }
+    }
+    return Array.from(unique.values());
+  }
 
   let statuses: ("registered" | "waitlisted" | "checked_in" | "cancelled")[] = [
     "registered",

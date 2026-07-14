@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireApiRole, apiAuthErrorResponse } from "@/lib/auth/api-guards";
 import { ticketVerifyRatelimit, enforceRateLimit } from "@/lib/redis";
-import { assertCanManageEvent } from "@/lib/organizations/admin-scope";
+import { assertCanScanEvent } from "@/lib/organizations/admin-scope";
 import { db } from "@/lib/db";
 import { tickets, registrations, events } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -10,7 +10,7 @@ import { TicketCheckInService } from "@/lib/tickets/check-in";
 export async function POST(req: Request) {
   try {
     const { user, headers: hdrs } = await requireApiRole(
-      ["admin", "super_admin", "organizer"],
+      ["admin", "super_admin", "organizer", "scanner"],
       "Forbidden: No tienes permisos para escanear tickets",
     );
     const role = user.role;
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
 
           if (eventRecord) {
             try {
-              await assertCanManageEvent(
+              await assertCanScanEvent(
                 {
                   id: eventRecord.id,
                   organizerId: eventRecord.organizerId,

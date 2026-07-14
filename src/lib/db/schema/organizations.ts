@@ -15,6 +15,7 @@ export const organizationMemberRoleEnum = pgEnum("organization_member_role", [
   "owner",
   "organizer",
   "member",
+  "scanner",
 ]);
 
 export const organizationMemberStatusEnum = pgEnum("organization_member_status", [
@@ -33,6 +34,10 @@ export const organizations = pgTable(
     ownerId: text("owner_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
+    logoUrl: text("logo_url"),
+    accentColor: text("accent_color"),
+    brandingEnabled: boolean("branding_enabled").notNull().default(false),
+    whatsappNumber: text("whatsapp_number"),
     isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),

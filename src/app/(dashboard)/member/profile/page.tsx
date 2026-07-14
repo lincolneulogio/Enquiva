@@ -20,6 +20,7 @@ export default async function MemberProfilePage() {
             address: users.address,
             bio: users.bio,
             image: users.image,
+            twoFactorEnabled: users.twoFactorEnabled,
         })
         .from(users)
         .where(eq(users.id, session!.user.id))
@@ -33,6 +34,7 @@ export default async function MemberProfilePage() {
         address: null,
         bio: null,
         image: session!.user.image ?? null,
+        twoFactorEnabled: false,
     };
 
     return (

@@ -2,14 +2,30 @@ import { NextResponse } from "next/server";
 import { requireApiSession, apiAuthErrorResponse } from "@/lib/auth/api-guards";
 import { db } from "@/lib/db";
 import { payments, registrations, events } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { createCulqiCharge, getCulqiCharge } from "@/lib/culqi/client";
 import { getUserCulqiProfile } from "@/lib/culqi/customer-data.server";
 import { mergeSessionCulqiProfile } from "@/lib/culqi/customer-data";
 import { getCulqiCredentialsForEvent } from "@/lib/culqi/capabilities";
-import { requirePlanFeature, getOrganizerPlanForEvent, getPlatformFee } from "@/lib/billing/enforce";
+import { requirePlanFeature, getOrganizerPlanForEvent } from "@/lib/billing/enforce";
+import { computeEventCommissionFee } from "@/lib/billing/platform-commission";
+import type { ResolvedPlan } from "@/lib/billing/types";
 import { CulqiEventPaymentService } from "@/lib/culqi/event-payment.service";
 import { logCulqi, logCulqiFailure } from "@/lib/culqi/observability";
+
+async function resolvePlatformFeeForPayment(
+  registrationId: string,
+  amount: number,
+  organizerPlan: ResolvedPlan | null,
+) {
+  if (!organizerPlan) return 0;
+  const [guests] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(registrations)
+    .where(eq(registrations.parentRegistrationId, registrationId));
+  const inscriptionCount = 1 + Number(guests?.total ?? 0);
+  return computeEventCommissionFee(amount, organizerPlan, inscriptionCount);
+}
 
 export async function POST(req: Request) {
   try {
@@ -68,6 +84,13 @@ export async function POST(req: Request) {
       await requirePlanFeature(event.organizerId, "organizer", "culqi");
     }
 
+    const amount = Number(payment.amount);
+    const platformFee = await resolvePlatformFeeForPayment(
+      registration.id,
+      amount,
+      organizerPlan,
+    );
+
     if (payment.gatewayChargeId) {
       try {
         const existingCharge = await getCulqiCharge(payment.gatewayChargeId, organizerCulqi);
@@ -76,7 +99,7 @@ export async function POST(req: Request) {
             paymentId: payment.id,
             chargeId: existingCharge.id,
             gatewayStatus: existingCharge.outcome.type,
-            platformFee: organizerPlan ? getPlatformFee(Number(payment.amount), organizerPlan) : 0,
+            platformFee,
             notes: "Aprobado automáticamente vía Culqi (reconciliación)",
           });
           return NextResponse.json({
@@ -96,9 +119,6 @@ export async function POST(req: Request) {
       }
     }
 
-    const amount = Number(payment.amount);
-    const platformFee = organizerPlan ? getPlatformFee(amount, organizerPlan) : 0;
-
     const dbProfile = await getUserCulqiProfile(user.id);
     const customer = mergeSessionCulqiProfile(user, dbProfile);
 
@@ -114,6 +134,7 @@ export async function POST(req: Request) {
           registrationId: registration.id,
           eventId: event.id,
           paymentMethodId: organizerCulqi.paymentMethodId,
+          platformFee: String(platformFee),
         },
       },
       { secretKey: organizerCulqi.secretKey, publicKey: organizerCulqi.publicKey },

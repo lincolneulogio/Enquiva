@@ -413,6 +413,20 @@ const memberSections: NavSection[] = compactSections([
   },
 ]);
 
+const scannerSections: NavSection[] = compactSections([
+  {
+    titleKey: "dashboard.sidebar.groups.core",
+    items: [
+      {
+        labelKey: "dashboard.sidebar.organizer.scan",
+        href: "/scanner/scan",
+        icon: QrCode,
+        permissions: ["attendees:checkin"],
+      },
+    ],
+  },
+]);
+
 interface DashboardSidebarProps {
   role: string;
   user: {
@@ -466,10 +480,13 @@ export function DashboardSidebar({
                   showExports: true,
                 },
               )
-            : memberSections;
+            : normalizedRole === "scanner"
+              ? scannerSections
+              : memberSections;
 
     // Member: navegación de producto, sin matriz staff.
     if (normalizedRole === "member") return roleSections;
+    if (normalizedRole === "scanner") return roleSections;
 
     return applyPermissionFilter(roleSections, allowedPermissions);
   }, [normalizedRole, adminNav, organizerNav, allowedPermissions]);

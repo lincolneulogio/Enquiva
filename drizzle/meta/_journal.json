@@ -134,6 +134,13 @@
       "when": 1775200000000,
       "tag": "0018_plan_commission_per_registration",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1775300000000,
+      "tag": "0019_scanner_branding_invoices_2fa",
+      "breakpoints": true
     }
   ]
 }

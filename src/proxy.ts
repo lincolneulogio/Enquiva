@@ -27,7 +27,9 @@ const publicRoutes = new Set([
   "/verify-account",
   "/forgot-password",
   "/reset-password",
+  "/two-factor",
   "/events",
+  "/pricing",
   "/maintenance",
   "/superadmin/login",
   "/superadmin/register",
@@ -87,6 +89,18 @@ function roleAllowsPath(role: string, pathname: string): string | null {
 
   if (pathname.startsWith("/organizer")) {
     if (normalized === "organizer" || normalized === "super_admin") return null;
+    return getDashboardHomeForRole(normalized);
+  }
+
+  if (pathname.startsWith("/scanner")) {
+    if (
+      normalized === "scanner" ||
+      normalized === "organizer" ||
+      normalized === "admin" ||
+      normalized === "super_admin"
+    ) {
+      return null;
+    }
     return getDashboardHomeForRole(normalized);
   }
 

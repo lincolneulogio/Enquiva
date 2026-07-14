@@ -31,6 +31,7 @@ function cloneMatrix(matrix: PermissionMatrix): PermissionMatrix {
     admin: { ...matrix.admin },
     organizer: { ...matrix.organizer },
     member: { ...matrix.member },
+    scanner: { ...matrix.scanner },
   };
 }
 

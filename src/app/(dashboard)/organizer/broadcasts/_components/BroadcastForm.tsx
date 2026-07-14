@@ -32,7 +32,12 @@ export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) 
     formStorageKey("organizer.broadcast"),
     {
       eventId: "",
-      recipientStatus: "all" as "all" | "registered" | "checked_in" | "waitlisted",
+      recipientStatus: "all" as
+        | "all"
+        | "registered"
+        | "checked_in"
+        | "waitlisted"
+        | "unpaid",
       subject: "",
       message: "",
       channels: DEFAULT_CHANNELS,
@@ -167,6 +172,7 @@ export function BroadcastForm({ events, disabled = false }: BroadcastFormProps) 
             <option value="registered">{t("dashboard.organizer.broadcastFormRecipientsRegistered")}</option>
             <option value="checked_in">{t("dashboard.organizer.broadcastFormRecipientsCheckedIn")}</option>
             <option value="waitlisted">{t("dashboard.organizer.broadcastFormRecipientsWaitlisted")}</option>
+            <option value="unpaid">Inscritos sin pago aprobado</option>
           </select>
         </div>
       </div>

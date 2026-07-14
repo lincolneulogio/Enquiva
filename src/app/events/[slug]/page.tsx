@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -14,6 +15,10 @@ import { categoryColor, categoryLabel, cn, formatEventDate } from "@/lib/utils";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
 import { incrementEventViewCount } from "@/lib/analytics/event-views";
+import { getEventCapacitySnapshot } from "@/lib/events/capacity-snapshot";
+import { getOrgPublicBrand } from "@/lib/brand/org-brand";
+import { buildWhatsAppChatUrl } from "@/lib/share/whatsapp";
+import { env } from "@/env";
 import { db } from "@/lib/db";
 import { transportRoutes, transportBookings, transportStops, type TransportRoute } from "@/lib/db/schema";
 import { eq, and, sql, inArray } from "drizzle-orm";
@@ -35,6 +40,49 @@ import {
   CheckCircle2,
   Info,
 } from "lucide-react";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const event = await EventService.getEventBySlug(slug);
+  if (!event || event.status !== "published") {
+    return { title: "Evento", robots: { index: false, follow: false } };
+  }
+  const base = env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  const url = `${base}/events/${event.slug}`;
+  const description =
+    (event.description ?? "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 160) || `Inscríbete a ${event.title} en Evora.`;
+  const images = event.coverImage
+    ? [{ url: event.coverImage, width: 1200, height: 630, alt: event.title }]
+    : undefined;
+
+  return {
+    title: event.title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "website",
+      url,
+      title: event.title,
+      description,
+      images,
+      siteName: "Evora",
+    },
+    twitter: {
+      card: images ? "summary_large_image" : "summary",
+      title: event.title,
+      description,
+      images: event.coverImage ? [event.coverImage] : undefined,
+    },
+  };
+}
 
 type SerializedTransportStop = {
   id: string;
@@ -203,9 +251,8 @@ export default async function EventDetailPage({ params }: EventPageProps) {
   const paymentForRegistration = registration
     ? payments.find(({ registration: item }) => item.id === registration.id)
     : null;
-  const isFull =
-    typeof event.capacity === "number" &&
-    (event.attendeeCount ?? 0) >= event.capacity;
+  const capacitySnap = await getEventCapacitySnapshot(event.id, event.capacity);
+  const isFull = capacitySnap.isFull;
   const isEventExpired = new Date(event.date).getTime() <= Date.now();
   const isRegistrationClosed = isEventExpired || event.status !== "published";
   const waitlistAvailable =
@@ -223,8 +270,26 @@ export default async function EventDetailPage({ params }: EventPageProps) {
         : event.status === "cancelled"
           ? "Cancelado"
           : event.status;
+  const orgBrand = await getOrgPublicBrand(event.organizationId);
+  const waContactUrl = orgBrand?.whatsappNumber
+    ? buildWhatsAppChatUrl({
+        phone: orgBrand.whatsappNumber,
+        text:
+          locale === "en"
+            ? `Hi! I'm interested in ${event.title}.`
+            : `¡Hola! Me interesa el evento ${event.title}.`,
+      })
+    : null;
+
   return (
-    <div className="min-h-screen bg-background pb-12">
+    <div
+      className="min-h-screen bg-background pb-12"
+      style={
+        orgBrand?.active && orgBrand.accentColor
+          ? ({ ["--primary"]: orgBrand.accentColor } as Record<string, string>)
+          : undefined
+      }
+    >
       <PublicHeader />
 
       <section className="relative overflow-hidden border-b border-border fe-gradient-mesh px-4 py-8 md:py-16 sm:px-6 lg:px-8">
@@ -234,7 +299,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
             <div className="space-y-6 md:space-y-8">
               {/* Category Badge & Title */}
               <div className="space-y-3">
-                <div>
+                <div className="flex flex-wrap items-center gap-2">
                   <span
                     className={cn(
                       "inline-flex rounded-xl px-3 py-1 text-xs font-bold uppercase tracking-wider border",
@@ -243,6 +308,24 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                   >
                     {categoryLabel(event.category, locale)}
                   </span>
+                  {orgBrand?.active && orgBrand.logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={orgBrand.logoUrl}
+                      alt={orgBrand.name}
+                      className="h-8 w-auto max-w-[140px] object-contain"
+                    />
+                  ) : null}
+                  {waContactUrl ? (
+                    <a
+                      href={waContactUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-800 dark:text-emerald-200"
+                    >
+                      WhatsApp
+                    </a>
+                  ) : null}
                 </div>
 
                 <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-foreground leading-tight md:leading-tight">
@@ -310,18 +393,27 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                     </div>
                   </div>
 
-                  {/* Capacity */}
+                  {/* Capacity (live) */}
                   <div className="flex gap-4 p-4 rounded-2xl border border-border/50 bg-background/50 hover:bg-background transition-colors">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
                       <Users className="h-5 w-5" />
                     </div>
                     <div className="space-y-1">
                       <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
-                        Capacidad Total
+                        Cupos
                       </span>
                       <span className="font-semibold text-foreground text-sm leading-tight block">
-                        {event.capacity ?? t("public.eventDetail.unlimited")}{" "}
-                        personas
+                        {capacitySnap.capacity == null
+                          ? t("public.eventDetail.unlimited")
+                          : `${capacitySnap.occupied} / ${capacitySnap.capacity}`}
+                      </span>
+                      <span className="block text-[11px] text-muted-foreground">
+                        {capacitySnap.remaining != null
+                          ? `${capacitySnap.remaining} disponibles`
+                          : "Sin límite"}
+                        {capacitySnap.waitlisted > 0
+                          ? ` · ${capacitySnap.waitlisted} en espera`
+                          : ""}
                       </span>
                     </div>
                   </div>
@@ -487,10 +579,13 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                     {t("public.eventDetail.attendeesLabel")}
                   </p>
                   <p className="text-3xl font-extrabold text-foreground leading-none pt-1">
-                    {(event.attendeeCount ?? 0).toLocaleString(
-                      getIntlLocale(locale),
-                    )}
+                    {capacitySnap.occupied.toLocaleString(getIntlLocale(locale))}
                   </p>
+                  {capacitySnap.waitlisted > 0 ? (
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      +{capacitySnap.waitlisted} en lista de espera
+                    </p>
+                  ) : null}
                   <p className="text-xs text-muted-foreground font-medium pt-0.5">
                     {t("public.eventDetail.attendingSuffix")}
                   </p>

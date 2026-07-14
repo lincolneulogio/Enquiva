@@ -93,7 +93,7 @@ export async function setUserActive(userId: string, isActive: boolean) {
 
 export async function updateUserRole(
     userId: string,
-    role: "member" | "organizer" | "admin" | "super_admin"
+    role: "member" | "organizer" | "admin" | "super_admin" | "scanner"
 ) {
     const currentUser = await requireAdminOrSuper();
     await assertPermission(currentUser, "users:manage");
@@ -103,8 +103,8 @@ export async function updateUserRole(
     const userAgent = hdrs.get("user-agent") ?? "unknown";
 
     if (actorRole === "admin") {
-        if (role !== "organizer" && role !== "member") {
-            throw new Error("Solo puedes asignar roles de organizador o asistente dentro de tu entidad.");
+        if (role !== "organizer" && role !== "member" && role !== "scanner") {
+            throw new Error("Solo puedes asignar roles de organizador, scanner o asistente dentro de tu entidad.");
         }
         await OrganizationService.promoteUserInOrg({
             actorId: currentUser.id,

@@ -6,6 +6,7 @@ import { events, broadcastLogs } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { getBroadcastEvents } from "@/actions/events";
 import { BroadcastForm } from "@/app/(dashboard)/organizer/broadcasts/_components/BroadcastForm";
+import { WhatsAppBroadcastHint } from "@/components/dashboard/broadcasts/WhatsAppBroadcastHint";
 import { Megaphone, History, Mail } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getMyPlanSummary } from "@/actions/billing";
@@ -13,6 +14,8 @@ import { PlanUsageBanner } from "@/components/dashboard/organizer/PlanUsageBanne
 import Link from "next/link";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { SubscriptionService } from "@/lib/billing/subscription.service";
+import { OrganizationService } from "@/lib/organizations/organization.service";
+import { env } from "@/env";
 
 type BroadcastsPageProps = {
   billingPath?: string;
@@ -50,6 +53,11 @@ export async function BroadcastsPageContent({ billingPath = "/organizer/billing"
   const planSummary = await getMyPlanSummary();
   const isStaff = SubscriptionService.isPlatformStaff(session.user.role);
   const dateLocale = locale === "en" ? "en-US" : "es-PE";
+  const organization = await OrganizationService.getOrganizationForUser(session.user.id);
+  const firstEvent = eventsForSelect[0];
+  const eventUrl = firstEvent
+    ? `${env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "")}/events`
+    : null;
 
   return (
     <div className="space-y-8">
@@ -89,6 +97,24 @@ export async function BroadcastsPageContent({ billingPath = "/organizer/billing"
               events={eventsForSelect}
               disabled={!isStaff && !planSummary.canSendBroadcast && !planSummary.isUnlimited}
             />
+            <div className="mt-4 border-t border-border pt-4">
+              <p className="mb-2 text-xs text-muted-foreground">
+                {locale === "en"
+                  ? "Also share via WhatsApp (uses your org number if configured)."
+                  : "También puedes compartir por WhatsApp (usa el número de tu entidad si está configurado)."}
+              </p>
+              <WhatsAppBroadcastHint
+                eventTitle={firstEvent?.title ?? (locale === "en" ? "Event" : "Evento")}
+                message={
+                  locale === "en"
+                    ? "We have news about the event. Reply here or register on Evora."
+                    : "Tenemos novedades del evento. Responde aquí o inscríbete en Evora."
+                }
+                eventUrl={eventUrl}
+                orgWhatsApp={organization?.whatsappNumber}
+                locale={locale === "en" ? "en" : "es"}
+              />
+            </div>
           </div>
         </div>
 

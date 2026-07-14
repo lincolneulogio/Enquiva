@@ -1,4 +1,4 @@
-export type AppRole = "super_admin" | "admin" | "organizer" | "member";
+export type AppRole = "super_admin" | "admin" | "organizer" | "member" | "scanner";
 
 export const PERMISSIONS = [
     "events:create",
@@ -167,26 +167,28 @@ export const ROLE_LABELS: Record<AppRole, string> = {
     admin: "Admin",
     organizer: "Organizer",
     member: "Member",
+    scanner: "Scanner",
 };
 
-export const ROLE_ORDER: AppRole[] = ["super_admin", "admin", "organizer", "member"];
+export const ROLE_ORDER: AppRole[] = ["super_admin", "admin", "organizer", "member", "scanner"];
 
 /** Roles que un admin de entidad puede asignar a miembros del equipo. */
-export const ENTITY_ASSIGNABLE_ROLES = ["member", "organizer"] as const;
+export const ENTITY_ASSIGNABLE_ROLES = ["member", "organizer", "scanner"] as const;
 export type EntityAssignableRole = (typeof ENTITY_ASSIGNABLE_ROLES)[number];
 
 export function isEntityAssignableRole(role: string): role is EntityAssignableRole {
-    return role === "member" || role === "organizer";
+    return role === "member" || role === "organizer" || role === "scanner";
 }
 
 /** Roles visibles en listados/filtros del admin de entidad (sin exponer super_admin). */
-export const ENTITY_VISIBLE_ROLES = ["admin", "organizer", "member"] as const;
+export const ENTITY_VISIBLE_ROLES = ["admin", "organizer", "member", "scanner"] as const;
 
 export const ROLE_BADGE_STYLES: Record<AppRole, string> = {
     super_admin: "border border-cyan-400/80 bg-cyan-100 text-cyan-900 ring-1 ring-cyan-300 dark:border-cyan-300/60 dark:bg-cyan-400/20 dark:text-cyan-100 dark:ring-cyan-300/30",
     admin: "border border-rose-300/70 bg-rose-100 text-rose-800 ring-1 ring-rose-200 dark:border-rose-500/40 dark:bg-rose-900/40 dark:text-rose-200 dark:ring-rose-500/20",
     organizer: "border border-blue-300/70 bg-blue-100 text-blue-800 ring-1 ring-blue-200 dark:border-blue-500/40 dark:bg-blue-900/40 dark:text-blue-200 dark:ring-blue-500/20",
     member: "border border-emerald-300/70 bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200 dark:border-emerald-500/40 dark:bg-emerald-900/40 dark:text-emerald-200 dark:ring-emerald-500/20",
+    scanner: "border border-amber-300/70 bg-amber-100 text-amber-900 ring-1 ring-amber-200 dark:border-amber-500/40 dark:bg-amber-900/40 dark:text-amber-200 dark:ring-amber-500/20",
 };
 
 export const PERMISSIONS_BY_ROLE: Record<AppRole, Permission[]> = {
@@ -226,10 +228,21 @@ export const PERMISSIONS_BY_ROLE: Record<AppRole, Permission[]> = {
     member: [
         "docs:view:member",
     ],
+    scanner: [
+        "attendees:checkin",
+        "registrations:view:own",
+        "docs:view:member",
+    ],
 };
 
 export function normalizeRole(role: string | null | undefined): AppRole {
-    if (role === "super_admin" || role === "admin" || role === "organizer" || role === "member") {
+    if (
+        role === "super_admin" ||
+        role === "admin" ||
+        role === "organizer" ||
+        role === "member" ||
+        role === "scanner"
+    ) {
         return role;
     }
     return "member";

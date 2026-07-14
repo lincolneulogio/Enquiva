@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import { Outfit } from "next/font/google";
 import { Toaster } from "sonner";
 import { LocaleProvider } from "@/components/providers/LocaleProvider";
@@ -70,13 +69,15 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning className={outfit.variable}>
-      <body suppressHydrationWarning className="font-sans">
-        {/* Cookie compartida con docs (evora-theme) → localStorage theme antes del paint */}
-        <Script
+      <head>
+        {/* Cookie compartida con docs (evora-theme) → localStorage theme antes del paint.
+            Script nativo en <head> evita el warning de next/script en el árbol React del body. */}
+        <script
           id="evora-theme-bootstrap"
-          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }}
         />
+      </head>
+      <body suppressHydrationWarning className="font-sans">
         <AccentColorInitializer platformDefault={brand.defaultAccentColor} />
         <PlatformBrandProvider brand={brand}>
           <LocaleProvider initialLocale={locale}>

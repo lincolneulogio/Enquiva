@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { useFormPersistence } from "@/hooks/useFormPersistence";
 import { formStorageKey } from "@/lib/form-persistence";
 import { AuthTermsNotice } from "@/components/shared/BrandText";
+import { resolveSafeAuthRedirect } from "@/lib/auth/safe-redirect";
 
 const ACCOUNT_TYPES = [
   {
@@ -72,6 +73,10 @@ export function RegisterForm() {
   const accountType = watch("accountType");
   const organizerLinkMode = watch("organizerLinkMode");
   const searchParams = useSearchParams();
+  const postAuthRedirect = resolveSafeAuthRedirect(
+    searchParams.get("redirect") ?? searchParams.get("callbackUrl"),
+    "/dashboard",
+  );
 
   useEffect(() => {
     const invite = searchParams.get("invite")?.trim().toUpperCase();
@@ -108,7 +113,7 @@ export function RegisterForm() {
           name: data.name,
           email: data.email,
           password: data.password,
-          callbackURL: "/dashboard",
+          callbackURL: postAuthRedirect,
         });
 
         if (result.error) {
@@ -141,7 +146,11 @@ export function RegisterForm() {
               : "auth.createAccountSuccess";
         toast.success(t(successKey));
         clearDraft();
-        router.replace(`/verify-account?email=${encodeURIComponent(data.email)}`);
+        const verifyQs = new URLSearchParams({
+          email: data.email,
+          redirect: postAuthRedirect,
+        });
+        router.replace(`/verify-account?${verifyQs.toString()}`);
       } catch (error) {
         const rawMessage = error instanceof Error ? error.message : t("auth.unexpectedAuthError");
         const friendlyMessage = getAuthErrorMessage(rawMessage, t);
