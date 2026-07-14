@@ -42,15 +42,21 @@ function fallbackPlans() {
 export default async function PricingPage() {
   const { locale } = await getI18n();
 
-  let rows = await db
-    .select()
-    .from(plans)
-    .where(and(eq(plans.isActive, true)))
-    .orderBy(asc(plans.sortOrder))
-    .limit(12);
+  let rows = fallbackPlans() as Array<typeof plans.$inferSelect>;
 
-  if (rows.length === 0) {
-    rows = fallbackPlans() as typeof rows;
+  try {
+    const fromDb = await db
+      .select()
+      .from(plans)
+      .where(and(eq(plans.isActive, true)))
+      .orderBy(asc(plans.sortOrder))
+      .limit(12);
+    if (fromDb.length > 0) {
+      rows = fromDb;
+    }
+  } catch (error) {
+    // Schema desfasado (migraciones pendientes) → catálogo por defecto
+    console.error("[pricing] plans query failed, using fallback catalog", error);
   }
 
   const visible = rows.filter((p) => p.slug !== "__pending_setup__").slice(0, 3);
@@ -134,7 +140,7 @@ export default async function PricingPage() {
                   {plan.description}
                 </p>
                 <p className="mt-6 font-display text-4xl font-semibold text-foreground">
-                  S/ {Number(plan.priceMonthly).toFixed(0)}
+                  S/ {Number(plan.priceMonthly).toFixed(2)}
                   <span className="text-base font-normal text-muted-foreground">
                     /{locale === "en" ? "mo" : "mes"}
                   </span>

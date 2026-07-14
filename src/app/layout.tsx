@@ -69,15 +69,12 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning className={outfit.variable}>
-      <head>
-        {/* Cookie compartida con docs (evora-theme) → localStorage theme antes del paint.
-            Script nativo en <head> evita el warning de next/script en el árbol React del body. */}
+      <body suppressHydrationWarning className="font-sans">
+        {/* Theme antes del paint; sin <head> manual (App Router lo gestiona). */}
         <script
           id="evora-theme-bootstrap"
           dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }}
         />
-      </head>
-      <body suppressHydrationWarning className="font-sans">
         <AccentColorInitializer platformDefault={brand.defaultAccentColor} />
         <PlatformBrandProvider brand={brand}>
           <LocaleProvider initialLocale={locale}>
