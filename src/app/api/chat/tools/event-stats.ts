@@ -48,16 +48,22 @@ export function createGetEventStats(scope: ChatToolScope) {
           ]);
 
         return {
-          totalUsers: usersCount,
-          totalEvents: eventsCount,
-          totalRegistrations: regsCount,
-          publishedEvents: publishedCount,
-          scope:
+          source: "database",
+          asOf: new Date().toISOString(),
+          scopeLabel:
             scope.role === "super_admin"
-              ? "plataforma"
+              ? "plataforma completa"
               : scope.role === "admin"
-                ? "entidad"
+                ? "tu entidad"
                 : "tus eventos",
+          figures: {
+            totalEvents: Number(eventsCount),
+            publishedEvents: Number(publishedCount),
+            totalRegistrations: Number(regsCount),
+            totalUsers: Number(usersCount),
+          },
+          grounding:
+            "Usa SOLO figures. Copia los enteros exactos. No inventes otros conteos. Si preguntan algo fuera de estas claves, di que no está en este resultado.",
         };
       } catch (err) {
         console.error("Error in getEventStats:", err);

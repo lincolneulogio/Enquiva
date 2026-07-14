@@ -8,6 +8,11 @@ import { streamWithFallback } from "./providers";
 import { requirePlanFeature, PlanLimitError } from "@/lib/billing/enforce";
 import { assertAiChatMessageAllowed } from "@/lib/billing/ai-chat-usage";
 import { chatRatelimit, enforceRateLimit } from "@/lib/redis";
+import {
+  appendRetrievedContextToSystem,
+  retrieveChatContext,
+} from "@/lib/chat/retrieve-context";
+
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
@@ -36,13 +41,12 @@ export async function POST(req: Request) {
 
     await assertAiChatMessageAllowed(userId, userRole);
 
-    // 2. System prompt dinámico según rol
-    const systemPrompt = buildSystemPrompt(userName, userRole);
+    const basePrompt = buildSystemPrompt(userName, userRole);
+    const retrieved = retrieveChatContext(messages, userRole);
+    const systemPrompt = appendRetrievedContextToSystem(basePrompt, retrieved);
 
-    // 3. Herramientas dinámicas según rol y alcance de entidad
     const tools = await buildTools(userRole, userId, userName);
 
-    // 4. Stream con cadena de fallback
     const convertedMessages = await convertToModelMessages(messages);
 
     const response = await streamWithFallback(

@@ -6,6 +6,7 @@ import { createPreviewMassNotification, createSendMassNotification } from "./mas
 import { createGetAuditLogs } from "./audit-logs";
 import { createGetUsersList } from "./users";
 import { createGetRegistrationsList } from "./registrations";
+import { createGetPlatformKnowledge } from "./platform-knowledge";
 import { hasEffectivePermission } from "@/lib/auth/effective-permissions";
 import { resolveChatToolScope, type ChatToolScope } from "./scope";
 import { normalizeChatTool } from "./chat-tool";
@@ -20,6 +21,8 @@ export async function buildTools(userRole: AppRole, userId: string, userName: st
   const scope = await resolveChatToolScope(userId, userName, userRole);
   const tools: Record<string, unknown> = {};
 
+  // Conocimiento canónico para todos los roles (evita inventar módulos).
+  addTool(tools, "getPlatformKnowledge", createGetPlatformKnowledge());
   addTool(tools, "searchEvents", createSearchEvents(scope));
 
   if (userRole === "member") {
