@@ -90,8 +90,8 @@ export async function PublicHeader() {
           ))}
 
           {user ? (
-            <div className="flex items-center gap-3 rounded-2xl border border-border bg-card/45 p-1 pl-1.5 pr-1.5 shadow-sm transition-all duration-300 hover:bg-card/90 hover:border-primary/20 hover:shadow-md backdrop-blur-sm">
-              <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-xs select-none">
+            <div className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-card/45 p-1 pl-1.5 shadow-sm transition-all duration-300 hover:border-primary/20 hover:bg-card/90 hover:shadow-md backdrop-blur-sm">
+              <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-primary/20 bg-primary/10 text-xs font-bold text-primary select-none">
                 {user.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -113,29 +113,29 @@ export async function PublicHeader() {
                 )}
               </div>
 
-              <div className="hidden sm:flex flex-col text-left min-w-0">
-                <span className="text-xs font-bold text-foreground leading-tight max-w-[140px] truncate">
+              <div className="hidden min-w-0 flex-col justify-center text-left sm:flex">
+                <span className="max-w-[140px] truncate text-xs font-bold leading-none text-foreground">
                   {user.name}
                 </span>
-                <span className="text-[10px] text-muted-foreground leading-none max-w-[140px] truncate mt-0.5">
+                <span className="mt-0.5 max-w-[140px] truncate text-[10px] leading-none text-muted-foreground">
                   {roleLabel ?? user.email}
                 </span>
               </div>
 
               <Link
                 href={dashboardPath}
-                className="rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground transition-all duration-300 hover:bg-primary/95 shadow-sm hover:scale-101 shrink-0"
+                className="inline-flex h-8 shrink-0 items-center rounded-lg bg-primary px-3 text-xs font-bold text-primary-foreground shadow-sm transition-all duration-300 hover:bg-primary/95"
               >
                 {dashboardLabel}
               </Link>
             </div>
           ) : (
-            <div className="flex items-center gap-3 rounded-2xl border border-border bg-card/45 p-1 pl-1.5 pr-1.5 shadow-sm backdrop-blur-sm">
-              <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-secondary text-xs font-bold text-muted-foreground select-none">
+            <div className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-card/45 p-1 pl-1.5 shadow-sm backdrop-blur-sm">
+              <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-secondary text-xs font-bold text-muted-foreground select-none">
                 IN
               </div>
-              <div className="hidden min-w-0 flex-col text-left sm:flex">
-                <span className="max-w-[140px] truncate text-xs font-bold leading-tight text-foreground">
+              <div className="hidden min-w-0 flex-col justify-center text-left sm:flex">
+                <span className="max-w-[140px] truncate text-xs font-bold leading-none text-foreground">
                   {locale === "en" ? "Guest" : "Invitado"}
                 </span>
                 <span className="mt-0.5 max-w-[140px] truncate text-[10px] leading-none text-muted-foreground">
@@ -144,13 +144,13 @@ export async function PublicHeader() {
               </div>
               <Link
                 href="/login"
-                className="shrink-0 rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
+                className="inline-flex h-8 shrink-0 items-center rounded-lg border border-border bg-background px-3 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
               >
                 {t("common.signIn")}
               </Link>
               <Link
                 href="/register"
-                className="shrink-0 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground shadow-sm transition-all hover:bg-primary/95"
+                className="inline-flex h-8 shrink-0 items-center rounded-lg bg-primary px-3 text-xs font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/95"
               >
                 {t("common.getStarted")}
               </Link>

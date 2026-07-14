@@ -52,16 +52,16 @@ export function TopbarUserMenu({ user }: TopbarUserMenuProps) {
   }, []);
 
   return (
-    <div ref={menuRef} className="relative flex shrink-0 items-center gap-2 sm:gap-2">
+    <div ref={menuRef} className="relative flex shrink-0 items-center gap-2">
       <button
         type="button"
         onClick={() => setIsMobileMenuOpen((prev) => !prev)}
         title={user.name ?? "User"}
-        className="flex items-center gap-2 rounded-xl border border-border bg-secondary/50 px-2.5 py-1.5 md:hidden"
+        className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-secondary/50 px-1.5 md:hidden"
       >
-        <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full bg-secondary">
+        <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg bg-secondary">
           {user.image ? (
-            <Image src={user.image} alt={user.name ?? ""} fill sizes="28px" className="object-cover" />
+            <Image src={user.image} alt={user.name ?? ""} fill sizes="32px" className="object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-foreground/70">
               {user.name?.[0]?.toUpperCase()}
@@ -88,11 +88,10 @@ export function TopbarUserMenu({ user }: TopbarUserMenuProps) {
       )}
 
       {/* User info: avatar + nombre + rol */}
-      <div className="hidden items-center gap-2 rounded-xl border border-border bg-secondary/50 px-2.5 py-1.5 sm:gap-3 sm:px-3 sm:py-1.5 md:flex">
-        {/* Avatar */}
-        <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full bg-secondary sm:h-7 sm:w-7">
+      <div className="hidden h-10 items-center gap-2.5 rounded-xl border border-border bg-secondary/50 px-1.5 pr-2 md:inline-flex">
+        <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-lg bg-secondary">
           {user.image ? (
-            <Image src={user.image} alt={user.name ?? ""} fill sizes="28px" className="object-cover" />
+            <Image src={user.image} alt={user.name ?? ""} fill sizes="32px" className="object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-foreground/70">
               {user.name?.[0]?.toUpperCase()}
@@ -100,16 +99,18 @@ export function TopbarUserMenu({ user }: TopbarUserMenuProps) {
           )}
         </div>
 
-        {/* Nombre y rol */}
         <div className="hidden min-w-0 md:block">
-          <p className="max-w-[100px] truncate text-sm font-medium leading-none text-foreground lg:max-w-[150px]">{user.name}</p>
-          <p className="mt-0.5 max-w-[100px] truncate text-xs text-muted-foreground lg:max-w-[150px]">{user.email}</p>
+          <p className="max-w-[100px] truncate text-xs font-semibold leading-none text-foreground lg:max-w-[150px]">
+            {user.name}
+          </p>
+          <p className="mt-0.5 max-w-[100px] truncate text-[10px] leading-none text-muted-foreground lg:max-w-[150px]">
+            {user.email}
+          </p>
         </div>
 
-        {/* Badge de rol */}
         <span
           className={cn(
-            "hidden lg:inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-normal shadow-sm",
+            "hidden h-8 items-center gap-1 whitespace-nowrap rounded-lg px-2.5 text-[11px] font-semibold tracking-normal shadow-sm lg:inline-flex",
             ROLE_BADGE_STYLES[normalizedRole]
           )}
         >
@@ -118,14 +119,13 @@ export function TopbarUserMenu({ user }: TopbarUserMenuProps) {
         </span>
       </div>
 
-      {/* Botón cerrar sesión */}
       <button
         onClick={handleSignOut}
         title={t("common.signOut")}
-        className="hidden items-center gap-1.5 rounded-xl border border-border bg-secondary/50 px-2 py-2 text-sm text-muted-foreground transition-colors hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive md:flex lg:px-3"
+        className="hidden h-10 items-center gap-1.5 rounded-xl border border-border bg-secondary/50 px-3 text-sm text-muted-foreground transition-colors hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive md:inline-flex"
       >
         <LogOut className="h-4 w-4" />
-        <span className="hidden lg:block">{t("common.signOut")}</span>
+        <span className="hidden lg:inline">{t("common.signOut")}</span>
       </button>
     </div>
   );

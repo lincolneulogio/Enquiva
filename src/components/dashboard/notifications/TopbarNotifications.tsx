@@ -156,12 +156,12 @@ export function TopbarNotifications({
         <div ref={wrapperRef} className="relative">
             <button
                 onClick={onToggle}
-                className="relative shrink-0 rounded-xl border border-border bg-secondary/50 p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-secondary/50 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                 aria-label={t("common.openNotifications")}
             >
                 <Bell className="h-4 w-4" />
                 {unreadCount > 0 && (
-                    <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-foreground">
+                    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-0.5 text-[10px] font-bold text-accent-foreground">
                         {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
                 )}

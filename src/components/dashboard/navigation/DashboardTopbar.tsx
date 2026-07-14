@@ -47,7 +47,7 @@ export async function DashboardTopbar({ user }: DashboardTopbarProps) {
         <Link
           href="/"
           title="Ir a web"
-          className="hidden sm:flex h-9 items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 lg:px-4 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+          className="hidden h-10 items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-3 text-sm font-medium text-primary transition-colors hover:bg-primary/20 sm:inline-flex lg:px-4"
         >
           <Globe className="h-4 w-4" />
           <span className="hidden lg:inline">Ir a web</span>

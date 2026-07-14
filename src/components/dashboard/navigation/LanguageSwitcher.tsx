@@ -10,11 +10,11 @@ export function LanguageSwitcher() {
 
     return (
         <div
-            className="flex shrink-0 items-center gap-0.5 rounded-xl border border-border bg-secondary/50 p-1 sm:gap-1 sm:p-1"
+            className="inline-flex h-10 shrink-0 items-center gap-0.5 rounded-xl border border-border bg-secondary/50 p-1"
             aria-label={t("common.language")}
             title={t("common.language")}
         >
-            <span className="hidden h-7 w-7 items-center justify-center text-muted-foreground sm:flex sm:h-8 sm:w-8">
+            <span className="hidden h-8 w-8 items-center justify-center text-muted-foreground sm:inline-flex">
                 <Globe className="h-4 w-4" />
             </span>
             {localeOptions.map((option) => {
@@ -26,7 +26,7 @@ export function LanguageSwitcher() {
                         disabled={isPending}
                         onClick={() => setLocale(option.value)}
                         className={cn(
-                            "rounded-lg px-2 py-1.5 text-xs font-semibold transition-colors disabled:opacity-60 sm:px-2.5 sm:py-1.5",
+                            "inline-flex h-8 items-center rounded-lg px-2.5 text-xs font-semibold transition-colors disabled:opacity-60",
                             active
                                 ? "bg-background text-foreground shadow-sm"
                                 : "text-muted-foreground hover:bg-background/70 hover:text-foreground"
