@@ -1,8 +1,8 @@
 import type { Plan } from "@/lib/db/schema";
 import type { PlanFeatures, PlanSlug, ResolvedPlan } from "./types";
 
-export const DEFAULT_PLAN_DEFINITIONS: Array<{
-  slug: PlanSlug;
+export type PlanDefinitionSeed = {
+  slug: PlanSlug | string;
   name: string;
   description: string;
   priceMonthly: string;
@@ -19,11 +19,19 @@ export const DEFAULT_PLAN_DEFINITIONS: Array<{
   featureExports: boolean;
   featureCustomBranding: boolean;
   sortOrder: number;
-}> = [
+};
+
+/**
+ * Catálogo canónico tras reset/sync: solo plan público Free.
+ * El plan especial de superadmin se gestiona aparte (`PLATFORM_SPECIAL_PLAN_*`).
+ * Pro/Enterprise u otros los crea el superadmin cuando quiera venderlos.
+ */
+export const DEFAULT_PLAN_DEFINITIONS: PlanDefinitionSeed[] = [
   {
     slug: "free",
     name: "Gratis",
-    description: "Ideal para probar la plataforma: 1 evento, hasta 100 asistentes por evento y pagos con Culqi (tarjeta, Yape y billeteras).",
+    description:
+      "Ideal para probar la plataforma: 1 evento, hasta 100 asistentes por evento y pagos con Culqi (tarjeta, Yape y billeteras).",
     priceMonthly: "0",
     maxActiveEvents: 1,
     maxAttendeesPerEvent: 100,
@@ -39,54 +47,19 @@ export const DEFAULT_PLAN_DEFINITIONS: Array<{
     featureCustomBranding: false,
     sortOrder: 1,
   },
-  {
-    slug: "pro",
-    name: "Pro",
-    description: "Para entidades con eventos regulares: colegios, universidades, empresas y organizaciones.",
-    priceMonthly: "49",
-    maxActiveEvents: 10,
-    maxAttendeesPerEvent: 1000,
-    commissionPercent: "5",
-    commissionPerRegistration: "0.30",
-    maxBroadcastsPerMonth: 50,
-    maxAiMessagesPerMonth: 200,
-    maxOrganizers: 3,
-    featureCulqi: true,
-    featureTransport: true,
-    featureAi: true,
-    featureExports: true,
-    featureCustomBranding: true,
-    sortOrder: 2,
-  },
-  {
-    slug: "enterprise",
-    name: "Enterprise",
-    description: "Sin límites para organizaciones grandes y multi-sede.",
-    priceMonthly: "99",
-    maxActiveEvents: null,
-    maxAttendeesPerEvent: null,
-    commissionPercent: "3",
-    commissionPerRegistration: "0.20",
-    maxBroadcastsPerMonth: null,
-    maxAiMessagesPerMonth: null,
-    maxOrganizers: null,
-    featureCulqi: true,
-    featureTransport: true,
-    featureAi: true,
-    featureExports: true,
-    featureCustomBranding: true,
-    sortOrder: 3,
-  },
 ];
 
-/** Definición canónica del plan gratuito (único seed obligatorio en arranque). */
-export const FREE_PLAN_DEFINITION = DEFAULT_PLAN_DEFINITIONS.find((d) => d.slug === "free")!;
+/** Definición canónica del plan gratuito (seed obligatorio en arranque). */
+export const FREE_PLAN_DEFINITION = DEFAULT_PLAN_DEFINITIONS[0]!;
 
 /**
  * Plan interno exclusivo del superadmin: todo ilimitado, sin comisión.
  * No es público (no aparece en /pricing ni en selector de organizadores/admin).
  */
 export const PLATFORM_SPECIAL_PLAN_SLUG = "evora-platform" as const;
+
+/** Slugs que deben existir tras bootstrap / sync (el resto se elimina). */
+export const CANONICAL_PLAN_SLUGS = ["free", PLATFORM_SPECIAL_PLAN_SLUG] as const;
 
 export const PLATFORM_SPECIAL_PLAN_DEFINITION = {
   slug: PLATFORM_SPECIAL_PLAN_SLUG,

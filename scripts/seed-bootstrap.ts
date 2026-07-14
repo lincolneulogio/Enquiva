@@ -1,9 +1,10 @@
 /**
  * Bootstrap mínimo de plataforma tras reset o primer arranque:
- * - 4 roles de plataforma
- * - plan free (Gratis) — obligatorio para suscripciones
+ * - roles de plataforma
+ * - plan Free (público)
+ * - plan Plataforma (solo superadmin)
  *
- * Pro/Enterprise: superadmin en el panel o `pnpm db:sync:plans` en deploy.
+ * Otros planes SaaS: el superadmin los crea en el panel cuando quiera.
  */
 import { db } from "@/lib/db";
 import { roles } from "@/lib/db/schema";
@@ -11,17 +12,17 @@ import { DEFAULT_ROLES } from "@/lib/auth/default-roles";
 import { SubscriptionService } from "@/lib/billing/subscription.service";
 
 async function seedBootstrap() {
-  console.log("Bootstrapping platform (roles + plan free)...");
+  console.log("Bootstrapping platform (roles + Free + Plan Plataforma)...");
 
   for (const role of DEFAULT_ROLES) {
     await db.insert(roles).values(role).onConflictDoNothing();
     console.log(`  ✓ role ${role.name}`);
   }
 
-  await SubscriptionService.syncFreePlanDefinition();
-  console.log("  ✓ plan free (Gratis)");
+  await SubscriptionService.ensureDefaultPlans();
+  console.log("  ✓ plans: Free + Plan Plataforma");
 
-  console.log("Done. Create users from the app. Pro/Enterprise: superadmin or pnpm db:sync:plans.");
+  console.log("Done. Create users from the app. Extra SaaS plans: superadmin panel.");
   process.exit(0);
 }
 

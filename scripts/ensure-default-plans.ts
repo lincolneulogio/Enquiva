@@ -1,14 +1,17 @@
 /**
- * Upserts Free / Pro / Enterprise from DEFAULT_PLAN_DEFINITIONS.
- * Bootstrap local usa solo plan free (`db:seed:bootstrap`).
- * Uso post-deploy: pnpm run db:sync:plans
+ * Deja solo los planes canónicos:
+ * - Free (público)
+ * - Plan Plataforma / evora-platform (solo superadmin)
+ *
+ * Elimina Pro/Enterprise u otros planes residuales (suscripciones → Free).
+ * Uso: pnpm run db:sync:plans
  */
 import { SubscriptionService } from "../src/lib/billing/subscription.service";
 
 async function main() {
-  console.log("Syncing default plans (featureCulqi, limits, prices)...");
+  console.log("Syncing canonical plans (Free + Platform special)...");
   await SubscriptionService.ensureDefaultPlans();
-  console.log("Done. Free/Pro/Enterprise now match src/lib/billing/plans.ts.");
+  console.log("Done. Only Free and Plan Plataforma remain.");
   process.exit(0);
 }
 

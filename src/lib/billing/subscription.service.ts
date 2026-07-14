@@ -2,14 +2,32 @@ import { db, type DBTransaction } from "@/lib/db";
 import {
   plans,
   subscriptions,
+  subscriptionPayments,
   platformTransactions,
   events,
   broadcastLogs,
+  users,
+  organizationMembers,
   type Plan,
 } from "@/lib/db/schema";
-import { and, count, desc, eq, gt, gte, inArray, isNull, lt, ne, or, sql, type SQL } from "drizzle-orm";
 import {
-  DEFAULT_PLAN_DEFINITIONS,
+  and,
+  count,
+  desc,
+  eq,
+  gt,
+  gte,
+  inArray,
+  isNull,
+  lt,
+  ne,
+  notInArray,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
+import {
+  CANONICAL_PLAN_SLUGS,
   FREE_PLAN_DEFINITION,
   mapPlanRow,
   PENDING_PLATFORM_SETUP_PLAN,
@@ -19,12 +37,12 @@ import {
   filterPublicBillingPlans,
   isPendingPlatformSetupPlan,
   isPlatformSpecialPlan,
+  type PlanDefinitionSeed,
 } from "./plans";
 import type { PlanUsage, PlanChangePreview, ResolvedPlan, SubscriptionInfo } from "./types";
 import { isOrganizerSubscriptionBlocked } from "./subscription-auto-renew.service";
 import { clearRenewalTrackingFields } from "./subscription-renewal.service";
 import { normalizeRole } from "@/lib/auth/rbac";
-import { users, organizationMembers } from "@/lib/db/schema";
 import {
   resolveSubscriptionBillingContext,
   canManageSubscriptionBilling,
@@ -110,7 +128,7 @@ export class SubscriptionService {
     return mapPlanRow(row.plan);
   }
 
-  private static planUpsertFields(definition: (typeof DEFAULT_PLAN_DEFINITIONS)[number]) {
+  private static planUpsertFields(definition: PlanDefinitionSeed) {
     return {
       name: definition.name,
       description: definition.description,
@@ -194,15 +212,36 @@ export class SubscriptionService {
     return (await this.getPlanBySlug(PLATFORM_SPECIAL_PLAN_SLUG)) ?? UNLIMITED_PLAN;
   }
 
+  /**
+   * Tras reset/sync: deja solo Free (público) + Plan Plataforma (superadmin).
+   * Cualquier otro plan se elimina; suscripciones/pagos asociados pasan a Free.
+   */
   static async ensureDefaultPlans() {
-    for (const definition of DEFAULT_PLAN_DEFINITIONS) {
+    await this.syncFreePlanDefinition();
+    await this.ensurePlatformSpecialPlanExists();
+
+    const [freeRow] = await db.select().from(plans).where(eq(plans.slug, "free")).limit(1);
+    if (!freeRow) {
+      throw new Error("No se pudo sincronizar el plan free.");
+    }
+
+    const extras = await db
+      .select({ id: plans.id, slug: plans.slug, name: plans.name })
+      .from(plans)
+      .where(notInArray(plans.slug, [...CANONICAL_PLAN_SLUGS]));
+
+    for (const extra of extras) {
       await db
-        .insert(plans)
-        .values(definition)
-        .onConflictDoUpdate({
-          target: plans.slug,
-          set: this.planUpsertFields(definition),
-        });
+        .update(subscriptions)
+        .set({ planId: freeRow.id, updatedAt: new Date() })
+        .where(eq(subscriptions.planId, extra.id));
+
+      await db
+        .update(subscriptionPayments)
+        .set({ planId: freeRow.id })
+        .where(eq(subscriptionPayments.planId, extra.id));
+
+      await db.delete(plans).where(eq(plans.id, extra.id));
     }
   }
 
