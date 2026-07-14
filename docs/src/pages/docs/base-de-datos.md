@@ -85,4 +85,4 @@ Implementación: `src/lib/db/export-full-database.ts`.
 
 ## Migraciones
 
-Ver [Estrategia de migraciones](/docs/migraciones) para `db:push`, `db:migrate` y scripts `migrate-*.ts`.
+Ver [Estrategia de migraciones](/docs/migraciones) para `db:push` y `db:migrate`.

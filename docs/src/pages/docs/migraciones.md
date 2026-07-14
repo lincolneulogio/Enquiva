@@ -1,10 +1,10 @@
 ---
 title: "Estrategia de Migraciones"
-description: "Cómo evolucionar el esquema: db:push, drizzle-kit y scripts migrate-*.ts."
+description: "Cómo evolucionar el esquema con Drizzle: db:push, generate y migrate."
 layout: "../../layouts/DocLayout.astro"
 ---
 
-Evora acumuló varios métodos de migración. Esta guía unifica el criterio para nuevos cambios.
+Evora usa **Drizzle** como vía única para el esquema. Los scripts históricos `migrate-*.ts` ya no forman parte del repo.
 
 ---
 
@@ -13,9 +13,9 @@ Evora acumuló varios métodos de migración. Esta guía unifica el criterio par
 | Método | Comando / ubicación | Uso recomendado |
 |--------|---------------------|-----------------|
 | **Drizzle push** | `pnpm run db:push` | Desarrollo local, prototipos |
-| **Drizzle generate/migrate** | `db:generate`, `db:migrate` | Producción cuando existan carpetas `drizzle/` versionadas |
-| **Scripts TS** | `scripts/migrate-*.ts` | Migraciones de datos o DDL puntual ya existente |
-| **SQL manual** | `drizzle/*.sql` (si aplica) | Cambios revisados en PR |
+| **Drizzle generate/migrate** | `db:generate`, `db:migrate` | Producción con carpetas `drizzle/` versionadas |
+| **SQL versionado** | `drizzle/*.sql` | Cambios revisados en PR |
+| **Scripts de ops** | `scripts/` (seed, backup, jobs, staging) | Arranque y operación, no DDL |
 
 ---
 
@@ -23,26 +23,20 @@ Evora acumuló varios métodos de migración. Esta guía unifica el criterio par
 
 1. Edita esquema en `src/lib/db/schema/*.ts`.
 2. En local: `pnpm run db:push` y prueba la app.
-3. Para producción estable: `pnpm run db:generate` → revisa SQL → `pnpm run db:migrate` en deploy o pipeline.
-4. Si hay **transformación de datos** (backfill), añade `scripts/migrate-descripcion.ts` idempotente y documenta aquí.
+3. Para producción: `pnpm run db:generate` → revisa SQL → `pnpm run db:migrate` en deploy.
+4. Si necesitas un backfill puntual, añade un script idempotente en `scripts/` y un comando npm temporal; elimínalo cuando ya no sirva.
 
 ---
 
-## Scripts históricos (`package.json`)
-
-Ejemplos ya registrados:
-
-- `db:migrate:payment-methods`
-- `db:migrate:subscriptions-organization`
-- `db:migrate:events-view-count`
-
-Si restauras desde cero:
+## Restaurar desde cero
 
 ```bash
 pnpm run db:fresh
 ```
 
-Eso hace: `db:reset` → `db:push` → `db:seed:bootstrap` (roles + plan free). Pro/Enterprise: panel superadmin o `pnpm db:sync:plans` en deploy.
+Eso hace: `db:reset` → `db:push` → `db:seed:bootstrap` (roles + Free + Plan Plataforma).
+
+Planes SaaS comerciales adicionales: el superadmin los crea en el panel. Para dejar solo canónicos: `pnpm db:sync:plans`.
 
 ---
 
@@ -50,15 +44,5 @@ Eso hace: `db:reset` → `db:push` → `db:seed:bootstrap` (roles + plan free). 
 
 1. Backup (`pnpm run db:backup` o snapshot del proveedor).
 2. Aplicar migración en ventana de bajo tráfico.
-3. Verificar con smoke test manual.
+3. Verificar con smoke test (`pnpm run staging:gate` en staging).
 4. No uses `db:push` destructivo contra producción sin revisar el diff de Drizzle.
-
----
-
-## Reset local
-
-```bash
-docker compose down -v
-docker compose up -d
-pnpm run db:push
-```
