@@ -84,12 +84,14 @@ export function MemberTicketsClient({ tickets }: MemberTicketsClientProps) {
 
   // Filter Reset Handlers (resets pagination to page 1)
   const handleSearchChange = (val: string) => {
-    setSearchQuery(val);
+    const query = val;
+    setSearchQuery(query);
     setCurrentPage(1);
   };
 
   const handleTabChange = (tab: "all" | "upcoming" | "past") => {
-    setActiveTab(tab);
+    const nextTab = tab;
+    setActiveTab(nextTab);
     setCurrentPage(1);
   };
 

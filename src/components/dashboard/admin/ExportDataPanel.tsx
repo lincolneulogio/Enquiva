@@ -140,8 +140,9 @@ export function ExportDataPanel({
     }, [locale, resource]);
 
     const handleExport = async (format: "pdf" | "excel" | "print") => {
+        const exportFormat = format;
         try {
-            setLoadingFormat(format);
+            setLoadingFormat(exportFormat);
             const payload = await getExportData({
                 resource,
                 scope,
@@ -152,11 +153,11 @@ export function ExportDataPanel({
                 toDate: enableDateRange && toDate ? toDate : null,
             });
 
-            if (format === "excel") {
+            if (exportFormat === "excel") {
                 await downloadExcel(payload);
             } else {
                 const doc = await buildExportPdf(payload);
-                if (format === "print") {
+                if (exportFormat === "print") {
                     await printJsPdf(doc);
                 } else {
                     doc.save(`${payload.suggestedFileName}.pdf`);
@@ -164,17 +165,17 @@ export function ExportDataPanel({
             }
 
             toast.success(
-                format === "print"
+                exportFormat === "print"
                     ? t("common.printOpened")
                     : locale === "en"
-                      ? `${format.toUpperCase()} export generated successfully`
-                      : `Exportación ${format.toUpperCase()} generada correctamente`
+                      ? `${exportFormat.toUpperCase()} export generated successfully`
+                      : `Exportación ${exportFormat.toUpperCase()} generada correctamente`
             );
         } catch (error) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : format === "print"
+                    : exportFormat === "print"
                       ? t("common.printError")
                       : t("common.genericExportError")
             );

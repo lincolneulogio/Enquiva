@@ -122,12 +122,14 @@ export function OrganizerBillingClient({
   };
 
   const proceedPlanChange = (target: Plan, confirmed: boolean) => {
+    const planTarget = target;
+    const isConfirmed = confirmed;
     setOpeningCheckout(true);
     startTransition(async () => {
       try {
-        const res = await requestPlanUpgrade(target.slug, confirmed);
+        const res = await requestPlanUpgrade(planTarget.slug, isConfirmed);
         if (res.mode === "confirm" && res.preview) {
-          setPlanChangeConfirm({ target, preview: res.preview });
+          setPlanChangeConfirm({ target: planTarget, preview: res.preview });
           return;
         }
         if (res.mode === "assigned") {
@@ -135,7 +137,7 @@ export function OrganizerBillingClient({
           toast.success(t("billing.organizer.planUpdated"));
           refreshBillingQuietly();
         } else if (res.mode === "checkout") {
-          openCheckoutForPlan(target, res.preview?.newPeriodEnd ?? null);
+          openCheckoutForPlan(planTarget, res.preview?.newPeriodEnd ?? null);
         }
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t("billing.organizer.planChangeFailed"));
@@ -152,7 +154,8 @@ export function OrganizerBillingClient({
       return;
     }
     resetCulqiCheckoutUi();
-    proceedPlanChange(target, false);
+    const selectedPlan = target;
+    proceedPlanChange(selectedPlan, false);
   };
 
   const dateLocale = locale === "en" ? "en-US" : "es-PE";

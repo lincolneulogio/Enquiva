@@ -159,9 +159,14 @@ export function TicketCard({
       setQrDataUrl(null);
       return;
     }
-    buildTicketQrDataUrlClient(ticket.code, ticket.signature, ticket.qrCode).then((url) => {
-      if (!cancelled) setQrDataUrl(url);
-    });
+    void (async () => {
+      const dataUrl = await buildTicketQrDataUrlClient(
+        ticket.code,
+        ticket.signature,
+        ticket.qrCode,
+      );
+      if (!cancelled) setQrDataUrl(dataUrl);
+    })();
     return () => {
       cancelled = true;
     };

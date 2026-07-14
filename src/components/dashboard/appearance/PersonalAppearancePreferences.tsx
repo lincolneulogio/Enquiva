@@ -41,7 +41,8 @@ export function PersonalAppearancePreferences({
   useEffect(() => {
     const sync = () => {
       const follows = !hasAccentOverride();
-      setFollowsPlatform(follows);
+      const followsPlatformNext = follows;
+      setFollowsPlatform(followsPlatformNext);
       setActiveAccent(resolveEffectiveAccent(platformDefaultAccent));
     };
     sync();
@@ -64,24 +65,26 @@ export function PersonalAppearancePreferences({
       return;
     }
 
-    clearAccentOverride(platformDefaultAccent);
+    const platformAccent = platformDefaultAccent;
+    clearAccentOverride(platformAccent);
     setFollowsPlatform(true);
-    setActiveAccent(platformDefaultAccent);
+    setActiveAccent(platformAccent);
     toast.success(
       locale === "en"
-        ? `Using platform accent (${ACCENT_COLORS[platformDefaultAccent].name})`
-        : `Usando acento de plataforma (${ACCENT_COLORS[platformDefaultAccent].name})`,
+        ? `Using platform accent (${ACCENT_COLORS[platformAccent].name})`
+        : `Usando acento de plataforma (${ACCENT_COLORS[platformAccent].name})`,
     );
   };
 
   const handlePersonalAccent = (color: AccentColor) => {
-    setAccentOverride(color);
+    const nextColor = color;
+    setAccentOverride(nextColor);
     setFollowsPlatform(false);
-    setActiveAccent(color);
+    setActiveAccent(nextColor);
     toast.success(
       locale === "en"
-        ? `Accent color set to ${ACCENT_COLORS[color].name}`
-        : `Color de acento: ${ACCENT_COLORS[color].name}`,
+        ? `Accent color set to ${ACCENT_COLORS[nextColor].name}`
+        : `Color de acento: ${ACCENT_COLORS[nextColor].name}`,
     );
   };
 

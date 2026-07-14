@@ -93,19 +93,20 @@ export function TransportRoutesManager({
     const [stopPending, setStopPending] = useState(false);
 
     const toggleStops = async (routeId: string) => {
-        if (expandedRouteId === routeId) {
+        const id = routeId;
+        if (expandedRouteId === id) {
             setExpandedRouteId(null);
             return;
         }
 
-        setExpandedRouteId(routeId);
+        setExpandedRouteId(id);
 
-        if (!stopsByRoute[routeId]) {
+        if (!stopsByRoute[id]) {
             try {
-                const stopsData = await getStopsByRoute(routeId);
+                const stopsData = await getStopsByRoute(id);
                 setStopsByRoute((prev) => ({
                     ...prev,
-                    [routeId]: stopsData,
+                    [id]: stopsData,
                 }));
             } catch (error) {
                 toast.error("Error al cargar los paraderos.");
@@ -255,11 +256,12 @@ export function TransportRoutesManager({
     };
 
     const handleDelete = (routeId: string) => {
-        setDeletingId(routeId);
+        const id = routeId;
+        setDeletingId(id);
         startTransition(async () => {
             try {
-                await deleteRoute(routeId);
-                setRoutes((prev) => prev.filter((r) => r.id !== routeId));
+                await deleteRoute(id);
+                setRoutes((prev) => prev.filter((r) => r.id !== id));
                 toast.success(t("transport.manager.routeDeleted"));
             } catch (e) {
                 toast.error(e instanceof Error ? e.message : t("transport.manager.deleteError"));
