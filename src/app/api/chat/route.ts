@@ -8,7 +8,7 @@ import { streamWithFallback } from "./providers";
 import { requirePlanFeature, PlanLimitError } from "@/lib/billing/enforce";
 import { assertAiChatMessageAllowed } from "@/lib/billing/ai-chat-usage";
 import { chatRatelimit, enforceRateLimit } from "@/lib/redis";
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {

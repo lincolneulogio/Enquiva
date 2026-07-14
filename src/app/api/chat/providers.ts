@@ -1,39 +1,223 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
-import { streamText, type LanguageModel } from "ai";
+import { streamText, stepCountIs, type LanguageModel } from "ai";
 import { env } from "@/env";
+import { createResponseSanitizer } from "./sanitize-output";
 
 type StreamMessages = NonNullable<Parameters<typeof streamText>[0]["messages"]>;
 
-function getGeminiModel(): LanguageModel | null {
-  if (!env.GEMINI_API_KEY) return null;
+type ResolvedModel = {
+  id: string;
+  model: LanguageModel;
+};
+
+/**
+ * Cadena :free con tool calling.
+ * OpenRouter aplica fallbacks server-side vía `models` (máx. 3 ítems).
+ * @see https://openrouter.ai/docs/guides/routing/model-fallbacks
+ */
+const DEFAULT_OPENROUTER_MODELS = [
+  "qwen/qwen3-next-80b-a3b-instruct:free",
+  "google/gemma-4-31b-it:free",
+  "openai/gpt-oss-20b:free",
+  "nvidia/nemotron-3-nano-30b-a3b:free",
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "openrouter/free",
+] as const;
+
+/** OpenRouter solo acepta hasta 3 entradas en `models`. */
+const OPENROUTER_MODELS_ARRAY_MAX = 3;
+
+const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash";
+const DEFAULT_GEMINI_FALLBACK_MODEL = "gemini-3.1-flash-lite";
+
+function parseModelList(value: string | undefined): string[] {
+  if (!value?.trim()) return [];
+  return value
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function uniquePreserveOrder(ids: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const id of ids) {
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
+}
+
+function resolveOpenRouterModelIds(): string[] {
+  const preferred = env.OPENROUTER_MODEL?.trim() || DEFAULT_OPENROUTER_MODELS[0];
+  const fromEnv = parseModelList(env.OPENROUTER_FALLBACK_MODELS);
+  const fallbacks = fromEnv.length > 0 ? fromEnv : [...DEFAULT_OPENROUTER_MODELS];
+  return uniquePreserveOrder([preferred, ...fallbacks]);
+}
+
+function resolveGeminiModelIds(): string[] {
+  const preferred = env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
+  const fallback =
+    env.GEMINI_FALLBACK_MODEL?.trim() || DEFAULT_GEMINI_FALLBACK_MODEL;
+  return uniquePreserveOrder([preferred, fallback]);
+}
+
+function getGeminiModels(): ResolvedModel[] {
+  if (!env.GEMINI_API_KEY) return [];
   const google = createGoogleGenerativeAI({ apiKey: env.GEMINI_API_KEY });
-  return google(env.GEMINI_MODEL || "gemini-2.5-flash");
+  return resolveGeminiModelIds().map((id) => ({
+    id: `google/${id}`,
+    model: google(id),
+  }));
 }
 
-function getOpenRouterModel(): LanguageModel | null {
-  if (!env.OPENROUTER_API_KEY) return null;
-  const openrouter = createOpenAI({
-    baseURL: "https://openrouter.ai/api/v1",
-    apiKey: env.OPENROUTER_API_KEY,
+/**
+ * Cliente OpenRouter + `models[]` nativo (máx. 3 por request).
+ * El resto de la cadena se prueba en llamadas siguientes.
+ */
+function getOpenRouterModels(): ResolvedModel[] {
+  if (!env.OPENROUTER_API_KEY) return [];
+
+  const chain = resolveOpenRouterModelIds();
+  if (chain.length === 0) return [];
+
+  const batches: string[][] = [];
+  for (let i = 0; i < chain.length; i += OPENROUTER_MODELS_ARRAY_MAX) {
+    batches.push(chain.slice(i, i + OPENROUTER_MODELS_ARRAY_MAX));
+  }
+
+  return batches.map((batch) => {
+    const [primary, ...fallbacks] = batch;
+    const openrouter = createOpenAI({
+      baseURL: "https://openrouter.ai/api/v1",
+      apiKey: env.OPENROUTER_API_KEY,
+      name: "openrouter",
+      headers: {
+        "HTTP-Referer": env.NEXT_PUBLIC_APP_URL,
+        "X-Title": "Evora Copilot",
+      },
+      fetch: async (input, init) => {
+        if (!init?.body || typeof init.body !== "string") {
+          return fetch(input, init);
+        }
+        try {
+          const body = JSON.parse(init.body) as Record<string, unknown>;
+          if (fallbacks.length > 0) {
+            body.models = uniquePreserveOrder([
+              String(body.model ?? primary),
+              ...fallbacks,
+            ]).slice(0, OPENROUTER_MODELS_ARRAY_MAX);
+          }
+          // Evita devolver “thinking” / tokens internos en el texto visible
+          body.reasoning = { exclude: true };
+          return fetch(input, { ...init, body: JSON.stringify(body) });
+        } catch {
+          return fetch(input, init);
+        }
+      },
+    });
+
+    return {
+      id: `openrouter/${primary}${fallbacks.length ? ` (+${fallbacks.length} fallbacks)` : ""}`,
+      model: openrouter.chat(primary!),
+    };
   });
-  return openrouter(env.OPENROUTER_MODEL || "meta-llama/llama-3.1-8b-instruct:free");
 }
 
-function resolveModels(): LanguageModel[] {
-  const preferred =
-    env.AI_PROVIDER === "openrouter"
-      ? [getOpenRouterModel(), getGeminiModel()]
-      : [getGeminiModel(), getOpenRouterModel()];
-
-  return preferred.filter((model): model is LanguageModel => model !== null);
+function resolveModels(): ResolvedModel[] {
+  const gemini = getGeminiModels();
+  const openrouter = getOpenRouterModels();
+  return env.AI_PROVIDER === "openrouter"
+    ? [...openrouter, ...gemini]
+    : [...gemini, ...openrouter];
 }
 
 export function isAiConfigured(): boolean {
   return resolveModels().length > 0;
 }
 
-/** Stream de respuesta con fallback Gemini ↔ OpenRouter según AI_PROVIDER */
+function shortError(error: unknown): string {
+  if (!(error instanceof Error)) return String(error);
+  const status = (error as { statusCode?: number }).statusCode;
+  return status ? `${error.message} (${status})` : error.message;
+}
+
+/**
+ * Espera el primer token (o fin vacío).
+ * Si el stream termina sin texto (tool call sin step 2), falla para probar el siguiente modelo.
+ * Sanitiza tokens de control filtrados por modelos free (`<|message|>`, etc.).
+ */
+async function toTextResponseAfterFirstChunk(
+  textStream: AsyncIterable<string>,
+  modelId: string,
+): Promise<Response> {
+  const iterator = textStream[Symbol.asyncIterator]();
+  const first = await iterator.next();
+
+  if (first.done) {
+    throw new Error(
+      `Respuesta vacía de ${modelId} (sin texto tras herramientas).`,
+    );
+  }
+
+  const sanitizer = createResponseSanitizer();
+  const firstClean =
+    typeof first.value === "string" ? sanitizer.push(first.value) : "";
+
+  // Si el primer chunk era solo basura, esperar hasta tener texto usable
+  let primed = firstClean;
+  if (!primed) {
+    while (true) {
+      const next = await iterator.next();
+      if (next.done) {
+        const leftover = sanitizer.end();
+        if (!leftover.trim()) {
+          throw new Error(
+            `Respuesta vacía o solo tokens de control de ${modelId}.`,
+          );
+        }
+        primed = leftover;
+        break;
+      }
+      primed = sanitizer.push(next.value);
+      if (primed) break;
+    }
+  }
+
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      try {
+        if (primed) controller.enqueue(encoder.encode(primed));
+        while (true) {
+          const next = await iterator.next();
+          if (next.done) {
+            const tail = sanitizer.end();
+            if (tail) controller.enqueue(encoder.encode(tail));
+            break;
+          }
+          const clean = sanitizer.push(next.value);
+          if (clean) controller.enqueue(encoder.encode(clean));
+        }
+        controller.close();
+      } catch (error) {
+        controller.error(error);
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
+}
+
+/** Stream: OpenRouter (con models[]) → Gemini, o al revés según AI_PROVIDER. */
 export async function streamWithFallback(
   messages: StreamMessages,
   system: string,
@@ -49,20 +233,26 @@ export async function streamWithFallback(
 
   let lastError: unknown;
 
-  for (const model of models) {
+  for (const entry of models) {
     try {
-      return streamText({
-        model,
+      console.info(`[AI] Trying model: ${entry.id}`);
+      const result = streamText({
+        model: entry.model,
         messages,
         system,
         tools,
-        maxRetries: 1,
-        maxSteps: 5,
-        maxTokens: 1000,
-      } as Parameters<typeof streamText>[0]).toTextStreamResponse();
+        maxRetries: 0,
+        // AI SDK v6: maxSteps ya no existe; sin esto el modelo corta tras 1 tool call.
+        stopWhen: stepCountIs(5),
+        maxOutputTokens: 1200,
+      } as Parameters<typeof streamText>[0]);
+
+      return await toTextResponseAfterFirstChunk(result.textStream, entry.id);
     } catch (error) {
       lastError = error;
-      console.warn("[AI] Provider failed, trying fallback if available:", error);
+      console.warn(
+        `[AI] Model failed (${entry.id}): ${shortError(error)} — trying next`,
+      );
     }
   }
 

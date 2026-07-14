@@ -26,6 +26,7 @@ function AICopilotInner() {
     handleInputChange,
     handleSubmit,
     isLoading,
+    errorMessage,
     handleToggle,
     handleResetChat,
     RoleIcon,
@@ -61,6 +62,7 @@ function AICopilotInner() {
             <ChatMessages
               messages={messages}
               isLoading={isLoading}
+              errorMessage={errorMessage}
               messagesEndRef={messagesEndRef}
               userImage={session.user.image}
               userName={session.user.name}

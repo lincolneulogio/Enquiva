@@ -75,6 +75,7 @@ export function useChatCopilot() {
     handleInputChange,
     handleSubmit,
     isLoading,
+    error,
     setMessages,
     setInput,
   } = useChat({
@@ -88,6 +89,13 @@ export function useChatCopilot() {
       },
     ],
   });
+
+  const errorMessage =
+    error instanceof Error
+      ? error.message.includes("429")
+        ? "Has alcanzado el límite de mensajes o el proveedor está saturado. Espera un momento e inténtalo de nuevo."
+        : error.message || "No pude completar la respuesta. Revisa la conexión e inténtalo otra vez."
+      : null;
 
   useEffect(() => {
     const saved = loadFormDraft<string>(formStorageKey("ai.copilot.input"));
@@ -155,6 +163,7 @@ export function useChatCopilot() {
     handleInputChange,
     handleSubmit: wrappedSubmit,
     isLoading,
+    errorMessage,
     handleToggle,
     handleResetChat,
     aiUsage,

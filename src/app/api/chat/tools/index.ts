@@ -8,10 +8,12 @@ import { createGetUsersList } from "./users";
 import { createGetRegistrationsList } from "./registrations";
 import { hasEffectivePermission } from "@/lib/auth/effective-permissions";
 import { resolveChatToolScope, type ChatToolScope } from "./scope";
+import { normalizeChatTool } from "./chat-tool";
 import type { AppRole } from "@/lib/auth/rbac";
 
-function addTool<T extends Record<string, unknown>>(tools: Record<string, unknown>, name: string, tool: T | null) {
-  if (tool) tools[name] = tool;
+function addTool(tools: Record<string, unknown>, name: string, raw: Parameters<typeof normalizeChatTool>[0]) {
+  const normalized = normalizeChatTool(raw);
+  if (normalized) tools[name] = normalized;
 }
 
 export async function buildTools(userRole: AppRole, userId: string, userName: string) {
@@ -21,7 +23,7 @@ export async function buildTools(userRole: AppRole, userId: string, userName: st
   addTool(tools, "searchEvents", createSearchEvents(scope));
 
   if (userRole === "member") {
-    tools.getMyTickets = getMyTickets(userId);
+    addTool(tools, "getMyTickets", getMyTickets(userId));
     return tools;
   }
 

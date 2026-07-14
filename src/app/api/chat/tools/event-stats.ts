@@ -16,13 +16,13 @@ export function createGetEventStats(scope: ChatToolScope) {
   }
 
   return {
-    description:
-      scope.role === "super_admin"
-        ? "Obtiene estadísticas globales de la plataforma."
-        : scope.role === "admin"
-          ? "Obtiene estadísticas de tu entidad."
-          : "Obtiene estadísticas de tus eventos.",
-    parameters: z.object({}),
+      description:
+        scope.role === "super_admin"
+          ? "Estadísticas globales de la plataforma: total de eventos, publicados, inscripciones y usuarios. Úsala para preguntas como '¿cuántos eventos hay?'."
+          : scope.role === "admin"
+            ? "Estadísticas de tu entidad: eventos, publicados, inscripciones y usuarios. Úsala para '¿cuántos eventos hay?'."
+            : "Estadísticas de tus eventos: totales, publicados e inscripciones. Úsala para '¿cuántos eventos hay?'.",
+      parameters: z.object({}),
     execute: async () => {
       try {
         const eventScope = scopeEventsForChat(scope);

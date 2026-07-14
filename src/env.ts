@@ -27,10 +27,20 @@ export const env = createEnv({
     UPSTASH_REDIS_REST_URL: z.string().url(),
     UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
     GEMINI_API_KEY: z.string().optional(),
-    GEMINI_MODEL: z.string().default("gemini-2.5-flash"),
+    GEMINI_MODEL: z.string().default("gemini-3.5-flash"),
+    /** Alternativa Gemini si el modelo principal falla (p. ej. cupo). */
+    GEMINI_FALLBACK_MODEL: z.string().default("gemini-3.1-flash-lite"),
     OPENROUTER_API_KEY: z.string().optional(),
-    OPENROUTER_MODEL: z.string().default("meta-llama/llama-3.1-8b-instruct:free"),
-    AI_PROVIDER: z.enum(["google", "openrouter"]).default("google"),
+    /** Primer modelo OpenRouter (:free con tools). */
+    OPENROUTER_MODEL: z
+      .string()
+      .default("qwen/qwen3-next-80b-a3b-instruct:free"),
+    /**
+     * Lista CSV de alternativas OpenRouter si el principal falla.
+     * Vacío = defaults internos con tool calling.
+     */
+    OPENROUTER_FALLBACK_MODELS: z.string().optional(),
+    AI_PROVIDER: z.enum(["google", "openrouter"]).default("openrouter"),
     CULQI_SECRET_KEY: z.string().min(1).optional(),
     CULQI_WEBHOOK_SECRET: z.string().min(1).optional(),
     PLATFORM_FEE_PERCENT: z.coerce.number().min(0).max(100).optional(),
@@ -71,8 +81,10 @@ export const env = createEnv({
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     GEMINI_MODEL: process.env.GEMINI_MODEL,
+    GEMINI_FALLBACK_MODEL: process.env.GEMINI_FALLBACK_MODEL,
     OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
     OPENROUTER_MODEL: process.env.OPENROUTER_MODEL,
+    OPENROUTER_FALLBACK_MODELS: process.env.OPENROUTER_FALLBACK_MODELS,
     AI_PROVIDER: process.env.AI_PROVIDER,
     CULQI_SECRET_KEY: process.env.CULQI_SECRET_KEY,
     CULQI_WEBHOOK_SECRET: process.env.CULQI_WEBHOOK_SECRET,
