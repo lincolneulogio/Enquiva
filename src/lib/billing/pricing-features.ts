@@ -6,14 +6,21 @@ export type PricingFeatureLine = {
   included: boolean;
 };
 
+type FeatureLinesOptions = {
+  /** Por defecto true en /pricing. En paneles de entidad/organizador omitir. */
+  includeCommission?: boolean;
+};
+
 /**
- * Lista completa de características de un plan para la página de precios.
- * Incluye límites, módulos y comisión (también las no disponibles).
+ * Lista completa de características de un plan (límites + módulos).
+ * Las no incluidas quedan con `included: false` para tacharlas en UI.
  */
 export function getPricingFeatureLines(
   plan: ResolvedPlan,
   locale: "es" | "en",
+  options: FeatureLinesOptions = {},
 ): PricingFeatureLine[] {
+  const { includeCommission = true } = options;
   const isEn = locale === "en";
 
   const limit = (
@@ -107,7 +114,10 @@ export function getPricingFeatureLines(
     },
   ];
 
-  if (plan.commissionPercent > 0 || plan.commissionPerRegistration > 0) {
+  if (
+    includeCommission &&
+    (plan.commissionPercent > 0 || plan.commissionPerRegistration > 0)
+  ) {
     lines.push({
       key: "commission",
       text: isEn

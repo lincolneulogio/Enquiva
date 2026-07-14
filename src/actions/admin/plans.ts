@@ -156,14 +156,18 @@ export async function updatePlan(
     return { success: true, plan: updatedSpecial };
   }
 
+  const isFreePlan = current.slug === "free" || current.slug === "gratis";
+
   let nextSlug: string | undefined;
-  if (input.slug !== undefined) {
+  if (isFreePlan) {
+    nextSlug = "free";
+  } else if (input.slug !== undefined) {
     nextSlug = input.slug.trim().toLowerCase();
     if (!/^[a-z0-9_-]+$/.test(nextSlug)) {
       throw new Error("Slug inválido");
     }
-    if (isPlatformSpecialPlan(nextSlug)) {
-      throw new Error("Ese identificador está reservado para el plan especial del superadmin");
+    if (isPlatformSpecialPlan(nextSlug) || nextSlug === "free") {
+      throw new Error("Ese identificador está reservado");
     }
     const [taken] = await db.select({ id: plans.id }).from(plans).where(eq(plans.slug, nextSlug)).limit(1);
     if (taken && taken.id !== id) {

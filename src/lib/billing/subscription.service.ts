@@ -150,8 +150,36 @@ export class SubscriptionService {
     };
   }
 
+  /**
+   * Si el slug canónico `free` desapareció (p. ej. "Gratis" → slugify → "gratis"),
+   * lo recupera sin perder límites/features personalizados por el superadmin.
+   */
+  static async reclaimFreePlanSlug() {
+    const [canonical] = await db.select({ id: plans.id }).from(plans).where(eq(plans.slug, "free")).limit(1);
+    if (canonical) return;
+
+    const [drifted] = await db
+      .select({ id: plans.id })
+      .from(plans)
+      .where(
+        and(
+          ne(plans.slug, PLATFORM_SPECIAL_PLAN_SLUG),
+          or(eq(plans.slug, "gratis"), and(eq(plans.priceMonthly, "0"), eq(plans.name, "Gratis"))),
+        ),
+      )
+      .limit(1);
+
+    if (!drifted) return;
+
+    await db
+      .update(plans)
+      .set({ slug: "free", updatedAt: new Date() })
+      .where(eq(plans.id, drifted.id));
+  }
+
   /** Sincroniza la definición canónica del plan free (scripts de bootstrap / deploy). */
   static async syncFreePlanDefinition() {
+    await this.reclaimFreePlanSlug();
     await db
       .insert(plans)
       .values(FREE_PLAN_DEFINITION)
@@ -166,6 +194,7 @@ export class SubscriptionService {
    * Auto-cura BDs sin seed o con el plan borrado por error.
    */
   static async ensureFreePlanExists(): Promise<ResolvedPlan | null> {
+    await this.reclaimFreePlanSlug();
     const existing = await this.getPlanBySlug("free");
     if (existing) return existing;
 

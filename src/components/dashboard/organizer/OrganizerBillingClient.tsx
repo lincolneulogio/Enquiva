@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { requestPlanUpgrade } from "@/actions/billing";
-import { Check, Crown, Loader2, Sparkles, Clock, AlertTriangle, History } from "lucide-react";
+import { Check, Crown, Loader2, Sparkles, Clock, AlertTriangle, History, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Plan, PaymentMethod, SubscriptionPayment } from "@/lib/db/schema";
 import type { SubscriptionInfo } from "@/lib/billing/types";
@@ -18,7 +18,12 @@ import {
   resetCulqiCheckoutUi,
   loadCulqiCheckoutScript,
 } from "@/lib/culqi/open-checkout";
-import { filterPublicBillingPlans, isRecommendedBillingPlan } from "@/lib/billing/plans";
+import {
+  filterPublicBillingPlans,
+  isRecommendedBillingPlan,
+  mapPlanRow,
+} from "@/lib/billing/plans";
+import { getPricingFeatureLines } from "@/lib/billing/pricing-features";
 
 interface PendingPayment {
   payment: {
@@ -297,12 +302,8 @@ export function OrganizerBillingClient({
               />
             )}
             <UsageCard
-              label={t("billing.organizer.usageCommission")}
-              value={
-                Number(plan.commissionPerRegistration) > 0
-                  ? `${plan.commissionPercent}% + S/ ${Number(plan.commissionPerRegistration).toFixed(2)}/inscrito`
-                  : `${plan.commissionPercent}%`
-              }
+              label={locale === "en" ? "Attendees / event" : "Asistentes / evento"}
+              value={plan.maxAttendeesPerEvent != null ? String(plan.maxAttendeesPerEvent) : "∞"}
             />
             <UsageCard label={t("billing.organizer.usageRenewal")} value={renewalDate} />
           </div>
@@ -399,19 +400,11 @@ export function OrganizerBillingClient({
               </p>
               <p className="mt-2 min-h-[2.5rem] text-sm text-muted-foreground">{p.description}</p>
               <ul className="mt-4 flex-1 space-y-2 text-sm">
-                <FeatureLine ok={p.featureCulqi} text={t("billing.organizer.featureCulqi")} />
-                <FeatureLine ok={p.featureTransport} text={t("billing.organizer.featureTransport")} />
-                <FeatureLine
-                  ok={p.featureAi}
-                  text={
-                    p.featureAi
-                      ? p.maxAiMessagesPerMonth != null
-                        ? t("billing.organizer.featureAiLimited", { count: p.maxAiMessagesPerMonth })
-                        : t("billing.organizer.featureAiUnlimited")
-                      : t("billing.organizer.featureAi")
-                  }
-                />
-                <FeatureLine ok={p.featureExports} text={t("billing.organizer.featureExports")} />
+                {getPricingFeatureLines(mapPlanRow(p), locale === "en" ? "en" : "es", {
+                  includeCommission: false,
+                }).map((feature) => (
+                  <FeatureLine key={feature.key} ok={feature.included} text={feature.text} />
+                ))}
               </ul>
               <button
                 type="button"
@@ -547,16 +540,15 @@ function FeatureLine({ ok, text }: { ok: boolean; text: string }) {
   return (
     <li
       className={cn(
-        "flex items-center gap-2",
-        ok ? "text-foreground" : "text-muted-foreground line-through decoration-muted-foreground/50",
+        "flex items-start gap-2",
+        ok ? "text-foreground" : "text-muted-foreground/70 line-through decoration-muted-foreground/40",
       )}
     >
-      <Check
-        className={cn(
-          "h-3.5 w-3.5 shrink-0",
-          ok ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground/40",
-        )}
-      />
+      {ok ? (
+        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+      ) : (
+        <X className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
+      )}
       {text}
     </li>
   );

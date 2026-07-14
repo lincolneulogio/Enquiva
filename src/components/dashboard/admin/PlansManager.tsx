@@ -108,18 +108,30 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
   const editingSpecial = Boolean(
     editingId && plans.some((p) => p.id === editingId && isPlatformSpecialPlan(p)),
   );
+  const editingFree = Boolean(
+    editingId &&
+      plans.some(
+        (p) => p.id === editingId && (p.slug === "free" || p.slug === "gratis"),
+      ),
+  );
+  const slugLocked = editingSpecial || editingFree;
 
-  // El slug siempre sigue al nombre (excepto plan especial, cuyo slug está reservado).
+  // El slug sigue al nombre, excepto Free (reservado) y Plan Plataforma.
   const liveSlug = useMemo(
-    () => (editingSpecial ? form.slug : planSlugFromName(form.name)),
-    [editingSpecial, form.name, form.slug],
+    () => (editingFree ? "free" : slugLocked ? form.slug : planSlugFromName(form.name)),
+    [editingFree, slugLocked, form.name, form.slug],
   );
 
   useEffect(() => {
-    if (editingSpecial) return;
+    if (slugLocked) {
+      if (editingFree && form.slug !== "free") {
+        setForm((prev) => ({ ...prev, slug: "free" }));
+      }
+      return;
+    }
     if (form.slug === liveSlug) return;
     setForm((prev) => ({ ...prev, slug: liveSlug }));
-  }, [editingSpecial, form.slug, liveSlug, setForm]);
+  }, [slugLocked, editingFree, form.slug, liveSlug, setForm]);
 
   const resetForm = () => {
     clearForm();
@@ -133,7 +145,12 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
 
   const onSubmit = () => {
     const name = form.name.trim();
-    const slug = (editingSpecial ? form.slug : planSlugFromName(name)).trim();
+    const slug = (editingFree
+      ? "free"
+      : slugLocked
+        ? form.slug
+        : planSlugFromName(name)
+    ).trim();
     if (!name || !slug) {
       toast.error(t("dashboard.admin.plansSlugRequired"));
       return;
@@ -460,7 +477,7 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                   setForm((prev) => ({
                     ...prev,
                     name,
-                    slug: planSlugFromName(name),
+                    ...(slugLocked ? {} : { slug: planSlugFromName(name) }),
                   }));
                 }}
                 autoFocus={!editingId}
