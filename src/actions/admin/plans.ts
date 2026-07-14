@@ -6,11 +6,16 @@ import { eq, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireSuperAdmin } from "@/actions/admin/users";
 import { SubscriptionService } from "@/lib/billing/subscription.service";
+import {
+  PLATFORM_SPECIAL_PLAN_SLUG,
+  isPlatformSpecialPlan,
+} from "@/lib/billing/plans";
 import { logAdminAction } from "@/lib/analytics/log-admin-action";
 import { assertPermission } from "@/lib/auth/permission-guards";
 
 export async function getAllPlans() {
   await requireSuperAdmin();
+  await SubscriptionService.ensurePlatformSpecialPlanExists();
   return db.select().from(plans).orderBy(asc(plans.sortOrder));
 }
 
@@ -39,6 +44,9 @@ export async function createPlan(input: {
   const slug = input.slug.trim().toLowerCase();
   if (!/^[a-z0-9_-]+$/.test(slug)) {
     throw new Error("Slug inválido");
+  }
+  if (isPlatformSpecialPlan(slug)) {
+    throw new Error("Ese identificador está reservado para el plan especial del superadmin");
   }
 
   const [created] = await db
@@ -105,11 +113,57 @@ export async function updatePlan(
   const user = await requireSuperAdmin();
   await assertPermission(user, "plans:manage");
 
+  const [current] = await db.select().from(plans).where(eq(plans.id, id)).limit(1);
+  if (!current) throw new Error("Plan no encontrado");
+
+  // Plan especial: solo permite ajustar nombre/descripción visual; límites se reponen.
+  if (isPlatformSpecialPlan(current)) {
+    await db
+      .update(plans)
+      .set({
+        ...(input.name !== undefined && { name: input.name.trim() }),
+        ...(input.description !== undefined && { description: input.description?.trim() ?? null }),
+        slug: PLATFORM_SPECIAL_PLAN_SLUG,
+        priceMonthly: "0",
+        maxActiveEvents: null,
+        maxAttendeesPerEvent: null,
+        commissionPercent: "0",
+        commissionPerRegistration: "0",
+        maxBroadcastsPerMonth: null,
+        maxAiMessagesPerMonth: null,
+        maxOrganizers: null,
+        featureCulqi: true,
+        featureTransport: true,
+        featureAi: true,
+        featureExports: true,
+        featureCustomBranding: true,
+        isActive: true,
+        updatedAt: new Date(),
+      })
+      .where(eq(plans.id, id));
+
+    const [updatedSpecial] = await db.select().from(plans).where(eq(plans.id, id)).limit(1);
+    await logAdminAction({
+      actorId: user.id,
+      actorName: user.name ?? user.email,
+      action: "plan.update",
+      entityType: "plan",
+      entityId: id,
+      details: `Plan especial superadmin actualizado (límites ilimitados preservados)`,
+    });
+    revalidatePath("/admin/plans");
+    revalidatePath("/organizer/billing");
+    return { success: true, plan: updatedSpecial };
+  }
+
   let nextSlug: string | undefined;
   if (input.slug !== undefined) {
     nextSlug = input.slug.trim().toLowerCase();
     if (!/^[a-z0-9_-]+$/.test(nextSlug)) {
       throw new Error("Slug inválido");
+    }
+    if (isPlatformSpecialPlan(nextSlug)) {
+      throw new Error("Ese identificador está reservado para el plan especial del superadmin");
     }
     const [taken] = await db.select({ id: plans.id }).from(plans).where(eq(plans.slug, nextSlug)).limit(1);
     if (taken && taken.id !== id) {
@@ -165,6 +219,12 @@ export async function updatePlan(
 export async function deletePlan(id: string) {
   const user = await requireSuperAdmin();
   await assertPermission(user, "plans:manage");
+
+  const [target] = await db.select().from(plans).where(eq(plans.id, id)).limit(1);
+  if (!target) throw new Error("Plan no encontrado");
+  if (isPlatformSpecialPlan(target)) {
+    throw new Error("No se puede eliminar el plan especial del superadministrador");
+  }
 
   const [inUse] = await db
     .select({ id: subscriptions.id })

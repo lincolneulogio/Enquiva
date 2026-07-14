@@ -8,7 +8,18 @@ import {
   type Plan,
 } from "@/lib/db/schema";
 import { and, count, desc, eq, gt, gte, inArray, isNull, lt, ne, or, sql, type SQL } from "drizzle-orm";
-import { DEFAULT_PLAN_DEFINITIONS, FREE_PLAN_DEFINITION, mapPlanRow, PENDING_PLATFORM_SETUP_PLAN, UNLIMITED_PLAN, isPendingPlatformSetupPlan } from "./plans";
+import {
+  DEFAULT_PLAN_DEFINITIONS,
+  FREE_PLAN_DEFINITION,
+  mapPlanRow,
+  PENDING_PLATFORM_SETUP_PLAN,
+  PLATFORM_SPECIAL_PLAN_DEFINITION,
+  PLATFORM_SPECIAL_PLAN_SLUG,
+  UNLIMITED_PLAN,
+  filterPublicBillingPlans,
+  isPendingPlatformSetupPlan,
+  isPlatformSpecialPlan,
+} from "./plans";
 import type { PlanUsage, PlanChangePreview, ResolvedPlan, SubscriptionInfo } from "./types";
 import { isOrganizerSubscriptionBlocked } from "./subscription-auto-renew.service";
 import { clearRenewalTrackingFields } from "./subscription-renewal.service";
@@ -144,6 +155,45 @@ export class SubscriptionService {
     return this.getPlanBySlug("free");
   }
 
+  /**
+   * Plan especial solo-superadmin: siempre ilimitado, se repara solo si alguien lo tocó.
+   */
+  static async ensurePlatformSpecialPlanExists(): Promise<ResolvedPlan> {
+    const fields = {
+      name: PLATFORM_SPECIAL_PLAN_DEFINITION.name,
+      description: PLATFORM_SPECIAL_PLAN_DEFINITION.description,
+      priceMonthly: PLATFORM_SPECIAL_PLAN_DEFINITION.priceMonthly,
+      maxActiveEvents: PLATFORM_SPECIAL_PLAN_DEFINITION.maxActiveEvents,
+      maxAttendeesPerEvent: PLATFORM_SPECIAL_PLAN_DEFINITION.maxAttendeesPerEvent,
+      commissionPercent: PLATFORM_SPECIAL_PLAN_DEFINITION.commissionPercent,
+      commissionPerRegistration: PLATFORM_SPECIAL_PLAN_DEFINITION.commissionPerRegistration,
+      maxBroadcastsPerMonth: PLATFORM_SPECIAL_PLAN_DEFINITION.maxBroadcastsPerMonth,
+      maxAiMessagesPerMonth: PLATFORM_SPECIAL_PLAN_DEFINITION.maxAiMessagesPerMonth,
+      maxOrganizers: PLATFORM_SPECIAL_PLAN_DEFINITION.maxOrganizers,
+      featureCulqi: PLATFORM_SPECIAL_PLAN_DEFINITION.featureCulqi,
+      featureTransport: PLATFORM_SPECIAL_PLAN_DEFINITION.featureTransport,
+      featureAi: PLATFORM_SPECIAL_PLAN_DEFINITION.featureAi,
+      featureExports: PLATFORM_SPECIAL_PLAN_DEFINITION.featureExports,
+      featureCustomBranding: PLATFORM_SPECIAL_PLAN_DEFINITION.featureCustomBranding,
+      sortOrder: PLATFORM_SPECIAL_PLAN_DEFINITION.sortOrder,
+      isActive: true,
+      updatedAt: new Date(),
+    };
+
+    await db
+      .insert(plans)
+      .values({
+        slug: PLATFORM_SPECIAL_PLAN_SLUG,
+        ...fields,
+      })
+      .onConflictDoUpdate({
+        target: plans.slug,
+        set: fields,
+      });
+
+    return (await this.getPlanBySlug(PLATFORM_SPECIAL_PLAN_SLUG)) ?? UNLIMITED_PLAN;
+  }
+
   static async ensureDefaultPlans() {
     for (const definition of DEFAULT_PLAN_DEFINITIONS) {
       await db
@@ -244,12 +294,14 @@ export class SubscriptionService {
     const ctx = await resolveSubscriptionBillingContext(userId, role);
 
     if (ctx.mode === "platform_unlimited") {
+      // Superadmin: plan especial interno (ilimitado), nunca el catálogo comercial.
+      const specialPlan = await this.ensurePlatformSpecialPlanExists();
       return {
         id: "platform",
         status: "active",
         currentPeriodStart: new Date(),
         currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-        plan: UNLIMITED_PLAN,
+        plan: specialPlan,
         usage: await this.getUsage(userId, ctx),
         renewalAlert: null,
         daysUntilRenewal: null,
@@ -257,7 +309,7 @@ export class SubscriptionService {
         hasSavedCard: false,
         accessBlocked: false,
         billingScope: "platform",
-        canManageBilling: true,
+        canManageBilling: false,
         plansConfigured: true,
       };
     }
@@ -641,8 +693,15 @@ export class SubscriptionService {
     planId: string,
     billingUserId: string,
   ) {
+    if (ctx.mode === "platform_unlimited") {
+      throw new Error("El plan del superadministrador no se asigna por suscripción.");
+    }
+
     const [plan] = await tx.select().from(plans).where(eq(plans.id, planId)).limit(1);
     if (!plan) throw new Error("Plan no encontrado");
+    if (isPlatformSpecialPlan(plan)) {
+      throw new Error("Este plan es interno y solo aplica al superadministrador");
+    }
 
     const now = new Date();
 
@@ -716,6 +775,16 @@ export class SubscriptionService {
 
   static async listAllPlans(): Promise<Plan[]> {
     return db.select().from(plans).orderBy(plans.sortOrder);
+  }
+
+  /** Planes activos que pueden elegir organizadores / entidades. */
+  static async listPublicPlans(): Promise<Plan[]> {
+    const all = await db
+      .select()
+      .from(plans)
+      .where(eq(plans.isActive, true))
+      .orderBy(plans.sortOrder);
+    return filterPublicBillingPlans(all);
   }
 
   static async getRevenueSummary() {

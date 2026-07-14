@@ -14,7 +14,7 @@ import { usePersistedState } from "@/hooks/useFormPersistence";
 import { formStorageKey } from "@/lib/form-persistence";
 import { confirmDeleteAction } from "@/lib/ui/confirm";
 import { useTranslations } from "@/components/providers/LocaleProvider";
-import { isRecommendedBillingPlan } from "@/lib/billing/plans";
+import { isPlatformSpecialPlan, isRecommendedBillingPlan } from "@/lib/billing/plans";
 
 type PlansTab = "list" | "editor";
 
@@ -69,16 +69,26 @@ function FeatureToggle({
   label,
   checked,
   onChange,
+  disabled = false,
 }: {
   label: string;
   checked: boolean;
   onChange: (v: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-sm text-foreground transition hover:bg-muted/40 dark:bg-muted/10 dark:hover:bg-muted/20">
+    <label
+      className={cn(
+        "flex items-center gap-2.5 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-sm text-foreground transition dark:bg-muted/10",
+        disabled
+          ? "cursor-not-allowed opacity-60"
+          : "cursor-pointer hover:bg-muted/40 dark:hover:bg-muted/20",
+      )}
+    >
       <input
         type="checkbox"
         checked={checked}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
         className="h-4 w-4 rounded border-border text-primary focus:ring-primary focus:ring-offset-background"
       />
@@ -95,13 +105,21 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  // El slug siempre sigue al nombre (crear y editar; también limpia borradores desfasados).
-  const liveSlug = useMemo(() => planSlugFromName(form.name), [form.name]);
+  const editingSpecial = Boolean(
+    editingId && plans.some((p) => p.id === editingId && isPlatformSpecialPlan(p)),
+  );
+
+  // El slug siempre sigue al nombre (excepto plan especial, cuyo slug está reservado).
+  const liveSlug = useMemo(
+    () => (editingSpecial ? form.slug : planSlugFromName(form.name)),
+    [editingSpecial, form.name, form.slug],
+  );
 
   useEffect(() => {
+    if (editingSpecial) return;
     if (form.slug === liveSlug) return;
     setForm((prev) => ({ ...prev, slug: liveSlug }));
-  }, [form.slug, liveSlug, setForm]);
+  }, [editingSpecial, form.slug, liveSlug, setForm]);
 
   const resetForm = () => {
     clearForm();
@@ -115,39 +133,69 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
 
   const onSubmit = () => {
     const name = form.name.trim();
-    const slug = planSlugFromName(name).trim();
+    const slug = (editingSpecial ? form.slug : planSlugFromName(name)).trim();
     if (!name || !slug) {
       toast.error(t("dashboard.admin.plansSlugRequired"));
       return;
     }
 
-    const payload = {
-      slug,
-      name,
-      description: form.description || undefined,
-      priceMonthly: Number(form.priceMonthly) || 0,
-      maxActiveEvents: form.maxActiveEvents ? Number(form.maxActiveEvents) : null,
-      maxAttendeesPerEvent: form.maxAttendeesPerEvent ? Number(form.maxAttendeesPerEvent) : null,
-      commissionPercent: Number(form.commissionPercent) || 0,
-      commissionPerRegistration: Number(form.commissionPerRegistration) || 0,
-      maxBroadcastsPerMonth: form.maxBroadcastsPerMonth ? Number(form.maxBroadcastsPerMonth) : null,
-      maxAiMessagesPerMonth: form.maxAiMessagesPerMonth ? Number(form.maxAiMessagesPerMonth) : null,
-      featureCulqi: form.featureCulqi,
-      featureTransport: form.featureTransport,
-      featureAi: form.featureAi,
-      featureExports: form.featureExports,
-    };
-
     startTransition(async () => {
       try {
         if (editingId) {
-          const res = await updatePlan(editingId, payload);
+          const res = await updatePlan(
+            editingId,
+            editingSpecial
+              ? { name, description: form.description || undefined }
+              : {
+                  slug,
+                  name,
+                  description: form.description || undefined,
+                  priceMonthly: Number(form.priceMonthly) || 0,
+                  maxActiveEvents: form.maxActiveEvents ? Number(form.maxActiveEvents) : null,
+                  maxAttendeesPerEvent: form.maxAttendeesPerEvent
+                    ? Number(form.maxAttendeesPerEvent)
+                    : null,
+                  commissionPercent: Number(form.commissionPercent) || 0,
+                  commissionPerRegistration: Number(form.commissionPerRegistration) || 0,
+                  maxBroadcastsPerMonth: form.maxBroadcastsPerMonth
+                    ? Number(form.maxBroadcastsPerMonth)
+                    : null,
+                  maxAiMessagesPerMonth: form.maxAiMessagesPerMonth
+                    ? Number(form.maxAiMessagesPerMonth)
+                    : null,
+                  featureCulqi: form.featureCulqi,
+                  featureTransport: form.featureTransport,
+                  featureAi: form.featureAi,
+                  featureExports: form.featureExports,
+                },
+          );
           if (res.plan) {
             setPlans((prev) => prev.map((p) => (p.id === editingId ? res.plan! : p)));
           }
           toast.success(t("dashboard.admin.plansUpdated"));
         } else {
-          const res = await createPlan(payload);
+          const res = await createPlan({
+            slug,
+            name,
+            description: form.description || undefined,
+            priceMonthly: Number(form.priceMonthly) || 0,
+            maxActiveEvents: form.maxActiveEvents ? Number(form.maxActiveEvents) : null,
+            maxAttendeesPerEvent: form.maxAttendeesPerEvent
+              ? Number(form.maxAttendeesPerEvent)
+              : null,
+            commissionPercent: Number(form.commissionPercent) || 0,
+            commissionPerRegistration: Number(form.commissionPerRegistration) || 0,
+            maxBroadcastsPerMonth: form.maxBroadcastsPerMonth
+              ? Number(form.maxBroadcastsPerMonth)
+              : null,
+            maxAiMessagesPerMonth: form.maxAiMessagesPerMonth
+              ? Number(form.maxAiMessagesPerMonth)
+              : null,
+            featureCulqi: form.featureCulqi,
+            featureTransport: form.featureTransport,
+            featureAi: form.featureAi,
+            featureExports: form.featureExports,
+          });
           if (res.plan) setPlans((prev) => [...prev, res.plan!].sort((a, b) => a.sortOrder - b.sortOrder));
           toast.success(t("dashboard.admin.plansCreated"));
         }
@@ -273,15 +321,19 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
               </div>
             ) : (
               plans.map((plan) => {
-                const isRecommended = isRecommendedBillingPlan(plan, plans);
+                const isSpecial = isPlatformSpecialPlan(plan);
+                const isRecommended =
+                  !isSpecial && isRecommendedBillingPlan(plan, plans.filter((p) => !isPlatformSpecialPlan(p)));
                 return (
                 <div
                   key={plan.id}
                   className={cn(
                     "rounded-2xl border bg-card p-5 shadow-sm transition hover:border-border/80",
-                    isRecommended
-                      ? "border-primary/40 ring-1 ring-primary/20"
-                      : "border-border",
+                    isSpecial
+                      ? "border-amber-500/40 ring-1 ring-amber-500/20"
+                      : isRecommended
+                        ? "border-primary/40 ring-1 ring-primary/20"
+                        : "border-border",
                   )}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -291,6 +343,11 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                         <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
                           {plan.slug}
                         </span>
+                        {isSpecial && (
+                          <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">
+                            Solo superadmin
+                          </span>
+                        )}
                         {isRecommended && (
                           <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary dark:bg-primary/25">
                             {t("dashboard.admin.plansRecommendedBadge")}
@@ -356,14 +413,16 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => onDelete(plan.id)}
-                        className="rounded-lg border border-border bg-background p-2 text-destructive transition hover:bg-destructive/10"
-                        aria-label={t("dashboard.admin.plansDeleteAria")}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {!isSpecial && (
+                        <button
+                          type="button"
+                          onClick={() => onDelete(plan.id)}
+                          className="rounded-lg border border-border bg-background p-2 text-destructive transition hover:bg-destructive/10"
+                          aria-label={t("dashboard.admin.plansDeleteAria")}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -378,6 +437,12 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
             <Crown className="h-5 w-5 text-amber-500 dark:text-amber-400" />
             {editingId ? t("dashboard.admin.plansEditTitle") : t("dashboard.admin.plansCreateTitle")}
           </h2>
+          {editingSpecial && (
+            <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
+              Plan especial del superadmin: siempre ilimitado, sin comisión y oculto del catálogo público.
+              Solo puedes editar nombre y descripción.
+            </div>
+          )}
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1.5">
               <label htmlFor="plan-name" className="text-sm font-medium text-foreground">
@@ -444,6 +509,7 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                 placeholder={t("dashboard.admin.plansPlaceholderPrice")}
                 value={form.priceMonthly}
                 onChange={(e) => setForm({ ...form, priceMonthly: e.target.value })}
+                disabled={editingSpecial}
               />
             </div>
             <div className="space-y-1.5">
@@ -459,6 +525,7 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                 placeholder={t("dashboard.admin.plansPlaceholderCommission")}
                 value={form.commissionPercent}
                 onChange={(e) => setForm({ ...form, commissionPercent: e.target.value })}
+                disabled={editingSpecial}
               />
               <p className="text-xs text-muted-foreground">{t("dashboard.admin.plansHintCommission")}</p>
             </div>
@@ -475,6 +542,7 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                 placeholder="0.50"
                 value={form.commissionPerRegistration}
                 onChange={(e) => setForm({ ...form, commissionPerRegistration: e.target.value })}
+                disabled={editingSpecial}
               />
               <p className="text-xs text-muted-foreground">
                 Evora gana este monto por cada inscrito (titular + invitados) al aprobar el pago, además del %.
@@ -492,6 +560,7 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                 placeholder={t("dashboard.admin.plansPlaceholderMaxEvents")}
                 value={form.maxActiveEvents}
                 onChange={(e) => setForm({ ...form, maxActiveEvents: e.target.value })}
+                disabled={editingSpecial}
               />
               <p className="text-xs text-muted-foreground">{t("dashboard.admin.plansHintUnlimited")}</p>
             </div>
@@ -507,6 +576,7 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                 placeholder={t("dashboard.admin.plansPlaceholderMaxAttendees")}
                 value={form.maxAttendeesPerEvent}
                 onChange={(e) => setForm({ ...form, maxAttendeesPerEvent: e.target.value })}
+                disabled={editingSpecial}
               />
               <p className="text-xs text-muted-foreground">{t("dashboard.admin.plansHintUnlimited")}</p>
             </div>
@@ -522,6 +592,7 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                 placeholder={t("dashboard.admin.plansPlaceholderMaxBroadcasts")}
                 value={form.maxBroadcastsPerMonth}
                 onChange={(e) => setForm({ ...form, maxBroadcastsPerMonth: e.target.value })}
+                disabled={editingSpecial}
               />
               <p className="text-xs text-muted-foreground">{t("dashboard.admin.plansHintUnlimited")}</p>
             </div>
@@ -537,6 +608,7 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                 placeholder={t("dashboard.admin.plansPlaceholderMaxAi")}
                 value={form.maxAiMessagesPerMonth}
                 onChange={(e) => setForm({ ...form, maxAiMessagesPerMonth: e.target.value })}
+                disabled={editingSpecial}
               />
               <p className="text-xs text-muted-foreground">{t("dashboard.admin.plansHintUnlimited")}</p>
             </div>
@@ -548,21 +620,25 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                 label={t("dashboard.admin.plansFeatureCulqi")}
                 checked={form.featureCulqi}
                 onChange={(v) => setForm({ ...form, featureCulqi: v })}
+                disabled={editingSpecial}
               />
               <FeatureToggle
                 label={t("dashboard.admin.plansFeatureTransport")}
                 checked={form.featureTransport}
                 onChange={(v) => setForm({ ...form, featureTransport: v })}
+                disabled={editingSpecial}
               />
               <FeatureToggle
                 label={t("dashboard.admin.plansFeatureAi")}
                 checked={form.featureAi}
                 onChange={(v) => setForm({ ...form, featureAi: v })}
+                disabled={editingSpecial}
               />
               <FeatureToggle
                 label={t("dashboard.admin.plansFeatureExports")}
                 checked={form.featureExports}
                 onChange={(v) => setForm({ ...form, featureExports: v })}
+                disabled={editingSpecial}
               />
             </div>
           </div>

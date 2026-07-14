@@ -6,7 +6,7 @@ import { getI18n } from "@/lib/i18n/server";
 import { db } from "@/lib/db";
 import { plans } from "@/lib/db/schema";
 import { and, asc, eq } from "drizzle-orm";
-import { mapPlanRow, DEFAULT_PLAN_DEFINITIONS } from "@/lib/billing/plans";
+import { mapPlanRow, DEFAULT_PLAN_DEFINITIONS, filterPublicBillingPlans } from "@/lib/billing/plans";
 import { auth } from "@/lib/auth";
 import { getPricingCta } from "@/lib/navigation/pricing-cta";
 
@@ -63,7 +63,7 @@ export default async function PricingPage() {
     console.error("[pricing] plans query failed, using fallback catalog", error);
   }
 
-  const visible = rows.filter((p) => p.slug !== "__pending_setup__").slice(0, 3);
+  const visible = filterPublicBillingPlans(rows).slice(0, 3);
 
   return (
     <div className="min-h-screen bg-background">

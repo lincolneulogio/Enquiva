@@ -42,8 +42,7 @@ export async function getMyPlanSummary() {
 }
 
 export async function getPublicPlans() {
-  const all = await SubscriptionService.listAllPlans();
-  return all.filter((p) => p.isActive);
+  return SubscriptionService.listPublicPlans();
 }
 
 export async function getPlatformBillingMethods() {
@@ -76,6 +75,11 @@ export async function requestPlanUpgrade(planSlug: string, confirmed = false) {
 
   const plan = await SubscriptionService.getPlanBySlug(planSlug);
   if (!plan) throw new Error("Plan no encontrado");
+
+  const { isPlatformSpecialPlan } = await import("@/lib/billing/plans");
+  if (isPlatformSpecialPlan(planSlug)) {
+    throw new Error("Este plan es interno y solo aplica al superadministrador");
+  }
 
   const preview = await SubscriptionService.getPlanChangePreview(user.id, planSlug, user.role);
 

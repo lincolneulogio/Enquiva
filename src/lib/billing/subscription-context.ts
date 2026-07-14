@@ -57,7 +57,8 @@ export function canManageSubscriptionBilling(
   role: string | null | undefined,
   ctx: SubscriptionBillingContext,
 ): boolean {
-  if (ctx.mode === "platform_unlimited") return true;
+  // El plan especial de plataforma no se gestiona ni se paga como suscripción SaaS.
+  if (ctx.mode === "platform_unlimited") return false;
   if (ctx.mode === "user") {
     return normalizeRole(role) === "organizer" && actorId === ctx.userId;
   }

@@ -22,9 +22,11 @@ export default async function OrganizerBillingPage() {
       <div>
         <h1 className="font-display text-3xl font-semibold text-foreground">{t("billing.organizer.pageTitle")}</h1>
         <p className="mt-1 text-muted-foreground">
-          {subscription.canManageBilling
-            ? t("billing.organizer.pageIntroManage")
-            : t("billing.organizer.pageIntroReadOnly")}
+          {subscription.billingScope === "platform"
+            ? "Tu acceso de superadmin usa el plan especial interno (ilimitado). No es un plan comercial."
+            : subscription.canManageBilling
+              ? t("billing.organizer.pageIntroManage")
+              : t("billing.organizer.pageIntroReadOnly")}
         </p>
       </div>
       <OrganizerBillingClient
@@ -36,7 +38,7 @@ export default async function OrganizerBillingPage() {
         culqiAvailable={isPlatformCulqiConfigured()}
         pendingPayment={pendingPayment}
         paymentHistory={paymentHistory}
-        readOnly={!subscription.canManageBilling}
+        readOnly={!subscription.canManageBilling || subscription.billingScope === "platform"}
       />
     </div>
   );

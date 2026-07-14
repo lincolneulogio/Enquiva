@@ -82,11 +82,46 @@ export const DEFAULT_PLAN_DEFINITIONS: Array<{
 /** Definición canónica del plan gratuito (único seed obligatorio en arranque). */
 export const FREE_PLAN_DEFINITION = DEFAULT_PLAN_DEFINITIONS.find((d) => d.slug === "free")!;
 
+/**
+ * Plan interno exclusivo del superadmin: todo ilimitado, sin comisión.
+ * No es público (no aparece en /pricing ni en selector de organizadores/admin).
+ */
+export const PLATFORM_SPECIAL_PLAN_SLUG = "evora-platform" as const;
+
+export const PLATFORM_SPECIAL_PLAN_DEFINITION = {
+  slug: PLATFORM_SPECIAL_PLAN_SLUG,
+  name: "Plan Plataforma",
+  description:
+    "Plan especial interno solo para el superadministrador: acceso total e ilimitado. No está disponible para otros roles.",
+  priceMonthly: "0",
+  maxActiveEvents: null as number | null,
+  maxAttendeesPerEvent: null as number | null,
+  commissionPercent: "0",
+  commissionPerRegistration: "0",
+  maxBroadcastsPerMonth: null as number | null,
+  maxAiMessagesPerMonth: null as number | null,
+  maxOrganizers: null as number | null,
+  featureCulqi: true,
+  featureTransport: true,
+  featureAi: true,
+  featureExports: true,
+  featureCustomBranding: true,
+  sortOrder: 0,
+  isActive: true,
+};
+
+export function isPlatformSpecialPlan(slugOrPlan?: string | { slug?: string | null } | null): boolean {
+  if (!slugOrPlan) return false;
+  const slug = typeof slugOrPlan === "string" ? slugOrPlan : slugOrPlan.slug;
+  return (slug ?? "").toLowerCase() === PLATFORM_SPECIAL_PLAN_SLUG;
+}
+
+/** Fallback en memoria si aún no existe fila en BD. */
 export const UNLIMITED_PLAN: ResolvedPlan = {
   id: "platform-unlimited",
-  slug: "enterprise",
-  name: "Plataforma (ilimitado)",
-  description: "Acceso total para administradores de la plataforma.",
+  slug: PLATFORM_SPECIAL_PLAN_SLUG,
+  name: PLATFORM_SPECIAL_PLAN_DEFINITION.name,
+  description: PLATFORM_SPECIAL_PLAN_DEFINITION.description,
   priceMonthly: 0,
   currency: "PEN",
   maxActiveEvents: null,
@@ -101,7 +136,7 @@ export const UNLIMITED_PLAN: ResolvedPlan = {
     transport: true,
     ai: true,
     exports: true,
-    customBranding: false,
+    customBranding: true,
   },
 };
 
@@ -180,8 +215,8 @@ export function planFeaturesFromInput(input: {
 type PlanRecommendPick = Pick<Plan, "id" | "slug" | "priceMonthly">;
 
 /**
- * Plan “recomendado” en catálogo: slug pro/profesional, o el de pago intermedio
- * (el más accesible si hay dos de pago).
+ * Plan “recomendado” en catálogo (organizadores / entidades): slug pro/profesional,
+ * o el de pago intermedio (el más accesible si hay dos de pago).
  */
 export function isRecommendedBillingPlan(
   plan: PlanRecommendPick,
@@ -197,4 +232,9 @@ export function isRecommendedBillingPlan(
   if (paid.length === 0) return false;
   const recommended = paid[Math.max(0, Math.ceil(paid.length / 2) - 1)];
   return recommended.id === plan.id;
+}
+
+/** Catálogo elegible por organizadores / entidades / pricing público. */
+export function filterPublicBillingPlans<T extends { slug: string }>(catalog: T[]): T[] {
+  return catalog.filter((p) => !isPlatformSpecialPlan(p) && p.slug !== "__pending_setup__");
 }
