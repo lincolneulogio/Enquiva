@@ -3,6 +3,11 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { streamText, stepCountIs, type LanguageModel } from "ai";
 import { env } from "@/env";
 import { createResponseSanitizer } from "./sanitize-output";
+import {
+  DEFAULT_GEMINI_FALLBACK_MODEL,
+  DEFAULT_GEMINI_MODEL,
+  STABLE_OPENROUTER_MODELS,
+} from "./stable-models";
 
 type StreamMessages = NonNullable<Parameters<typeof streamText>[0]["messages"]>;
 
@@ -11,25 +16,16 @@ type ResolvedModel = {
   model: LanguageModel;
 };
 
-/**
- * Cadena :free con tool calling.
- * OpenRouter aplica fallbacks server-side vía `models` (máx. 3 ítems).
- * @see https://openrouter.ai/docs/guides/routing/model-fallbacks
- */
-const DEFAULT_OPENROUTER_MODELS = [
-  "qwen/qwen3-next-80b-a3b-instruct:free",
-  "google/gemma-4-31b-it:free",
-  "openai/gpt-oss-20b:free",
-  "nvidia/nemotron-3-nano-30b-a3b:free",
-  "meta-llama/llama-3.3-70b-instruct:free",
-  "openrouter/free",
-] as const;
-
 /** OpenRouter solo acepta hasta 3 entradas en `models`. */
 const OPENROUTER_MODELS_ARRAY_MAX = 3;
 
-const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash";
-const DEFAULT_GEMINI_FALLBACK_MODEL = "gemini-3.1-flash-lite";
+export type StreamMeta = {
+  modelId: string;
+  citations?: string[];
+  intent?: string;
+  ragMode?: string;
+  statusHint?: string;
+};
 
 function parseModelList(value: string | undefined): string[] {
   if (!value?.trim()) return [];
@@ -51,9 +47,9 @@ function uniquePreserveOrder(ids: string[]): string[] {
 }
 
 function resolveOpenRouterModelIds(): string[] {
-  const preferred = env.OPENROUTER_MODEL?.trim() || DEFAULT_OPENROUTER_MODELS[0];
+  const preferred = env.OPENROUTER_MODEL?.trim() || STABLE_OPENROUTER_MODELS[0];
   const fromEnv = parseModelList(env.OPENROUTER_FALLBACK_MODELS);
-  const fallbacks = fromEnv.length > 0 ? fromEnv : [...DEFAULT_OPENROUTER_MODELS];
+  const fallbacks = fromEnv.length > 0 ? fromEnv : [...STABLE_OPENROUTER_MODELS];
   return uniquePreserveOrder([preferred, ...fallbacks]);
 }
 
@@ -73,10 +69,6 @@ function getGeminiModels(): ResolvedModel[] {
   }));
 }
 
-/**
- * Cliente OpenRouter + `models[]` nativo (máx. 3 por request).
- * El resto de la cadena se prueba en llamadas siguientes.
- */
 function getOpenRouterModels(): ResolvedModel[] {
   if (!env.OPENROUTER_API_KEY) return [];
 
@@ -110,7 +102,6 @@ function getOpenRouterModels(): ResolvedModel[] {
               ...fallbacks,
             ]).slice(0, OPENROUTER_MODELS_ARRAY_MAX);
           }
-          // Evita devolver “thinking” / tokens internos en el texto visible
           body.reasoning = { exclude: true };
           return fetch(input, { ...init, body: JSON.stringify(body) });
         } catch {
@@ -126,12 +117,18 @@ function getOpenRouterModels(): ResolvedModel[] {
   });
 }
 
+/**
+ * Preferencia de producción: Gemini (estable) primero si hay key,
+ * salvo AI_PROVIDER=openrouter explícito.
+ */
 function resolveModels(): ResolvedModel[] {
   const gemini = getGeminiModels();
   const openrouter = getOpenRouterModels();
-  return env.AI_PROVIDER === "openrouter"
-    ? [...openrouter, ...gemini]
-    : [...gemini, ...openrouter];
+  if (env.AI_PROVIDER === "openrouter") {
+    return [...openrouter, ...gemini];
+  }
+  // Default google: Gemini estable primero
+  return [...gemini, ...openrouter];
 }
 
 export function isAiConfigured(): boolean {
@@ -144,21 +141,16 @@ function shortError(error: unknown): string {
   return status ? `${error.message} (${status})` : error.message;
 }
 
-/**
- * Espera el primer token (o fin vacío).
- * Si el stream termina sin texto (tool call sin step 2), falla para probar el siguiente modelo.
- * Sanitiza tokens de control filtrados por modelos free (`<|message|>`, etc.).
- */
 async function toTextResponseAfterFirstChunk(
   textStream: AsyncIterable<string>,
-  modelId: string,
+  meta: StreamMeta,
 ): Promise<Response> {
   const iterator = textStream[Symbol.asyncIterator]();
   const first = await iterator.next();
 
   if (first.done) {
     throw new Error(
-      `Respuesta vacía de ${modelId} (sin texto tras herramientas).`,
+      `Respuesta vacía de ${meta.modelId} (sin texto tras herramientas).`,
     );
   }
 
@@ -166,7 +158,6 @@ async function toTextResponseAfterFirstChunk(
   const firstClean =
     typeof first.value === "string" ? sanitizer.push(first.value) : "";
 
-  // Si el primer chunk era solo basura, esperar hasta tener texto usable
   let primed = firstClean;
   if (!primed) {
     while (true) {
@@ -175,7 +166,7 @@ async function toTextResponseAfterFirstChunk(
         const leftover = sanitizer.end();
         if (!leftover.trim()) {
           throw new Error(
-            `Respuesta vacía o solo tokens de control de ${modelId}.`,
+            `Respuesta vacía o solo tokens de control de ${meta.modelId}.`,
           );
         }
         primed = leftover;
@@ -208,20 +199,29 @@ async function toTextResponseAfterFirstChunk(
     },
   });
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
-  });
+  const headers: Record<string, string> = {
+    "Content-Type": "text/plain; charset=utf-8",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+    "X-Evora-Model": meta.modelId,
+    "Access-Control-Expose-Headers":
+      "X-Evora-Model, X-Evora-Citations, X-Evora-Intent, X-Evora-Rag-Mode, X-Evora-Status",
+  };
+  if (meta.citations?.length) {
+    headers["X-Evora-Citations"] = encodeURIComponent(JSON.stringify(meta.citations));
+  }
+  if (meta.intent) headers["X-Evora-Intent"] = meta.intent;
+  if (meta.ragMode) headers["X-Evora-Rag-Mode"] = meta.ragMode;
+  if (meta.statusHint) headers["X-Evora-Status"] = encodeURIComponent(meta.statusHint);
+
+  return new Response(stream, { headers });
 }
 
-/** Stream: OpenRouter (con models[]) → Gemini, o al revés según AI_PROVIDER. */
 export async function streamWithFallback(
   messages: StreamMessages,
   system: string,
   tools: Record<string, unknown>,
+  meta?: Omit<StreamMeta, "modelId">,
 ) {
   const models = resolveModels();
 
@@ -242,12 +242,14 @@ export async function streamWithFallback(
         system,
         tools,
         maxRetries: 0,
-        // AI SDK v6: maxSteps ya no existe; sin esto el modelo corta tras 1 tool call.
         stopWhen: stepCountIs(5),
         maxOutputTokens: 1200,
       } as Parameters<typeof streamText>[0]);
 
-      return await toTextResponseAfterFirstChunk(result.textStream, entry.id);
+      return await toTextResponseAfterFirstChunk(result.textStream, {
+        modelId: entry.id,
+        ...meta,
+      });
     } catch (error) {
       lastError = error;
       console.warn(

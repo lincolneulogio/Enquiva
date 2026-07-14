@@ -2,17 +2,23 @@
  * Evora Hybrid / Agentic RAG
  *
  * Flujo:
- *   Usuario → intenta (router) →
- *     A) Datos vivos (SQL tools): getEventStats, searchEvents, ...
- *     B) Conocimiento (Hybrid RAG): embeddings locales + lexical + tags
- *   → Contexto recuperado + pregunta → LLM → respuesta grounded
- *
- * Evolución: sustituir embedText local por Gemini/OpenAI embeddings
- * y persistir vectores en PostgreSQL (pgvector).
+ *   Usuario → query rewrite → hybrid (lexical + vectors + pgvector) → rerank →
+ *     A) Datos vivos (SQL tools)
+ *     B) Docs recuperados
+ *   → LLM grounded
  */
 
 export type { RagChunk, RagHit, RagRetrievalResult } from "./types";
 export { buildEvoraCorpus } from "./corpus";
-export { hybridRetrieve, getCorpusSize, findChunksByModule } from "./hybrid-retrieve";
+export {
+  hybridRetrieve,
+  hybridRetrieveAsync,
+  getCorpusSize,
+  findChunksByModule,
+} from "./hybrid-retrieve";
 export { embedText, cosineSimilarity } from "./embed";
+export { rewriteQuery } from "./query-rewrite";
+export { rerankHits } from "./rerank";
+export { embedQuery, embedDocument } from "./remote-embed";
+export { ensureKnowledgeSynced, pgvectorSearch } from "./pgvector-store";
 export { retrieveKnowledgeForTopic } from "./knowledge-bridge";

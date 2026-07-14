@@ -31,16 +31,15 @@ export const env = createEnv({
     /** Alternativa Gemini si el modelo principal falla (p. ej. cupo). */
     GEMINI_FALLBACK_MODEL: z.string().default("gemini-3.1-flash-lite"),
     OPENROUTER_API_KEY: z.string().optional(),
-    /** Primer modelo OpenRouter (:free con tools). */
-    OPENROUTER_MODEL: z
-      .string()
-      .default("qwen/qwen3-next-80b-a3b-instruct:free"),
+    /** Primer modelo OpenRouter (producción: Gemini Flash vía OpenRouter). */
+    OPENROUTER_MODEL: z.string().default("google/gemini-2.5-flash"),
     /**
      * Lista CSV de alternativas OpenRouter si el principal falla.
-     * Vacío = defaults internos con tool calling.
+     * Vacío = cadena estable (pago primero, free al final).
      */
     OPENROUTER_FALLBACK_MODELS: z.string().optional(),
-    AI_PROVIDER: z.enum(["google", "openrouter"]).default("openrouter"),
+    /** google = Gemini estable primero (recomendado producción). */
+    AI_PROVIDER: z.enum(["google", "openrouter"]).default("google"),
     CULQI_SECRET_KEY: z.string().min(1).optional(),
     CULQI_WEBHOOK_SECRET: z.string().min(1).optional(),
     PLATFORM_FEE_PERCENT: z.coerce.number().min(0).max(100).optional(),

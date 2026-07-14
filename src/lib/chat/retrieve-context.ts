@@ -3,7 +3,7 @@ import {
   PLATFORM_OVERVIEW,
   normalizeQuery,
 } from "./platform-knowledge";
-import { hybridRetrieve } from "./rag";
+import { hybridRetrieveAsync } from "./rag";
 
 export type ChatIntent =
   | "modules_overview"
@@ -19,6 +19,13 @@ export type ChatIntent =
   | "general_platform"
   | "unknown";
 
+export type PageContext = {
+  pathname?: string;
+  eventId?: string;
+  eventSlug?: string;
+  eventTitle?: string;
+};
+
 export type RetrievedContext = {
   intent: ChatIntent;
   requiredTools: string[];
@@ -26,6 +33,7 @@ export type RetrievedContext = {
   mustDo: string;
   citations: string[];
   ragMode: "hybrid_docs" | "live_sql" | "hybrid_mixed";
+  statusHint: string;
 };
 
 function lastUserText(messages: unknown): string {
@@ -70,13 +78,19 @@ function detectIntent(query: string): ChatIntent {
   if (/(cuantos|cuantas|estadistic)/.test(q) && /(hay|tiene|existen|van)/.test(q)) {
     return "live_stats";
   }
+  if (/(pago|pagos|estado (del )?pago|culqi|yape)/.test(q) && /(estado|verificar|revisar|buscar)/.test(q)) {
+    return "live_registrations";
+  }
+  if (/(check.?in|ingresaron|asistieron|escane)/.test(q)) {
+    return "live_stats";
+  }
   if (/(listar|lista|mostrar|ver).*(usuario|users)/.test(q) || /usuarios (de|en|registrados)/.test(q)) {
     return "live_users";
   }
   if (/(listar|lista|mostrar).*(inscrip|registro|asistente)/.test(q)) {
     return "live_registrations";
   }
-  if (/(mis tickets|mis entradas|mi ticket|mi inscripción|mi inscripcion)/.test(q)) {
+  if (/(mis tickets|mis entradas|mi ticket|mi inscripción|mi inscripcion|proximo evento|próximo evento)/.test(q)) {
     return "my_tickets";
   }
   if (/(auditor|log de|actividad reciente|seguridad)/.test(q)) {
@@ -85,7 +99,7 @@ function detectIntent(query: string): ChatIntent {
   if (/(notific|broadcast|comunicado|aviso masivo|enviar mensaje)/.test(q)) {
     return "notifications";
   }
-  if (/(transporte|bus|ruta|paradero|asiento)/.test(q) && /(como|qué|que|donde|módulo|modulo|funciona)/.test(q)) {
+  if (/(transporte|bus|ruta|paradero|asiento)/.test(q)) {
     return "transport";
   }
   if (
@@ -114,33 +128,62 @@ function detectIntent(query: string): ChatIntent {
   return "unknown";
 }
 
+function formatPageContext(page?: PageContext | null): string {
+  if (!page?.pathname && !page?.eventId && !page?.eventSlug && !page?.eventTitle) {
+    return "";
+  }
+  return [
+    "CONTEXTO DE PÁGINA ACTUAL (el usuario está aquí ahora):",
+    page.pathname ? `- Ruta: ${page.pathname}` : null,
+    page.eventTitle ? `- Evento abierto: ${page.eventTitle}` : null,
+    page.eventId ? `- eventId: ${page.eventId}` : null,
+    page.eventSlug ? `- slug: ${page.eventSlug}` : null,
+    "Si la pregunta usa 'este evento', 'aquí' o 'esto', interpreta esos identificadores.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 /**
- * Agentic + Hybrid RAG:
- * - docs: hybridRetrieve (vector local + lexical)
- * - datos vivos: tools SQL
+ * Agentic + Hybrid RAG (async: rewrite + pgvector + rerank).
  */
-export function retrieveChatContext(messages: unknown, role: string): RetrievedContext {
+export async function retrieveChatContext(
+  messages: unknown,
+  role: string,
+  page?: PageContext | null,
+): Promise<RetrievedContext> {
   const query = lastUserText(messages) || "evora modulos";
   const intent = detectIntent(query);
   const staff = role === "super_admin" || role === "admin" || role === "organizer";
-  const rag = hybridRetrieve(query, intent === "modules_overview" ? 8 : 5);
+  const rag = await hybridRetrieveAsync(query, {
+    topK: intent === "modules_overview" ? 8 : 5,
+    intent,
+    usePgvector: true,
+  });
+  const pageBlock = formatPageContext(page);
 
   const docsBlock = [
+    pageBlock,
     "RESULTADOS HYBRID RAG (documentos internos Evora):",
     rag.contextBlock,
     `Citas: ${rag.citations.join("; ")}`,
-  ].join("\n\n");
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   switch (intent) {
     case "live_stats":
       return {
         intent,
         ragMode: "hybrid_mixed",
-        requiredTools: [staff ? "getEventStats" : "searchEvents"],
+        requiredTools: staff
+          ? ["getEventStats", "getCheckInStats"]
+          : ["searchEvents", "getMyNextEvent"],
         citations: rag.citations,
+        statusHint: "Consultando base de datos…",
         mustDo: staff
-          ? "OBLIGATORIO: llama getEventStats ahora. Prohibido decir que no hay datos. Usa SOLO las cifras de la tool. Puedes apoyarte en el RAG solo para explicar qué significan."
-          : "OBLIGATORIO: llama searchEvents. No inventes totales globales de miembro.",
+          ? "OBLIGATORIO: usa getEventStats y/o getCheckInStats. Prohibido inventar cifras."
+          : "OBLIGATORIO: searchEvents o getMyNextEvent. No inventes totales globales.",
         contextText: docsBlock,
       };
 
@@ -150,6 +193,7 @@ export function retrieveChatContext(messages: unknown, role: string): RetrievedC
         ragMode: "live_sql",
         requiredTools: staff ? ["getUsersList"] : [],
         citations: rag.citations,
+        statusHint: "Listando usuarios…",
         mustDo: staff
           ? "OBLIGATORIO: llama getUsersList."
           : "Sin permiso de listar usuarios; indícalo con claridad.",
@@ -159,12 +203,15 @@ export function retrieveChatContext(messages: unknown, role: string): RetrievedC
     case "live_registrations":
       return {
         intent,
-        ragMode: "live_sql",
-        requiredTools: staff ? ["getRegistrationsList"] : ["getMyTickets"],
+        ragMode: "hybrid_mixed",
+        requiredTools: staff
+          ? ["getRegistrationsList", "getPaymentStatus"]
+          : ["getMyTickets", "getPaymentStatus"],
         citations: rag.citations,
+        statusHint: "Consultando inscripciones y pagos…",
         mustDo: staff
-          ? "OBLIGATORIO: llama getRegistrationsList."
-          : "OBLIGATORIO: llama getMyTickets.",
+          ? "Usa getRegistrationsList y/o getPaymentStatus según la pregunta."
+          : "Usa getMyTickets y/o getPaymentStatus. No inventes.",
         contextText: docsBlock,
       };
 
@@ -172,9 +219,10 @@ export function retrieveChatContext(messages: unknown, role: string): RetrievedC
       return {
         intent,
         ragMode: "hybrid_mixed",
-        requiredTools: ["getMyTickets"],
+        requiredTools: ["getMyTickets", "getMyNextEvent"],
         citations: rag.citations,
-        mustDo: "OBLIGATORIO: llama getMyTickets si el rol lo permite. No inventes entradas.",
+        statusHint: "Buscando tus entradas…",
+        mustDo: "OBLIGATORIO: getMyTickets o getMyNextEvent. No inventes entradas.",
         contextText: docsBlock,
       };
 
@@ -184,6 +232,7 @@ export function retrieveChatContext(messages: unknown, role: string): RetrievedC
         ragMode: "hybrid_mixed",
         requiredTools: staff ? ["getAuditLogs"] : [],
         citations: rag.citations,
+        statusHint: "Revisando auditoría…",
         mustDo: staff
           ? "OBLIGATORIO: llama getAuditLogs si tienes permiso."
           : "La auditoría es para administración.",
@@ -194,11 +243,14 @@ export function retrieveChatContext(messages: unknown, role: string): RetrievedC
       return {
         intent,
         ragMode: "hybrid_mixed",
-        requiredTools: staff ? ["previewMassNotification"] : ["getPlatformKnowledge"],
+        requiredTools: staff
+          ? ["draftBroadcast", "previewMassNotification"]
+          : ["getPlatformKnowledge"],
         citations: rag.citations,
+        statusHint: "Preparando comunicaciones…",
         mustDo: staff
-          ? "Para envíos masivos: previewMassNotification primero. No inventes destinatarios."
-          : "Explica notificaciones con el contexto RAG; el miembro no envía broadcasts.",
+          ? "Puedes usar draftBroadcast para proponer texto y previewMassNotification antes de enviar."
+          : "Explica notificaciones con el RAG; el miembro no envía broadcasts.",
         contextText: docsBlock,
       };
 
@@ -206,13 +258,28 @@ export function retrieveChatContext(messages: unknown, role: string): RetrievedC
       return {
         intent,
         ragMode: "hybrid_mixed",
-        requiredTools: ["searchEvents"],
+        requiredTools: ["searchEvents", "getMyNextEvent"],
         citations: rag.citations,
-        mustDo: "OBLIGATORIO: llama searchEvents. No inventes eventos.",
+        statusHint: "Buscando eventos…",
+        mustDo: "OBLIGATORIO: searchEvents o getMyNextEvent. No inventes eventos.",
         contextText: docsBlock,
       };
 
     case "transport":
+      return {
+        intent,
+        ragMode: "hybrid_mixed",
+        requiredTools: staff
+          ? ["getTransportSeats", "getEventRoutes", "getPlatformKnowledge"]
+          : ["getPlatformKnowledge"],
+        citations: rag.citations,
+        statusHint: "Consultando transporte…",
+        mustDo: staff
+          ? "Para asientos usa getTransportSeats. Para explicar el módulo usa el RAG."
+          : "Explica transporte con el contexto RAG.",
+        contextText: docsBlock,
+      };
+
     case "module_detail":
     case "modules_overview":
     case "general_platform":
@@ -221,9 +288,10 @@ export function retrieveChatContext(messages: unknown, role: string): RetrievedC
       return {
         intent,
         ragMode: "hybrid_docs",
-        requiredTools: ["getPlatformKnowledge"],
+        requiredTools: ["getPlatformKnowledge", "getMyPlanBilling"],
         citations: rag.citations,
-        mustDo: `Usa el CONTEXTO HYBRID RAG. Evora tiene ${PLATFORM_MODULE_COUNT} módulos. ${PLATFORM_OVERVIEW} Prohibido decir que no tienes contexto o idea sobre Evora. Si falta un detalle fino, llama getPlatformKnowledge con el topic de la pregunta.`,
+        statusHint: "Buscando en la base de conocimiento…",
+        mustDo: `Usa el CONTEXTO HYBRID RAG. Evora tiene ${PLATFORM_MODULE_COUNT} módulos. ${PLATFORM_OVERVIEW} Prohibido decir que no tienes contexto. Si falta detalle, llama getPlatformKnowledge. Para plan/límites: getMyPlanBilling.`,
         contextText: docsBlock,
       };
   }
@@ -236,7 +304,7 @@ export function appendRetrievedContextToSystem(
   return `${systemPrompt}
 
 ---
-PIPELINE RAG EVORA (Hybrid + Agentic)
+PIPELINE RAG EVORA (Hybrid + Agentic + Rewrite + Rerank)
 Modo: ${retrieved.ragMode}
 Intención: ${retrieved.intent}
 Tools de datos vivos recomendadas: ${retrieved.requiredTools.join(", ") || "ninguna"}
@@ -249,6 +317,7 @@ ${retrieved.contextText}
 Instrucciones de generación:
 1. Responde en español, texto profesional, sin ** ni emojis.
 2. Basate en las fuentes recuperadas y/o en el resultado exacto de las tools.
-3. Si usas una fuente del RAG, puedes mencionar el módulo (ej. Según el módulo Pagos...).
-4. Prohibido: "no tengo contexto", "no tengo idea", inventar cifras o módulos.`;
+3. Si usas una fuente del RAG, menciona el módulo (ej. Según el módulo Pagos...).
+4. Prohibido: "no tengo contexto", "no tengo idea", inventar cifras o módulos.
+5. Si hay CONTEXTO DE PÁGINA, priorízalo cuando el usuario diga "este", "aquí", "ahora".`;
 }

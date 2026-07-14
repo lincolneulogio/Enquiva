@@ -45,6 +45,7 @@
     "doctor": "npx react-doctor@latest",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "eval:copilot-rag": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/eval-copilot-rag.ts",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

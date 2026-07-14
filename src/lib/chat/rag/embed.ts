@@ -26,9 +26,10 @@ export function embedText(text: string): Float32Array {
   return l2normalize(vec);
 }
 
-export function cosineSimilarity(a: Float32Array, b: Float32Array): number {
+export function cosineSimilarity(a: Float32Array | number[], b: Float32Array | number[]): number {
+  const n = Math.min(a.length, b.length);
   let dot = 0;
-  for (let i = 0; i < a.length; i += 1) dot += a[i]! * b[i]!;
+  for (let i = 0; i < n; i += 1) dot += (a[i] ?? 0) * (b[i] ?? 0);
   return dot;
 }
 

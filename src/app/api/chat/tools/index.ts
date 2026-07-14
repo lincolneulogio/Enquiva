@@ -7,6 +7,13 @@ import { createGetAuditLogs } from "./audit-logs";
 import { createGetUsersList } from "./users";
 import { createGetRegistrationsList } from "./registrations";
 import { createGetPlatformKnowledge } from "./platform-knowledge";
+import { createGetPaymentStatus, createGetCheckInStats } from "./payment-checkin";
+import {
+  createGetMyPlanBilling,
+  createGetTransportSeats,
+  createGetMyNextEvent,
+  createDraftBroadcast,
+} from "./business-extras";
 import { hasEffectivePermission } from "@/lib/auth/effective-permissions";
 import { resolveChatToolScope, type ChatToolScope } from "./scope";
 import { normalizeChatTool } from "./chat-tool";
@@ -21,9 +28,11 @@ export async function buildTools(userRole: AppRole, userId: string, userName: st
   const scope = await resolveChatToolScope(userId, userName, userRole);
   const tools: Record<string, unknown> = {};
 
-  // Conocimiento canónico para todos los roles (evita inventar módulos).
   addTool(tools, "getPlatformKnowledge", createGetPlatformKnowledge());
   addTool(tools, "searchEvents", createSearchEvents(scope));
+  addTool(tools, "getPaymentStatus", createGetPaymentStatus(scope));
+  addTool(tools, "getMyPlanBilling", createGetMyPlanBilling(scope));
+  addTool(tools, "getMyNextEvent", createGetMyNextEvent(scope));
 
   if (userRole === "member") {
     addTool(tools, "getMyTickets", getMyTickets(userId));
@@ -46,6 +55,9 @@ export async function buildTools(userRole: AppRole, userId: string, userName: st
 
   addTool(tools, "getEventStats", createGetEventStats(scope));
   addTool(tools, "getEventRoutes", createGetEventRoutes(scope));
+  addTool(tools, "getCheckInStats", createGetCheckInStats(scope));
+  addTool(tools, "getTransportSeats", createGetTransportSeats(scope));
+  addTool(tools, "draftBroadcast", createDraftBroadcast(scope));
 
   if (canViewRegistrations) {
     addTool(tools, "getRegistrationsList", createGetRegistrationsList(scope));

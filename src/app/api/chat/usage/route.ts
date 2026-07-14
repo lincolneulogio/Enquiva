@@ -12,7 +12,15 @@ export async function GET() {
     await requirePlanFeature(user.id, userRole, "ai");
 
     const usage = await getAiChatUsage(user.id, userRole);
-    return NextResponse.json(usage);
+    const percentUsed =
+      usage.limit != null && usage.limit > 0
+        ? Math.min(100, Math.round((usage.used / usage.limit) * 100))
+        : null;
+    return NextResponse.json({
+      ...usage,
+      percentUsed,
+      nearLimit: percentUsed != null && percentUsed >= 80,
+    });
   } catch (error: unknown) {
     const authResponse = apiAuthErrorResponse(error);
     if (authResponse) return authResponse;

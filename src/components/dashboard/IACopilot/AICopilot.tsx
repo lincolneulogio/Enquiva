@@ -32,13 +32,20 @@ function AICopilotInner() {
     RoleIcon,
     ROLE_BADGE_STYLES,
     aiUsage,
+    suggestions,
+    sendSuggestion,
+    citationsByMessage,
+    feedbackByMessage,
+    submitFeedback,
+    statusHint,
   } = useChatCopilot();
 
   if (!session) return null;
 
+  const showChips = messages.length <= 1 && !isLoading;
+
   return (
     <>
-      {/* Backdrop */}
       {isOpen && (
         <div
           onClick={handleToggle}
@@ -47,7 +54,6 @@ function AICopilotInner() {
       )}
 
       <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-        {/* Chat Window */}
         {isOpen && (
           <div className="mb-4 w-96 max-w-[calc(100vw-2rem)] h-[540px] max-h-[80vh] flex flex-col rounded-3xl border border-border bg-card/95 backdrop-blur-xl shadow-2xl overflow-hidden animate-fade-in transition-all duration-300">
             <ChatHeader
@@ -66,7 +72,26 @@ function AICopilotInner() {
               messagesEndRef={messagesEndRef}
               userImage={session.user.image}
               userName={session.user.name}
+              statusHint={statusHint}
+              citationsByMessage={citationsByMessage}
+              feedbackByMessage={feedbackByMessage}
+              onFeedback={submitFeedback}
             />
+
+            {showChips && (
+              <div className="px-3 pb-2 flex flex-wrap gap-1.5 border-t border-border/40 pt-2 bg-muted/20">
+                {suggestions.map((s) => (
+                  <button
+                    key={s.label}
+                    type="button"
+                    onClick={() => sendSuggestion(s.prompt)}
+                    className="text-[10px] px-2 py-1 rounded-full border border-border/80 bg-card hover:bg-muted text-foreground/90 transition-colors"
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <ChatInput
               input={input}
@@ -77,7 +102,6 @@ function AICopilotInner() {
           </div>
         )}
 
-        {/* FAB Button */}
         {!isOpen && (
           <button
             type="button"
