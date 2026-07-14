@@ -206,11 +206,8 @@ export async function getFeaturedPublicEvents(limit = 6) {
   return EventService.getFeaturedPublicEvents(limit);
 }
 
-// ─── Get Event by Slug ────────────────────────────────────────────────────────
-
-export async function getEventBySlug(slug: string) {
-  return EventService.getEventBySlug(slug);
-}
+// ─── Get Event by Slug (SSR / catálogo público — no Server Action export) ───
+// Usa EventService desde Server Components. No exponer como action públicas.
 
 // ─── Get Organizer Events ─────────────────────────────────────────────────────
 

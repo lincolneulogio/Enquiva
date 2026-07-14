@@ -69,11 +69,14 @@ export function useRealtimeDashboardSync({
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelledRef = useRef(false);
   const routerRef = useRef(router);
-  routerRef.current = router;
 
   useEffect(() => {
     pathnameRef.current = pathname;
   }, [pathname]);
+
+  useEffect(() => {
+    routerRef.current = router;
+  }, [router]);
 
   useEffect(() => {
     cancelledRef.current = false;

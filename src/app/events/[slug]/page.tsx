@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { getCategories, getEventBySlug } from "@/actions/events";
+import { getCategories } from "@/actions/events";
+import { EventService } from "@/services/events/event.service";
 import { getRegistrationForEvent } from "@/actions/registrations";
 import { getUserPayments } from "@/actions/payments";
 import { RegisterButton } from "@/components/events/RegisterButton";
@@ -66,7 +67,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
   const { t, locale } = await getI18n();
   const { slug } = await params;
   const [event, categories] = await Promise.all([
-    getEventBySlug(slug),
+    EventService.getEventBySlug(slug),
     getCategories(),
   ]);
 

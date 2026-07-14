@@ -28,6 +28,14 @@ export const chatRatelimit = new Ratelimit({
   prefix: "ratelimit:chat",
 });
 
+/** Login/registro: checks de identidad y reenvío OTP (por IP). */
+export const authIdentityRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(20, "1 m"),
+  analytics: true,
+  prefix: "ratelimit:auth_identity",
+});
+
 export const CACHE_KEYS = {
   publicEvents: "events:public",
   eventBySlug: (slug: string) => `events:slug:${slug}`,

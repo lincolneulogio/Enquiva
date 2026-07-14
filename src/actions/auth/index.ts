@@ -3,12 +3,14 @@
 import { z } from "zod";
 import { randomInt, randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
+import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { env } from "@/env";
 import { users, verifications } from "@/lib/db/schema";
 import { sendPasswordChangedEmail, sendVerificationCodeEmail, sendWelcomeEmail } from "@/lib/mail";
 import { getLocale } from "@/lib/i18n/server";
 import type { Locale } from "@/lib/i18n/core";
+import { authIdentityRatelimit, enforceRateLimit } from "@/lib/redis";
 
 const authIdentitySchema = z.object({
     email: z.string().trim().toLowerCase().email(),
@@ -38,6 +40,18 @@ const signupIntentPayloadSchema = z.discriminatedUnion("type", [
         orgName: z.string().trim().min(2).max(120),
     }),
 ]);
+
+/** Actions públicas de auth: rate-limit por IP (no requieren sesión). */
+async function assertPublicAuthRateLimit(bucket: string) {
+    const headersList = await headers();
+    const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "anonymous";
+    const rate = await enforceRateLimit(authIdentityRatelimit, `${bucket}:${ip}`, {
+        failClosed: false,
+    });
+    if (!rate.ok) {
+        throw new Error("Demasiados intentos. Espera un momento e inténtalo de nuevo.");
+    }
+}
 
 function signupIntentIdentifier(email: string) {
     return `signup-intent:${email.toLowerCase()}`;
@@ -208,6 +222,7 @@ export async function preparePlatformOwnerSignup(input: {
 }
 
 export async function checkSuperAdminIdentity(input: { email: string }) {
+    await assertPublicAuthRateLimit("superadmin-identity");
     const validated = authIdentitySchema.parse(input);
 
     const [user] = await db
@@ -228,6 +243,7 @@ export async function checkSuperAdminIdentity(input: { email: string }) {
 }
 
 export async function checkAuthIdentityByEmail(input: { email: string }) {
+    await assertPublicAuthRateLimit("auth-identity");
     const validated = authIdentitySchema.parse(input);
 
     const [user] = await db
@@ -243,6 +259,7 @@ export async function sendVerificationCode(input: {
     email: string;
     signupPayload?: SignupIntentPayload;
 }) {
+    await assertPublicAuthRateLimit("send-otp");
     const validated = authIdentitySchema.parse(input);
 
     const [user] = await db
@@ -416,6 +433,7 @@ export async function confirmVerificationCode(input: { email: string; code: stri
 }
 
 export async function resendVerificationCode(input: { email: string }) {
+    await assertPublicAuthRateLimit("resend-otp");
     const validated = authIdentitySchema.parse(input);
 
     const [user] = await db

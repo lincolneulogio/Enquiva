@@ -64,6 +64,28 @@ const emptyForm = {
   featureExports: false,
 };
 
+function FeatureToggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-sm text-foreground transition hover:bg-muted/40 dark:bg-muted/10 dark:hover:bg-muted/20">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-4 w-4 rounded border-border text-primary focus:ring-primary focus:ring-offset-background"
+      />
+      {label}
+    </label>
+  );
+}
+
 export function PlansManager({ initialPlans }: PlansManagerProps) {
   const t = useTranslations();
   const [tab, setTab] = useState<PlansTab>("list");
@@ -182,26 +204,6 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
     resetForm();
     setTab("list");
   };
-
-  const FeatureToggle = ({
-    label,
-    checked,
-    onChange,
-  }: {
-    label: string;
-    checked: boolean;
-    onChange: (v: boolean) => void;
-  }) => (
-    <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-sm text-foreground transition hover:bg-muted/40 dark:bg-muted/10 dark:hover:bg-muted/20">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="h-4 w-4 rounded border-border text-primary focus:ring-primary focus:ring-offset-background"
-      />
-      {label}
-    </label>
-  );
 
   return (
     <div className="space-y-6">

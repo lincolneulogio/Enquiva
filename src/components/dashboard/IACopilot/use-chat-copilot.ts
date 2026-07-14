@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { ROLE_BADGE_STYLES, normalizeRole } from "@/lib/auth/rbac";
 import { getRoleLabel, type Locale } from "@/lib/i18n/core";
@@ -9,6 +9,8 @@ import { useSession } from "@/lib/auth/client";
 import { Crown, ShieldCheck, Briefcase, UserRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { formStorageKey, loadFormDraft, saveFormDraft } from "@/lib/form-persistence";
+
+type AiUsage = { used: number; limit: number | null; remaining: number | null };
 
 function buildWelcomeMessage(
   userName: string,
@@ -30,6 +32,25 @@ function buildWelcomeMessage(
   });
 }
 
+function parseAiUsage(data: unknown): AiUsage | null {
+  if (!data || typeof data !== "object") return null;
+  const used = (data as { used?: unknown }).used;
+  if (typeof used !== "number") return null;
+  const limit = (data as { limit?: unknown }).limit;
+  const remaining = (data as { remaining?: unknown }).remaining;
+  return {
+    used,
+    limit: typeof limit === "number" ? limit : null,
+    remaining: typeof remaining === "number" ? remaining : null,
+  };
+}
+
+async function fetchAiUsage(signal?: AbortSignal): Promise<AiUsage | null> {
+  const res = await fetch("/api/chat/usage", { signal });
+  if (!res.ok) return null;
+  return parseAiUsage(await res.json());
+}
+
 const ROLE_ICON: Record<string, LucideIcon> = {
   super_admin: Crown,
   admin: ShieldCheck,
@@ -42,7 +63,7 @@ export function useChatCopilot() {
   const { locale, t } = useLocale();
   const [isOpen, setIsOpen] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
-  const [aiUsage, setAiUsage] = useState<{ used: number; limit: number | null; remaining: number | null } | null>(null);
+  const [aiUsage, setAiUsage] = useState<AiUsage | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const userRole = normalizeRole(session?.user.role ?? "member");
@@ -55,7 +76,6 @@ export function useChatCopilot() {
     handleSubmit,
     isLoading,
     setMessages,
-    append,
     setInput,
   } = useChat({
     api: "/api/chat",
@@ -68,7 +88,6 @@ export function useChatCopilot() {
       },
     ],
   });
-
 
   useEffect(() => {
     const saved = loadFormDraft<string>(formStorageKey("ai.copilot.input"));
@@ -84,36 +103,36 @@ export function useChatCopilot() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    if (!isOpen && messages.length > 1) setHasUnread(true);
-  }, [messages, isOpen]);
+  }, [messages]);
 
   useEffect(() => {
-    if (!isOpen) return;
-    fetch("/api/chat/usage")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data && typeof data.used === "number") setAiUsage(data);
-      })
-      .catch(() => undefined);
-  }, [isOpen, messages.length]);
+    if (!isOpen && messages.length > 1) setHasUnread(true);
+  }, [messages.length, isOpen]);
 
-  const refreshAiUsage = () => {
-    fetch("/api/chat/usage")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data && typeof data.used === "number") setAiUsage(data);
-      })
-      .catch(() => undefined);
-  };
+  /** Carga uso desde handlers de evento (evita setState en .then de un effect). */
+  const refreshAiUsage = useCallback(() => {
+    void (async () => {
+      try {
+        const usage = await fetchAiUsage();
+        if (usage) setAiUsage(usage);
+      } catch {
+        /* red / abort */
+      }
+    })();
+  }, []);
 
   const handleToggle = () => {
-    setIsOpen((p) => !p);
+    const opening = !isOpen;
+    setIsOpen(opening);
     setHasUnread(false);
+    if (opening) refreshAiUsage();
   };
+
   const wrappedSubmit = (event?: { preventDefault?: () => void }) => {
     handleSubmit(event);
     window.setTimeout(refreshAiUsage, 500);
   };
+
   const handleResetChat = () =>
     setMessages([
       {
