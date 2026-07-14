@@ -80,7 +80,8 @@ export const PLATFORM_SPECIAL_PLAN_DEFINITION = {
   featureExports: true,
   featureCustomBranding: true,
   sortOrder: 0,
-  isActive: true,
+  /** Inactivo en catálogo público: solo lo usa el Superadmin vía assignación interna. */
+  isActive: false,
 };
 
 export function isPlatformSpecialPlan(slugOrPlan?: string | { slug?: string | null } | null): boolean {

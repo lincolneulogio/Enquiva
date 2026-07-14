@@ -18,7 +18,7 @@ import {
   resetCulqiCheckoutUi,
   loadCulqiCheckoutScript,
 } from "@/lib/culqi/open-checkout";
-import { isRecommendedBillingPlan } from "@/lib/billing/plans";
+import { filterPublicBillingPlans, isRecommendedBillingPlan } from "@/lib/billing/plans";
 
 interface PendingPayment {
   payment: {
@@ -90,6 +90,7 @@ export function OrganizerBillingClient({
   const { plan, usage, billedPlan, renewalAlert, daysUntilRenewal } = subscription;
   const displayPlanName = billedPlan?.name ?? plan.name;
   const plansReady = subscription.plansConfigured !== false;
+  const selectablePlans = filterPublicBillingPlans(availablePlans);
 
   // Precarga Culqi para que el primer “Pagar” no espere el script.
   useEffect(() => {
@@ -370,10 +371,10 @@ export function OrganizerBillingClient({
       </div>
 
       <div className="grid gap-4 pt-2 md:grid-cols-3">
-        {availablePlans.map((p) => {
+        {selectablePlans.map((p) => {
           const isCurrent = subscription.status === "active" && p.slug === plan.slug;
           const isBilledCurrent = billedPlan?.slug === p.slug;
-          const isRecommended = isRecommendedBillingPlan(p, availablePlans);
+          const isRecommended = isRecommendedBillingPlan(p, selectablePlans);
           const isPaid = Number(p.priceMonthly) > 0;
           return (
             <div

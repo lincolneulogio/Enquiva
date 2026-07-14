@@ -54,11 +54,36 @@ export function SuperAdminRegisterForm({ requiresSecret }: SuperAdminRegisterFor
 
     startTransition(async () => {
       try {
+        if (requiresSecret && !data.bootstrapSecret?.trim()) {
+          const msg = t("auth.bootstrapSecretRequired");
+          setError("bootstrapSecret", { type: "server", message: msg });
+          toast.error(msg);
+          return;
+        }
+
         const identity = await checkAuthIdentityByEmail({ email: data.email });
         if (identity.exists) {
           const emailInUseMessage = t("auth.emailAlreadyInUse");
           setError("email", { type: "server", message: emailInUseMessage });
           toast.error(emailInUseMessage);
+          return;
+        }
+
+        // Validar clave ANTES de crear la cuenta (en prod siempre se exige).
+        const prepared = await preparePlatformOwnerSignup({
+          email: data.email,
+          bootstrapSecret: data.bootstrapSecret,
+        });
+        if (!prepared.prepared) {
+          const isSecretError = prepared.error.toLowerCase().includes("bootstrap");
+          const msg = isSecretError
+            ? t("auth.bootstrapSecretInvalid")
+            : prepared.error;
+          if (isSecretError) {
+            setError("bootstrapSecret", { type: "server", message: msg });
+          }
+          setError("root", { type: "server", message: msg });
+          toast.error(msg);
           return;
         }
 
@@ -87,11 +112,6 @@ export function SuperAdminRegisterForm({ requiresSecret }: SuperAdminRegisterFor
           toast.error(friendlyMessage);
           return;
         }
-
-        await preparePlatformOwnerSignup({
-          email: data.email,
-          bootstrapSecret: data.bootstrapSecret,
-        });
 
         await sendVerificationCode({
           email: data.email,

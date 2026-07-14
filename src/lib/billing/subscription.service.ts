@@ -194,7 +194,8 @@ export class SubscriptionService {
       featureExports: PLATFORM_SPECIAL_PLAN_DEFINITION.featureExports,
       featureCustomBranding: PLATFORM_SPECIAL_PLAN_DEFINITION.featureCustomBranding,
       sortOrder: PLATFORM_SPECIAL_PLAN_DEFINITION.sortOrder,
-      isActive: true,
+      // Nunca público: no debe aparecer para admin/organizer/member.
+      isActive: false,
       updatedAt: new Date(),
     };
 

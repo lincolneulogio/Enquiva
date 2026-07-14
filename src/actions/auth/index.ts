@@ -210,15 +210,28 @@ export async function preparePlatformOwnerSignup(input: {
     const gate = await getSuperAdminRegisterGate();
 
     if (!gate.canRegister) {
-        throw new Error("La plataforma ya tiene un superadministrador configurado.");
+        return {
+            prepared: false as const,
+            error: "La plataforma ya tiene un superadministrador configurado.",
+        };
     }
 
     if (gate.requiresSecret) {
-        validateBootstrapSecret(input.bootstrapSecret ?? "");
+        try {
+            validateBootstrapSecret(input.bootstrapSecret ?? "");
+        } catch (error) {
+            return {
+                prepared: false as const,
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : "Clave de bootstrap inválida.",
+            };
+        }
     }
 
     await storeSignupIntent(email, { type: "platform_owner" });
-    return { prepared: true };
+    return { prepared: true as const };
 }
 
 export async function checkSuperAdminIdentity(input: { email: string }) {

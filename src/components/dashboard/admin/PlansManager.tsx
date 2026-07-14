@@ -345,7 +345,7 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                         </span>
                         {isSpecial && (
                           <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">
-                            Solo superadmin
+                            Solo superadmin · oculto al catálogo
                           </span>
                         )}
                         {isRecommended && (

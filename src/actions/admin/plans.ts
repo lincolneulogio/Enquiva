@@ -137,7 +137,7 @@ export async function updatePlan(
         featureAi: true,
         featureExports: true,
         featureCustomBranding: true,
-        isActive: true,
+        isActive: false,
         updatedAt: new Date(),
       })
       .where(eq(plans.id, id));

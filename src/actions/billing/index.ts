@@ -42,7 +42,10 @@ export async function getMyPlanSummary() {
 }
 
 export async function getPublicPlans() {
-  return SubscriptionService.listPublicPlans();
+  const { filterPublicBillingPlans } = await import("@/lib/billing/plans");
+  const plans = await SubscriptionService.listPublicPlans();
+  // Doble filtro por si el catálogo llega con el plan especial de plataforma.
+  return filterPublicBillingPlans(plans);
 }
 
 export async function getPlatformBillingMethods() {
