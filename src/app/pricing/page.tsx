@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Check, ArrowRight, Sparkles } from "lucide-react";
+import { Check, X, ArrowRight, Sparkles } from "lucide-react";
 import { headers } from "next/headers";
 import { PublicHeader } from "@/components/shared/PublicHeader";
 import { getI18n } from "@/lib/i18n/server";
@@ -7,8 +7,10 @@ import { db } from "@/lib/db";
 import { plans } from "@/lib/db/schema";
 import { and, asc, eq } from "drizzle-orm";
 import { mapPlanRow, DEFAULT_PLAN_DEFINITIONS, filterPublicBillingPlans } from "@/lib/billing/plans";
+import { getPricingFeatureLines } from "@/lib/billing/pricing-features";
 import { auth } from "@/lib/auth";
 import { getPricingCta } from "@/lib/navigation/pricing-cta";
+import { cn } from "@/lib/utils";
 
 export const metadata = {
   title: "Planes y precios | Evora",
@@ -29,16 +31,17 @@ function fallbackPlans() {
     commissionPerRegistration: d.commissionPerRegistration,
     maxBroadcastsPerMonth: d.maxBroadcastsPerMonth,
     maxAiMessagesPerMonth: d.maxAiMessagesPerMonth,
+    maxOrganizers: d.maxOrganizers,
     featureCulqi: d.featureCulqi,
     featureTransport: d.featureTransport,
     featureAi: d.featureAi,
     featureExports: d.featureExports,
+    featureCustomBranding: d.featureCustomBranding,
     isActive: true,
     sortOrder: d.sortOrder,
     currency: "PEN",
     createdAt: new Date(),
     updatedAt: new Date(),
-    featureCustomBranding: false,
   }));
 }
 
@@ -91,39 +94,7 @@ export default async function PricingPage() {
           {visible.map((raw) => {
             const plan = mapPlanRow(raw);
             const isPro = plan.slug === "pro" || plan.slug.includes("pro");
-            const features = [
-              plan.maxActiveEvents == null
-                ? locale === "en"
-                  ? "Unlimited events"
-                  : "Eventos ilimitados"
-                : locale === "en"
-                  ? `${plan.maxActiveEvents} active events`
-                  : `${plan.maxActiveEvents} eventos activos`,
-              plan.maxAttendeesPerEvent == null
-                ? locale === "en"
-                  ? "Unlimited attendees"
-                  : "Asistentes ilimitados"
-                : locale === "en"
-                  ? `Up to ${plan.maxAttendeesPerEvent} attendees`
-                  : `Hasta ${plan.maxAttendeesPerEvent} asistentes`,
-              plan.features.culqi ? "Culqi" : null,
-              plan.features.transport
-                ? locale === "en"
-                  ? "Transport"
-                  : "Transporte"
-                : null,
-              plan.features.ai ? "Copilot IA" : null,
-              plan.features.exports
-                ? locale === "en"
-                  ? "Exports"
-                  : "Exportaciones"
-                : null,
-              plan.commissionPercent > 0 || plan.commissionPerRegistration > 0
-                ? locale === "en"
-                  ? `Platform fee: ${plan.commissionPercent}%${plan.commissionPerRegistration > 0 ? ` + S/ ${plan.commissionPerRegistration.toFixed(2)}/attendee` : ""}`
-                  : `Comisión plataforma: ${plan.commissionPercent}%${plan.commissionPerRegistration > 0 ? ` + S/ ${plan.commissionPerRegistration.toFixed(2)}/inscrito` : ""}`
-                : null,
-            ].filter(Boolean) as string[];
+            const features = getPricingFeatureLines(plan, locale === "en" ? "en" : "es");
 
             return (
               <article
@@ -151,9 +122,21 @@ export default async function PricingPage() {
                 </p>
                 <ul className="mt-6 flex-1 space-y-2.5">
                   {features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-foreground">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                      {f}
+                    <li
+                      key={f.key}
+                      className={cn(
+                        "flex items-start gap-2 text-sm",
+                        f.included
+                          ? "text-foreground"
+                          : "text-muted-foreground/70 line-through decoration-muted-foreground/40",
+                      )}
+                    >
+                      {f.included ? (
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      ) : (
+                        <X className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/50" />
+                      )}
+                      {f.text}
                     </li>
                   ))}
                 </ul>
