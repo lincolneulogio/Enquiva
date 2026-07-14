@@ -219,7 +219,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                 type="text"
                                 name="search"
                                 defaultValue={searchQuery}
-                                placeholder={locale === "en" ? "Name, email, phone..." : "Nombre, correo, telÃ©fono..."}
+                                placeholder={locale === "en" ? "Name, email, phone..." : "Nombre, correo, teléfono..."}
                                 className="w-full rounded-xl border border-border bg-background pl-10 pr-4 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary h-10 transition-all text-foreground"
                             />
                         </div>
@@ -304,7 +304,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                                 {user.name?.[0]?.toUpperCase() ?? "U"}
                                             </div>
                                             <div className="min-w-0">
-                                                <h3 className="font-bold text-foreground truncate max-w-[160px]">{user.name ?? "â€”"}</h3>
+                                                <h3 className="font-bold text-foreground truncate max-w-[160px]">{user.name ?? "—"}</h3>
                                                 <p className="text-xs text-muted-foreground truncate max-w-[160px]">{user.email}</p>
                                             </div>
                                         </div>
@@ -315,8 +315,8 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
 
                                     <div className="grid grid-cols-2 gap-3 text-xs border-t border-b border-border/50 py-3">
                                         <div>
-                                            <span className="block text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{locale === "en" ? "Phone" : "TelÃ©fono"}</span>
-                                            <span className="font-medium text-foreground">{user.phone ?? "â€”"}</span>
+                                            <span className="block text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{locale === "en" ? "Phone" : "Teléfono"}</span>
+                                            <span className="font-medium text-foreground">{user.phone ?? "—"}</span>
                                         </div>
                                         <div>
                                             <span className="block text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t("common.role")}</span>
@@ -353,13 +353,13 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                         <div>
                                             <span className="block text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t("common.joined")}</span>
                                             <span className="text-muted-foreground font-medium">
-                                                {user.createdAt ? new Date(user.createdAt).toLocaleDateString(locale === "en" ? "en-US" : "es-PE") : "â€”"}
+                                                {user.createdAt ? new Date(user.createdAt).toLocaleDateString(locale === "en" ? "en-US" : "es-PE") : "—"}
                                             </span>
                                         </div>
                                         <div>
-                                            <span className="block text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{locale === "en" ? "Last Active" : "Ãšltima ConexiÃ³n"}</span>
+                                            <span className="block text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{locale === "en" ? "Last Active" : "Última Conexión"}</span>
                                             <span className="text-muted-foreground font-medium truncate block max-w-[120px]">
-                                                {user.lastSeenAt ? new Date(user.lastSeenAt).toLocaleDateString(locale === "en" ? "en-US" : "es-PE") : "â€”"}
+                                                {user.lastSeenAt ? new Date(user.lastSeenAt).toLocaleDateString(locale === "en" ? "en-US" : "es-PE") : "—"}
                                             </span>
                                         </div>
                                     </div>
@@ -402,15 +402,15 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                         <table className="w-full min-w-[1250px] text-sm">
                             <thead>
                                 <tr className="border-b border-border bg-muted/40">
-                                    <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground w-12">NÂ°</th>
+                                    <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground w-12">N°</th>
                                     <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{t("common.name")}</th>
                                     <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{t("common.email")}</th>
-                                    <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{locale === "en" ? "Phone" : "TelÃ©fono"}</th>
+                                    <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{locale === "en" ? "Phone" : "Teléfono"}</th>
                                     <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{locale === "en" ? "Verified" : "Verificado"}</th>
                                     <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{t("common.role")}</th>
                                     <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{locale === "en" ? "Status" : "Estado"}</th>
                                     <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{t("common.joined")}</th>
-                                    <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{locale === "en" ? "Last Active" : "Ãšltima ConexiÃ³n"}</th>
+                                    <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{locale === "en" ? "Last Active" : "Última Conexión"}</th>
                                     <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{roleColumnLabel}</th>
                                     <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{t("common.actions")}</th>
                                 </tr>
@@ -430,11 +430,11 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                                                         {user.name?.[0]?.toUpperCase() ?? "U"}
                                                     </div>
-                                                    <span className="font-semibold text-foreground whitespace-nowrap">{user.name ?? "â€”"}</span>
+                                                    <span className="font-semibold text-foreground whitespace-nowrap">{user.name ?? "—"}</span>
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3.5 text-muted-foreground break-all max-w-[200px]">{user.email}</td>
-                                            <td className="px-4 py-3.5 text-muted-foreground whitespace-nowrap">{user.phone ?? "â€”"}</td>
+                                            <td className="px-4 py-3.5 text-muted-foreground whitespace-nowrap">{user.phone ?? "—"}</td>
                                             <td className="px-4 py-3.5">
                                                 {user.emailVerified ? (
                                                     <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-semibold text-green-600 dark:bg-green-500/20 dark:text-green-400 border border-green-500/20">
@@ -482,7 +482,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                                         day: "numeric",
                                                         year: "numeric",
                                                     })
-                                                    : "â€”"}
+                                                    : "—"}
                                             </td>
                                             <td className="px-4 py-3.5 text-muted-foreground whitespace-nowrap">
                                                 {user.lastSeenAt
@@ -492,7 +492,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                                         hour: "2-digit",
                                                         minute: "2-digit",
                                                     })
-                                                    : "â€”"}
+                                                    : "—"}
                                             </td>
                                             <td className="px-4 py-3.5">
                                                 <div className="space-y-2">
