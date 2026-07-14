@@ -22,7 +22,7 @@
     "db:studio": "drizzle-kit studio",
     "db:reset": "npx tsx --env-file=.env ./scripts/reset-db.ts",
     "db:seed:bootstrap": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/seed-bootstrap.ts",
-    "db:fresh": "pnpm run db:reset && pnpm run db:push && pnpm run db:seed:bootstrap",
+    "db:fresh": "pnpm run db:reset && pnpm exec drizzle-kit push --force && pnpm run db:seed:bootstrap",
     "db:sync:plans": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/ensure-default-plans.ts",
     "db:backup": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/backup-database.ts",
     "jobs:subscriptions": "tsx --env-file=.env --tsconfig tsconfig.json ./scripts/process-subscription-lifecycle.ts",
