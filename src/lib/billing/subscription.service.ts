@@ -107,6 +107,7 @@ export class SubscriptionService {
       maxActiveEvents: definition.maxActiveEvents,
       maxAttendeesPerEvent: definition.maxAttendeesPerEvent,
       commissionPercent: definition.commissionPercent,
+      commissionPerRegistration: definition.commissionPerRegistration,
       maxBroadcastsPerMonth: definition.maxBroadcastsPerMonth,
       maxAiMessagesPerMonth: definition.maxAiMessagesPerMonth,
       maxOrganizers: definition.maxOrganizers,
@@ -807,6 +808,21 @@ export class SubscriptionService {
         .select({ id: platformTransactions.id })
         .from(platformTransactions)
         .where(eq(platformTransactions.subscriptionPaymentId, input.subscriptionPaymentId))
+        .limit(1);
+
+      if (existing) return existing.id;
+    }
+
+    if (input.type === "commission" && input.paymentId) {
+      const [existing] = await tx
+        .select({ id: platformTransactions.id })
+        .from(platformTransactions)
+        .where(
+          and(
+            eq(platformTransactions.type, "commission"),
+            eq(platformTransactions.paymentId, input.paymentId),
+          ),
+        )
         .limit(1);
 
       if (existing) return existing.id;

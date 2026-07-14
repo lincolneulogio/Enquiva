@@ -381,7 +381,7 @@ export function TicketCard({
   const totalAttendees = 1 + guestsState.length;
 
   return (
-    <div className="rounded-3xl border border-border bg-card shadow-3xs overflow-hidden hover:shadow-2xs transition-all duration-300">
+    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300 hover:border-primary/25 hover:shadow-md sm:rounded-3xl">
       {/* 1. CABECERA SIEMPRE VISIBLE */}
       <div
         onClick={handleToggle}

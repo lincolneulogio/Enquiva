@@ -295,7 +295,14 @@ export function OrganizerBillingClient({
                 }
               />
             )}
-            <UsageCard label={t("billing.organizer.usageCommission")} value={`${plan.commissionPercent}%`} />
+            <UsageCard
+              label={t("billing.organizer.usageCommission")}
+              value={
+                Number(plan.commissionPerRegistration) > 0
+                  ? `${plan.commissionPercent}% + S/ ${Number(plan.commissionPerRegistration).toFixed(2)}/inscrito`
+                  : `${plan.commissionPercent}%`
+              }
+            />
             <UsageCard label={t("billing.organizer.usageRenewal")} value={renewalDate} />
           </div>
         </div>

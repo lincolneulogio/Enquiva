@@ -9,6 +9,7 @@ export const DEFAULT_PLAN_DEFINITIONS: Array<{
   maxActiveEvents: number | null;
   maxAttendeesPerEvent: number | null;
   commissionPercent: string;
+  commissionPerRegistration: string;
   maxBroadcastsPerMonth: number | null;
   maxAiMessagesPerMonth: number | null;
   maxOrganizers: number | null;
@@ -26,7 +27,8 @@ export const DEFAULT_PLAN_DEFINITIONS: Array<{
     priceMonthly: "0",
     maxActiveEvents: 1,
     maxAttendeesPerEvent: 100,
-    commissionPercent: "0",
+    commissionPercent: "8",
+    commissionPerRegistration: "0.50",
     maxBroadcastsPerMonth: 0,
     maxAiMessagesPerMonth: 0,
     maxOrganizers: 1,
@@ -44,7 +46,8 @@ export const DEFAULT_PLAN_DEFINITIONS: Array<{
     priceMonthly: "49",
     maxActiveEvents: 10,
     maxAttendeesPerEvent: 1000,
-    commissionPercent: "0",
+    commissionPercent: "5",
+    commissionPerRegistration: "0.30",
     maxBroadcastsPerMonth: 50,
     maxAiMessagesPerMonth: 200,
     maxOrganizers: 3,
@@ -62,7 +65,8 @@ export const DEFAULT_PLAN_DEFINITIONS: Array<{
     priceMonthly: "99",
     maxActiveEvents: null,
     maxAttendeesPerEvent: null,
-    commissionPercent: "0",
+    commissionPercent: "3",
+    commissionPerRegistration: "0.20",
     maxBroadcastsPerMonth: null,
     maxAiMessagesPerMonth: null,
     maxOrganizers: null,
@@ -88,6 +92,7 @@ export const UNLIMITED_PLAN: ResolvedPlan = {
   maxActiveEvents: null,
   maxAttendeesPerEvent: null,
   commissionPercent: 0,
+  commissionPerRegistration: 0,
   maxBroadcastsPerMonth: null,
   maxAiMessagesPerMonth: null,
   maxOrganizers: null,
@@ -114,6 +119,7 @@ export const PENDING_PLATFORM_SETUP_PLAN: ResolvedPlan = {
   maxActiveEvents: 0,
   maxAttendeesPerEvent: 0,
   commissionPercent: 0,
+  commissionPerRegistration: 0,
   maxBroadcastsPerMonth: 0,
   maxAiMessagesPerMonth: 0,
   maxOrganizers: 0,
@@ -141,6 +147,7 @@ export function mapPlanRow(plan: Plan): ResolvedPlan {
     maxActiveEvents: plan.maxActiveEvents,
     maxAttendeesPerEvent: plan.maxAttendeesPerEvent,
     commissionPercent: Number(plan.commissionPercent ?? 0),
+    commissionPerRegistration: Number(plan.commissionPerRegistration ?? 0),
     maxBroadcastsPerMonth: plan.maxBroadcastsPerMonth,
     maxAiMessagesPerMonth: plan.maxAiMessagesPerMonth,
     maxOrganizers: plan.maxOrganizers,

@@ -300,6 +300,28 @@ export class PaymentService {
         .where(eq(payments.id, validated.paymentId))
         .returning();
 
+      // 1b. Comisión de plataforma al aprobar (Culqi o manual) — idempotente
+      if (validated.status === "approved" && payment.status !== "approved") {
+        const { settlePlatformCommissionForApprovedPayment } = await import(
+          "@/lib/billing/platform-commission"
+        );
+        try {
+          await settlePlatformCommissionForApprovedPayment({
+            paymentId: payment.id,
+            registrationId: registration.id,
+            eventId: event.id,
+            eventTitle: event.title,
+            organizerId: event.organizerId,
+            amount: Number(payment.amount),
+            currency: payment.currency ?? "PEN",
+            metadata: { approvedBy: adminUserId, method: payment.method },
+            tx,
+          });
+        } catch (err) {
+          console.error("[commission] settle failed:", err);
+        }
+      }
+
       const statusNotifications: NotificationPayload[] = [];
 
       // 2. Gestionar la reserva de transporte si existe

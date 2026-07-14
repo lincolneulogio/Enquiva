@@ -18,6 +18,8 @@ export type ResolvedPlan = {
   maxActiveEvents: number | null;
   maxAttendeesPerEvent: number | null;
   commissionPercent: number;
+  /** PEN fijos por inscrito (titular + invitados) al aprobar el pago. */
+  commissionPerRegistration: number;
   maxBroadcastsPerMonth: number | null;
   maxAiMessagesPerMonth: number | null;
   maxOrganizers: number | null;

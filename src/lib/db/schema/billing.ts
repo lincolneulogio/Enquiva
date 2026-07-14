@@ -49,6 +49,13 @@ export const plans = pgTable(
     commissionPercent: numeric("commission_percent", { precision: 5, scale: 2 })
       .notNull()
       .default("0"),
+    /** Comisión fija en PEN por cada inscrito cubierto por el pago aprobado. */
+    commissionPerRegistration: numeric("commission_per_registration", {
+      precision: 10,
+      scale: 2,
+    })
+      .notNull()
+      .default("0"),
     maxBroadcastsPerMonth: integer("max_broadcasts_per_month"),
     maxAiMessagesPerMonth: integer("max_ai_messages_per_month"),
     maxOrganizers: integer("max_organizers"),

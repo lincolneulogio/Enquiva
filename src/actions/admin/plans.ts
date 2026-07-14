@@ -22,6 +22,7 @@ export async function createPlan(input: {
   maxActiveEvents?: number | null;
   maxAttendeesPerEvent?: number | null;
   commissionPercent?: number;
+  commissionPerRegistration?: number;
   maxBroadcastsPerMonth?: number | null;
   maxAiMessagesPerMonth?: number | null;
   maxOrganizers?: number | null;
@@ -50,6 +51,7 @@ export async function createPlan(input: {
       maxActiveEvents: input.maxActiveEvents ?? null,
       maxAttendeesPerEvent: input.maxAttendeesPerEvent ?? null,
       commissionPercent: String(input.commissionPercent ?? 0),
+      commissionPerRegistration: String(input.commissionPerRegistration ?? 0),
       maxBroadcastsPerMonth: input.maxBroadcastsPerMonth ?? null,
       maxAiMessagesPerMonth: input.maxAiMessagesPerMonth ?? null,
       maxOrganizers: input.maxOrganizers ?? null,
@@ -87,6 +89,7 @@ export async function updatePlan(
     maxActiveEvents?: number | null;
     maxAttendeesPerEvent?: number | null;
     commissionPercent?: number;
+    commissionPerRegistration?: number;
     maxBroadcastsPerMonth?: number | null;
     maxAiMessagesPerMonth?: number | null;
     maxOrganizers?: number | null;
@@ -124,6 +127,9 @@ export async function updatePlan(
       ...(input.maxActiveEvents !== undefined && { maxActiveEvents: input.maxActiveEvents }),
       ...(input.maxAttendeesPerEvent !== undefined && { maxAttendeesPerEvent: input.maxAttendeesPerEvent }),
       ...(input.commissionPercent !== undefined && { commissionPercent: String(input.commissionPercent) }),
+      ...(input.commissionPerRegistration !== undefined && {
+        commissionPerRegistration: String(input.commissionPerRegistration),
+      }),
       ...(input.maxBroadcastsPerMonth !== undefined && { maxBroadcastsPerMonth: input.maxBroadcastsPerMonth }),
       ...(input.maxAiMessagesPerMonth !== undefined && { maxAiMessagesPerMonth: input.maxAiMessagesPerMonth }),
       ...(input.maxOrganizers !== undefined && { maxOrganizers: input.maxOrganizers }),

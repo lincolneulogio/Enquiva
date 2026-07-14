@@ -127,6 +127,13 @@
       "when": 1775100000000,
       "tag": "0017_copilot_rag_history",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1775200000000,
+      "tag": "0018_plan_commission_per_registration",
+      "breakpoints": true
     }
   ]
 }

@@ -3,8 +3,6 @@ import { payments, registrations, events, tickets } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 import { PaymentService } from "@/services/payments/payment.service";
 import { getCulqiCredentialsForEvent } from "@/lib/culqi/capabilities";
-import { getOrganizerPlanForEvent, getPlatformFee } from "@/lib/billing/enforce";
-import { SubscriptionService } from "@/lib/billing/subscription.service";
 import { invalidateAdminDashboardStatsCache } from "@/lib/analytics/admin";
 
 export type CulqiChargePayload = {
@@ -98,17 +96,7 @@ export class CulqiEventPaymentService {
       })
       .where(eq(payments.id, payment.id));
 
-    if (input.platformFee && input.platformFee > 0 && !payment.platformFee) {
-      await SubscriptionService.recordPlatformTransaction({
-        type: "commission",
-        amount: input.platformFee,
-        userId: event.organizerId,
-        paymentId: payment.id,
-        description: `Comisión plataforma evento ${event.title}`,
-        metadata: { chargeId: input.chargeId },
-      });
-    }
-
+    // La comisión se liquida de forma idempotente en PaymentService.updatePaymentStatus
     await PaymentService.updatePaymentStatus(event.organizerId, "organizer", {
       paymentId: payment.id,
       status: "approved",
@@ -257,10 +245,6 @@ export class CulqiEventPaymentService {
 
     if (!event) return { handled: false, reason: "event_not_found" as const };
 
-    const organizerPlan = await getOrganizerPlanForEvent(event.id);
-    const amount = Number(payment.amount);
-    const platformFee = organizerPlan ? getPlatformFee(amount, organizerPlan) : 0;
-
     await db
       .update(payments)
       .set({
@@ -268,23 +252,12 @@ export class CulqiEventPaymentService {
         gatewayProvider: "culqi",
         gatewayOrderId: order.id,
         gatewayStatus: order.state ?? "paid",
-        platformFee: platformFee > 0 ? String(platformFee) : null,
         reference: order.id,
         updatedAt: new Date(),
       })
       .where(eq(payments.id, payment.id));
 
-    if (platformFee > 0 && !payment.platformFee) {
-      await SubscriptionService.recordPlatformTransaction({
-        type: "commission",
-        amount: platformFee,
-        userId: event.organizerId,
-        paymentId: payment.id,
-        description: `Comisión plataforma evento ${event.title}`,
-        metadata: { orderId: order.id },
-      });
-    }
-
+    // Comisión: liquida en PaymentService.updatePaymentStatus (idempotente)
     await PaymentService.updatePaymentStatus(event.organizerId, "organizer", {
       paymentId: payment.id,
       status: "approved",

@@ -239,24 +239,24 @@ export default async function PaymentCheckoutPage({ params }: Props) {
   );
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6 px-1 sm:px-0">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+        <div className="min-w-0">
           <Link
             href={`/events/${event.slug}`}
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            className="inline-flex max-w-full items-center gap-1.5 truncate text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            {event.title}
+            <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{event.title}</span>
           </Link>
-          <h1 className="mt-3 font-display text-3xl font-bold text-foreground">
+          <h1 className="mt-3 font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             {t("payments.checkout.title")}
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 max-w-lg text-sm text-muted-foreground">
             {t("payments.checkout.subtitle", { event: event.title })}
           </p>
         </div>
-        <div className="w-full max-w-md sm:pt-2">
+        <div className="w-full max-w-md rounded-2xl border border-border/70 bg-card/80 p-3 sm:pt-2">
           <CheckoutStepper current={checkoutStep} />
         </div>
       </div>

@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { Sparkles, ArrowRight, Compass, type LucideIcon } from "lucide-react";
+import { ArrowRight, Compass, type LucideIcon } from "lucide-react";
 import { BrandBadge } from "@/components/shared/BrandText";
 
 interface HeroSectionProps {
   t: (key: string) => string;
   locale: string;
-  signals: Array<{
+  /** Reservado: se muestra debajo del hero, no en el primer viewport. */
+  signals?: Array<{
     icon: LucideIcon;
     value: string;
     label: string;
@@ -17,10 +18,14 @@ interface HeroSectionProps {
   }>;
 }
 
-export function HeroSection({ t, locale, signals, features }: HeroSectionProps) {
+/**
+ * Primer viewport limpio: marca + headline + descripción + CTAs + plano visual.
+ * Sin stats / chips en el hero.
+ */
+export function HeroSection({ t, features }: HeroSectionProps) {
   return (
     <section
-      className="relative overflow-hidden px-4 pb-16 pt-16 sm:px-6 lg:pb-20 lg:pt-24"
+      className="relative overflow-hidden px-4 pb-14 pt-16 sm:px-6 lg:pb-18 lg:pt-24"
       data-aos="fade-up"
     >
       <div className="pointer-events-none absolute inset-0">
@@ -29,25 +34,22 @@ export function HeroSection({ t, locale, signals, features }: HeroSectionProps) 
         <div className="absolute -right-20 top-20 h-[320px] w-[320px] rounded-full bg-accent/10 blur-3xl" />
       </div>
 
-      <div className="relative mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[1.02fr_0.98fr] lg:gap-12">
+      <div className="relative mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
         <div className="text-center lg:text-left" data-aos="fade-right" data-aos-delay="80">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-background/70 px-4 py-1.5 text-sm text-primary shadow-sm backdrop-blur-sm">
-            <Sparkles className="h-3.5 w-3.5" />
-            {t("public.home.badge")}
-          </div>
+          <BrandBadge className="mb-6" />
 
-          <h1 className="mb-6 font-display text-5xl font-semibold leading-tight tracking-tight text-foreground sm:text-6xl lg:text-7xl">
+          <h1 className="mb-5 font-display text-5xl font-semibold leading-[1.05] tracking-tight text-foreground sm:text-6xl lg:text-7xl">
             {t("public.home.heroTitleStart")}{" "}
             <em className="bg-gradient-to-r from-primary to-accent bg-clip-text not-italic text-transparent">
               {t("public.home.heroTitleHighlight")}
             </em>
           </h1>
 
-          <p className="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-muted-foreground lg:mx-0">
+          <p className="mx-auto mb-9 max-w-xl text-lg leading-relaxed text-muted-foreground lg:mx-0">
             {t("public.home.heroDescription")}
           </p>
 
-          <div className="mb-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start">
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
             <Link
               href="/events"
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-3.5 font-medium text-primary-foreground transition-all hover:gap-3 hover:bg-primary/90"
@@ -62,37 +64,24 @@ export function HeroSection({ t, locale, signals, features }: HeroSectionProps) 
               {t("public.home.createAccount")}
             </Link>
           </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            {signals.map(({ icon: Icon, value, label }) => (
-              <div
-                key={label}
-                className="rounded-2xl border border-border/70 bg-card/85 px-4 py-3 text-left shadow-sm backdrop-blur-sm"
-              >
-                <div className="mb-2 flex items-center gap-2 text-primary">
-                  <Icon className="h-4 w-4" />
-                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    {label}
-                  </span>
-                </div>
-                <p className="font-display text-2xl font-semibold text-foreground">{value}</p>
-              </div>
-            ))}
-          </div>
         </div>
 
         <div className="relative mx-auto w-full max-w-xl" data-aos="fade-left" data-aos-delay="140">
           <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-br from-primary/20 via-accent/10 to-transparent blur-3xl" />
 
-          <div className="relative overflow-hidden rounded-[1.75rem] border border-border/80 bg-card/90 p-5 shadow-xl backdrop-blur-sm sm:p-6">
+          <div className="relative overflow-hidden rounded-none border-y border-border/80 bg-card/90 p-5 shadow-xl backdrop-blur-sm sm:rounded-[1.75rem] sm:border sm:p-6">
             <div className="mb-5 flex items-center justify-between">
-              <BrandBadge />
+              <p className="font-display text-lg font-semibold text-foreground">Evora</p>
               <span className="text-xs text-muted-foreground">Live</span>
             </div>
 
             <div className="mb-4 rounded-2xl border border-border/80 bg-secondary/45 p-4">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">{t("public.home.upcomingTitle")}</p>
-              <p className="mt-2 text-lg font-semibold text-foreground">{t("public.home.upcomingSubtitle")}</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                {t("public.home.upcomingTitle")}
+              </p>
+              <p className="mt-2 text-lg font-semibold text-foreground">
+                {t("public.home.upcomingSubtitle")}
+              </p>
               <div className="mt-4 flex items-center gap-2 text-sm text-primary">
                 <Compass className="h-4 w-4" />
                 <span>{t("common.browseEvents")}</span>

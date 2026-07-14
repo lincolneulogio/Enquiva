@@ -55,7 +55,8 @@ const emptyForm = {
   priceMonthly: "0",
   maxActiveEvents: "",
   maxAttendeesPerEvent: "",
-  commissionPercent: "0",
+  commissionPercent: "5",
+  commissionPerRegistration: "0.50",
   maxBroadcastsPerMonth: "",
   maxAiMessagesPerMonth: "",
   featureCulqi: false,
@@ -128,6 +129,7 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
       maxActiveEvents: form.maxActiveEvents ? Number(form.maxActiveEvents) : null,
       maxAttendeesPerEvent: form.maxAttendeesPerEvent ? Number(form.maxAttendeesPerEvent) : null,
       commissionPercent: Number(form.commissionPercent) || 0,
+      commissionPerRegistration: Number(form.commissionPerRegistration) || 0,
       maxBroadcastsPerMonth: form.maxBroadcastsPerMonth ? Number(form.maxBroadcastsPerMonth) : null,
       maxAiMessagesPerMonth: form.maxAiMessagesPerMonth ? Number(form.maxAiMessagesPerMonth) : null,
       featureCulqi: form.featureCulqi,
@@ -167,6 +169,7 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
       maxActiveEvents: plan.maxActiveEvents != null ? String(plan.maxActiveEvents) : "",
       maxAttendeesPerEvent: plan.maxAttendeesPerEvent != null ? String(plan.maxAttendeesPerEvent) : "",
       commissionPercent: String(plan.commissionPercent ?? 0),
+      commissionPerRegistration: String(plan.commissionPerRegistration ?? 0),
       maxBroadcastsPerMonth: plan.maxBroadcastsPerMonth != null ? String(plan.maxBroadcastsPerMonth) : "",
       maxAiMessagesPerMonth: plan.maxAiMessagesPerMonth != null ? String(plan.maxAiMessagesPerMonth) : "",
       featureCulqi: plan.featureCulqi,
@@ -301,7 +304,7 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                       </div>
                       <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
                       <p className="mt-2 text-sm font-medium text-foreground">
-                        {Number(plan.commissionPercent) > 0
+                        {Number(plan.commissionPercent) > 0 || Number(plan.commissionPerRegistration) > 0
                           ? t("dashboard.admin.plansPriceLineWithCommission", {
                               price: String(plan.priceMonthly),
                               commission: String(plan.commissionPercent),
@@ -309,6 +312,11 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                           : t("dashboard.admin.plansPriceLineNoCommission", {
                               price: String(plan.priceMonthly),
                             })}
+                        {Number(plan.commissionPerRegistration) > 0 ? (
+                          <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+                            + S/ {Number(plan.commissionPerRegistration).toFixed(2)} por inscrito
+                          </span>
+                        ) : null}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {t("dashboard.admin.plansLimitsLine", {
@@ -453,6 +461,24 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                 onChange={(e) => setForm({ ...form, commissionPercent: e.target.value })}
               />
               <p className="text-xs text-muted-foreground">{t("dashboard.admin.plansHintCommission")}</p>
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="plan-commission-fixed" className="text-sm font-medium text-foreground">
+                Comisión fija por inscrito (S/)
+              </label>
+              <input
+                id="plan-commission-fixed"
+                type="number"
+                min={0}
+                step="0.01"
+                className={inputClass}
+                placeholder="0.50"
+                value={form.commissionPerRegistration}
+                onChange={(e) => setForm({ ...form, commissionPerRegistration: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Evora gana este monto por cada inscrito (titular + invitados) al aprobar el pago, además del %.
+              </p>
             </div>
             <div className="space-y-1.5">
               <label htmlFor="plan-max-events" className="text-sm font-medium text-foreground">

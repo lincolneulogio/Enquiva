@@ -21,6 +21,12 @@ export function AdminRevenuePanel({
   const t = useTranslations();
   const { locale } = useLocale();
   const totalRevenue = totals.reduce((acc, row) => acc + Number(row.total ?? 0), 0);
+  const commissionTotal = Number(
+    totals.find((row) => row.type === "commission")?.total ?? 0,
+  );
+  const subscriptionTotal = Number(
+    totals.find((row) => row.type === "subscription")?.total ?? 0,
+  );
   const totalOrganizers = paidOrganizerSubscriptions + freeOrganizerSubscriptions;
   const dateLocale = locale === "en" ? "en-US" : "es-PE";
 
@@ -32,22 +38,31 @@ export function AdminRevenuePanel({
 
   return (
     <div className="space-y-6">
+      <div className="rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm text-foreground">
+        Ingresos de plataforma = suscripciones SaaS + comisión por cada inscrito al aprobar pagos de eventos.
+        Configura el % y el fijo por inscrito en{" "}
+        <a href="/superadmin/plans" className="font-medium text-primary underline-offset-2 hover:underline">
+          Planes
+        </a>
+        .
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          title={t("billing.revenue.paidOrganizersTitle")}
-          value={String(paidOrganizerSubscriptions)}
+          title="Comisiones por inscritos"
+          value={`S/ ${commissionTotal.toFixed(2)}`}
+          subtitle="De pagos de eventos aprobados"
+          icon={Receipt}
+          accent="text-orange-600 dark:text-orange-400"
+          accentBg="bg-orange-500/10 dark:bg-orange-500/15"
+        />
+        <StatCard
+          title="Suscripciones SaaS"
+          value={`S/ ${subscriptionTotal.toFixed(2)}`}
           subtitle={t("billing.revenue.paidOrganizersSubtitle")}
           icon={Crown}
           accent="text-amber-600 dark:text-amber-400"
           accentBg="bg-amber-500/10 dark:bg-amber-500/15"
-        />
-        <StatCard
-          title={t("billing.revenue.freeOrganizersTitle")}
-          value={String(freeOrganizerSubscriptions)}
-          subtitle={t("billing.revenue.freeOrganizersSubtitle")}
-          icon={Gift}
-          accent="text-sky-600 dark:text-sky-400"
-          accentBg="bg-sky-500/10 dark:bg-sky-500/15"
         />
         <StatCard
           title={t("billing.revenue.platformRevenueTitle")}
@@ -58,12 +73,12 @@ export function AdminRevenuePanel({
           accentBg="bg-emerald-500/10 dark:bg-emerald-500/15"
         />
         <StatCard
-          title={t("billing.revenue.recentMovementsTitle")}
-          value={String(recent.length)}
-          subtitle={t("billing.revenue.recentMovementsSubtitle")}
-          icon={Receipt}
-          accent="text-violet-600 dark:text-violet-400"
-          accentBg="bg-violet-500/10 dark:bg-violet-500/15"
+          title={t("billing.revenue.freeOrganizersTitle")}
+          value={String(freeOrganizerSubscriptions)}
+          subtitle={`${paidOrganizerSubscriptions} con plan de pago`}
+          icon={Gift}
+          accent="text-sky-600 dark:text-sky-400"
+          accentBg="bg-sky-500/10 dark:bg-sky-500/15"
         />
       </div>
 
@@ -111,6 +126,13 @@ export function AdminRevenuePanel({
                     <Link2 className="h-3 w-3" />
                     {t("billing.revenue.linkedPayment")}:{" "}
                     <span className="font-mono">{tx.subscriptionPaymentId.slice(0, 8)}…</span>
+                  </p>
+                ) : null}
+                {tx.paymentId ? (
+                  <p className="mt-1 inline-flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
+                    <Link2 className="h-3 w-3" />
+                    Pago evento:{" "}
+                    <span className="font-mono">{tx.paymentId.slice(0, 8)}…</span>
                   </p>
                 ) : null}
               </div>
