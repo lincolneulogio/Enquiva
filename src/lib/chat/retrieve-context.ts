@@ -4,6 +4,7 @@ import {
   normalizeQuery,
 } from "./platform-knowledge";
 import { hybridRetrieveAsync } from "./rag";
+import { buildRoleIsolationBlock, getRoleScopeProfile } from "./role-scope";
 
 export type ChatIntent =
   | "modules_overview"
@@ -300,14 +301,25 @@ export async function retrieveChatContext(
 export function appendRetrievedContextToSystem(
   systemPrompt: string,
   retrieved: RetrievedContext,
+  role?: string,
 ): string {
+  const profile = getRoleScopeProfile(role ?? "member");
+  const isolation = buildRoleIsolationBlock(role ?? "member");
+
+  // Filtra tools recomendadas a las permitidas del rol
+  const allowed = new Set(profile.allowedToolsHint);
+  const toolsForRole = retrieved.requiredTools.filter((t) => allowed.has(t));
+
   return `${systemPrompt}
 
 ---
-PIPELINE RAG EVORA (Hybrid + Agentic + Rewrite + Rerank)
+${isolation}
+
+---
+PIPELINE RAG EVORA (Hybrid + Agentic) — Rol: ${profile.labelEs}
 Modo: ${retrieved.ragMode}
 Intención: ${retrieved.intent}
-Tools de datos vivos recomendadas: ${retrieved.requiredTools.join(", ") || "ninguna"}
+Tools recomendadas (solo las de tu rol): ${toolsForRole.join(", ") || "ninguna / rechazar si es de otro rol"}
 Citas recuperadas: ${retrieved.citations.join("; ") || "n/a"}
 
 ${retrieved.mustDo}
@@ -315,9 +327,10 @@ ${retrieved.mustDo}
 ${retrieved.contextText}
 
 Instrucciones de generación:
-1. Responde en español, texto profesional, sin ** ni emojis.
-2. Basate en las fuentes recuperadas y/o en el resultado exacto de las tools.
-3. Si usas una fuente del RAG, menciona el módulo (ej. Según el módulo Pagos...).
-4. Prohibido: "no tengo contexto", "no tengo idea", inventar cifras o módulos.
-5. Si hay CONTEXTO DE PÁGINA, priorízalo cuando el usuario diga "este", "aquí", "ahora".`;
+1. Español profesional, sin ** ni emojis.
+2. Solo datos de tools/RAG de ESTE rol (${profile.labelEs}). Alcance: ${profile.dataScopeEs}.
+3. Si la pregunta es de otro rol, NO inventes: usa el mensaje de rechazo del aislamiento.
+4. Cita módulos del RAG si aplica; no inventes cifras.
+5. Si hay CONTEXTO DE PÁGINA, úsalo solo si esa ruta es coherente con tu rol.
+6. No digas "como organizador/miembro/admin" si no es tu rol activo.`;
 }

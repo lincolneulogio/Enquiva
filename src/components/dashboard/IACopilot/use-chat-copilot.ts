@@ -11,6 +11,7 @@ import { Crown, ShieldCheck, Briefcase, UserRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { formStorageKey, loadFormDraft, saveFormDraft } from "@/lib/form-persistence";
 import { getCopilotSuggestions } from "@/lib/chat/suggestions";
+import { getWelcomeCapabilityKey } from "@/lib/chat/role-scope";
 
 type AiUsage = {
   used: number;
@@ -28,12 +29,7 @@ function buildWelcomeMessage(
   locale: Locale,
   t: (key: string, params?: Record<string, string | number>) => string,
 ) {
-  const capabilitiesKey =
-    userRole === "super_admin" || userRole === "admin"
-      ? "copilot.capabilitiesStaff"
-      : userRole === "organizer"
-        ? "copilot.capabilitiesOrganizer"
-        : "copilot.capabilitiesMember";
+  const capabilitiesKey = getWelcomeCapabilityKey(userRole);
 
   return t("copilot.welcome", {
     name: userName,

@@ -1071,12 +1071,16 @@ const translations: Record<Locale, TranslationDictionary> = {
             welcome:
                 "¡Hola {name}! ✦ Soy EvoraBot, tu Copiloto de Inteligencia Artificial para Evora.\n\nComo {role}, puedo ayudarte de manera personalizada:\n{capabilities}\n\n¿En qué puedo asistirte hoy?",
             reset: "Chat reiniciado. ¿En qué más te puedo ayudar hoy, {name}?",
+            capabilitiesSuperAdmin:
+                "• Consultar métricas globales de la plataforma en tiempo real.\n• Revisar auditoría de seguridad y usuarios a escala plataforma.\n• Operar eventos, pagos, check-in y comunicaciones con visión global.",
+            capabilitiesAdmin:
+                "• Ver métricas y usuarios de tu organización.\n• Gestionar eventos, inscritos, pagos y check-in de tu entidad.\n• Preparar avisos y revisar el plan de tu organización.",
             capabilitiesStaff:
                 "• Consultar métricas de la plataforma en tiempo real.\n• Analizar los últimos registros de auditoría de seguridad.\n• Buscar eventos de forma semántica y rápida.",
             capabilitiesOrganizer:
-                "• Consultar estadísticas de asistencia de tus eventos.\n• Redactar borradores para comunicados masivos.\n• Gestionar y coordinar la logística de tus eventos.",
+                "• Consultar estadísticas de asistencia de tus eventos.\n• Revisar pagos, check-in y transporte de tus eventos.\n• Redactar borradores de comunicados para tus asistentes.",
             capabilitiesMember:
-                "• Buscar conferencias, talleres o eventos locales.\n• Verificar tus entradas y tickets activos.\n• Coordinar traslados y transporte.",
+                "• Verificar tus entradas y tickets activos.\n• Consultar tu próximo evento y el estado de tus pagos.\n• Buscar eventos públicos para inscribirte.",
         },
         auth: {
             welcomeBack: "Bienvenido de nuevo",
@@ -2848,12 +2852,16 @@ const translations: Record<Locale, TranslationDictionary> = {
             welcome:
                 "Hi {name}! ✦ I'm EvoraBot, your AI Copilot for Evora.\n\nAs {role}, I can help you personally:\n{capabilities}\n\nHow can I assist you today?",
             reset: "Chat reset. How else can I help you today, {name}?",
+            capabilitiesSuperAdmin:
+                "• Check global platform metrics in real time.\n• Review security audit logs and platform-wide users.\n• Operate events, payments, check-in, and broadcasts with a global view.",
+            capabilitiesAdmin:
+                "• View metrics and users for your organization.\n• Manage events, attendees, payments, and check-in in your org.\n• Draft notices and review your organization plan.",
             capabilitiesStaff:
                 "• Check platform metrics in real time.\n• Review the latest security audit logs.\n• Search events semantically and quickly.",
             capabilitiesOrganizer:
-                "• Check attendance stats for your events.\n• Draft mass broadcast messages.\n• Manage and coordinate event logistics.",
+                "• Check attendance stats for your events.\n• Review payments, check-in, and transport for your events.\n• Draft broadcasts for your attendees.",
             capabilitiesMember:
-                "• Find conferences, workshops, or local events.\n• Check your active tickets.\n• Coordinate transfers and transport.",
+                "• Check your active tickets.\n• See your next event and payment status.\n• Find public events to register for.",
         },
         auth: {
             welcomeBack: "Welcome back",

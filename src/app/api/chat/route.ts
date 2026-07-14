@@ -52,7 +52,7 @@ export async function POST(req: Request) {
 
     const basePrompt = buildSystemPrompt(userName, userRole);
     const retrieved = await retrieveChatContext(messages, userRole, pageContext ?? null);
-    const systemPrompt = appendRetrievedContextToSystem(basePrompt, retrieved);
+    const systemPrompt = appendRetrievedContextToSystem(basePrompt, retrieved, userRole);
 
     const tools = await buildTools(userRole, userId, userName);
     const convertedMessages = await convertToModelMessages(messages as never);

@@ -96,6 +96,7 @@ function AICopilotInner() {
             <ChatInput
               input={input}
               isLoading={isLoading}
+              userRole={userRole}
               onInputChange={handleInputChange}
               onSubmit={handleSubmit}
             />
