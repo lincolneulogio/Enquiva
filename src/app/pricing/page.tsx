@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { Check, ArrowRight, Sparkles } from "lucide-react";
+import { headers } from "next/headers";
 import { PublicHeader } from "@/components/shared/PublicHeader";
 import { getI18n } from "@/lib/i18n/server";
 import { db } from "@/lib/db";
 import { plans } from "@/lib/db/schema";
 import { and, asc, eq } from "drizzle-orm";
 import { mapPlanRow, DEFAULT_PLAN_DEFINITIONS } from "@/lib/billing/plans";
+import { auth } from "@/lib/auth";
+import { getPricingCta } from "@/lib/navigation/pricing-cta";
 
 export const metadata = {
   title: "Planes y precios | Evora",
@@ -14,7 +17,7 @@ export const metadata = {
 };
 
 function fallbackPlans() {
-  return DEFAULT_PLAN_DEFINITIONS.map((d, i) => ({
+  return DEFAULT_PLAN_DEFINITIONS.map((d) => ({
     id: d.slug,
     slug: d.slug,
     name: d.name,
@@ -41,6 +44,8 @@ function fallbackPlans() {
 
 export default async function PricingPage() {
   const { locale } = await getI18n();
+  const session = await auth.api.getSession({ headers: await headers() });
+  const cta = getPricingCta(session?.user?.role, locale === "en" ? "en" : "es");
 
   let rows = fallbackPlans() as Array<typeof plans.$inferSelect>;
 
@@ -55,7 +60,6 @@ export default async function PricingPage() {
       rows = fromDb;
     }
   } catch (error) {
-    // Schema desfasado (migraciones pendientes) → catálogo por defecto
     console.error("[pricing] plans query failed, using fallback catalog", error);
   }
 
@@ -72,12 +76,12 @@ export default async function PricingPage() {
             {locale === "en" ? "Pricing" : "Planes"}
           </p>
           <h1 className="font-display text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-            {locale === "en" ? "Grow with Evora" : "Crece con Evora"}
+            {locale === "en" ? "Plans for teams that organize" : "Planes para quienes organizan"}
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
             {locale === "en"
-              ? "Subscriptions for organizers plus a transparent platform fee per paid attendee."
-              : "Suscripción para organizadores y comisión transparente por cada inscrito que paga."}
+              ? "Subscriptions for organizers and entities, with a transparent platform fee per paid attendee."
+              : "Suscripciones para organizadores y entidades, con comisión transparente por cada inscrito que paga."}
           </p>
         </div>
       </section>
@@ -154,14 +158,14 @@ export default async function PricingPage() {
                   ))}
                 </ul>
                 <Link
-                  href="/register"
+                  href={cta.cardHref}
                   className={`mt-8 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition ${
                     isPro
                       ? "bg-primary text-primary-foreground hover:bg-primary/90"
                       : "border border-border bg-background hover:bg-muted"
                   }`}
                 >
-                  {locale === "en" ? "Start free" : "Empezar"}
+                  {cta.cardLabel}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </article>
@@ -170,11 +174,9 @@ export default async function PricingPage() {
         </div>
 
         <p className="mt-10 text-center text-sm text-muted-foreground">
-          {locale === "en"
-            ? "Already organizing? Upgrade anytime from your billing panel."
-            : "¿Ya organizas eventos? Mejora tu plan cuando quieras desde Facturación."}{" "}
-          <Link href="/organizer/billing" className="font-medium text-primary hover:underline">
-            {locale === "en" ? "Go to billing" : "Ir a facturación"}
+          {cta.footerText}{" "}
+          <Link href={cta.linkHref} className="font-medium text-primary hover:underline">
+            {cta.linkLabel}
           </Link>
         </p>
       </section>
