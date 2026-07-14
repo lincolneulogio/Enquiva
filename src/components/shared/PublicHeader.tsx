@@ -130,20 +130,31 @@ export async function PublicHeader() {
               </Link>
             </div>
           ) : (
-            <>
+            <div className="flex items-center gap-3 rounded-2xl border border-border bg-card/45 p-1 pl-1.5 pr-1.5 shadow-sm backdrop-blur-sm">
+              <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-secondary text-xs font-bold text-muted-foreground select-none">
+                IN
+              </div>
+              <div className="hidden min-w-0 flex-col text-left sm:flex">
+                <span className="max-w-[140px] truncate text-xs font-bold leading-tight text-foreground">
+                  {locale === "en" ? "Guest" : "Invitado"}
+                </span>
+                <span className="mt-0.5 max-w-[140px] truncate text-[10px] leading-none text-muted-foreground">
+                  {locale === "en" ? "Browse without an account" : "Explora sin cuenta"}
+                </span>
+              </div>
               <Link
                 href="/login"
-                className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                className="shrink-0 rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
               >
                 {t("common.signIn")}
               </Link>
               <Link
                 href="/register"
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                className="shrink-0 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground shadow-sm transition-all hover:bg-primary/95"
               >
                 {t("common.getStarted")}
               </Link>
-            </>
+            </div>
           )}
         </div>
       </div>

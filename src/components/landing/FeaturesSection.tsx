@@ -1,13 +1,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Users, Globe2 } from "lucide-react";
+import type { LandingCopy } from "@/lib/navigation/landing-audience";
 
 interface FeaturesSectionProps {
   t: (key: string) => string;
-  locale: string;
+  copy: LandingCopy;
 }
 
-export function FeaturesSection({ t, locale }: FeaturesSectionProps) {
+export function FeaturesSection({ t, copy }: FeaturesSectionProps) {
   return (
     <section className="bg-secondary/45 px-4 py-20 sm:px-6" data-aos="fade-up" data-aos-delay="100">
       <div className="mx-auto max-w-7xl">
@@ -20,19 +21,19 @@ export function FeaturesSection({ t, locale }: FeaturesSectionProps) {
           <div className="grid lg:grid-cols-2">
             <div className="p-7 sm:p-10 lg:p-12">
               <h2 className="max-w-lg font-display text-4xl font-semibold leading-tight text-foreground sm:text-5xl">
-                {t("public.home.aboutTitleStart")} {" "}
-                <em className="not-italic text-[#f97316]">{t("public.home.aboutTitleHighlight")}</em>
+                {copy.aboutTitleStart}{" "}
+                <em className="not-italic text-[#f97316]">{copy.aboutTitleHighlight}</em>
               </h2>
 
               <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
-                {t("public.home.aboutDescription")}
+                {copy.aboutDescription}
               </p>
 
               <Link
-                href="/register"
+                href={copy.aboutButtonHref}
                 className="mt-8 inline-flex min-w-40 items-center justify-center rounded-xl border border-[#f39a5f] px-6 py-3 font-medium text-[#da6e27] transition-colors hover:bg-[#fff2e8]"
               >
-                {t("public.home.aboutButton")}
+                {copy.aboutButtonLabel}
               </Link>
             </div>
 

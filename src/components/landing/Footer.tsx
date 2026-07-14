@@ -2,12 +2,14 @@ import Link from "next/link";
 import { ArrowRight, ChevronUp } from "lucide-react";
 import { BrandLogo } from "@/components/shared/BrandLogo";
 import { BrandText, PublicContactBlock, LegalLinks } from "@/components/shared/BrandText";
+import type { LandingCopy } from "@/lib/navigation/landing-audience";
 
 interface FooterProps {
   t: (key: string) => string;
+  copy: LandingCopy;
 }
 
-export function Footer({ t }: FooterProps) {
+export function Footer({ t, copy }: FooterProps) {
   return (
     <footer
       className="px-4 pb-8 pt-4 sm:px-6"
@@ -40,21 +42,13 @@ export function Footer({ t }: FooterProps) {
               {t("public.home.footerExploreTitle")}
             </h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link href="/events" className="transition-colors hover:text-foreground">
-                  {t("common.browseEvents")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/events" className="transition-colors hover:text-foreground">
-                  {t("public.home.upcomingTitle")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/register" className="transition-colors hover:text-foreground">
-                  {t("public.home.createAccount")}
-                </Link>
-              </li>
+              {copy.footerExploreLinks.map((link) => (
+                <li key={`${link.href}-${link.label}`}>
+                  <Link href={link.href} className="transition-colors hover:text-foreground">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -63,21 +57,13 @@ export function Footer({ t }: FooterProps) {
               {t("public.home.footerAccountTitle")}
             </h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link href="/login" className="transition-colors hover:text-foreground">
-                  {t("common.signIn")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/register" className="transition-colors hover:text-foreground">
-                  {t("common.getStarted")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/dashboard" className="transition-colors hover:text-foreground">
-                  {t("common.goToDashboard")}
-                </Link>
-              </li>
+              {copy.footerAccountLinks.map((link) => (
+                <li key={`${link.href}-${link.label}`}>
+                  <Link href={link.href} className="transition-colors hover:text-foreground">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -90,10 +76,10 @@ export function Footer({ t }: FooterProps) {
             <PublicContactBlock />
 
             <Link
-              href="/register"
+              href={copy.footerContactCta.href}
               className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              {t("public.home.ctaButton")}
+              {copy.footerContactCta.label}
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>

@@ -1,7 +1,10 @@
 import { Calendar, Users, Bell, Shield, Zap } from "lucide-react";
+import { headers } from "next/headers";
 import { getFeaturedPublicEvents, getPublicEvents } from "@/actions/events";
 import { PublicHeader } from "@/components/shared/PublicHeader";
+import { auth } from "@/lib/auth";
 import { getI18n } from "@/lib/i18n/server";
+import { getLandingCopy } from "@/lib/navigation/landing-audience";
 import {
   HeroSection,
   FeaturedEventsCarousel,
@@ -12,6 +15,11 @@ import {
 
 export default async function HomePage() {
   const { locale, t } = await getI18n();
+  const session = await auth.api.getSession({ headers: await headers() });
+  const role = session?.user?.role ?? null;
+  const localeKey = locale === "en" ? "en" : "es";
+  const landingCopy = getLandingCopy({ role, locale: localeKey, t });
+
   const [featuredEvents, { events, totalRegistrations }] = await Promise.all([
     getFeaturedPublicEvents(8),
     getPublicEvents({ page: 1, limit: 6 }),
@@ -63,6 +71,7 @@ export default async function HomePage() {
       <HeroSection
         t={t}
         locale={locale}
+        copy={landingCopy}
         signals={signals}
         features={features}
       />
@@ -92,11 +101,12 @@ export default async function HomePage() {
 
       <FeaturesSection
         t={t}
-        locale={locale}
+        copy={landingCopy}
       />
 
       <Footer
         t={t}
+        copy={landingCopy}
       />
     </div>
   );

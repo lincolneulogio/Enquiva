@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { ArrowRight, Compass, type LucideIcon } from "lucide-react";
 import { BrandBadge } from "@/components/shared/BrandText";
+import type { LandingCopy } from "@/lib/navigation/landing-audience";
 
 interface HeroSectionProps {
   t: (key: string) => string;
   locale: string;
+  copy: LandingCopy;
   /** Reservado: se muestra debajo del hero, no en el primer viewport. */
   signals?: Array<{
     icon: LucideIcon;
@@ -20,9 +22,13 @@ interface HeroSectionProps {
 
 /**
  * Primer viewport limpio: marca + headline + descripción + CTAs + plano visual.
- * Sin stats / chips en el hero.
+ * Copy y CTAs dependen del rol (incl. invitado).
  */
-export function HeroSection({ t, features }: HeroSectionProps) {
+export function HeroSection({ t, locale, copy, features }: HeroSectionProps) {
+  const ctas = [copy.primaryCta, copy.secondaryCta].filter(
+    (cta): cta is NonNullable<typeof cta> => Boolean(cta),
+  );
+
   return (
     <section
       className="relative overflow-hidden px-4 pb-14 pt-16 sm:px-6 lg:pb-18 lg:pt-24"
@@ -39,30 +45,37 @@ export function HeroSection({ t, features }: HeroSectionProps) {
           <BrandBadge className="mb-6" />
 
           <h1 className="mb-5 font-display text-5xl font-semibold leading-[1.05] tracking-tight text-foreground sm:text-6xl lg:text-7xl">
-            {t("public.home.heroTitleStart")}{" "}
+            {copy.heroTitleStart}{" "}
             <em className="bg-gradient-to-r from-primary to-accent bg-clip-text not-italic text-transparent">
-              {t("public.home.heroTitleHighlight")}
+              {copy.heroTitleHighlight}
             </em>
           </h1>
 
           <p className="mx-auto mb-9 max-w-xl text-lg leading-relaxed text-muted-foreground lg:mx-0">
-            {t("public.home.heroDescription")}
+            {copy.heroDescription}
           </p>
 
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
-            <Link
-              href="/events"
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-3.5 font-medium text-primary-foreground transition-all hover:gap-3 hover:bg-primary/90"
-            >
-              {t("public.home.browseEvents")}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/pricing"
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/80 px-8 py-3.5 font-medium text-foreground transition-colors hover:bg-secondary"
-            >
-              Ver planes
-            </Link>
+            {ctas.map((cta) =>
+              cta.variant === "primary" ? (
+                <Link
+                  key={`${cta.href}-${cta.label}`}
+                  href={cta.href}
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-3.5 font-medium text-primary-foreground transition-all hover:gap-3 hover:bg-primary/90"
+                >
+                  {cta.label}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              ) : (
+                <Link
+                  key={`${cta.href}-${cta.label}`}
+                  href={cta.href}
+                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/80 px-8 py-3.5 font-medium text-foreground transition-colors hover:bg-secondary"
+                >
+                  {cta.label}
+                </Link>
+              ),
+            )}
           </div>
         </div>
 
@@ -70,9 +83,15 @@ export function HeroSection({ t, features }: HeroSectionProps) {
           <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-br from-primary/20 via-accent/10 to-transparent blur-3xl" />
 
           <div className="relative overflow-hidden rounded-none border-y border-border/80 bg-card/90 p-5 shadow-xl backdrop-blur-sm sm:rounded-[1.75rem] sm:border sm:p-6">
-            <div className="mb-5 flex items-center justify-between">
+            <div className="mb-5 flex items-center justify-between gap-3">
               <p className="font-display text-lg font-semibold text-foreground">Evora</p>
-              <span className="text-xs text-muted-foreground">Live</span>
+              <span className="inline-flex items-center rounded-full border border-border/80 bg-background/80 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                {copy.audience === "guest"
+                  ? locale === "en"
+                    ? "Guest preview"
+                    : "Vista invitado"
+                  : "Live"}
+              </span>
             </div>
 
             <div className="mb-4 rounded-2xl border border-border/80 bg-secondary/45 p-4">
