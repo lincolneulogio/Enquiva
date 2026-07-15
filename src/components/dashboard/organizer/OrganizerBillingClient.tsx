@@ -25,7 +25,7 @@ import {
 } from "@/lib/billing/plans";
 import { getPricingFeatureLines } from "@/lib/billing/pricing-features";
 import Swal from "@/lib/ui/swal-client";
-import { confirmDeleteAction } from "@/lib/ui/confirm";
+import { confirmWithPasswordAction } from "@/lib/ui/confirm";
 import { passwordErrorMessage } from "@/lib/auth/password-error-message";
 
 interface PendingPayment {
@@ -168,53 +168,23 @@ export function OrganizerBillingClient({
   };
 
   const handleWipeFreshStart = async () => {
-    const confirmed = await confirmDeleteAction({
+    const password = await confirmWithPasswordAction({
       title: t("billing.organizer.wipeTitle"),
       text: t("billing.organizer.wipeWarning"),
-      confirmText: t("billing.organizer.wipeContinue"),
+      confirmText: t("billing.organizer.wipeConfirm"),
       cancelText: t("common.cancel"),
       tone: "danger",
-    });
-    if (!confirmed) return;
-
-    const { value: password, isConfirmed } = await Swal.fire({
-      title: t("billing.organizer.wipePasswordTitle"),
-      text: t("billing.organizer.wipePasswordText"),
-      input: "password",
-      inputPlaceholder: t("billing.organizer.wipePasswordPlaceholder"),
-      inputAttributes: {
-        autocapitalize: "off",
-        autocorrect: "off",
-        required: "true",
-      },
-      showCancelButton: true,
-      confirmButtonText: t("billing.organizer.wipeConfirm"),
-      cancelButtonText: t("common.cancel"),
-      reverseButtons: true,
-      buttonsStyling: false,
-      focusCancel: true,
-      customClass: {
-        popup: "fe-swal-popup fe-swal-popup--danger",
-        title: "fe-swal-title",
-        htmlContainer: "fe-swal-text",
-        input:
-          "w-full mt-4 px-3.5 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm bg-card text-foreground transition-all placeholder:text-muted-foreground",
-        actions: "fe-swal-actions mt-6",
-        confirmButton: "fe-swal-confirm fe-swal-confirm--danger",
-        cancelButton: "fe-swal-cancel",
-      },
-      inputValidator: (value) => {
-        if (!value) return t("billing.organizer.wipePasswordRequired");
-      },
+      passwordPlaceholder: t("billing.organizer.wipePasswordPlaceholder"),
+      passwordRequiredMessage: t("billing.organizer.wipePasswordRequired"),
     });
 
-    if (!isConfirmed || !password) return;
+    if (!password) return;
 
     startTransition(async () => {
       try {
-        const result = await wipeWorkspaceAndStartFresh(password);
+        const wipeResult = await wipeWorkspaceAndStartFresh(password);
         toast.success(
-          t("billing.organizer.wipeSuccess", { count: String(result.deletedEvents) }),
+          t("billing.organizer.wipeSuccess", { count: String(wipeResult.deletedEvents) }),
         );
         refreshBillingQuietly();
       } catch (error) {
@@ -229,6 +199,7 @@ export function OrganizerBillingClient({
             popup: "fe-swal-popup fe-swal-popup--danger",
             title: "fe-swal-title",
             htmlContainer: "fe-swal-text",
+            actions: "fe-swal-actions",
             confirmButton: "fe-swal-confirm fe-swal-confirm--danger",
           },
         });

@@ -214,12 +214,36 @@
 }
 
 /* Fix SweetAlert2 input overflow */
-.fe-swal-popup .swal2-input {
+.fe-swal-popup .swal2-input,
+.fe-swal-password-input {
   box-sizing: border-box !important;
+  display: block !important;
   width: 100% !important;
   max-width: 100% !important;
   margin: 1rem 0 0 0 !important;
   height: 2.75rem !important;
+  padding: 0.65rem 0.9rem !important;
+  border-radius: 0.75rem !important;
+  border: 1px solid hsl(var(--border)) !important;
+  background: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+  font-size: 0.875rem !important;
+}
+
+.fe-swal-password-hint {
+  margin: 0;
+  text-align: left;
+  line-height: 1.45;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.95rem;
+}
+
+.fe-swal-popup--with-password .swal2-validation-message,
+.fe-swal-validation {
+  background: hsl(var(--destructive) / 0.1) !important;
+  color: hsl(var(--destructive)) !important;
+  border: none !important;
+  margin-top: 0.5rem !important;
 }
 
 .fe-swal-actions {
