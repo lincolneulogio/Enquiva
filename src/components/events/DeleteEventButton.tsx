@@ -5,8 +5,9 @@ import { useTranslations } from "@/components/providers/LocaleProvider";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
-import Swal from "sweetalert2";
+import Swal from "@/lib/ui/swal-client";
 import { confirmDeleteAction } from "@/lib/ui/confirm";
+import { passwordErrorMessage } from "@/lib/auth/password-error-message";
 
 interface DeleteEventButtonProps {
   eventId: string;
@@ -35,6 +36,7 @@ export function DeleteEventButton({ eventId }: DeleteEventButtonProps) {
       inputAttributes: {
         autocapitalize: "off",
         autocorrect: "off",
+        autocomplete: "current-password",
         required: "true",
       },
       showCancelButton: true,
@@ -43,6 +45,7 @@ export function DeleteEventButton({ eventId }: DeleteEventButtonProps) {
       reverseButtons: true,
       buttonsStyling: false,
       focusCancel: true,
+      allowOutsideClick: false,
       customClass: {
         popup: "fe-swal-popup fe-swal-popup--danger",
         title: "fe-swal-title",
@@ -54,30 +57,24 @@ export function DeleteEventButton({ eventId }: DeleteEventButtonProps) {
         cancelButton: "fe-swal-cancel",
       },
       inputValidator: (value) => {
-        if (!value) {
+        if (!value?.trim()) {
           return t("common.deleteEventPasswordRequired");
         }
       },
     });
 
-    if (!isConfirmed || !password) return;
+    if (!isConfirmed || !password?.trim()) return;
 
     startTransition(async () => {
       try {
-        await deleteEvent(eventId, password);
+        await deleteEvent(eventId, password.trim());
         toast.success(t("common.eventDeleted"));
         router.refresh();
       } catch (error) {
         const message = error instanceof Error ? error.message : t("common.failedToDeleteEvent");
-        const isPasswordError =
-          message === "PASSWORD_INVALID" ||
-          message === "PASSWORD_REQUIRED" ||
-          message.toLowerCase().includes("password") ||
-          message.toLowerCase().includes("contraseña");
-
         await Swal.fire({
           title: t("common.deleteEventSecurityErrorTitle"),
-          text: isPasswordError ? t("common.deleteEventWrongPassword") : message,
+          text: passwordErrorMessage(t, message, "delete"),
           icon: "error",
           confirmButtonText: t("common.deleteEventUnderstood"),
           buttonsStyling: false,
@@ -95,7 +92,7 @@ export function DeleteEventButton({ eventId }: DeleteEventButtonProps) {
   return (
     <button
       type="button"
-      onClick={handleDelete}
+      onClick={() => void handleDelete()}
       disabled={isPending}
       className="text-red-600 hover:underline disabled:cursor-not-allowed disabled:opacity-50 dark:text-red-400"
     >

@@ -4,10 +4,8 @@ import {
   transportBookings,
   registrations,
   events,
-  accounts,
   payments,
 } from "@/lib/db/schema";
-import { verifyPassword } from "better-auth/crypto";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { bookTransportWithPayment } from "@/lib/transport/standalone-booking";
@@ -56,23 +54,25 @@ export class BookingService {
   }
 
   static async cancelTransportBooking(bookingId: string, userId: string, password?: string) {
-    const [account] = await db
-      .select({ password: accounts.password })
-      .from(accounts)
-      .where(and(eq(accounts.userId, userId), eq(accounts.providerId, "email")))
-      .limit(1);
-
-    if (account && account.password) {
-      if (!password) {
-        throw new Error("Se requiere ingresar la contraseña para cancelar la reserva.");
-      }
-      const isPasswordValid = await verifyPassword({
-        hash: account.password,
-        password: password,
-      });
-      if (!isPasswordValid) {
+    const { verifyAccountPassword, AccountPasswordError } = await import(
+      "@/lib/auth/verify-account-password"
+    );
+    try {
+      await verifyAccountPassword(userId, password);
+    } catch (error) {
+      if (error instanceof AccountPasswordError) {
+        if (error.code === "PASSWORD_NOT_SET") {
+          throw new Error("PASSWORD_NOT_SET");
+        }
+        if (error.code === "PASSWORD_RATE_LIMITED") {
+          throw new Error("PASSWORD_RATE_LIMITED");
+        }
+        if (error.code === "PASSWORD_REQUIRED") {
+          throw new Error("Se requiere ingresar la contraseña para cancelar la reserva.");
+        }
         throw new Error("Contraseña incorrecta. No se pudo cancelar la reserva de transporte.");
       }
+      throw error;
     }
 
     const [booking] = await db

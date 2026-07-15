@@ -24,8 +24,9 @@ import {
   mapPlanRow,
 } from "@/lib/billing/plans";
 import { getPricingFeatureLines } from "@/lib/billing/pricing-features";
-import Swal from "sweetalert2";
+import Swal from "@/lib/ui/swal-client";
 import { confirmDeleteAction } from "@/lib/ui/confirm";
+import { passwordErrorMessage } from "@/lib/auth/password-error-message";
 
 interface PendingPayment {
   payment: {
@@ -218,15 +219,9 @@ export function OrganizerBillingClient({
         refreshBillingQuietly();
       } catch (error) {
         const message = error instanceof Error ? error.message : t("billing.organizer.wipeFailed");
-        const isPasswordError =
-          message === "PASSWORD_INVALID" ||
-          message === "PASSWORD_REQUIRED" ||
-          message.toLowerCase().includes("password") ||
-          message.toLowerCase().includes("contraseña");
-
         await Swal.fire({
           title: t("billing.organizer.wipeSecurityErrorTitle"),
-          text: isPasswordError ? t("billing.organizer.wipeWrongPassword") : message,
+          text: passwordErrorMessage(t, message, "wipe"),
           icon: "error",
           confirmButtonText: t("common.deleteEventUnderstood"),
           buttonsStyling: false,
@@ -379,7 +374,7 @@ export function OrganizerBillingClient({
               />
             ) : null}
             <UsageCard
-              label={locale === "en" ? "Attendees / event" : "Asistentes / evento"}
+              label={t("billing.organizer.usageAttendeesPerEvent")}
               value={plan.maxAttendeesPerEvent != null ? String(plan.maxAttendeesPerEvent) : "∞"}
             />
             <UsageCard label={t("billing.organizer.usageRenewal")} value={renewalDate} />

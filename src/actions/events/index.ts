@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { EventService } from "@/services/events/event.service";
-import { assertCanCreateEvent, assertCanSendBroadcast, assertEventPayloadWithinPlan } from "@/lib/billing/enforce";
+import { assertCanSendBroadcast, assertEventPayloadWithinPlan } from "@/lib/billing/enforce";
 import { assertPermission, assertOwnOrAnyPermission } from "@/lib/auth/permission-guards";
 import type { Category } from "@/lib/db/schema";
 import {
@@ -70,7 +70,7 @@ export async function getCategories(): Promise<Pick<Category, "slug" | "label" |
 export async function createEvent(input: CreateEventInput) {
   const user = await requireApprovedEventManager();
   await assertPermission(user, "events:create");
-  await assertCanCreateEvent(user.id, user.role);
+  // Cupo solo si el evento ocuparía un slot (draft/published + fecha vigente/futura).
   await assertEventPayloadWithinPlan(user.id, user.role, {
     hasTransport: input.hasTransport,
     status: input.status,
@@ -172,7 +172,7 @@ export async function updateEvent(eventId: string, input: UpdateEventInput) {
 
 // ─── Delete Event ─────────────────────────────────────────────────────────────
 
-export async function deleteEvent(eventId: string, password?: string) {
+export async function deleteEvent(eventId: string, password: string) {
   const user = await requireApprovedEventManager();
   const scope = await assertEventInAdminScope(eventId, user.id, user.role);
   await assertOwnOrAnyPermission(user, {
@@ -187,6 +187,8 @@ export async function deleteEvent(eventId: string, password?: string) {
   const ipAddress = hdrs.get("x-forwarded-for") ?? hdrs.get("x-real-ip") ?? "unknown";
   const userAgent = hdrs.get("user-agent") ?? "unknown";
 
+  await EventService.deleteEvent(eventId, user.id, user.role ?? "member");
+
   await LogService.log({
     actorId: user.id,
     actorName: user.name ?? user.email,
@@ -197,8 +199,6 @@ export async function deleteEvent(eventId: string, password?: string) {
     ipAddress,
     userAgent,
   });
-
-  await EventService.deleteEvent(eventId, user.id, user.role ?? "member");
 
   revalidatePath("/events");
 

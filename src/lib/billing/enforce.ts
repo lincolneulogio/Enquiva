@@ -135,13 +135,6 @@ export async function getOrganizerPlanForEvent(eventId: string) {
   return getResolvedPlanForUser(event.organizerId, role ?? "organizer");
 }
 
-const ACTIVE_EVENT_STATUSES = ["draft", "published"] as const;
-
-/** @deprecated Prefer eventOccupiesPlanSlot — kept for status-only checks without dates. */
-function isActiveEventStatus(status: string) {
-  return (ACTIVE_EVENT_STATUSES as readonly string[]).includes(status);
-}
-
 export function planIncludesBroadcasts(plan: ResolvedPlan, isUnlimited = false) {
   if (isUnlimited) return true;
   return plan.maxBroadcastsPerMonth === null || plan.maxBroadcastsPerMonth > 0;
@@ -284,13 +277,13 @@ export async function assertEventPayloadWithinPlan(
     : false;
 
   const willOccupy =
-    nextStatus && nextDate
+    nextStatus && (nextDate || existing?.date)
       ? eventOccupiesPlanSlot({
           status: nextStatus,
-          date: nextDate,
+          date: nextDate ?? existing?.date,
           endDate: nextEndDate,
         })
-      : isActiveEventStatus(nextStatus ?? "");
+      : false;
 
   if (willOccupy && !wasOccupying) {
     await assertCanCreateEvent(userId, role);

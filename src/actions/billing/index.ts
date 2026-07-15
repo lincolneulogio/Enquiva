@@ -129,10 +129,10 @@ export async function updateSubscriptionAutoRenew(enabled: boolean) {
 }
 
 /**
- * Limpia eventos/asistentes/pagos ligados al alcance del plan y reinicia cupo IA del mes.
- * Mantiene suscripción, plan contratado, equipo e historial de pagos SaaS.
+ * Limpia eventos/asistentes/pagos ligados al alcance del plan.
+ * Reinicia cupos del mes de IA y broadcasts. Mantiene suscripción, plan, equipo e historial SaaS.
  */
-export async function wipeWorkspaceAndStartFresh(password?: string) {
+export async function wipeWorkspaceAndStartFresh(password: string) {
   await requireAuthUser();
   const { user, ctx } = await requireBillingManager();
 

@@ -6,10 +6,8 @@ import {
   tickets,
   payments,
   transportBookings,
-  accounts,
 } from "@/lib/db/schema";
 import { eq, and, inArray, sql, desc, count } from "drizzle-orm";
-import { verifyPassword } from "better-auth/crypto";
 import crypto from "crypto";
 import {
   pusherServer,
@@ -493,33 +491,24 @@ export class RegistrationService {
    * Garantiza la consistencia liberando tickets y promoviendo listas de espera transaccionalmente.
    */
   static async cancelRegistration(registrationId: string, userId: string, password?: string) {
-    return db.transaction(async (tx) => {
-      // 1. Validar contraseña si el usuario tiene cuenta con contraseña local
-      const [account] = await tx
-        .select({ password: accounts.password })
-        .from(accounts)
-        .where(
-          and(
-            eq(accounts.userId, userId),
-            eq(accounts.providerId, "email")
-          )
-        )
-        .limit(1);
-
-      if (account && account.password) {
-        if (!password) {
+    try {
+      const { verifyAccountPassword, AccountPasswordError } = await import(
+        "@/lib/auth/verify-account-password"
+      );
+      await verifyAccountPassword(userId, password);
+    } catch (error) {
+      const { AccountPasswordError } = await import("@/lib/auth/verify-account-password");
+      if (error instanceof AccountPasswordError) {
+        if (error.code === "PASSWORD_NOT_SET" || error.code === "PASSWORD_REQUIRED") {
           throw registrationError(RegistrationErrorCode.PASSWORD_REQUIRED);
         }
-        const isPasswordValid = await verifyPassword({
-          hash: account.password,
-          password: password,
-        });
-        if (!isPasswordValid) {
-          throw registrationError(RegistrationErrorCode.PASSWORD_INVALID);
-        }
+        throw registrationError(RegistrationErrorCode.PASSWORD_INVALID);
       }
+      throw error;
+    }
 
-      // 2. Obtener la inscripción activa
+    return db.transaction(async (tx) => {
+      // 1. Obtener la inscripción activa
       const [reg] = await tx
         .select()
         .from(registrations)

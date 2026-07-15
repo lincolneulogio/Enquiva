@@ -36,6 +36,14 @@ export const authIdentityRatelimit = new Ratelimit({
   prefix: "ratelimit:auth_identity",
 });
 
+/** Verificación de contraseña en acciones destructivas (por userId). */
+export const passwordVerifyRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(8, "15 m"),
+  analytics: true,
+  prefix: "ratelimit:password_verify",
+});
+
 export const CACHE_KEYS = {
   publicEvents: "events:public",
   eventBySlug: (slug: string) => `events:slug:${slug}`,
