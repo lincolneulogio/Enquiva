@@ -127,3 +127,49 @@ export async function updateSubscriptionAutoRenew(enabled: boolean) {
   revalidatePath("/organizer", "layout");
   return { success: true };
 }
+
+/**
+ * Limpia eventos/asistentes/pagos ligados al alcance del plan y reinicia cupo IA del mes.
+ * Mantiene suscripción, plan contratado, equipo e historial de pagos SaaS.
+ */
+export async function wipeWorkspaceAndStartFresh(password?: string) {
+  await requireAuthUser();
+  const { user, ctx } = await requireBillingManager();
+
+  if (ctx.mode === "platform_unlimited") {
+    throw new Error("No aplica al plan de plataforma.");
+  }
+
+  const { verifyAccountPassword } = await import("@/lib/auth/verify-account-password");
+  await verifyAccountPassword(user.id, password);
+
+  const { wipeBillingWorkspace } = await import("@/lib/billing/workspace-wipe");
+  const result = await wipeBillingWorkspace({
+    actorId: user.id,
+    actorRole: user.role,
+    ctx,
+  });
+
+  const { LogService } = await import("@/lib/analytics/audit");
+  const { headers } = await import("next/headers");
+  const hdrs = await headers();
+  await LogService.log({
+    actorId: user.id,
+    actorName: user.name ?? user.email,
+    action: "workspace.wipe",
+    entityType: ctx.mode === "organization" ? "organization" : "user",
+    entityId: ctx.mode === "organization" ? ctx.organizationId : user.id,
+    details: `Espacio limpiado: ${result.deletedEvents} evento(s) eliminado(s)`,
+    ipAddress: hdrs.get("x-forwarded-for") ?? hdrs.get("x-real-ip") ?? "unknown",
+    userAgent: hdrs.get("user-agent") ?? "unknown",
+  });
+
+  revalidatePath("/organizer/billing");
+  revalidatePath("/admin/plan");
+  revalidatePath("/organizer/events");
+  revalidatePath("/admin/events");
+  revalidatePath("/organizer", "layout");
+  revalidatePath("/admin", "layout");
+
+  return { success: true, deletedEvents: result.deletedEvents };
+}

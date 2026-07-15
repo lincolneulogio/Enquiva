@@ -3,8 +3,8 @@
 import { useState, useTransition, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { requestPlanUpgrade } from "@/actions/billing";
-import { Check, Crown, Loader2, Sparkles, Clock, AlertTriangle, History, X } from "lucide-react";
+import { requestPlanUpgrade, wipeWorkspaceAndStartFresh } from "@/actions/billing";
+import { Check, Crown, Loader2, Sparkles, Clock, AlertTriangle, History, X, Eraser } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Plan, PaymentMethod, SubscriptionPayment } from "@/lib/db/schema";
 import type { SubscriptionInfo } from "@/lib/billing/types";
@@ -24,6 +24,8 @@ import {
   mapPlanRow,
 } from "@/lib/billing/plans";
 import { getPricingFeatureLines } from "@/lib/billing/pricing-features";
+import Swal from "sweetalert2";
+import { confirmDeleteAction } from "@/lib/ui/confirm";
 
 interface PendingPayment {
   payment: {
@@ -164,6 +166,81 @@ export function OrganizerBillingClient({
     proceedPlanChange(selectedPlan, false);
   };
 
+  const handleWipeFreshStart = async () => {
+    const confirmed = await confirmDeleteAction({
+      title: t("billing.organizer.wipeTitle"),
+      text: t("billing.organizer.wipeWarning"),
+      confirmText: t("billing.organizer.wipeContinue"),
+      cancelText: t("common.cancel"),
+      tone: "danger",
+    });
+    if (!confirmed) return;
+
+    const { value: password, isConfirmed } = await Swal.fire({
+      title: t("billing.organizer.wipePasswordTitle"),
+      text: t("billing.organizer.wipePasswordText"),
+      input: "password",
+      inputPlaceholder: t("billing.organizer.wipePasswordPlaceholder"),
+      inputAttributes: {
+        autocapitalize: "off",
+        autocorrect: "off",
+        required: "true",
+      },
+      showCancelButton: true,
+      confirmButtonText: t("billing.organizer.wipeConfirm"),
+      cancelButtonText: t("common.cancel"),
+      reverseButtons: true,
+      buttonsStyling: false,
+      focusCancel: true,
+      customClass: {
+        popup: "fe-swal-popup fe-swal-popup--danger",
+        title: "fe-swal-title",
+        htmlContainer: "fe-swal-text",
+        input:
+          "w-full mt-4 px-3.5 py-2.5 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm bg-card text-foreground transition-all placeholder:text-muted-foreground",
+        actions: "fe-swal-actions mt-6",
+        confirmButton: "fe-swal-confirm fe-swal-confirm--danger",
+        cancelButton: "fe-swal-cancel",
+      },
+      inputValidator: (value) => {
+        if (!value) return t("billing.organizer.wipePasswordRequired");
+      },
+    });
+
+    if (!isConfirmed || !password) return;
+
+    startTransition(async () => {
+      try {
+        const result = await wipeWorkspaceAndStartFresh(password);
+        toast.success(
+          t("billing.organizer.wipeSuccess", { count: String(result.deletedEvents) }),
+        );
+        refreshBillingQuietly();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : t("billing.organizer.wipeFailed");
+        const isPasswordError =
+          message === "PASSWORD_INVALID" ||
+          message === "PASSWORD_REQUIRED" ||
+          message.toLowerCase().includes("password") ||
+          message.toLowerCase().includes("contraseña");
+
+        await Swal.fire({
+          title: t("billing.organizer.wipeSecurityErrorTitle"),
+          text: isPasswordError ? t("billing.organizer.wipeWrongPassword") : message,
+          icon: "error",
+          confirmButtonText: t("common.deleteEventUnderstood"),
+          buttonsStyling: false,
+          customClass: {
+            popup: "fe-swal-popup fe-swal-popup--danger",
+            title: "fe-swal-title",
+            htmlContainer: "fe-swal-text",
+            confirmButton: "fe-swal-confirm fe-swal-confirm--danger",
+          },
+        });
+      }
+    });
+  };
+
   const dateLocale = locale === "en" ? "en-US" : "es-PE";
   const renewalDate = new Date(subscription.currentPeriodEnd).toLocaleDateString(dateLocale);
   const historyWithoutActivePending = paymentHistory.filter(
@@ -291,7 +368,7 @@ export function OrganizerBillingClient({
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <UsageCard label={t("billing.organizer.usageEvents")} value={`${usage.activeEvents} / ${plan.maxActiveEvents ?? "∞"}`} />
             <UsageCard label={t("billing.organizer.usageBroadcasts")} value={`${usage.broadcastsThisMonth} / ${plan.maxBroadcastsPerMonth ?? "∞"}`} />
-            {plan.features.ai && (
+            {plan.features.ai || (plan.maxAiMessagesPerMonth != null && plan.maxAiMessagesPerMonth > 0) ? (
               <UsageCard
                 label={t("billing.organizer.usageAiMessages")}
                 value={
@@ -300,13 +377,17 @@ export function OrganizerBillingClient({
                     : `${usage.aiMessagesThisMonth} / ∞`
                 }
               />
-            )}
+            ) : null}
             <UsageCard
               label={locale === "en" ? "Attendees / event" : "Asistentes / evento"}
               value={plan.maxAttendeesPerEvent != null ? String(plan.maxAttendeesPerEvent) : "∞"}
             />
             <UsageCard label={t("billing.organizer.usageRenewal")} value={renewalDate} />
           </div>
+
+          <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+            {t("billing.organizer.quotaPolicyNote")}
+          </p>
         </div>
       </div>
 
@@ -465,6 +546,34 @@ export function OrganizerBillingClient({
         />
       )}
         </>
+      )}
+
+      {!readOnly && (
+        <div className="rounded-2xl border border-rose-500/25 bg-rose-500/[0.04] p-5 dark:bg-rose-950/20">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/15">
+              <Eraser className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-foreground">{t("billing.organizer.wipeTitle")}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{t("billing.organizer.wipeHelp")}</p>
+              <p className="mt-2 text-xs text-muted-foreground">{t("billing.organizer.wipeKeeps")}</p>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => void handleWipeFreshStart()}
+                className="mt-4 inline-flex items-center gap-2 rounded-xl border border-rose-500/40 bg-background px-4 py-2.5 text-sm font-medium text-rose-700 transition hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-50 dark:text-rose-400"
+              >
+                {isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4" />
+                )}
+                {t("billing.organizer.wipeButton")}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

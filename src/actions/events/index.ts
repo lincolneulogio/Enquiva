@@ -24,6 +24,7 @@ import {
   requireOrganizerWithApprovalState,
 } from "@/lib/auth/guards";
 import { normalizeRole } from "@/lib/auth/rbac";
+import { verifyAccountPassword } from "@/lib/auth/verify-account-password";
 import { enqueueBroadcastJob } from "@/lib/notifications/broadcast-queue";
 import { DEFAULT_MASS_CHANNELS, type MassCommunicationChannels } from "@/lib/notifications/mass-communication";
 import { getLocale } from "@/lib/i18n/server";
@@ -75,6 +76,8 @@ export async function createEvent(input: CreateEventInput) {
     status: input.status,
     capacity: input.isVirtual ? null : input.capacity,
     isVirtual: input.isVirtual,
+    date: input.date,
+    endDate: input.endDate,
   });
   const event = await EventService.createEvent(input, user.id);
 
@@ -111,6 +114,8 @@ export async function updateEvent(eventId: string, input: UpdateEventInput) {
       organizerId: events.organizerId,
       capacity: events.capacity,
       isVirtual: events.isVirtual,
+      date: events.date,
+      endDate: events.endDate,
     })
     .from(events)
     .where(eq(events.id, eventId))
@@ -137,6 +142,8 @@ export async function updateEvent(eventId: string, input: UpdateEventInput) {
         ? (input.isVirtual ?? existing.isVirtual ? null : input.capacity)
         : undefined,
       isVirtual: input.isVirtual,
+      date: input.date,
+      endDate: input.endDate,
     },
     existing,
   );
@@ -165,7 +172,7 @@ export async function updateEvent(eventId: string, input: UpdateEventInput) {
 
 // ─── Delete Event ─────────────────────────────────────────────────────────────
 
-export async function deleteEvent(eventId: string) {
+export async function deleteEvent(eventId: string, password?: string) {
   const user = await requireApprovedEventManager();
   const scope = await assertEventInAdminScope(eventId, user.id, user.role);
   await assertOwnOrAnyPermission(user, {
@@ -173,6 +180,8 @@ export async function deleteEvent(eventId: string) {
     ownPermission: "events:delete:own",
     isOwner: scope.organizerId === user.id,
   });
+
+  await verifyAccountPassword(user.id, password);
 
   const hdrs = await headers();
   const ipAddress = hdrs.get("x-forwarded-for") ?? hdrs.get("x-real-ip") ?? "unknown";

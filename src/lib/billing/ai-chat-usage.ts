@@ -82,3 +82,11 @@ export async function assertAiChatMessageAllowed(userId: string, role?: string |
     );
   }
 }
+
+/** Reinicia el contador de IA del mes actual (p. ej. tras “empezar de cero”). */
+export async function resetAiChatUsageForUser(userId: string, role?: string | null) {
+  if (SubscriptionService.isPlatformStaff(role)) return;
+  const scopeKey = await getAiChatUsageScopeKey(userId, role);
+  const redisKey = buildAiChatUsageRedisKey(scopeKey);
+  await redis.del(redisKey);
+}

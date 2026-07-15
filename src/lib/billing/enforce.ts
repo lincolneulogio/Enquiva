@@ -10,6 +10,7 @@ import {
 } from "./subscription-context";
 import { isPendingPlatformSetupPlan } from "./plans";
 import { occupyingStatusWithActiveHold } from "@/lib/registrations/capacity";
+import { eventOccupiesPlanSlot } from "./active-events";
 
 export class PlanLimitError extends Error {
   code = "PLAN_LIMIT";
@@ -69,7 +70,7 @@ export async function assertCanCreateEvent(userId: string, role?: string | null)
 
   if (plan.maxActiveEvents != null && usage.activeEvents >= plan.maxActiveEvents) {
     throw new PlanLimitError(
-      `Has alcanzado el límite de ${plan.maxActiveEvents} evento(s) activo(s) en el plan ${plan.name}. ${new PlanLimitError("").upgradeHint}`,
+      `Has alcanzado el límite de ${plan.maxActiveEvents} evento(s) activo(s)/futuro(s) en el plan ${plan.name}. Cancela o espera a que termine la fecha, o actualiza tu plan. ${new PlanLimitError("").upgradeHint}`,
     );
   }
 }
@@ -136,6 +137,7 @@ export async function getOrganizerPlanForEvent(eventId: string) {
 
 const ACTIVE_EVENT_STATUSES = ["draft", "published"] as const;
 
+/** @deprecated Prefer eventOccupiesPlanSlot — kept for status-only checks without dates. */
 function isActiveEventStatus(status: string) {
   return (ACTIVE_EVENT_STATUSES as readonly string[]).includes(status);
 }
@@ -236,12 +238,16 @@ export async function assertEventPayloadWithinPlan(
     status?: string;
     capacity?: number | null;
     isVirtual?: boolean;
+    date?: Date | string;
+    endDate?: Date | string | null;
   },
   existing?: {
     status: string;
     hasTransport: boolean;
     capacity?: number | null;
     isVirtual?: boolean;
+    date?: Date | string;
+    endDate?: Date | string | null;
   },
 ) {
   const isUnlimited = SubscriptionService.isPlatformStaff(role);
@@ -265,11 +271,28 @@ export async function assertEventPayloadWithinPlan(
   }
 
   const nextStatus = payload.status ?? existing?.status;
-  const prevStatus = existing?.status;
-  const wasActive = prevStatus ? isActiveEventStatus(prevStatus) : false;
-  const willBeActive = nextStatus ? isActiveEventStatus(nextStatus) : false;
+  const nextDate = payload.date ?? existing?.date;
+  const nextEndDate =
+    payload.endDate !== undefined ? payload.endDate : existing?.endDate;
 
-  if (willBeActive && !wasActive) {
+  const wasOccupying = existing
+    ? eventOccupiesPlanSlot({
+        status: existing.status,
+        date: existing.date,
+        endDate: existing.endDate,
+      })
+    : false;
+
+  const willOccupy =
+    nextStatus && nextDate
+      ? eventOccupiesPlanSlot({
+          status: nextStatus,
+          date: nextDate,
+          endDate: nextEndDate,
+        })
+      : isActiveEventStatus(nextStatus ?? "");
+
+  if (willOccupy && !wasOccupying) {
     await assertCanCreateEvent(userId, role);
   }
 }

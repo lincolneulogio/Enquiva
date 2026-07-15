@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { events, registrations, categories, users, organizations } from "@/lib/db/schema";
+import { events, registrations, categories, users, organizations, broadcastLogs, broadcastJobs } from "@/lib/db/schema";
 import type { Category } from "@/lib/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
 import {
@@ -262,7 +262,11 @@ export class EventService {
 
     const oldCoverImage = existing.coverImage;
 
-    await db.delete(events).where(eq(events.id, eventId));
+    await db.transaction(async (tx) => {
+      await tx.delete(broadcastJobs).where(eq(broadcastJobs.eventId, eventId));
+      await tx.delete(broadcastLogs).where(eq(broadcastLogs.eventId, eventId));
+      await tx.delete(events).where(eq(events.id, eventId));
+    });
     await invalidateCachePattern("events:*");
     await broadcastTableRefresh({
       resource: ["events", "registrations", "attendees"],

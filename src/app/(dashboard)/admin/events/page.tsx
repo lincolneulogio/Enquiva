@@ -3,7 +3,7 @@ import { events, users, registrations, eventStatusEnum } from "@/lib/db/schema";
 import { count, desc, eq, and, gte, lte, inArray, type SQL } from "drizzle-orm";
 import Link from "next/link";
 import { Calendar, Plus, ClipboardList } from "lucide-react";
-import { DeleteEventButton } from "./DeleteEventButton";
+import { DeleteEventButton } from "@/components/events/DeleteEventButton";
 import { getI18n } from "@/lib/i18n/server";
 import { categoryLabel, eventStatusLabel, formatCurrency } from "@/lib/utils";
 import { getIntlLocale } from "@/lib/i18n/core";

@@ -39,6 +39,7 @@ import {
   isPlatformSpecialPlan,
   type PlanDefinitionSeed,
 } from "./plans";
+import { eventOccupiesPlanSlotSql } from "./active-events";
 import type { PlanUsage, PlanChangePreview, ResolvedPlan, SubscriptionInfo } from "./types";
 import { isOrganizerSubscriptionBlocked } from "./subscription-auto-renew.service";
 import { clearRenewalTrackingFields } from "./subscription-renewal.service";
@@ -49,8 +50,6 @@ import {
   getBillingUserId,
   type SubscriptionBillingContext,
 } from "./subscription-context";
-
-const ACTIVE_EVENT_STATUSES = ["draft", "published"] as const;
 
 function isPaidPlanRow(plan: { slug: string; priceMonthly: string | number }) {
   return plan.slug !== "free" && Number(plan.priceMonthly) > 0;
@@ -315,7 +314,7 @@ export class SubscriptionService {
           .where(
             and(
               eq(events.organizationId, billingCtx.organizationId),
-              inArray(events.status, [...ACTIVE_EVENT_STATUSES]),
+              eventOccupiesPlanSlotSql(),
             ),
           ),
         db
@@ -343,7 +342,7 @@ export class SubscriptionService {
         .where(
           and(
             eq(events.organizerId, userId),
-            inArray(events.status, [...ACTIVE_EVENT_STATUSES]),
+            eventOccupiesPlanSlotSql(),
           ),
         ),
       db
@@ -474,6 +473,10 @@ export class SubscriptionService {
         : billedPlan;
     const plansConfigured = !isPendingPlatformSetupPlan(effectivePlan);
 
+    const usage = await this.getUsage(userId, ctx);
+    const { getAiChatUsage } = await import("./ai-chat-usage");
+    const aiUsage = await getAiChatUsage(userId, role);
+
     return {
       id: subscription.id,
       status: subscription.status,
@@ -481,7 +484,7 @@ export class SubscriptionService {
       currentPeriodEnd: subscription.currentPeriodEnd,
       plan: effectivePlan,
       billedPlan: subscription.status === "past_due" ? billedPlan : undefined,
-      usage: await this.getUsage(userId, ctx),
+      usage: { ...usage, aiMessagesThisMonth: aiUsage.used },
       renewalAlert,
       daysUntilRenewal,
       autoRenewEnabled: subscription.autoRenewEnabled,

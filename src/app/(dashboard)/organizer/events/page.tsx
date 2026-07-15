@@ -6,7 +6,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { Calendar, Plus } from "lucide-react";
-import { DeleteEventButton } from "./DeleteEventButton";
+import { DeleteEventButton } from "@/components/events/DeleteEventButton";
 import { categoryLabel, eventStatusLabel, formatEventDateShort, statusColor } from "@/lib/utils";
 import { getI18n } from "@/lib/i18n/server";
 import { ExportDataPanel } from "@/components/dashboard";
