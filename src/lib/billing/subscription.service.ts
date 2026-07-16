@@ -475,7 +475,7 @@ export class SubscriptionService {
 
     const usage = await this.getUsage(userId, ctx);
     const { getAiChatUsage } = await import("./ai-chat-usage");
-    const aiUsage = await getAiChatUsage(userId, role);
+    const aiUsage = await getAiChatUsage(userId, role, effectivePlan);
 
     return {
       id: subscription.id,

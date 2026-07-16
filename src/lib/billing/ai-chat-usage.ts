@@ -3,6 +3,7 @@ import { resolveSubscriptionBillingContext } from "@/lib/billing/subscription-co
 import { SubscriptionService } from "@/lib/billing/subscription.service";
 import { getResolvedPlanForUser, PlanLimitError } from "@/lib/billing/enforce";
 import { isPendingPlatformSetupPlan } from "@/lib/billing/plans";
+import type { ResolvedPlan } from "@/lib/billing/types";
 
 export type AiChatUsage = {
   used: number;
@@ -32,12 +33,18 @@ export function buildAiChatUsageRedisKey(scopeKey: string, monthKey = currentMon
   return `ai:chat:usage:${scopeKey}:${monthKey}`;
 }
 
-export async function getAiChatUsage(userId: string, role?: string | null): Promise<AiChatUsage> {
+export async function getAiChatUsage(
+  userId: string,
+  role?: string | null,
+  resolvedPlan?: ResolvedPlan,
+): Promise<AiChatUsage> {
   if (SubscriptionService.isPlatformStaff(role)) {
     return { used: 0, limit: null, remaining: null };
   }
 
-  const plan = await getResolvedPlanForUser(userId, role);
+  // Quien ya resolvió la suscripción debe pasar el plan. Volver a resolverlo
+  // desde buildSubscriptionInfo crearía una recursión infinita.
+  const plan = resolvedPlan ?? (await getResolvedPlanForUser(userId, role));
   const limit = plan.maxAiMessagesPerMonth;
   const scopeKey = await getAiChatUsageScopeKey(userId, role);
   const redisKey = buildAiChatUsageRedisKey(scopeKey);

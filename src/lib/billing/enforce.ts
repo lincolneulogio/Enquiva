@@ -154,7 +154,7 @@ export async function getOrganizerPlanSummary(userId: string, role?: string | nu
   const { plan, usage } = info;
   const isUnlimited = SubscriptionService.isPlatformStaff(role);
   const plansConfigured = info.plansConfigured !== false && !isPendingPlatformSetupPlan(plan);
-  const aiUsage = await getAiChatUsage(userId, role);
+  const aiUsage = await getAiChatUsage(userId, role, plan);
   const billingCtx = await resolveSubscriptionBillingContext(userId, role);
   const canManageBilling = canManageSubscriptionBilling(userId, role, billingCtx);
 
