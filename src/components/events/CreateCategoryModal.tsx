@@ -47,7 +47,7 @@ export function CreateCategoryModal({ open, onOpenChange, onCreated }: CreateCat
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!label.trim() || !liveSlug) {
-      toast.error(t("events.form.createCategoryNameRequired"));
+      toast.error(t("events.form.createCategoryNameRequired"), { id: "category-create" });
       return;
     }
 
@@ -58,10 +58,20 @@ export function CreateCategoryModal({ open, onOpenChange, onCreated }: CreateCat
           description: description.trim() || undefined,
         });
         onCreated(result.category);
-        toast.success(t("events.form.createCategorySuccess"));
+        toast.success(
+          t(
+            result.created
+              ? "events.form.createCategorySuccess"
+              : "events.form.createCategoryExistingSelected",
+          ),
+          { id: "category-create" },
+        );
         handleOpenChange(false);
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : t("events.form.createCategoryError"));
+        toast.error(
+          err instanceof Error ? err.message : t("events.form.createCategoryError"),
+          { id: "category-create" },
+        );
       }
     });
   };

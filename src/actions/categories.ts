@@ -46,7 +46,12 @@ export async function createOrgCategoryQuick(input: {
   // super_admin → organizationId null (plataforma)
 
   const [existing] = await db
-    .select({ id: categories.id })
+    .select({
+      slug: categories.slug,
+      label: categories.label,
+      colorClass: categories.colorClass,
+      isActive: categories.isActive,
+    })
     .from(categories)
     .where(
       and(
@@ -57,7 +62,34 @@ export async function createOrgCategoryQuick(input: {
       ),
     )
     .limit(1);
-  if (existing) throw new Error("Ya existe una categoría con ese nombre en tu entidad");
+  if (existing) {
+    if (!existing.isActive) {
+      await db
+        .update(categories)
+        .set({ isActive: true, updatedAt: new Date() })
+        .where(
+          and(
+            eq(categories.slug, slug),
+            organizationId
+              ? eq(categories.organizationId, organizationId)
+              : sqlExpr`${categories.organizationId} IS NULL`,
+          ),
+        );
+    }
+
+    revalidatePath("/organizer/events/new");
+    revalidatePath("/admin/categories");
+    revalidatePath("/superadmin/categories");
+    return {
+      success: true as const,
+      created: false as const,
+      category: {
+        slug: existing.slug,
+        label: existing.label,
+        colorClass: existing.colorClass,
+      },
+    };
+  }
 
   const [maxRow] = await db
     .select({ sortOrder: categories.sortOrder })
@@ -91,5 +123,5 @@ export async function createOrgCategoryQuick(input: {
   revalidatePath("/organizer/events/new");
   revalidatePath("/admin/categories");
   revalidatePath("/superadmin/categories");
-  return { success: true as const, category: created };
+  return { success: true as const, created: true as const, category: created };
 }

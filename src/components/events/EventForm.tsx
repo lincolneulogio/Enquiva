@@ -95,6 +95,7 @@ export function EventForm({
     const [loadingRoutes, setLoadingRoutes] = useState(false);
     const [categoryOptions, setCategoryOptions] = useState(categories);
     const [createCategoryOpen, setCreateCategoryOpen] = useState(false);
+    const pendingCategorySelectionRef = useRef<string | null>(null);
 
     useEffect(() => {
         setCategoryOptions(categories);
@@ -151,9 +152,23 @@ export function EventForm({
         watch,
         setValue,
         setFocus,
+        clearErrors,
         reset,
         formState: { errors },
     } = form;
+
+    useEffect(() => {
+        const slug = pendingCategorySelectionRef.current;
+        if (!slug || !categoryOptions.some((category) => category.slug === slug)) return;
+
+        setValue("category", slug, {
+            shouldValidate: true,
+            shouldDirty: true,
+            shouldTouch: true,
+        });
+        pendingCategorySelectionRef.current = null;
+    }, [categoryOptions, setValue]);
+
     const eventDraftKey = event
         ? formStorageKey(`event.edit.${event.id}`)
         : EVENT_DRAFT_STORAGE_KEY;
@@ -388,7 +403,9 @@ export function EventForm({
         const first = Object.values(errs).find(
             (e): e is { message?: string } => typeof e === "object" && e !== null && "message" in e
         );
-        toast.error(getLocalizedValidationMessage(first?.message));
+        toast.error(getLocalizedValidationMessage(first?.message), {
+            id: "event-form-validation",
+        });
     };
 
     const coverDropzoneAppearance = {
@@ -466,7 +483,10 @@ export function EventForm({
                                 <label className="block text-sm font-medium text-foreground">{t("events.form.category")}</label>
                                 <button
                                     type="button"
-                                    onClick={() => setCreateCategoryOpen(true)}
+                                    onClick={() => {
+                                        toast.dismiss("event-form-validation");
+                                        setCreateCategoryOpen(true);
+                                    }}
                                     className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                                 >
                                     <Plus className="h-3.5 w-3.5" />
@@ -491,10 +511,24 @@ export function EventForm({
                                 open={createCategoryOpen}
                                 onOpenChange={setCreateCategoryOpen}
                                 onCreated={(cat) => {
+                                    pendingCategorySelectionRef.current = cat.slug;
                                     setCategoryOptions((prev) =>
                                         prev.some((c) => c.slug === cat.slug) ? prev : [...prev, cat],
                                     );
-                                    setValue("category", cat.slug, { shouldValidate: true, shouldDirty: true });
+                                    // Si ya estaba en las opciones no habrá un nuevo render; selección inmediata.
+                                    if (categoryOptions.some((c) => c.slug === cat.slug)) {
+                                        setValue("category", cat.slug, {
+                                            shouldValidate: true,
+                                            shouldDirty: true,
+                                            shouldTouch: true,
+                                        });
+                                        pendingCategorySelectionRef.current = null;
+                                    }
+                                    clearErrors("category");
+                                    setHighlightedField((current) =>
+                                        current === "category" ? null : current,
+                                    );
+                                    toast.dismiss("event-form-validation");
                                 }}
                             />
                         </div>
