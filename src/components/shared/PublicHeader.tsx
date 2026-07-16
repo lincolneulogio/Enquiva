@@ -28,7 +28,7 @@ export async function PublicHeader() {
 
   const navLinks = getPublicHeaderNavLinks(role, {
     browseEvents: t("common.browseEvents"),
-    plans: locale === "en" ? "Plans" : "Planes",
+    plans: locale === "en" ? "For organizers" : "Para organizadores",
     tickets: t("dashboard.member.ticketsTitle"),
     myEvents:
       locale === "en"
