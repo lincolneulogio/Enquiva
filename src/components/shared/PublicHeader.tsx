@@ -53,17 +53,7 @@ export async function PublicHeader() {
       style={{ top: "var(--evora-banner-offset, 0px)" }}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
-        <div className="flex items-center gap-2.5">
-          <BrandLogo href="/" size="md" priority className="shrink-0" />
-          <a
-            href={process.env.NEXT_PUBLIC_DOCS_URL || "http://localhost:3001"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center text-xs font-semibold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/25 hover:scale-105 active:scale-95 transition-all px-2.5 py-0.5 rounded-full select-none"
-          >
-            Docs
-          </a>
-        </div>
+        <BrandLogo href="/" size="md" priority className="shrink-0" />
 
         <div className="flex items-center gap-2 md:hidden">
           <ThemeToggle />

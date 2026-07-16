@@ -31,7 +31,7 @@ pnpm run db:push
 pnpm run dev
 ```
 
-App: `http://localhost:3000` · Docs: `cd docs && pnpm run dev` → `http://localhost:4321`
+App: `http://localhost:3000`
 
 ## Scripts útiles
 
@@ -48,23 +48,10 @@ App: `http://localhost:3000` · Docs: `cd docs && pnpm run dev` → `http://loca
 
 ## Despliegue
 
-Ver [docs/src/pages/docs/despliegue.md](docs/src/pages/docs/despliegue.md) o la documentación publicada en `/docs/despliegue`.
-
-Resumen:
-
 1. Crear proyecto en Vercel conectado al repo.
 2. Crear Postgres en Neon o Supabase; copiar `DATABASE_URL`.
 3. Configurar variables de `.env.example` en Vercel (incluye `CRON_SECRET` obligatorio).
 4. `vercel.json` define crons para eventos, suscripciones, broadcasts y verificación de backup.
-
-## Documentación
-
-- [Setup local](docs/src/pages/docs/setup-local.md)
-- [Local vs producción](docs/src/pages/docs/datos-local-vs-produccion.md)
-- [Despliegue](docs/src/pages/docs/despliegue.md)
-- [Operaciones y secretos](docs/src/pages/docs/operaciones.md)
-- [Migraciones](docs/src/pages/docs/migraciones.md)
-- [Esquema de BD](docs/src/pages/docs/base-de-datos.md)
 
 ## Licencia
 
