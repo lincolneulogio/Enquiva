@@ -48,7 +48,9 @@ const DEFAULT_OPS: PlatformOpsStatus = {
   announcementEventAt: null,
 };
 
-const CACHE_TTL_MS = 8_000;
+// Evita consultar settings/BD en cada navegación. Los cambios manuales invalidan
+// esta caché inmediatamente mediante invalidatePlatformOpsCache().
+const CACHE_TTL_MS = 30_000;
 
 let cache: { expires: number; data: PlatformOpsStatus } | null = null;
 

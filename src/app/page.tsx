@@ -1,8 +1,7 @@
 import { Calendar, Users, Bell, Shield, Zap } from "lucide-react";
-import { headers } from "next/headers";
 import { getFeaturedPublicEvents, getPublicEvents } from "@/actions/events";
 import { PublicHeader } from "@/components/shared/PublicHeader";
-import { auth } from "@/lib/auth";
+import { getPublicSession } from "@/lib/auth/public-session";
 import { getI18n } from "@/lib/i18n/server";
 import { getLandingCopy } from "@/lib/navigation/landing-audience";
 import {
@@ -15,7 +14,7 @@ import {
 
 export default async function HomePage() {
   const { locale, t } = await getI18n();
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getPublicSession();
   const role = session?.user?.role ?? null;
   const localeKey = locale === "en" ? "en" : "es";
   const landingCopy = getLandingCopy({ role, locale: localeKey, t });

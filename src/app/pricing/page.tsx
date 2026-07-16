@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Check, X, ArrowRight, Sparkles } from "lucide-react";
-import { headers } from "next/headers";
 import { PublicHeader } from "@/components/shared/PublicHeader";
 import { getI18n } from "@/lib/i18n/server";
 import { db } from "@/lib/db";
@@ -8,7 +7,7 @@ import { plans } from "@/lib/db/schema";
 import { and, asc, eq } from "drizzle-orm";
 import { mapPlanRow, DEFAULT_PLAN_DEFINITIONS, filterPublicBillingPlans } from "@/lib/billing/plans";
 import { getPricingFeatureLines } from "@/lib/billing/pricing-features";
-import { auth } from "@/lib/auth";
+import { getPublicSession } from "@/lib/auth/public-session";
 import { getPricingCta } from "@/lib/navigation/pricing-cta";
 import { cn } from "@/lib/utils";
 
@@ -47,7 +46,7 @@ function fallbackPlans() {
 
 export default async function PricingPage() {
   const { locale } = await getI18n();
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getPublicSession();
   const cta = getPricingCta(session?.user?.role, locale === "en" ? "en" : "es");
 
   let rows = fallbackPlans() as Array<typeof plans.$inferSelect>;

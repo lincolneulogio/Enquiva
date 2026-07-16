@@ -123,6 +123,12 @@ async function getSessionSafe(request: NextRequest) {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Desarrollo rápido: las rutas públicas no necesitan consultar settings/BD
+  // en cada HMR. Producción mantiene el gate de mantenimiento completo.
+  if (process.env.NODE_ENV === "development" && isPublicRoute(pathname)) {
+    return withPathname(request, pathname);
+  }
+
   // Modo mantenimiento: superadmin bypass; tickets y auth siguen disponibles.
   try {
     const ops = await getCachedPlatformOpsStatus(() => getPlatformOpsStatus());

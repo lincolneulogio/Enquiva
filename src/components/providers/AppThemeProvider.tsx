@@ -2,7 +2,6 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { ThemeProvider } from "next-themes";
-import { ThemeCrossAppSync } from "@/components/providers/ThemeCrossAppSync";
 import { THEME_STORAGE_KEY } from "@/lib/theme/cookie";
 
 if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
@@ -36,7 +35,6 @@ export function AppThemeProvider({ children }: AppThemeProviderProps) {
             storageKey={THEME_STORAGE_KEY}
             disableTransitionOnChange
         >
-            <ThemeCrossAppSync />
             {children}
         </ThemeProvider>
     );

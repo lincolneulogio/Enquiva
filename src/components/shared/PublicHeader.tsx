@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getPublicSession } from "@/lib/auth/public-session";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { getRoleLabel } from "@/lib/i18n/core";
 import { getI18n } from "@/lib/i18n/server";
@@ -14,7 +13,7 @@ import {
 } from "@/lib/navigation/public-header-nav";
 
 export async function PublicHeader() {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getPublicSession();
   const user = session?.user;
   const { t, locale } = await getI18n();
   const role = user?.role ?? null;
