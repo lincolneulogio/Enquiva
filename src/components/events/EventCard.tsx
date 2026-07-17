@@ -124,8 +124,6 @@ export async function EventCard({
 
   const cardContent = (
     <article
-      data-aos="fade-up"
-      data-aos-duration="650"
       className={cn(
         "flex h-full flex-col overflow-hidden rounded-3xl border border-border/80 bg-background/60 backdrop-blur-md hover:shadow-[0_12px_30px_-10px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_12px_30px_-10px_rgba(0,0,0,0.5)] hover:border-primary/35",
         isEventExpired
