@@ -141,6 +141,29 @@ export async function createCulqiCustomer(
   });
 }
 
+export async function findCulqiCustomerByEmail(
+  email: string,
+  credentials?: CulqiCredentials,
+) {
+  const creds = credentials ?? getPlatformCulqiCredentials();
+  if (!creds) throw new Error("Culqi no configurado");
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const query = new URLSearchParams({
+    email: normalizedEmail,
+    limit: "10",
+  });
+  const result = await culqiApiRequest<{
+    data?: Array<{ id: string; email?: string | null }>;
+  }>(`/customers?${query.toString()}`, creds, { method: "GET" });
+
+  return (
+    result.data?.find(
+      (customer) => customer.email?.trim().toLowerCase() === normalizedEmail,
+    ) ?? null
+  );
+}
+
 export async function createCulqiCard(
   input: { customerId: string; tokenId: string },
   credentials?: CulqiCredentials,

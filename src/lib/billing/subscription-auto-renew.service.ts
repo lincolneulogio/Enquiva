@@ -5,6 +5,7 @@ import {
   createCulqiCard,
   createCulqiCharge,
   createCulqiCustomer,
+  findCulqiCustomerByEmail,
   getPlatformCulqiCredentials,
 } from "@/lib/culqi/client";
 import type { CulqiUserProfile } from "@/lib/culqi/customer-data";
@@ -46,8 +47,24 @@ export class SubscriptionAutoRenewService {
 
     let customerId = sub.culqiCustomerId;
     if (!customerId) {
-      const customer = await createCulqiCustomer(input.customer, creds);
-      customerId = customer.id;
+      const existingCustomer = await findCulqiCustomerByEmail(input.customer.email, creds);
+      if (existingCustomer) {
+        customerId = existingCustomer.id;
+      } else {
+        try {
+          const customer = await createCulqiCustomer(input.customer, creds);
+          customerId = customer.id;
+        } catch (error) {
+          // Si otra solicitud o un intento anterior creó el cliente en Culqi
+          // antes de persistirlo localmente, recupéralo y continúa.
+          const recoveredCustomer = await findCulqiCustomerByEmail(
+            input.customer.email,
+            creds,
+          );
+          if (!recoveredCustomer) throw error;
+          customerId = recoveredCustomer.id;
+        }
+      }
     }
 
     const card = await createCulqiCard(
