@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createEventSchema, type CreateEventInput } from "@/lib/validations";
@@ -42,11 +42,36 @@ interface EventFormProps {
 }
 
 const EVENT_DRAFT_STORAGE_KEY = formStorageKey("event.create");
+const EVENT_HOUR_OPTIONS = Array.from({ length: 12 }, (_, index) =>
+    String(index + 1).padStart(2, "0"),
+);
+const EVENT_MINUTE_OPTIONS = Array.from({ length: 12 }, (_, index) =>
+    String(index * 5).padStart(2, "0"),
+);
 
 function toLocalDateTimeInputValue(value: Date | string) {
     const date = new Date(value);
     const pad = (part: number) => String(part).padStart(2, "0");
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function openNativePicker(input: HTMLInputElement | null) {
+    if (!input) return;
+    try {
+        input.showPicker();
+    } catch {
+        input.focus();
+        input.click();
+    }
+}
+
+function to24HourTime(hour12: string, minute: string, period: "AM" | "PM") {
+    const parsedHour = Number(hour12);
+    const hour24 =
+        period === "PM"
+            ? (parsedHour % 12) + 12
+            : parsedHour % 12;
+    return `${String(hour24).padStart(2, "0")}:${minute}`;
 }
 
 type EventFormDraft = {
@@ -157,7 +182,7 @@ export function EventForm({
     const {
         register,
         handleSubmit,
-        watch,
+        control,
         setValue,
         setFocus,
         clearErrors,
@@ -168,8 +193,17 @@ export function EventForm({
     const initialDateTime = form.getValues("date") ?? "";
     const [eventDatePart, setEventDatePart] = useState(initialDateTime.slice(0, 10));
     const [eventTimePart, setEventTimePart] = useState(initialDateTime.slice(11, 16));
+    const [timePickerOpen, setTimePickerOpen] = useState(false);
+    const eventDateInputRef = useRef<HTMLInputElement>(null);
+    const eventTimeInputRef = useRef<HTMLInputElement>(null);
+    const timePickerRef = useRef<HTMLDivElement>(null);
     const datePartsUpdateRef = useRef(false);
-    const watchedDateTime = watch("date");
+    const watchedDateTime = useWatch({ control, name: "date" });
+    const selectedHour24 = Number(eventTimePart.slice(0, 2) || 0);
+    const selectedHour12 = eventTimePart
+        ? String(selectedHour24 % 12 || 12).padStart(2, "0")
+        : "";
+    const selectedPeriod: "AM" | "PM" = selectedHour24 >= 12 ? "PM" : "AM";
 
     useEffect(() => {
         if (datePartsUpdateRef.current) {
@@ -205,6 +239,26 @@ export function EventForm({
     };
 
     useEffect(() => {
+        if (!timePickerOpen) return;
+
+        const closeOnOutsideClick = (event: MouseEvent) => {
+            if (!timePickerRef.current?.contains(event.target as Node)) {
+                setTimePickerOpen(false);
+            }
+        };
+        const closeOnEscape = (event: KeyboardEvent) => {
+            if (event.key === "Escape") setTimePickerOpen(false);
+        };
+
+        document.addEventListener("mousedown", closeOnOutsideClick);
+        document.addEventListener("keydown", closeOnEscape);
+        return () => {
+            document.removeEventListener("mousedown", closeOnOutsideClick);
+            document.removeEventListener("keydown", closeOnEscape);
+        };
+    }, [timePickerOpen]);
+
+    useEffect(() => {
         const slug = pendingCategorySelectionRef.current;
         if (!slug || !categoryOptions.some((category) => category.slug === slug)) return;
 
@@ -223,8 +277,9 @@ export function EventForm({
     const extraDraftKey = `${eventDraftKey}.extra`;
     const extraHydratedRef = useRef(false);
 
-    const isVirtual = watch("isVirtual");
-    const hasTransport = watch("hasTransport");
+    const isVirtual = useWatch({ control, name: "isVirtual" });
+    const hasTransport = useWatch({ control, name: "hasTransport" });
+    const watchedPrice = useWatch({ control, name: "price" });
     const canUseTransport = planSummary?.isUnlimited || planSummary?.features.transport || event?.hasTransport;
     const canUseCulqi = planSummary?.isUnlimited || planSummary?.features.culqi;
     const canCreateEvent = planSummary?.isUnlimited || planSummary?.canCreateEvent !== false;
@@ -609,8 +664,17 @@ export function EventForm({
                             <div className="grid grid-cols-[minmax(0,1fr)_minmax(8rem,0.72fr)] gap-2">
                                 <div className="relative">
                                     <label htmlFor="event-date-part" className="sr-only">{t("events.form.date")}</label>
-                                    <CalendarDays aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                    <button
+                                        type="button"
+                                        onClick={() => openNativePicker(eventDateInputRef.current)}
+                                        aria-label={t("events.form.chooseDate")}
+                                        title={t("events.form.chooseDate")}
+                                        className="absolute left-1.5 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                    >
+                                        <CalendarDays aria-hidden="true" className="h-4 w-4" />
+                                    </button>
                                     <input
+                                        ref={eventDateInputRef}
                                         id="event-date-part"
                                         type="date"
                                         value={eventDatePart}
@@ -620,10 +684,21 @@ export function EventForm({
                                         className={`w-full rounded-xl border border-border bg-background py-2.5 pl-9 pr-3 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("date")}`}
                                     />
                                 </div>
-                                <div className="relative">
+                                <div ref={timePickerRef} className="relative">
                                     <label htmlFor="event-time-part" className="sr-only">{t("events.form.time")}</label>
-                                    <Clock3 aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                    <button
+                                        type="button"
+                                        onClick={() => setTimePickerOpen((open) => !open)}
+                                        aria-label={t("events.form.chooseTime")}
+                                        title={t("events.form.chooseTime")}
+                                        aria-expanded={timePickerOpen}
+                                        aria-controls="event-time-picker"
+                                        className="absolute left-1.5 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                    >
+                                        <Clock3 aria-hidden="true" className="h-4 w-4" />
+                                    </button>
                                     <input
+                                        ref={eventTimeInputRef}
                                         id="event-time-part"
                                         type="time"
                                         value={eventTimePart}
@@ -632,6 +707,92 @@ export function EventForm({
                                         aria-describedby={errors.date ? "event-date-error" : undefined}
                                         className={`w-full rounded-xl border border-border bg-background py-2.5 pl-9 pr-3 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("date")}`}
                                     />
+                                    {timePickerOpen && (
+                                        <div
+                                            id="event-time-picker"
+                                            role="dialog"
+                                            aria-label={t("events.form.chooseTime")}
+                                            className="absolute right-0 top-[calc(100%+0.5rem)] z-40 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-popover p-3 text-popover-foreground shadow-xl"
+                                        >
+                                            <div className="grid grid-cols-3 gap-2">
+                                                <label className="space-y-1 text-xs font-medium">
+                                                    <span>{t("events.form.hour")}</span>
+                                                    <select
+                                                        value={selectedHour12}
+                                                        onChange={(e) =>
+                                                            updateEventDateTime(
+                                                                eventDatePart,
+                                                                to24HourTime(
+                                                                    e.target.value,
+                                                                    eventTimePart.slice(3, 5) || "00",
+                                                                    selectedPeriod,
+                                                                ),
+                                                            )
+                                                        }
+                                                        className="w-full rounded-lg border border-border bg-background px-2 py-2 text-sm focus:border-primary focus:outline-none"
+                                                        autoFocus
+                                                    >
+                                                        <option value="">--</option>
+                                                        {EVENT_HOUR_OPTIONS.map((hour) => (
+                                                            <option key={hour} value={hour}>{hour}</option>
+                                                        ))}
+                                                    </select>
+                                                </label>
+                                                <label className="space-y-1 text-xs font-medium">
+                                                    <span>{t("events.form.minute")}</span>
+                                                    <select
+                                                        value={eventTimePart.slice(3, 5)}
+                                                        onChange={(e) =>
+                                                            updateEventDateTime(
+                                                                eventDatePart,
+                                                                to24HourTime(
+                                                                    selectedHour12 || "12",
+                                                                    e.target.value,
+                                                                    selectedPeriod,
+                                                                ),
+                                                            )
+                                                        }
+                                                        className="w-full rounded-lg border border-border bg-background px-2 py-2 text-sm focus:border-primary focus:outline-none"
+                                                    >
+                                                        <option value="">--</option>
+                                                        {EVENT_MINUTE_OPTIONS.map((minute) => (
+                                                            <option key={minute} value={minute}>{minute}</option>
+                                                        ))}
+                                                    </select>
+                                                </label>
+                                                <label className="space-y-1 text-xs font-medium">
+                                                    <span>{t("events.form.period")}</span>
+                                                    <select
+                                                        value={selectedPeriod}
+                                                        onChange={(e) =>
+                                                            updateEventDateTime(
+                                                                eventDatePart,
+                                                                to24HourTime(
+                                                                    selectedHour12 || "12",
+                                                                    eventTimePart.slice(3, 5) || "00",
+                                                                    e.target.value as "AM" | "PM",
+                                                                ),
+                                                            )
+                                                        }
+                                                        className="w-full rounded-lg border border-border bg-background px-2 py-2 text-sm focus:border-primary focus:outline-none"
+                                                    >
+                                                        <option value="AM">AM</option>
+                                                        <option value="PM">PM</option>
+                                                    </select>
+                                                </label>
+                                            </div>
+                                            <p className="mt-2 text-[11px] leading-4 text-muted-foreground">
+                                                {t("events.form.timeFormatHelp")}
+                                            </p>
+                                            <button
+                                                type="button"
+                                                onClick={() => setTimePickerOpen(false)}
+                                                className="mt-3 w-full rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                                            >
+                                                {t("events.form.timePickerDone")}
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             {errors.date && (
@@ -763,7 +924,7 @@ export function EventForm({
                         </p>
                     </div>
 
-                    {!!watch("price") && Number(watch("price")) > 0 && (
+                    {!!watchedPrice && Number(watchedPrice) > 0 && (
                         <div className="space-y-3 rounded-xl border border-border p-4 md:col-span-2">
                             <div>
                                 <h3 className="text-sm font-semibold text-foreground">{t("events.form.holdSettingsTitle")}</h3>
@@ -831,7 +992,7 @@ export function EventForm({
                         </div>
                     )}
 
-                    {selectablePaymentMethods.length > 0 && !!watch("price") && Number(watch("price")) > 0 && (
+                    {selectablePaymentMethods.length > 0 && !!watchedPrice && Number(watchedPrice) > 0 && (
                         <div className="rounded-xl border border-border p-4 space-y-3">
                             <h3 className="text-sm font-semibold text-foreground">{t("events.form.paymentMethodsTitle")}</h3>
                             <p className="text-xs text-muted-foreground">{t("events.form.paymentMethodsHelp")}</p>
