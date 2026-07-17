@@ -1,10 +1,15 @@
 import { db } from "@/lib/db";
 import { platformTransactions, users } from "@/lib/db/schema";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, or, sql } from "drizzle-orm";
+import { calculateNetCommission } from "@/lib/billing/commission-math";
 
 export type CommissionSettlementSummary = {
+  grossCommission: number;
+  refundReversals: number;
   totalCommission: number;
   transactionCount: number;
+  unlinkedCommission: number;
+  unlinkedCommissionCount: number;
   byOrganizer: Array<{
     organizerId: string;
     organizerName: string | null;
@@ -15,6 +20,7 @@ export type CommissionSettlementSummary = {
   recent: Array<{
     id: string;
     amount: string;
+    type: string;
     description: string | null;
     paymentId: string | null;
     userId: string | null;
@@ -28,17 +34,38 @@ export type CommissionSettlementSummary = {
  * este panel refleja lo ganado y lo atribuido por organizador.
  */
 export async function getCommissionSettlementSummary(): Promise<CommissionSettlementSummary> {
-  const [[{ total }], [{ txnCount }]] = await Promise.all([
+  const ledgerCondition = or(
+    eq(platformTransactions.type, "commission"),
+    and(
+      eq(platformTransactions.type, "adjustment"),
+      sql`${platformTransactions.metadata}->>'reason' = 'payment_refund'`,
+    ),
+  )!;
+
+  const [[totals], [unlinked], [{ txnCount }]] = await Promise.all([
+    db
+      .select({
+        gross: sql<string>`COALESCE(SUM(CASE WHEN ${platformTransactions.type} = 'commission' THEN ${platformTransactions.amount} ELSE 0 END), 0)`,
+        reversals: sql<string>`COALESCE(ABS(SUM(CASE WHEN ${platformTransactions.type} = 'adjustment' THEN ${platformTransactions.amount} ELSE 0 END)), 0)`,
+      })
+      .from(platformTransactions)
+      .where(ledgerCondition),
     db
       .select({
         total: sql<string>`COALESCE(SUM(${platformTransactions.amount}), 0)`,
+        count: sql<number>`count(*)::int`,
       })
       .from(platformTransactions)
-      .where(eq(platformTransactions.type, "commission")),
+      .where(
+        and(
+          eq(platformTransactions.type, "commission"),
+          sql`${platformTransactions.paymentId} IS NULL`,
+        ),
+      ),
     db
       .select({ txnCount: sql<number>`count(*)::int` })
       .from(platformTransactions)
-      .where(eq(platformTransactions.type, "commission")),
+      .where(ledgerCondition),
   ]);
 
   const byOrganizerRaw = await db
@@ -53,7 +80,7 @@ export async function getCommissionSettlementSummary(): Promise<CommissionSettle
     .leftJoin(users, eq(platformTransactions.userId, users.id))
     .where(
       and(
-        eq(platformTransactions.type, "commission"),
+        ledgerCondition,
         sql`${platformTransactions.userId} IS NOT NULL`,
       ),
     )
@@ -65,19 +92,27 @@ export async function getCommissionSettlementSummary(): Promise<CommissionSettle
     .select({
       id: platformTransactions.id,
       amount: platformTransactions.amount,
+      type: platformTransactions.type,
       description: platformTransactions.description,
       paymentId: platformTransactions.paymentId,
       userId: platformTransactions.userId,
       createdAt: platformTransactions.createdAt,
     })
     .from(platformTransactions)
-    .where(eq(platformTransactions.type, "commission"))
+    .where(ledgerCondition)
     .orderBy(desc(platformTransactions.createdAt))
     .limit(30);
 
   return {
-    totalCommission: Number(total ?? 0),
+    grossCommission: Number(totals?.gross ?? 0),
+    refundReversals: Number(totals?.reversals ?? 0),
+    totalCommission: calculateNetCommission(
+      Number(totals?.gross ?? 0),
+      Number(totals?.reversals ?? 0),
+    ),
     transactionCount: Number(txnCount ?? 0),
+    unlinkedCommission: Number(unlinked?.total ?? 0),
+    unlinkedCommissionCount: Number(unlinked?.count ?? 0),
     byOrganizer: byOrganizerRaw.map((r) => ({
       organizerId: r.organizerId ?? "unknown",
       organizerName: r.organizerName,

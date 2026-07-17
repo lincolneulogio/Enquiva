@@ -30,6 +30,8 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { normalizeRole } from "@/lib/auth/rbac";
+import { PaymentEarningsReportView } from "@/components/payments/PaymentEarningsReport";
+import { getPaymentEarningsReport } from "@/lib/payments/earnings-report";
 
 import { countGuestsFromNotes } from "@/lib/registrations/guests";
 
@@ -138,6 +140,24 @@ export default async function AdminPaymentsPage({
   const adminScope = await resolveAdminScope();
   const entityOrgId = adminScope.mode === "org" ? adminScope.organizationId : null;
   const orgEventFilter = scopeEventCondition(adminScope);
+  const reportStatus = paymentStatusEnum.enumValues.find(
+    (value) => value === params.status,
+  );
+  const earningsScope =
+    adminScope.mode === "org"
+      ? ({ mode: "organization", organizationId: adminScope.organizationId } as const)
+      : adminScope.mode === "platform"
+        ? ({ mode: "platform" } as const)
+        : null;
+  const earningsReport = earningsScope
+    ? await getPaymentEarningsReport(earningsScope, {
+        eventId: params.eventId,
+        category: params.category,
+        status: reportStatus,
+        fromDate: params.fromDate,
+        toDate: params.toDate,
+      })
+    : { currencies: [], events: [] };
 
   // Build filter conditions
   const conditions: SQL[] = [];
@@ -253,6 +273,11 @@ export default async function AdminPaymentsPage({
           statusOptions={exportStatusOptions}
         />
       </Suspense>
+
+      <PaymentEarningsReportView
+        report={earningsReport}
+        audience={adminScope.mode === "platform" ? "platform" : "entity"}
+      />
 
       <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
         <div className="border-b border-border px-6 py-4">

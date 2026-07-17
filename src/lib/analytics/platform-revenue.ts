@@ -14,10 +14,14 @@ export async function getDashboardRevenueSnapshot(eventRevenue: number): Promise
   const rows = await db
     .select({
       type: platformTransactions.type,
+      reason: sql<string | null>`${platformTransactions.metadata}->>'reason'`,
       total: sql<string>`coalesce(sum(${platformTransactions.amount}), '0')`,
     })
     .from(platformTransactions)
-    .groupBy(platformTransactions.type);
+    .groupBy(
+      platformTransactions.type,
+      sql`${platformTransactions.metadata}->>'reason'`,
+    );
 
   let subscriptionRevenue = 0;
   let commissionRevenue = 0;
@@ -27,7 +31,12 @@ export async function getDashboardRevenueSnapshot(eventRevenue: number): Promise
     const amount = Number(row.total ?? 0);
     platformRevenue += amount;
     if (row.type === "subscription") subscriptionRevenue += amount;
-    if (row.type === "commission") commissionRevenue += amount;
+    if (
+      row.type === "commission" ||
+      (row.type === "adjustment" && row.reason === "payment_refund")
+    ) {
+      commissionRevenue += amount;
+    }
   }
 
   return {

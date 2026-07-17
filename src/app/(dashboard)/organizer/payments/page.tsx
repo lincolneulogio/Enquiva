@@ -21,6 +21,8 @@ import { getMyPlanSummary } from "@/actions/billing";
 import { planIncludesFeature } from "@/lib/billing/enforce";
 import { Clock, CreditCard } from "lucide-react";
 import { EmptyStateCard } from "@/components/ui/EmptyStateCard";
+import { PaymentEarningsReportView } from "@/components/payments/PaymentEarningsReport";
+import { getPaymentEarningsReport } from "@/lib/payments/earnings-report";
 
 import { countGuestsFromNotes } from "@/lib/registrations/guests";
 
@@ -109,6 +111,19 @@ export default async function OrganizerPaymentsPage({ searchParams }: PageProps)
     value,
     label: value === "all" ? t("common.all") : getPaymentStatusLabel(value, locale),
   }));
+  const reportStatus = paymentStatusEnum.enumValues.find(
+    (value) => value === params.status,
+  );
+  const earningsReport = await getPaymentEarningsReport(
+    { mode: "organizer", organizerId },
+    {
+      eventId: params.eventId,
+      category: params.category,
+      status: reportStatus,
+      fromDate: params.fromDate,
+      toDate: params.toDate,
+    },
+  );
 
   const conditions = [eq(events.organizerId, organizerId)];
 
@@ -196,17 +211,18 @@ export default async function OrganizerPaymentsPage({ searchParams }: PageProps)
         </div>
       )}
 
-      {showExports ? (
-        <Suspense>
-          <ExportDataPanel
-            resource="payments"
-            scope="organizer"
-            eventOptions={exportEventOptions}
-            categoryOptions={exportCategoryOptions}
-            statusOptions={exportStatusOptions}
-          />
-        </Suspense>
-      ) : null}
+      <Suspense>
+        <ExportDataPanel
+          resource="payments"
+          scope="organizer"
+          eventOptions={exportEventOptions}
+          categoryOptions={exportCategoryOptions}
+          statusOptions={exportStatusOptions}
+          showExportActions={showExports}
+        />
+      </Suspense>
+
+      <PaymentEarningsReportView report={earningsReport} audience="organizer" />
 
       {payments.length === 0 ? (
         <EmptyStateCard

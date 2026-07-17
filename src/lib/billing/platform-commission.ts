@@ -99,6 +99,11 @@ export async function settlePlatformCommissionForApprovedPayment(input: {
   );
   const fee = computeEventCommissionFee(amount, plan, inscriptionCount);
   if (fee <= 0) {
+    const runner = input.tx ?? db;
+    await runner
+      .update(payments)
+      .set({ platformFee: "0.00", updatedAt: new Date() })
+      .where(eq(payments.id, input.paymentId));
     return { fee: 0, recorded: false, skippedReason: "zero_commission_plan" };
   }
 

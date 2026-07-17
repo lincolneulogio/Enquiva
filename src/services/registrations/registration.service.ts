@@ -704,16 +704,34 @@ export class RegistrationService {
       // 4. Gestionar cobro/pago (Efectivo pre-aprobado por el organizador)
       const eventPrice = event.price ? Number(event.price) : 0;
       
-      await tx.insert(payments).values({
+      const [offlinePayment] = await tx
+        .insert(payments)
+        .values({
+          registrationId: registration.id,
+          userId: offlineUserId,
+          amount: eventPrice.toFixed(2),
+          currency: "PEN",
+          status: "approved", // Pre-aprobado porque se paga en efectivo en mano
+          method: "cash",
+          notes: `Pago manual en efectivo recibido por el organizador/admin`,
+          verifiedBy: organizerUserId,
+          verifiedAt: new Date(),
+        })
+        .returning({ id: payments.id });
+
+      const { settlePlatformCommissionForApprovedPayment } = await import(
+        "@/lib/billing/platform-commission"
+      );
+      await settlePlatformCommissionForApprovedPayment({
+        paymentId: offlinePayment.id,
         registrationId: registration.id,
-        userId: offlineUserId,
-        amount: eventPrice.toFixed(2),
+        eventId,
+        eventTitle: event.title,
+        organizerId: event.organizerId,
+        amount: eventPrice,
         currency: "PEN",
-        status: "approved", // Pre-aprobado porque se paga en efectivo en mano
-        method: "cash",
-        notes: `Pago manual en efectivo recibido por el organizador/admin`,
-        verifiedBy: organizerUserId,
-        verifiedAt: new Date(),
+        metadata: { source: "offline_manual" },
+        tx,
       });
 
       // 5. Generar ticket inmediatamente

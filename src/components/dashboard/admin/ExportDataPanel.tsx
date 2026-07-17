@@ -23,6 +23,7 @@ interface ExportDataPanelProps {
     initialStatus?: string;
     initialCategory?: string;
     enableDateRange?: boolean;
+    showExportActions?: boolean;
     className?: string;
 }
 
@@ -96,6 +97,7 @@ export function ExportDataPanel({
     initialStatus = "all",
     initialCategory = "",
     enableDateRange = true,
+    showExportActions = true,
     className,
 }: ExportDataPanelProps) {
     const t = useTranslations();
@@ -194,10 +196,18 @@ export function ExportDataPanel({
                     </div>
                     <div>
                         <h3 className="text-base font-bold text-foreground leading-none">
-                            {t("common.export")}
+                            {showExportActions
+                                ? t("common.export")
+                                : locale === "en"
+                                  ? "Payment filters"
+                                  : "Filtros de pagos"}
                         </h3>
                         <p className="text-xs text-muted-foreground/80 mt-1">
-                            {helperText}
+                            {showExportActions
+                                ? helperText
+                                : locale === "en"
+                                  ? "Filters update the earnings report and payment detail."
+                                  : "Los filtros actualizan el reporte de ganancias y el detalle de pagos."}
                         </p>
                     </div>
                 </div>
@@ -320,6 +330,7 @@ export function ExportDataPanel({
                 )}
 
                 {/* Buttons block */}
+                {showExportActions && (
                 <div className="flex items-center gap-2 mt-auto sm:ml-auto w-full sm:w-auto h-10 pt-2 sm:pt-0">
                     <button
                         onClick={() => handleExport("excel")}
@@ -356,6 +367,7 @@ export function ExportDataPanel({
                         <span>{loadingFormat === "print" ? t("common.printing") : t("common.print")}</span>
                     </button>
                 </div>
+                )}
             </div>
         </div>
     );

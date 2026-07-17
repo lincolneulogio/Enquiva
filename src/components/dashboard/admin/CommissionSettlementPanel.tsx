@@ -42,13 +42,21 @@ export function CommissionSettlementPanel({
             </p>
           </div>
           <div className="rounded-xl border border-border bg-card px-4 py-3 text-right">
-            <p className="text-xs text-muted-foreground">Total comisiones</p>
+            <p className="text-xs text-muted-foreground">Comisión neta</p>
             <p className="font-display text-2xl font-semibold text-orange-600 dark:text-orange-400">
               S/ {summary.totalCommission.toFixed(2)}
             </p>
             <p className="text-xs text-muted-foreground">
-              {summary.transactionCount} movimientos
+              Bruto S/ {summary.grossCommission.toFixed(2)} · reversiones S/{" "}
+              {summary.refundReversals.toFixed(2)}
             </p>
+            {summary.unlinkedCommissionCount > 0 && (
+              <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+                S/ {summary.unlinkedCommission.toFixed(2)} de{" "}
+                {summary.unlinkedCommissionCount} movimiento(s) histórico(s) cuyo pago fue
+                eliminado
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -75,7 +83,7 @@ export function CommissionSettlementPanel({
                       {row.organizerName ?? "Organizador"}
                     </p>
                     <p className="truncate text-xs text-muted-foreground">
-                      {row.organizerEmail ?? row.organizerId.slice(0, 8)} · {row.count} pagos
+                      {row.organizerEmail ?? row.organizerId.slice(0, 8)} · {row.count} movimientos
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
@@ -115,7 +123,13 @@ export function CommissionSettlementPanel({
                       {tx.paymentId ? ` · pago ${tx.paymentId.slice(0, 8)}…` : ""}
                     </p>
                   </div>
-                  <p className="inline-flex shrink-0 items-center gap-1 font-semibold text-orange-600 dark:text-orange-400">
+                  <p
+                    className={`inline-flex shrink-0 items-center gap-1 font-semibold ${
+                      Number(tx.amount) < 0
+                        ? "text-rose-600 dark:text-rose-400"
+                        : "text-orange-600 dark:text-orange-400"
+                    }`}
+                  >
                     <Banknote className="h-3.5 w-3.5" />
                     S/ {Number(tx.amount).toFixed(2)}
                   </p>
