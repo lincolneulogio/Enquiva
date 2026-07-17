@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTheme } from "next-themes";
+import { useAppTheme } from "@/components/providers/AppThemeProvider";
 import { toast } from "sonner";
 import { Moon, Palette, Sun } from "lucide-react";
 import { useLocale } from "@/components/providers/LocaleProvider";
@@ -29,7 +29,7 @@ export function PersonalAppearancePreferences({
   className,
 }: PersonalAppearancePreferencesProps) {
   const { locale } = useLocale();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme } = useAppTheme();
 
   const platformDefaultAccent: AccentColor = isAccentColor(platformDefaultAccentProp)
     ? platformDefaultAccentProp

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useAppTheme } from "@/components/providers/AppThemeProvider";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import { cn } from "@/lib/utils";
 
@@ -12,7 +12,7 @@ interface ThemeToggleProps {
 
 export function ThemeToggle({ className }: ThemeToggleProps) {
     const t = useTranslations();
-    const { theme, setTheme } = useTheme();
+    const { theme, setTheme } = useAppTheme();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {

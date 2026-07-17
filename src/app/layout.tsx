@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
+import { cookies } from "next/headers";
 import { Toaster } from "sonner";
 import { LocaleProvider } from "@/components/providers/LocaleProvider";
 import { AppThemeProvider } from "@/components/providers/AppThemeProvider";
@@ -10,6 +11,7 @@ import { getLocale } from "@/lib/i18n/server";
 import { AccentColorInitializer } from "@/components/dashboard/admin/AccentColorInitializer";
 import { PlatformAnnouncementBannerHost } from "@/components/shared/PlatformAnnouncementBannerHost";
 import { getPlatformBrand } from "@/lib/brand/platform-brand";
+import { parseAppTheme, THEME_COOKIE_NAME } from "@/lib/theme/cookie";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -17,8 +19,6 @@ const outfit = Outfit({
   variable: "--font-outfit",
   display: "swap",
 });
-
-const THEME_BOOTSTRAP = `(function(){try{var m=document.cookie.match(/(?:^|;\\s*)evora-theme=([^;]*)/);var c=m?decodeURIComponent(m[1]):null;var t=(c==="dark"||c==="light")?c:null;if(!t){t=localStorage.getItem("theme");}if(t!=="dark"&&t!=="light"){t="light";}localStorage.setItem("theme",t);document.documentElement.classList.toggle("dark",t==="dark");var parts=["evora-theme="+encodeURIComponent(t),"Path=/","Max-Age=31536000","SameSite=Lax"];if(location.protocol==="https:")parts.push("Secure");document.cookie=parts.join("; ");}catch(e){}})();`;
 
 export async function generateMetadata(): Promise<Metadata> {
   const brand = await getPlatformBrand();
@@ -65,20 +65,25 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [locale, brand] = await Promise.all([getLocale(), getPlatformBrand()]);
+  const [locale, brand, cookieStore] = await Promise.all([
+    getLocale(),
+    getPlatformBrand(),
+    cookies(),
+  ]);
+  const initialTheme =
+    parseAppTheme(cookieStore.get(THEME_COOKIE_NAME)?.value) ?? "light";
 
   return (
-    <html lang={locale} suppressHydrationWarning className={outfit.variable}>
+    <html
+      lang={locale}
+      suppressHydrationWarning
+      className={`${outfit.variable}${initialTheme === "dark" ? " dark" : ""}`}
+    >
       <body suppressHydrationWarning className="font-sans">
-        {/* Theme antes del paint; sin <head> manual (App Router lo gestiona). */}
-        <script
-          id="evora-theme-bootstrap"
-          dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }}
-        />
         <AccentColorInitializer platformDefault={brand.defaultAccentColor} />
         <PlatformBrandProvider brand={brand}>
           <LocaleProvider initialLocale={locale}>
-            <AppThemeProvider>
+            <AppThemeProvider initialTheme={initialTheme}>
               <LenisProvider>
                 <AOSProvider>
                   <PlatformAnnouncementBannerHost />
