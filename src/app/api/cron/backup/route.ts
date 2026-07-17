@@ -1,34 +1,26 @@
 import { NextResponse } from "next/server";
 import { env } from "@/env";
 import { verifyCronAuth } from "@/lib/cron/verify-cron-auth";
-import { exportFullDatabaseData, summarizeExport } from "@/lib/db/export-full-database";
+import { logger } from "@/lib/observability/structured-logger";
+import { randomUUID } from "node:crypto";
 
 export async function GET(req: Request) {
+  const requestId = req.headers.get("x-request-id") ?? randomUUID();
   const authFailure = verifyCronAuth(req, env.CRON_SECRET);
   if (authFailure) return authFailure.response;
 
-  try {
-    const exportData = await exportFullDatabaseData();
-    const summary = summarizeExport(exportData);
-
-    console.info("[cron/backup]", {
-      timestamp: exportData.timestamp,
-      version: exportData.version,
-      ...summary,
-    });
-
-    return NextResponse.json({
-      success: true,
-      timestamp: exportData.timestamp,
-      version: exportData.version,
-      ...summary,
-      note: "Usa backups del proveedor (Neon/Supabase) como respaldo principal. Ejecuta pnpm run db:backup para export JSON completo.",
-    });
-  } catch (error) {
-    console.error("[cron/backup]", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Error al verificar backup" },
-      { status: 500 },
-    );
-  }
+  logger.warn("cron.backup.not_configured", { requestId });
+  return NextResponse.json(
+    {
+      success: false,
+      backupCreated: false,
+      mode: "diagnostic",
+      requestId,
+      error:
+        "No hay un destino de backup persistente configurado. Este endpoint no exporta ni carga datos o secretos en memoria.",
+      action:
+        "Configura backups administrados en el proveedor de PostgreSQL o ejecuta pnpm run db:backup en un host con almacenamiento persistente.",
+    },
+    { status: 501 },
+  );
 }

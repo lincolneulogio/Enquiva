@@ -1,5 +1,6 @@
-import { pgTable, text, timestamp, boolean, pgEnum, uuid, uniqueIndex, index, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, pgEnum, uuid, uniqueIndex, index, integer, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+import { organizations } from "./organizations";
 
 export const roleEnum = pgEnum("role", [
   "super_admin",
@@ -18,7 +19,10 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
   role: roleEnum("role").notNull().default("member"),
-  organizationId: uuid("organization_id"),
+  organizationId: uuid("organization_id").references(
+    (): AnyPgColumn => organizations.id,
+    { onDelete: "set null" },
+  ),
   bio: text("bio"),
   isActive: boolean("is_active").notNull().default(true),
   twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),

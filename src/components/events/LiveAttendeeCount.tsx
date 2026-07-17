@@ -20,7 +20,7 @@ export function LiveAttendeeCount({
 
   useEffect(() => {
     const pusher = getPusherClient();
-    const channel = pusher.subscribe(PUSHER_CHANNELS.event(eventId));
+    const channel = pusher.subscribe(PUSHER_CHANNELS.publicEventCount(eventId));
 
     channel.bind(
       PUSHER_EVENTS.attendeeCountUpdated,
@@ -31,7 +31,7 @@ export function LiveAttendeeCount({
 
     return () => {
       channel.unbind_all();
-      pusher.unsubscribe(PUSHER_CHANNELS.event(eventId));
+      pusher.unsubscribe(PUSHER_CHANNELS.publicEventCount(eventId));
     };
   }, [eventId]);
 

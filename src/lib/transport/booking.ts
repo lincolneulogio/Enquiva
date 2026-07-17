@@ -1,7 +1,13 @@
 import { eq, and, sql } from "drizzle-orm";
 import type { DBClient } from "@/lib/db";
-import { transportRoutes, transportBookings, transportStops } from "@/lib/db/schema";
+import {
+  transportRoutes,
+  transportBookings,
+  transportStops,
+  registrations,
+} from "@/lib/db/schema";
 import { RegistrationErrorCode, registrationError } from "@/lib/errors/registration";
+import { routeMatchesRegistration } from "@/lib/transport/integrity";
 
 export type LockedRouteCapacity = {
   route: typeof transportRoutes.$inferSelect;
@@ -106,6 +112,28 @@ export async function assertNoExistingBooking(
   }
 }
 
+/** Impide asociar una inscripción a una ruta de otro evento o de otro usuario. */
+export async function assertRouteMatchesRegistration(
+  tx: DBClient,
+  routeEventId: string,
+  registrationId: string,
+  userId: string,
+  options?: { useRegistrationErrors?: boolean },
+) {
+  const [registration] = await tx
+    .select({ eventId: registrations.eventId, userId: registrations.userId })
+    .from(registrations)
+    .where(eq(registrations.id, registrationId))
+    .limit(1);
+
+  if (!routeMatchesRegistration(routeEventId, registration, userId)) {
+    if (options?.useRegistrationErrors) {
+      throw registrationError(RegistrationErrorCode.TRANSPORT_ROUTE_UNAVAILABLE);
+    }
+    throw new Error("La ruta no pertenece al evento de esta inscripción");
+  }
+}
+
 export type CreateTransportBookingParams = {
   routeId: string;
   registrationId: string;
@@ -126,6 +154,13 @@ export async function createTransportBookingInTx(
   const capacity = await lockRouteCapacity(tx, params.routeId, {
     useRegistrationErrors: params.useRegistrationErrors,
   });
+  await assertRouteMatchesRegistration(
+    tx,
+    capacity.route.eventId,
+    params.registrationId,
+    params.userId,
+    { useRegistrationErrors: params.useRegistrationErrors },
+  );
   assertSeatsAvailable(capacity, params.seats, {
     useRegistrationErrors: params.useRegistrationErrors,
     routeName: capacity.route.name,

@@ -28,11 +28,38 @@ jobs:
       - name: Typecheck
         run: pnpm run typecheck
 
+      - name: Lint
+        run: pnpm run lint
+
       - name: Unit tests
         run: pnpm run test
 
-      - name: Lint
-        run: pnpm run lint
+      - name: Check Drizzle migrations
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+        run: pnpm run db:check
+
+      - name: Build
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+          BETTER_AUTH_SECRET: ci-better-auth-secret-at-least-32-chars
+          TICKET_SIGNING_KEY: ci-ticket-signing-key-at-least-32-chars
+          SMTP_HOST: localhost
+          SMTP_PORT: "2525"
+          SMTP_USER: ci
+          SMTP_PASS: ci
+          MAIL_FROM_EMAIL: ci@example.com
+          MAIL_FROM_NAME: CI
+          PUSHER_APP_ID: ci
+          PUSHER_SECRET: ci
+          UPLOADTHING_SECRET: sk_ci
+          UPSTASH_REDIS_REST_URL: https://ci.example.com
+          UPSTASH_REDIS_REST_TOKEN: ci
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          NEXT_PUBLIC_PUSHER_KEY: ci
+          NEXT_PUBLIC_PUSHER_CLUSTER: us2
+          NEXT_PUBLIC_UPLOADTHING_APP_ID: ci
+        run: pnpm run build
 
   e2e:
     runs-on: ubuntu-latest

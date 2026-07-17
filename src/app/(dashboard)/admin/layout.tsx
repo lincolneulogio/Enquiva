@@ -1,5 +1,3 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { DashboardSidebar, DashboardTopbar } from "@/components/dashboard";
 import { normalizeRole } from "@/lib/auth/rbac";
@@ -14,6 +12,7 @@ import { DashboardAICopilot } from "@/components/dashboard/IACopilot/DashboardAI
 import { PlatformPlansPendingBanner } from "@/components/dashboard/billing/PlatformPlansPendingBanner";
 import { getOrganizerPlanSummary } from "@/lib/billing/enforce";
 import { redirectIfAccountDisabled } from "@/lib/auth/redirect-if-disabled";
+import { getRequestPathname, getRequestSession } from "@/lib/request-context";
 
 export default async function AdminLayout({
   children,
@@ -22,7 +21,7 @@ export default async function AdminLayout({
 }) {
   let session;
   try {
-    session = await auth.api.getSession({ headers: await headers() });
+    session = await getRequestSession();
   } catch {
     redirect("/login");
   }
@@ -31,8 +30,7 @@ export default async function AdminLayout({
   await redirectIfAccountDisabled(session.user);
 
   const role = normalizeRole(session.user.role);
-  const requestHeaders = await headers();
-  const pathname = requestHeaders.get("x-pathname") ?? "";
+  const pathname = await getRequestPathname();
 
   if (role === "super_admin") {
     redirect(mapAdminPathToSuperadmin(pathname));

@@ -141,6 +141,27 @@
       "when": 1775300000000,
       "tag": "0019_scanner_branding_invoices_2fa",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1784241900000,
+      "tag": "0020_scope_uniqueness_and_missing_fks",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1784242800000,
+      "tag": "0021_durable_broadcast_jobs",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1784243700000,
+      "tag": "0022_financial_claim_idempotency",
+      "breakpoints": true
     }
   ]
 }

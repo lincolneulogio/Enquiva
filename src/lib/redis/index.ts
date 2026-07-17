@@ -36,6 +36,14 @@ export const authIdentityRatelimit = new Ratelimit({
   prefix: "ratelimit:auth_identity",
 });
 
+/** Confirmación OTP: limita fuerza bruta por IP y por identidad. */
+export const otpVerificationRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(8, "15 m"),
+  analytics: true,
+  prefix: "ratelimit:otp_verification",
+});
+
 /** Verificación de contraseña en acciones destructivas (por userId). */
 export const passwordVerifyRatelimit = new Ratelimit({
   redis,

@@ -10,6 +10,7 @@ import { getCulqiCredentialsForEvent } from "@/lib/culqi/capabilities";
 import { requirePlanFeature, getOrganizerPlanForEvent } from "@/lib/billing/enforce";
 import { CulqiEventPaymentService } from "@/lib/culqi/event-payment.service";
 import { logCulqiFailure } from "@/lib/culqi/observability";
+import { assertPaymentCanBeApproved } from "@/lib/payments/payment-integrity";
 
 export async function POST(req: Request) {
   try {
@@ -61,6 +62,7 @@ export async function POST(req: Request) {
     if (!event) {
       return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
     }
+    assertPaymentCanBeApproved(payment, registration, event);
 
     const organizerPlan = await getOrganizerPlanForEvent(event.id);
     if (organizerPlan) {
@@ -72,6 +74,17 @@ export async function POST(req: Request) {
 
     const dbProfile = await getUserCulqiProfile(user.id);
     const customer = mergeSessionCulqiProfile(user, dbProfile);
+    const claimed = await CulqiEventPaymentService.claimGatewayOperation(
+      payment.id,
+      user.id,
+      "order",
+    );
+    if (!claimed) {
+      return NextResponse.json(
+        { error: "Ya hay una operación Culqi en proceso para este pago" },
+        { status: 409 },
+      );
+    }
 
     const order = await createCulqiOrder(
       {

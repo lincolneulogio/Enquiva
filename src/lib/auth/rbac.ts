@@ -28,10 +28,6 @@ export const PERMISSIONS = [
     "plans:manage",
     "settings:manage",
     "platform:billing:view",
-    "docs:view:admin",
-    "docs:view:organizer",
-    "docs:view:member",
-    "docs:view:dev",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -47,8 +43,7 @@ export type PermissionGroupId =
     | "content"
     | "analytics"
     | "data"
-    | "platform"
-    | "docs";
+    | "platform";
 
 export const PERMISSION_GROUPS: ReadonlyArray<{
     id: PermissionGroupId;
@@ -109,15 +104,6 @@ export const PERMISSION_GROUPS: ReadonlyArray<{
         id: "platform",
         permissions: ["plans:manage", "settings:manage", "platform:billing:view"],
     },
-    {
-        id: "docs",
-        permissions: [
-            "docs:view:admin",
-            "docs:view:organizer",
-            "docs:view:member",
-            "docs:view:dev",
-        ],
-    },
 ] as const;
 
 /** Devuelve la categoría a la que pertenece un permiso (o `null` si no está agrupado). */
@@ -156,10 +142,6 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
     "settings:manage": "Manage system settings",
     "platform:billing:view": "View platform billing",
     "permissions:view": "View permissions",
-    "docs:view:admin": "Ver Docs: Administrador",
-    "docs:view:organizer": "Ver Docs: Organizador",
-    "docs:view:member": "Ver Docs: Miembro",
-    "docs:view:dev": "Ver Docs: Desarrollador",
 };
 
 export const ROLE_LABELS: Record<AppRole, string> = {
@@ -209,7 +191,6 @@ export const PERMISSIONS_BY_ROLE: Record<AppRole, Permission[]> = {
         "analytics:view:any",
         "data:export",
         "permissions:view",
-        "docs:view:admin",
     ],
     organizer: [
         "events:create",
@@ -223,15 +204,11 @@ export const PERMISSIONS_BY_ROLE: Record<AppRole, Permission[]> = {
         "transport:manage:own",
         "analytics:view:own",
         "data:export",
-        "docs:view:organizer",
     ],
-    member: [
-        "docs:view:member",
-    ],
+    member: [],
     scanner: [
         "attendees:checkin",
         "registrations:view:own",
-        "docs:view:member",
     ],
 };
 
@@ -246,54 +223,6 @@ export function normalizeRole(role: string | null | undefined): AppRole {
         return role;
     }
     return "member";
-}
-
-/** Permisos de docs estrictos por rol (portal /docs). Solo super_admin ve todas las guías + dev. */
-export const DOCS_VIEW_PERMISSIONS = [
-    "docs:view:admin",
-    "docs:view:organizer",
-    "docs:view:member",
-    "docs:view:dev",
-] as const satisfies readonly Permission[];
-
-export function getDocsViewPermissionsForRole(
-    roleInput: string | null | undefined,
-): Permission[] {
-    const role = normalizeRole(roleInput);
-    if (role === "super_admin") {
-        return [...DOCS_VIEW_PERMISSIONS];
-    }
-    return PERMISSIONS_BY_ROLE[role].filter((permission) =>
-        DOCS_VIEW_PERMISSIONS.includes(permission as (typeof DOCS_VIEW_PERMISSIONS)[number]),
-    );
-}
-
-/** Un rol no-super_admin solo puede tener su propia guía docs (y nunca :dev). */
-export function isDocsViewAssignableToRole(
-    roleInput: string | null | undefined,
-    permission: Permission,
-): boolean {
-    if (!DOCS_VIEW_PERMISSIONS.includes(permission as (typeof DOCS_VIEW_PERMISSIONS)[number])) {
-        return true;
-    }
-    return getDocsViewPermissionsForRole(roleInput).includes(permission);
-}
-
-/**
- * Alinea la matriz efectiva con el tope por rol en docs:view:*.
- * Evita que overrides viejos en BD den a Admin las guías de Miembro/Organizador/Dev.
- */
-export function applyDocsViewRoleCaps(matrix: PermissionMatrix): PermissionMatrix {
-    for (const role of ROLE_ORDER) {
-        if (role === "super_admin") continue;
-        const allowed = new Set(getDocsViewPermissionsForRole(role));
-        for (const permission of DOCS_VIEW_PERMISSIONS) {
-            if (!allowed.has(permission)) {
-                matrix[role][permission] = false;
-            }
-        }
-    }
-    return matrix;
 }
 
 /**

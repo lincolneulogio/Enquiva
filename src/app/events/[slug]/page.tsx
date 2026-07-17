@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { getCategories } from "@/actions/events";
 import { EventService } from "@/services/events/event.service";
 import { getRegistrationForEvent } from "@/actions/registrations";
@@ -14,7 +12,7 @@ import { EventCoverFrame } from "@/components/events/EventCoverFrame";
 import { categoryColor, categoryLabel, cn, formatEventDate } from "@/lib/utils";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
-import { incrementEventViewCount } from "@/lib/analytics/event-views";
+import { recordEventView } from "@/lib/analytics/event-views";
 import { getEventCapacitySnapshot } from "@/lib/events/capacity-snapshot";
 import { getOrgPublicBrand } from "@/lib/brand/org-brand";
 import { buildWhatsAppChatUrl } from "@/lib/share/whatsapp";
@@ -40,6 +38,7 @@ import {
   CheckCircle2,
   Info,
 } from "lucide-react";
+import { getRequestSession } from "@/lib/request-context";
 
 export async function generateMetadata({
   params,
@@ -124,7 +123,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
   }
 
   if (event.status === "published") {
-    await incrementEventViewCount(event.id);
+    recordEventView(event.id);
   }
 
   // Fetch active transport routes if transport is enabled
@@ -234,8 +233,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
     (category) => category.slug === event.category,
   );
 
-  const sessionHeaders = await headers();
-  const session = await auth.api.getSession({ headers: sessionHeaders });
+  const session = await getRequestSession();
 
   let registrationData = null;
   try {

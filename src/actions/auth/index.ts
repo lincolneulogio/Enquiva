@@ -10,7 +10,11 @@ import { users, verifications } from "@/lib/db/schema";
 import { sendPasswordChangedEmail, sendVerificationCodeEmail, sendWelcomeEmail } from "@/lib/mail";
 import { getLocale } from "@/lib/i18n/server";
 import type { Locale } from "@/lib/i18n/core";
-import { authIdentityRatelimit, enforceRateLimit } from "@/lib/redis";
+import {
+    authIdentityRatelimit,
+    enforceRateLimit,
+    otpVerificationRatelimit,
+} from "@/lib/redis";
 
 const authIdentitySchema = z.object({
     email: z.string().trim().toLowerCase().email(),
@@ -27,6 +31,7 @@ import {
     getSuperAdminRegisterGate,
     validateBootstrapSecret,
 } from "@/lib/auth/platform-bootstrap";
+import { canUsePlatformOwnerSignupIntent } from "@/lib/auth/signup-intent-policy";
 
 const signupIntentPayloadSchema = z.discriminatedUnion("type", [
     z.object({ type: z.literal("member") }),
@@ -49,6 +54,23 @@ async function assertPublicAuthRateLimit(bucket: string) {
         failClosed: false,
     });
     if (!rate.ok) {
+        throw new Error("Demasiados intentos. Espera un momento e inténtalo de nuevo.");
+    }
+}
+
+async function assertVerificationCodeRateLimit(email: string) {
+    const headersList = await headers();
+    const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "anonymous";
+    const keys = [`confirm-otp:ip:${ip}`, `confirm-otp:email:${email.toLowerCase()}`];
+
+    const results = await Promise.all(
+        keys.map((key) =>
+            enforceRateLimit(otpVerificationRatelimit, key, {
+                failClosed: true,
+            }),
+        ),
+    );
+    if (results.some((result) => !result.ok)) {
         throw new Error("Demasiados intentos. Espera un momento e inténtalo de nuevo.");
     }
 }
@@ -276,7 +298,7 @@ export async function sendVerificationCode(input: {
     const validated = authIdentitySchema.parse(input);
 
     const [user] = await db
-        .select({ name: users.name, emailVerified: users.emailVerified })
+        .select({ name: users.name, emailVerified: users.emailVerified, role: users.role })
         .from(users)
         .where(eq(users.email, validated.email))
         .limit(1);
@@ -291,7 +313,23 @@ export async function sendVerificationCode(input: {
 
     if (input.signupPayload) {
         const payload = signupIntentPayloadSchema.parse(input.signupPayload);
-        if (payload.type === "organizer" && payload.inviteCode) {
+        if (payload.type === "platform_owner") {
+            const preparedIntent = await peekSignupIntent(validated.email);
+            if (
+                !canUsePlatformOwnerSignupIntent({
+                    preparedIntentType: preparedIntent.type,
+                    existingUserRole: user.role,
+                })
+            ) {
+                throw new Error("PLATFORM_OWNER_SIGNUP_NOT_PREPARED");
+            }
+            // La intención privilegiada solo puede crearla preparePlatformOwnerSignup.
+            // Una cuenta que ya es super_admin puede regenerarla solo para completar
+            // su verificación; esto no eleva privilegios.
+            if (preparedIntent.type !== "platform_owner") {
+                await storeSignupIntent(validated.email, { type: "platform_owner" });
+            }
+        } else if (payload.type === "organizer" && payload.inviteCode) {
             try {
                 await OrganizationService.validateOrganizerInviteForSignup(
                     payload.inviteCode.trim().toUpperCase(),
@@ -299,8 +337,10 @@ export async function sendVerificationCode(input: {
             } catch {
                 throw new Error("INVITE_CODE_INVALID");
             }
+            await storeSignupIntent(validated.email, payload);
+        } else {
+            await storeSignupIntent(validated.email, payload);
         }
-        await storeSignupIntent(validated.email, payload);
     } else {
         const [existingIntent] = await db
             .select({ value: verifications.value })
@@ -322,6 +362,7 @@ export async function validateOrganizerInviteAtSignup(inviteCode: string) {
 
 export async function confirmVerificationCode(input: { email: string; code: string }) {
     const validated = verificationCodeSchema.parse(input);
+    await assertVerificationCodeRateLimit(validated.email);
     const identifier = verificationIdentifier(validated.email);
     const normalizedCode = validated.code.trim();
     const locale = await getLocale();

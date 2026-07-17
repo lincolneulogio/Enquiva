@@ -1714,7 +1714,9 @@ export function SettingsTabs({
 
                                 {smtpInfo && (
                                     <div className="rounded-xl border border-border bg-slate-950 p-4 font-mono text-[11px] leading-relaxed text-slate-300">
-                                        <p className="font-bold text-slate-400 mb-2">// SMTP DIAGNOSTICS REPORT</p>
+                                        <p className="font-bold text-slate-400 mb-2">
+                                            {"// SMTP DIAGNOSTICS REPORT"}
+                                        </p>
                                         {smtpInfo.error ? (
                                             <p className="text-rose-400">Error: {smtpInfo.error}</p>
                                         ) : (

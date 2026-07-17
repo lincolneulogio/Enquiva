@@ -38,7 +38,7 @@ export function validateProductionMailConfig(
   if (process.env.NODE_ENV !== "production") return { ok: true };
 
   const warning =
-    "SMTP apunta a Mailtrap en producción. Configura Resend o SendGrid (ver docs/operaciones).";
+    "SMTP apunta a Mailtrap en producción. Configura un proveedor de correo transaccional.";
 
   if (!shouldEnforceProductionMail()) {
     return { ok: true, warning };

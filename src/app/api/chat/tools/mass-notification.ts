@@ -1,12 +1,7 @@
-import { db } from "@/lib/db";
-import { activityLogs } from "@/lib/db/schema";
 import { z } from "zod";
 import { canUseStaffChatTools, type ChatToolScope } from "./scope";
-import {
-  DEFAULT_MASS_CHANNELS,
-  deliverMassCommunication,
-} from "@/lib/notifications/mass-communication";
-import { runBackground } from "@/lib/background";
+import { DEFAULT_MASS_CHANNELS } from "@/lib/notifications/mass-communication";
+import { enqueueResolvedBroadcastJob } from "@/lib/notifications/broadcast-queue";
 import {
   consumeMassNotificationConfirmation,
   storeMassNotificationConfirmation,
@@ -142,66 +137,31 @@ export function createSendMassNotification(scope: ChatToolScope) {
           return { message: "No se encontraron destinatarios activos." };
         }
 
-        const payload = {
+        const queued = await enqueueResolvedBroadcastJob({
           eventId: confirmed.eventId,
-          eventTitle,
-          title: confirmed.title,
-          body: confirmed.body,
           senderId: scope.userId,
+          senderName: scope.userName,
+          subject: confirmed.title,
+          message: confirmed.body,
+          recipientStatus: `copilot:${confirmed.target}`,
+          locale: "es",
           channels: DEFAULT_MASS_CHANNELS,
-          metadata: {
-            routeId: confirmed.routeId || null,
-            sentBy: scope.userId,
-            targetGroup: confirmed.target,
-            confirmationId,
-          },
-          pushUrl: "/member/notifications",
-        };
+        }, recipients);
 
-        const deliverAndAudit = async () => {
-          const { successCount, failureCount } = await deliverMassCommunication(recipients, payload);
-          await db
-            .insert(activityLogs)
-            .values({
-              actorId: scope.userId,
-              actorName: scope.userName,
-              action: "send_mass_notification",
-              entityType: "notification",
-              entityId: confirmed.eventId,
-              details: `Notificación masiva (copilot) a ${successCount} destinatarios (${failureCount} fallos). Asunto: "${confirmed.title}".`,
-            })
-            .catch((e) => console.error("Audit log failed:", e));
-
-          await logChatToolUse(
-            { id: scope.userId, name: scope.userName },
-            "sendMassNotification",
-            `Enviado: "${confirmed.title}" → ${successCount}/${recipients.length} entregas en evento "${eventTitle}".`,
-            "event",
-            confirmed.eventId,
-          );
-
-          return { successCount, failureCount };
-        };
-
-        if (recipients.length > 15) {
-          runBackground(async () => {
-            await deliverAndAudit();
-          });
-          return {
-            success: true,
-            queued: true,
-            totalRecipients: recipients.length,
-            message: `Comunicado encolado para ${recipients.length} destinatarios (email, app, push y tiempo real).`,
-          };
-        }
-
-        const { successCount, failureCount } = await deliverAndAudit();
+        if (!queued.success) return { error: queued.error };
+        await logChatToolUse(
+          { id: scope.userId, name: scope.userName },
+          "sendMassNotification",
+          `Encolado durablemente: "${confirmed.title}" → ${recipients.length} destinatarios en evento "${eventTitle}". jobId=${queued.jobId}`,
+          "event",
+          confirmed.eventId,
+        );
         return {
           success: true,
+          queued: true,
+          jobId: queued.jobId,
           totalRecipients: recipients.length,
-          totalSent: successCount,
-          totalFailed: failureCount,
-          message: `Notificación enviada: ${successCount} entregas, ${failureCount} fallos.`,
+          message: `Comunicado encolado para ${recipients.length} destinatarios (email, app, push y tiempo real).`,
         };
       } catch (err) {
         console.error("Error in sendMassNotification:", err);

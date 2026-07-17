@@ -449,38 +449,44 @@ export function EventForm({
             <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-6 lg:col-span-2">
                     <div>
-                        <label className="mb-1.5 block text-sm font-medium text-foreground">
+                        <label htmlFor="event-title" className="mb-1.5 block text-sm font-medium text-foreground">
                             {t("events.form.eventTitle")}
                         </label>
                         <input
+                            id="event-title"
                             {...register("title")}
+                            aria-invalid={Boolean(errors.title)}
+                            aria-describedby={errors.title ? "event-title-error" : undefined}
                             placeholder={t("events.form.eventTitlePlaceholder")}
                             className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary ${getFieldHighlightClass("title")}`}
                         />
                         {errors.title && (
-                            <p className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.title.message)}</p>
+                            <p id="event-title-error" role="alert" className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.title.message)}</p>
                         )}
                     </div>
 
                     <div>
                         <div className="mb-1.5 flex items-center justify-between">
-                            <label className="text-sm font-medium text-foreground">{t("events.form.description")}</label>
+                            <label htmlFor="event-description" className="text-sm font-medium text-foreground">{t("events.form.description")}</label>
                         </div>
                         <textarea
+                            id="event-description"
                             {...register("description")}
+                            aria-invalid={Boolean(errors.description)}
+                            aria-describedby={errors.description ? "event-description-error" : undefined}
                             rows={6}
                             placeholder={t("events.form.descriptionPlaceholder")}
                             className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary resize-none ${getFieldHighlightClass("description")}`}
                         />
                         {errors.description && (
-                            <p className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.description.message)}</p>
+                            <p id="event-description-error" role="alert" className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.description.message)}</p>
                         )}
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div>
                             <div className="mb-1.5 flex items-center justify-between gap-2">
-                                <label className="block text-sm font-medium text-foreground">{t("events.form.category")}</label>
+                                <label htmlFor="event-category" className="block text-sm font-medium text-foreground">{t("events.form.category")}</label>
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -494,7 +500,10 @@ export function EventForm({
                                 </button>
                             </div>
                             <select
+                                id="event-category"
                                 {...register("category")}
+                                aria-invalid={Boolean(errors.category)}
+                                aria-describedby={errors.category ? "event-category-error" : undefined}
                                 className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("category")}`}
                             >
                                 <option value="">{t("events.form.selectCategory")}</option>
@@ -505,7 +514,7 @@ export function EventForm({
                                 ))}
                             </select>
                             {errors.category && (
-                                <p className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.category.message)}</p>
+                                <p id="event-category-error" role="alert" className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.category.message)}</p>
                             )}
                             <CreateCategoryModal
                                 open={createCategoryOpen}
@@ -534,25 +543,29 @@ export function EventForm({
                         </div>
 
                         <div>
-                            <label className="mb-1.5 block text-sm font-medium text-foreground">{t("events.form.dateTime")}</label>
+                            <label htmlFor="event-date" className="mb-1.5 block text-sm font-medium text-foreground">{t("events.form.dateTime")}</label>
                             <input
+                                id="event-date"
                                 type="datetime-local"
                                 {...register("date")}
+                                aria-invalid={Boolean(errors.date)}
+                                aria-describedby={errors.date ? "event-date-error" : undefined}
                                 className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("date")}`}
                             />
                             {errors.date && (
-                                <p className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.date.message)}</p>
+                                <p id="event-date-error" role="alert" className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.date.message)}</p>
                             )}
                         </div>
                     </div>
 
                     <div>
                         <div className="mb-2 flex items-center gap-3">
-                            <label className="text-sm font-medium text-foreground">
+                            <label htmlFor={isVirtual ? "event-virtual-link" : "event-location"} className="text-sm font-medium text-foreground">
                                 {isVirtual ? t("events.form.meetingLink") : t("events.form.venueAddress")}
                             </label>
                             <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
                                 <input
+                                    id="event-virtual-toggle"
                                     type="checkbox"
                                     {...register("isVirtual")}
                                     className="rounded border-border"
@@ -564,15 +577,18 @@ export function EventForm({
                         {isVirtual ? (
                             <div key="virtual-fields">
                                 <input
+                                    id="event-virtual-link"
                                     {...register("virtualLink")}
+                                    aria-invalid={Boolean(errors.virtualLink)}
+                                    aria-describedby={errors.virtualLink ? "event-virtual-link-error" : "event-virtual-link-help"}
                                     placeholder={t("events.form.meetingLinkPlaceholder")}
                                     className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("virtualLink")}`}
                                 />
-                                <p className="mt-1 text-xs text-muted-foreground">
+                                <p id="event-virtual-link-help" className="mt-1 text-xs text-muted-foreground">
                                     {t("events.form.meetingLinkHelp")}
                                 </p>
                                 {errors.virtualLink && (
-                                    <p className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.virtualLink.message)}</p>
+                                    <p id="event-virtual-link-error" role="alert" className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.virtualLink.message)}</p>
                                 )}
                                 {planMaxAttendees != null && (
                                     <p className="mt-2 text-xs text-muted-foreground">
@@ -585,13 +601,16 @@ export function EventForm({
                                 <div className="relative">
                                     <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                     <input
+                                        id="event-location"
                                         {...register("location")}
+                                        aria-invalid={Boolean(errors.location)}
+                                        aria-describedby={errors.location ? "event-location-error" : undefined}
                                         placeholder={t("events.form.venuePlaceholder")}
                                         className={`w-full rounded-xl border border-border bg-background pl-9 pr-4 py-2.5 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("location")}`}
                                     />
                                 </div>
                                 {errors.location && (
-                                    <p className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.location.message)}</p>
+                                    <p id="event-location-error" role="alert" className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.location.message)}</p>
                                 )}
                             </div>
                         )}
@@ -599,10 +618,11 @@ export function EventForm({
 
                     {!isVirtual && (
                         <div>
-                            <label className="mb-1.5 block text-sm font-medium text-foreground">
+                            <label htmlFor="event-capacity" className="mb-1.5 block text-sm font-medium text-foreground">
                                 {t("events.form.capacity")} <span className="font-normal text-muted-foreground">{t("events.form.optional")}</span>
                             </label>
                             <input
+                                id="event-capacity"
                                 type="number"
                                 {...capacityField}
                                 onChange={handleCapacityChange}
@@ -615,26 +635,29 @@ export function EventForm({
                                 min={1}
                                 max={planMaxAttendees ?? undefined}
                                 inputMode="numeric"
+                                aria-invalid={Boolean(errors.capacity)}
+                                aria-describedby={errors.capacity ? "event-capacity-help event-capacity-error" : "event-capacity-help"}
                                 className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("capacity")}`}
                             />
-                            <p className="mt-1 text-xs text-muted-foreground">
+                            <p id="event-capacity-help" className="mt-1 text-xs text-muted-foreground">
                                 {planMaxAttendees != null
                                     ? t("events.form.capacityHelpPlan", { max: planMaxAttendees })
                                     : t("events.form.capacityHelp")}
                             </p>
                             {errors.capacity && (
-                                <p className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.capacity.message)}</p>
+                                <p id="event-capacity-error" role="alert" className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.capacity.message)}</p>
                             )}
                         </div>
                     )}
 
                     <div>
-                        <label className="mb-1.5 block text-sm font-medium text-foreground">
+                        <label htmlFor="event-price" className="mb-1.5 block text-sm font-medium text-foreground">
                             {t("events.form.price")} <span className="font-normal text-muted-foreground">{t("events.form.optional")}</span>
                         </label>
                         <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">S/</span>
                             <input
+                                id="event-price"
                                 type="number"
                                 step="0.01"
                                 min="0"
@@ -858,15 +881,21 @@ export function EventForm({
                     </div>
 
                     <div>
-                        <label className="mb-1.5 block text-sm font-medium text-foreground">{t("events.form.status")}</label>
+                        <label htmlFor="event-status" className="mb-1.5 block text-sm font-medium text-foreground">{t("events.form.status")}</label>
                         <select
+                            id="event-status"
                             {...register("status")}
+                            aria-invalid={Boolean(errors.status)}
+                            aria-describedby={errors.status ? "event-status-error" : undefined}
                             className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("status")}`}
                         >
                             <option value="draft">{t("eventStatus.draft")}</option>
                             <option value="published">{t("eventStatus.published")}</option>
                             <option value="cancelled">{t("eventStatus.cancelled")}</option>
                         </select>
+                        {errors.status && (
+                            <p id="event-status-error" role="alert" className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.status.message)}</p>
+                        )}
                     </div>
 
                     {canFeature && (

@@ -1,5 +1,5 @@
-import { pgTable, text, timestamp, boolean, integer, numeric, pgEnum, uuid, index } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { pgTable, text, timestamp, boolean, integer, numeric, pgEnum, uuid, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
 import { users } from "./auth";
 import { organizations } from "./organizations";
 
@@ -17,7 +17,9 @@ export const events = pgTable(
     organizerId: text("organizer_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    organizationId: uuid("organization_id"),
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "set null",
+    }),
     title: text("title").notNull(),
     slug: text("slug").notNull().unique(),
     description: text("description").notNull(),
@@ -69,21 +71,33 @@ export const eventAttachments = pgTable("event_attachments", {
   uploadedAt: timestamp("uploaded_at").notNull().defaultNow(),
 });
 
-export const categories = pgTable("categories", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "cascade" }),
-  slug: text("slug").notNull(),
-  label: text("label").notNull(),
-  description: text("description"),
-  colorClass: text("color_class").notNull().default("bg-gray-100 text-gray-800"),
-  isActive: boolean("is_active").notNull().default(true),
-  sortOrder: integer("sort_order").notNull().default(0),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  createdBy: text("created_by").references(() => users.id),
-}, (t) => [
-  index("categories_organization_idx").on(t.organizationId),
-]);
+export const categories = pgTable(
+  "categories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "cascade",
+    }),
+    slug: text("slug").notNull(),
+    label: text("label").notNull(),
+    description: text("description"),
+    colorClass: text("color_class").notNull().default("bg-gray-100 text-gray-800"),
+    isActive: boolean("is_active").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    createdBy: text("created_by").references(() => users.id),
+  },
+  (t) => [
+    index("categories_organization_idx").on(t.organizationId),
+    uniqueIndex("categories_org_slug_unique_idx")
+      .on(t.organizationId, t.slug)
+      .where(sql`${t.organizationId} IS NOT NULL`),
+    uniqueIndex("categories_platform_slug_unique_idx")
+      .on(t.slug)
+      .where(sql`${t.organizationId} IS NULL`),
+  ],
+);
 
 export const eventsRelations = relations(events, ({ one, many }) => ({
   organizer: one(users, { fields: [events.organizerId], references: [users.id] }),

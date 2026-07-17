@@ -11,6 +11,7 @@ import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import Link from "next/link";
 import { Globe } from "lucide-react";
 import { BrandLogo } from "@/components/shared/BrandLogo";
+import { resolveAdminScopeForUser } from "@/lib/organizations/admin-scope";
 
 interface DashboardTopbarProps {
   user: {
@@ -23,10 +24,14 @@ interface DashboardTopbarProps {
 }
 
 export async function DashboardTopbar({ user }: DashboardTopbarProps) {
-  const [unreadCount, initialNotifications] = await Promise.all([
+  const [unreadCount, initialNotifications, adminScope] = await Promise.all([
     getUnreadNotificationsCount(),
     getNotifications(8),
+    user.id && user.role === "admin"
+      ? resolveAdminScopeForUser(user.id, user.role)
+      : Promise.resolve(null),
   ]);
+  const organizationId = adminScope?.mode === "org" ? adminScope.organizationId : null;
 
   return (
     <header
@@ -60,7 +65,11 @@ export async function DashboardTopbar({ user }: DashboardTopbarProps) {
         {/* Notificaciones */}
         {user.id && (
           <>
-            <RealtimeDashboardSync userId={user.id} role={user.role} />
+            <RealtimeDashboardSync
+              userId={user.id}
+              role={user.role}
+              organizationId={organizationId}
+            />
             <TopbarNotifications
             userId={user.id}
             role={user.role}

@@ -137,3 +137,50 @@ export async function settlePlatformCommissionForApprovedPayment(input: {
 
   return { fee, recorded: true };
 }
+
+/**
+ * Revierte una comisión una sola vez cuando el pago completo se reembolsa.
+ * Se serializa con el lock del pago que toma el conciliador de reembolsos.
+ */
+export async function reversePlatformCommissionForRefund(
+  paymentId: string,
+  tx: Tx,
+): Promise<{ amount: number; recorded: boolean }> {
+  const [commission] = await tx
+    .select({ amount: platformTransactions.amount, userId: platformTransactions.userId })
+    .from(platformTransactions)
+    .where(
+      and(
+        eq(platformTransactions.type, "commission"),
+        eq(platformTransactions.paymentId, paymentId),
+      ),
+    )
+    .limit(1);
+
+  if (!commission) return { amount: 0, recorded: false };
+
+  const [existingReversal] = await tx
+    .select({ id: platformTransactions.id })
+    .from(platformTransactions)
+    .where(
+      and(
+        eq(platformTransactions.type, "adjustment"),
+        eq(platformTransactions.paymentId, paymentId),
+        sql`${platformTransactions.metadata}->>'reason' = 'payment_refund'`,
+      ),
+    )
+    .limit(1);
+
+  const amount = -Math.abs(Number(commission.amount));
+  if (existingReversal || amount === 0) return { amount, recorded: false };
+
+  await SubscriptionService.recordPlatformTransactionTx(tx, {
+    type: "adjustment",
+    amount,
+    userId: commission.userId ?? undefined,
+    paymentId,
+    description: "Reversión de comisión por reembolso Culqi",
+    metadata: { reason: "payment_refund" },
+  });
+  return { amount, recorded: true };
+}

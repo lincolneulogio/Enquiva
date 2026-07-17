@@ -3,6 +3,7 @@ import { relations, sql } from "drizzle-orm";
 import { users } from "./auth";
 import { events } from "./events";
 import { registrations } from "./registrations";
+import { transportBookings } from "./transport";
 
 export const paymentStatusEnum = pgEnum("payment_status", [
   "pending",
@@ -26,7 +27,9 @@ export const payments = pgTable("payments", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull().default("0"),
-  transportBookingId: uuid("transport_booking_id"),
+  transportBookingId: uuid("transport_booking_id").references(() => transportBookings.id, {
+    onDelete: "set null",
+  }),
   currency: text("currency").notNull().default("PEN"),
   method: text("method").notNull().default("manual"),
   reference: text("reference"),
@@ -50,7 +53,10 @@ export const payments = pgTable("payments", {
   uniqueIndex("payments_gateway_charge_uidx")
     .on(t.gatewayChargeId)
     .where(sql`${t.gatewayChargeId} IS NOT NULL`),
-  index("payments_gateway_order_idx").on(t.gatewayOrderId),
+  uniqueIndex("payments_gateway_order_unique_idx")
+    .on(t.gatewayOrderId)
+    .where(sql`${t.gatewayOrderId} IS NOT NULL`),
+  index("payments_transport_booking_idx").on(t.transportBookingId),
 ]);
 
 export const paymentMethods = pgTable("payment_methods", {

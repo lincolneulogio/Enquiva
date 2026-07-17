@@ -12,7 +12,6 @@ import {
     PERMISSIONS,
     ROLE_LABELS,
     getDefaultPermissionMatrix,
-    isDocsViewAssignableToRole,
     normalizeRole,
     type AppRole,
     type Permission,
@@ -27,6 +26,11 @@ import {
 } from "@/lib/auth/guards";
 import { assertPermission } from "@/lib/auth/permission-guards";
 import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
+import {
+    andWithScope,
+    resolveAdminScopeForUser,
+    scopeUserCondition,
+} from "@/lib/organizations/admin-scope";
 
 export { requireSuperAdmin, requireAdminOrSuper };
 
@@ -34,6 +38,7 @@ export { requireSuperAdmin, requireAdminOrSuper };
 export async function setUserActive(userId: string, isActive: boolean) {
     const currentUser = await requireAdminOrSuper();
     await assertPermission(currentUser, "users:manage");
+    const scope = await resolveAdminScopeForUser(currentUser.id, currentUser.role);
 
     if (currentUser.id === userId && !isActive) {
         throw new Error("No puedes suspender tu propia cuenta");
@@ -42,7 +47,7 @@ export async function setUserActive(userId: string, isActive: boolean) {
     const [target] = await db
         .select({ id: users.id, role: users.role, name: users.name, email: users.email, isActive: users.isActive })
         .from(users)
-        .where(eq(users.id, userId))
+        .where(andWithScope([eq(users.id, userId)], scopeUserCondition(scope)))
         .limit(1);
 
     if (!target) throw new Error("User not found");
@@ -266,12 +271,6 @@ async function persistRolePermissionChange(
         throw new Error("Super Admin permissions are fixed and cannot be changed");
     }
 
-    if (input.allowed && !isDocsViewAssignableToRole(input.role, input.permission)) {
-        throw new Error(
-            "Esta guía de documentación no corresponde a este rol. Solo Super Admin ve todas las guías.",
-        );
-    }
-
     const defaults = getDefaultPermissionMatrix();
     const defaultAllowed = defaults[input.role][input.permission];
 
@@ -331,7 +330,6 @@ function revalidatePermissionSurfaces() {
     revalidatePath("/admin", "layout");
     revalidatePath("/superadmin", "layout");
     revalidatePath("/organizer", "layout");
-    revalidatePath("/api/docs/auth");
 }
 
 /** Elimina todos los overrides de un rol, restaurando sus permisos por defecto. */

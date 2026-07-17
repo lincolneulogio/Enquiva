@@ -1,5 +1,3 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { DashboardSidebar, DashboardTopbar } from "@/components/dashboard";
 import { getOrganizerPlanSummary, planIncludesBroadcasts, planIncludesFeature } from "@/lib/billing/enforce";
@@ -12,6 +10,7 @@ import { SessionKeepAlive } from "@/components/auth/SessionKeepAlive";
 import { DashboardAICopilot } from "@/components/dashboard/IACopilot/DashboardAICopilot";
 import { OrganizationService } from "@/lib/organizations/organization.service";
 import { redirectIfAccountDisabled } from "@/lib/auth/redirect-if-disabled";
+import { getRequestPathname, getRequestSession } from "@/lib/request-context";
 
 const BILLING_PATH = "/organizer/billing";
 
@@ -22,7 +21,7 @@ export default async function OrganizerLayout({
 }) {
   let session;
   try {
-    session = await auth.api.getSession({ headers: await headers() });
+    session = await getRequestSession();
   } catch {
     redirect("/login");
   }
@@ -35,7 +34,7 @@ export default async function OrganizerLayout({
     else redirect("/member");
   }
 
-  const pathname = (await headers()).get("x-pathname") ?? "";
+  const pathname = await getRequestPathname();
 
   // Solicitud con código de entidad: bloquear el panel hasta que el admin apruebe.
   // No depender de redirects/x-pathname (evita skeleton infinito).

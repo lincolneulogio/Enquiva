@@ -23,7 +23,6 @@ function getTrustedOrigins(): string[] {
     new Set(
       [
         env.NEXT_PUBLIC_APP_URL,
-        env.NEXT_PUBLIC_DOCS_URL,
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:3001",

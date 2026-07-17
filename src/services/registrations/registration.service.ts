@@ -70,6 +70,7 @@ export class RegistrationService {
         .select()
         .from(events)
         .where(and(eq(events.id, eventId), eq(events.status, "published")))
+        .for("update")
         .limit(1);
 
       if (!event) throw registrationError(RegistrationErrorCode.UNAVAILABLE);
@@ -445,14 +446,9 @@ export class RegistrationService {
         // Notificar en tiempo real cambio en la cantidad de asistentes
         try {
           await pusherServer.trigger(
-            PUSHER_CHANNELS.event(eventId),
+            PUSHER_CHANNELS.publicEventCount(eventId),
             PUSHER_EVENTS.attendeeCountUpdated,
             { eventId, count: newCount }
-          );
-          await pusherServer.trigger(
-            PUSHER_CHANNELS.adminDashboard,
-            PUSHER_EVENTS.newRegistration,
-            { eventId, count: newCount },
           );
           await broadcastTableRefresh({
             resource: ["registrations", "attendees", "payments", "events"],
@@ -542,7 +538,7 @@ export class RegistrationService {
 
         try {
           await pusherServer.trigger(
-            PUSHER_CHANNELS.event(reg.eventId),
+            PUSHER_CHANNELS.publicEventCount(reg.eventId),
             PUSHER_EVENTS.attendeeCountUpdated,
             { eventId: reg.eventId, count: newCount },
           );
@@ -638,6 +634,7 @@ export class RegistrationService {
         .select()
         .from(events)
         .where(and(eq(events.id, eventId), eq(events.status, "published")))
+        .for("update")
         .limit(1);
 
       if (!event) throw registrationError(RegistrationErrorCode.EVENT_NOT_PUBLISHED);
@@ -651,6 +648,33 @@ export class RegistrationService {
         organizerUserId,
         organizerRole,
       );
+
+      await assertCanRegisterAttendee(event.organizerId, eventId, "organizer");
+
+      const { getOrganizerPlanForEvent, getEffectiveEventCapacity } = await import(
+        "@/lib/billing/enforce"
+      );
+      const plan = await getOrganizerPlanForEvent(eventId);
+      const effectiveCapacity = getEffectiveEventCapacity(event.capacity, plan);
+      const now = new Date();
+
+      if (new Date(event.date).getTime() <= now.getTime()) {
+        throw registrationError(RegistrationErrorCode.CLOSED_EVENT_EXPIRED);
+      }
+      if (isPastSalesCutoff(event, now)) {
+        throw registrationError(RegistrationErrorCode.SALES_CUTOFF);
+      }
+
+      if (effectiveCapacity != null) {
+        const [{ count: currentCount }] = await tx
+          .select({ count: count() })
+          .from(registrations)
+          .where(occupyingCapacityCondition(eventId, now));
+
+        if (currentCount >= effectiveCapacity) {
+          throw registrationError(RegistrationErrorCode.CLOSED_EVENT_FULL);
+        }
+      }
 
       // 2. Crear usuario "fantasma/invitado" para el asistente offline
       const offlineUserId = `offline_${crypto.randomUUID()}`;

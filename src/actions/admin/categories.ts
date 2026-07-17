@@ -20,6 +20,9 @@ async function assertCategoryAccess(categoryId: string, userId: string, role: st
   const [cat] = await db.select().from(categories).where(eq(categories.id, categoryId)).limit(1);
   if (!cat) throw new Error("Category not found");
 
+  if (scope.mode === "unassigned") {
+    throw new Error("Debes pertenecer a una entidad para gestionar categorías");
+  }
   if (scope.mode === "org" && cat.organizationId !== scope.organizationId) {
     throw new Error("No autorizado para editar esta categoría");
   }
@@ -48,6 +51,9 @@ export async function createCategory(input: {
     const user = await requireAdminOrSuper();
     await assertPermission(user, "categories:manage");
     const scope = await resolveAdminScopeForUser(user.id, user.role);
+    if (scope.mode === "unassigned") {
+      throw new Error("Debes pertenecer a una entidad para crear categorías");
+    }
     const slug = normalizeCategorySlug(input.slug);
     if (!slug) throw new Error("El slug es obligatorio y solo puede usar letras minúsculas, números y guiones bajos");
     if (!/^[a-z0-9_]+$/.test(slug)) {
@@ -152,6 +158,9 @@ export async function reorderCategories(orderedIds: string[]) {
     const user = await requireAdminOrSuper();
     await assertPermission(user, "categories:manage");
     const scope = await resolveAdminScopeForUser(user.id, user.role);
+    if (scope.mode === "unassigned") {
+      throw new Error("Debes pertenecer a una entidad para reordenar categorías");
+    }
 
     if (!orderedIds.length) {
         return { success: true };

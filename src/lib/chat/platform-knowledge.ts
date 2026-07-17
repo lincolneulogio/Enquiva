@@ -20,9 +20,9 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     id: 1,
     name: "Público y marketing",
     summary:
-      "Landing, catálogo de eventos, detalle por slug, checkout de pago y área de asistente para staff que actúa como participante. También el portal de documentación.",
+      "Landing, catálogo de eventos, detalle por slug, checkout de pago y área de asistente para staff que actúa como participante.",
     details:
-      "Rutas: / , /events , /events/[slug] , /checkout/[registrationId] , /attendee/tickets , /attendee/payments , /docs.",
+      "Rutas: / , /events , /events/[slug] , /checkout/[registrationId] , /attendee/tickets y /attendee/payments.",
     synonyms: [
       "landing",
       "home",
@@ -32,8 +32,6 @@ export const PLATFORM_MODULES: PlatformModule[] = [
       "publico",
       "público",
       "marketing",
-      "docs",
-      "documentacion",
       "checkout",
       "pagina publica",
       "slug",

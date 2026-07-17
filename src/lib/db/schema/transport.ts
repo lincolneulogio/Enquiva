@@ -47,13 +47,16 @@ export const transportBookings = pgTable(
     seats: integer("seats").notNull().default(1),
     status: transportBookingStatusEnum("status").notNull().default("pending"),
     notes: text("notes"),
-    stopId: uuid("stop_id"),
+    stopId: uuid("stop_id").references(() => transportStops.id, {
+      onDelete: "set null",
+    }),
     bookedAt: timestamp("booked_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (t) => [
     index("transport_bookings_route_idx").on(t.routeId),
     index("transport_bookings_registration_idx").on(t.registrationId),
+    index("transport_bookings_stop_idx").on(t.stopId),
   ]
 );
 

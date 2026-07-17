@@ -8,7 +8,6 @@ import {
   ROLE_ORDER,
   ROLE_BADGE_STYLES,
   PERMISSION_GROUPS,
-  isDocsViewAssignableToRole,
   type AppRole,
   type Permission,
   type PermissionMatrix,
@@ -112,7 +111,6 @@ export function PermissionsMatrixEditor({
 
   const onToggle = (role: AppRole, permission: Permission, next: boolean) => {
     if (role === "super_admin") return;
-    if (!isDocsViewAssignableToRole(role, permission) && next) return;
 
     setDraft((prev) => ({
       ...prev,
@@ -346,9 +344,7 @@ function PermissionGroupRows({
             </td>
             {ROLE_ORDER.map((role) => {
               const allowed = draft[role][permission];
-              const canEdit =
-                role !== "super_admin" &&
-                isDocsViewAssignableToRole(role, permission);
+              const canEdit = role !== "super_admin";
               const isModified = allowed !== defaults[role][permission];
               const isUnsaved = allowed !== baseline[role][permission];
 

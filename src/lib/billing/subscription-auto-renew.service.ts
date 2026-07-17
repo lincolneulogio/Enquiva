@@ -1,6 +1,6 @@
 import { db, type DBTransaction } from "@/lib/db";
 import { plans, subscriptions, users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, lt, or } from "drizzle-orm";
 import {
   createCulqiCard,
   createCulqiCharge,
@@ -8,6 +8,7 @@ import {
   getPlatformCulqiCredentials,
 } from "@/lib/culqi/client";
 import type { CulqiUserProfile } from "@/lib/culqi/customer-data";
+import { utcDayStart } from "@/lib/payments/financial-operation-policy";
 import { SubscriptionPaymentService } from "./subscription-payment.service";
 import { SubscriptionService } from "./subscription.service";
 
@@ -119,6 +120,28 @@ export class SubscriptionAutoRenewService {
 
     const creds = getPlatformCulqiCredentials();
     if (!creds) return false;
+
+    // Claim atómico por día antes de tocar Culqi: evita dos cargos si coinciden
+    // el job, una carga de página y/o dos workers.
+    const now = new Date();
+    const dayStart = utcDayStart(now);
+    const [claimed] = await db
+      .update(subscriptions)
+      .set({ autoRenewLastAttemptAt: now, updatedAt: now })
+      .where(
+        and(
+          eq(subscriptions.id, subscription.id),
+          eq(subscriptions.status, "active"),
+          eq(subscriptions.autoRenewEnabled, true),
+          or(
+            isNull(subscriptions.autoRenewLastAttemptAt),
+            lt(subscriptions.autoRenewLastAttemptAt, dayStart),
+          ),
+        ),
+      )
+      .returning({ id: subscriptions.id });
+
+    if (!claimed) return false;
 
     try {
       const charge = await createCulqiCharge(

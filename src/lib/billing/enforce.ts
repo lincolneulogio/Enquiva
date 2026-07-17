@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { db } from "@/lib/db";
 import { events, registrations } from "@/lib/db/schema";
 import { and, count, eq } from "drizzle-orm";
@@ -149,7 +150,7 @@ export function planIncludesFeature(
   return plan.features[feature];
 }
 
-export async function getOrganizerPlanSummary(userId: string, role?: string | null) {
+export const getOrganizerPlanSummary = cache(async (userId: string, role?: string | null) => {
   const info = await SubscriptionService.getOrCreateSubscription(userId, role);
   const { plan, usage } = info;
   const isUnlimited = SubscriptionService.isPlatformStaff(role);
@@ -188,7 +189,7 @@ export async function getOrganizerPlanSummary(userId: string, role?: string | nu
           ? ("user" as const)
           : ("platform" as const),
   };
-}
+});
 
 export function assertEventCapacityWithinPlan(
   plan: ResolvedPlan,

@@ -1,5 +1,3 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { DashboardSidebar, DashboardTopbar } from "@/components/dashboard";
 import { getEffectivePermissionsForRole } from "@/lib/auth/effective-permissions";
@@ -7,6 +5,7 @@ import { SessionKeepAlive } from "@/components/auth/SessionKeepAlive";
 import { redirectIfAccountDisabled } from "@/lib/auth/redirect-if-disabled";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { getDashboardHomeForRole } from "@/lib/navigation/dashboard-paths";
+import { getRequestSession } from "@/lib/request-context";
 
 export default async function ScannerLayout({
   children,
@@ -15,7 +14,7 @@ export default async function ScannerLayout({
 }) {
   let session;
   try {
-    session = await auth.api.getSession({ headers: await headers() });
+    session = await getRequestSession();
   } catch {
     redirect("/login");
   }

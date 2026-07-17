@@ -12,6 +12,7 @@ import { computeEventCommissionFee } from "@/lib/billing/platform-commission";
 import type { ResolvedPlan } from "@/lib/billing/types";
 import { CulqiEventPaymentService } from "@/lib/culqi/event-payment.service";
 import { logCulqi, logCulqiFailure } from "@/lib/culqi/observability";
+import { assertPaymentCanBeApproved } from "@/lib/payments/payment-integrity";
 
 async function resolvePlatformFeeForPayment(
   registrationId: string,
@@ -78,6 +79,7 @@ export async function POST(req: Request) {
     if (!event) {
       return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
     }
+    assertPaymentCanBeApproved(payment, registration, event);
 
     const organizerPlan = await getOrganizerPlanForEvent(event.id);
     if (organizerPlan) {
@@ -121,6 +123,17 @@ export async function POST(req: Request) {
 
     const dbProfile = await getUserCulqiProfile(user.id);
     const customer = mergeSessionCulqiProfile(user, dbProfile);
+    const claimed = await CulqiEventPaymentService.claimGatewayOperation(
+      payment.id,
+      user.id,
+      "charge",
+    );
+    if (!claimed) {
+      return NextResponse.json(
+        { error: "Ya hay una operación Culqi en proceso para este pago" },
+        { status: 409 },
+      );
+    }
 
     const charge = await createCulqiCharge(
       {
@@ -141,6 +154,7 @@ export async function POST(req: Request) {
     );
 
     if (charge.outcome?.type !== "venta_exitosa") {
+      await CulqiEventPaymentService.reconcileChargeFailure(charge);
       return NextResponse.json({ error: "Pago rechazado por Culqi" }, { status: 402 });
     }
 

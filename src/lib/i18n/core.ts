@@ -220,10 +220,6 @@ const translations: Record<Locale, TranslationDictionary> = {
             "settings:manage": "Gestionar ajustes del sistema",
             "platform:billing:view": "Ver cobros e ingresos de plataforma",
             "permissions:view": "Ver permisos",
-            "docs:view:admin": "Ver Docs: Administrador",
-            "docs:view:organizer": "Ver Docs: Organizador",
-            "docs:view:member": "Ver Docs: Miembro",
-            "docs:view:dev": "Ver Docs: Desarrollador",
         },
         permissionGroups: {
             events: "Eventos",
@@ -266,10 +262,6 @@ const translations: Record<Locale, TranslationDictionary> = {
             "settings:manage": "Editar los ajustes del sistema y de la plataforma.",
             "platform:billing:view": "Ver los cobros e ingresos de la plataforma.",
             "permissions:view": "Ver la matriz de permisos por rol.",
-            "docs:view:admin": "Acceder a la documentación del administrador.",
-            "docs:view:organizer": "Acceder a la documentación del organizador.",
-            "docs:view:member": "Acceder a la documentación del miembro.",
-            "docs:view:dev": "Acceder a la documentación técnica para desarrolladores.",
         },
         dashboard: {
             sidebar: {
@@ -2105,10 +2097,6 @@ const translations: Record<Locale, TranslationDictionary> = {
             "settings:manage": "Manage system settings",
             "platform:billing:view": "View platform billing",
             "permissions:view": "View permissions",
-            "docs:view:admin": "View Docs: Admin",
-            "docs:view:organizer": "View Docs: Organizer",
-            "docs:view:member": "View Docs: Member",
-            "docs:view:dev": "View Docs: Developer",
         },
         permissionGroups: {
             events: "Events",
@@ -2151,10 +2139,6 @@ const translations: Record<Locale, TranslationDictionary> = {
             "settings:manage": "Edit system and platform settings.",
             "platform:billing:view": "View platform billing and revenue.",
             "permissions:view": "View the per-role permission matrix.",
-            "docs:view:admin": "Access the administrator documentation.",
-            "docs:view:organizer": "Access the organizer documentation.",
-            "docs:view:member": "Access the member documentation.",
-            "docs:view:dev": "Access the technical documentation for developers.",
         },
         dashboard: {
             sidebar: {

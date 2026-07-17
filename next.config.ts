@@ -1,10 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  onDemandEntries: {
-    maxInactiveAge: 60_000,
-    pagesBufferLength: 8,
-  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "utfs.io" },

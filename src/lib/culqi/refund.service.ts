@@ -32,6 +32,9 @@ export class CulqiRefundService {
     if (!payment.gatewayChargeId) {
       throw new Error("Este pago no tiene cargo Culqi; marca el estado manualmente o contacta soporte");
     }
+    if (payment.gatewayStatus === "refund_pending" || payment.gatewayStatus === "refunded") {
+      throw new Error("Este pago ya tiene un reembolso en proceso o completado");
+    }
 
     const [registration] = await db
       .select()
@@ -64,6 +67,12 @@ export class CulqiRefundService {
 
     const refundAmount =
       input.amount != null ? input.amount : Number(payment.amount);
+    if (
+      !Number.isFinite(refundAmount) ||
+      Math.round(refundAmount * 100) !== Math.round(Number(payment.amount) * 100)
+    ) {
+      throw new Error("Solo se admite el reembolso total mientras no exista contabilidad parcial");
+    }
 
     const refund = await createCulqiRefund(
       {

@@ -2,18 +2,10 @@ import { db, type DBTransaction } from "@/lib/db";
 import {
   plans,
   subscriptionPayments,
+  platformTransactions,
 } from "@/lib/db/schema";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { SubscriptionService } from "./subscription.service";
-
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    (error as { code?: string }).code === "23505"
-  );
-}
 
 export class SubscriptionPaymentService {
   static async getPendingForUser(userId: string) {
@@ -77,33 +69,61 @@ export class SubscriptionPaymentService {
     if (payment && payment.userId !== input.userId) {
       throw new Error("El cargo de Culqi ya está asociado a otro usuario");
     }
+    if (payment && payment.planId !== input.planId) {
+      throw new Error("El cargo de Culqi ya está asociado a otro plan");
+    }
 
     if (!payment) {
-      try {
-        const [created] = await tx
-          .insert(subscriptionPayments)
-          .values({
-            userId: input.userId,
-            planId: input.planId,
-            amount: String(input.amount),
-            method,
-            status: "approved",
-            gatewayProvider: "culqi",
-            gatewayChargeId: input.chargeId,
-            reference: input.chargeId,
-            verifiedAt: new Date(),
-            notes: `Aprobado automáticamente vía Culqi (${method})`,
-          })
-          .returning();
+      const [created] = await tx
+        .insert(subscriptionPayments)
+        .values({
+          userId: input.userId,
+          planId: input.planId,
+          amount: String(input.amount),
+          method,
+          status: "approved",
+          gatewayProvider: "culqi",
+          gatewayChargeId: input.chargeId,
+          reference: input.chargeId,
+          verifiedAt: new Date(),
+          notes: `Aprobado automáticamente vía Culqi (${method})`,
+        })
+        .onConflictDoNothing({
+          target: subscriptionPayments.gatewayChargeId,
+          where: sql`${subscriptionPayments.gatewayChargeId} IS NOT NULL`,
+        })
+        .returning();
 
-        payment = created;
-      } catch (error) {
-        if (!isUniqueViolation(error)) throw error;
-
-        payment = await this.findPaymentByChargeIdTx(tx, input.chargeId);
-        if (!payment) throw error;
-        idempotent = true;
+      payment = created ?? await this.findPaymentByChargeIdTx(tx, input.chargeId);
+      if (!payment) {
+        throw new Error("No se pudo reclamar el cargo de Culqi");
       }
+      idempotent = !created;
+
+      if (payment.userId !== input.userId) {
+        throw new Error("El cargo de Culqi ya está asociado a otro usuario");
+      }
+      if (payment.planId !== input.planId) {
+        throw new Error("El cargo de Culqi ya está asociado a otro plan");
+      }
+    }
+
+    if (idempotent) {
+      const [ledgerEntry] = await tx
+        .select({ subscriptionId: platformTransactions.subscriptionId })
+        .from(platformTransactions)
+        .where(eq(platformTransactions.subscriptionPaymentId, payment.id))
+        .limit(1);
+
+      if (!ledgerEntry?.subscriptionId) {
+        throw new Error("El cargo existente no tiene una suscripción conciliada");
+      }
+
+      return {
+        paymentId: payment.id,
+        subscriptionId: ledgerEntry.subscriptionId,
+        idempotent: true,
+      };
     }
 
     const planId = payment.planId;
@@ -146,6 +166,7 @@ export class SubscriptionPaymentService {
         .select()
         .from(subscriptionPayments)
         .where(eq(subscriptionPayments.id, paymentId))
+        .for("update")
         .limit(1);
 
       if (!payment) throw new Error("Pago de suscripción no encontrado");

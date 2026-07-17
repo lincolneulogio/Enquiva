@@ -11,7 +11,7 @@ import {
   uniqueIndex,
   jsonb,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { users } from "./auth";
 import { payments } from "./payments";
 import { organizations } from "./organizations";
@@ -104,6 +104,12 @@ export const subscriptions = pgTable(
     index("subscriptions_org_idx").on(t.organizationId),
     index("subscriptions_plan_idx").on(t.planId),
     index("subscriptions_status_idx").on(t.status),
+    uniqueIndex("subscriptions_org_user_unique_idx")
+      .on(t.organizationId, t.userId)
+      .where(sql`${t.organizationId} IS NOT NULL`),
+    uniqueIndex("subscriptions_user_without_org_unique_idx")
+      .on(t.userId)
+      .where(sql`${t.organizationId} IS NULL`),
   ],
 );
 
@@ -136,7 +142,9 @@ export const subscriptionPayments = pgTable(
     index("subscription_payments_user_idx").on(t.userId),
     index("subscription_payments_status_idx").on(t.status),
     index("subscription_payments_plan_idx").on(t.planId),
-    uniqueIndex("subscription_payments_gateway_charge_unique_idx").on(t.gatewayChargeId),
+    uniqueIndex("subscription_payments_gateway_charge_uidx")
+      .on(t.gatewayChargeId)
+      .where(sql`${t.gatewayChargeId} IS NOT NULL`),
   ],
 );
 
@@ -163,7 +171,9 @@ export const platformTransactions = pgTable(
     index("platform_transactions_type_idx").on(t.type),
     index("platform_transactions_user_idx").on(t.userId),
     index("platform_transactions_created_idx").on(t.createdAt),
-    index("platform_transactions_subscription_payment_idx").on(t.subscriptionPaymentId),
+    uniqueIndex("platform_transactions_subscription_payment_unique_idx")
+      .on(t.subscriptionPaymentId)
+      .where(sql`${t.subscriptionPaymentId} IS NOT NULL`),
   ],
 );
 

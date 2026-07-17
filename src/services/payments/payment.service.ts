@@ -38,6 +38,7 @@ import {
   DEFAULT_PLATFORM_TIMEZONE,
   formatDateTimeInTimezone,
 } from "@/lib/settings/platform-locale";
+import { assertPaymentCanBeApproved } from "@/lib/payments/payment-integrity";
 
 export class PaymentService {
   /**
@@ -257,6 +258,7 @@ export class PaymentService {
         .select()
         .from(payments)
         .where(eq(payments.id, validated.paymentId))
+        .for("update")
         .limit(1);
 
       if (!payment) throw new Error("Pago no encontrado");
@@ -286,6 +288,14 @@ export class PaymentService {
         adminUserId,
         adminRole,
       );
+
+      if (payment.status === validated.status) {
+        return { success: true, payment, idempotent: true };
+      }
+
+      if (validated.status === "approved") {
+        assertPaymentCanBeApproved(payment, registration, event);
+      }
 
       // 1. Actualizar el pago
       const [updated] = await tx

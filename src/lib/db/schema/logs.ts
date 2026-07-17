@@ -1,4 +1,14 @@
-import { pgTable, text, timestamp, uuid, index, pgEnum, integer, jsonb } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  index,
+  pgEnum,
+  integer,
+  jsonb,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
 
@@ -20,6 +30,7 @@ export const activityLogs = pgTable("activity_logs", {
 
 export const broadcastJobStatusEnum = pgEnum("broadcast_job_status", [
   "pending",
+  "retry",
   "processing",
   "completed",
   "failed",
@@ -27,6 +38,7 @@ export const broadcastJobStatusEnum = pgEnum("broadcast_job_status", [
 
 export const broadcastLogs = pgTable("broadcast_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
+  jobId: uuid("job_id").unique(),
   eventId: uuid("event_id").notNull(),
   senderId: text("sender_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   subject: text("subject").notNull(),
@@ -60,19 +72,106 @@ export const broadcastJobs = pgTable(
     successCount: integer("success_count").notNull().default(0),
     failureCount: integer("failure_count").notNull().default(0),
     errorMessage: text("error_message"),
+    attempts: integer("attempts").notNull().default(0),
+    maxAttempts: integer("max_attempts").notNull().default(5),
+    nextAttemptAt: timestamp("next_attempt_at").notNull().defaultNow(),
+    lockedAt: timestamp("locked_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     startedAt: timestamp("started_at"),
     completedAt: timestamp("completed_at"),
   },
   (t) => [
-    index("broadcast_jobs_status_idx").on(t.status),
+    index("broadcast_jobs_status_next_attempt_idx").on(t.status, t.nextAttemptAt),
     index("broadcast_jobs_sender_idx").on(t.senderId),
   ],
 );
 
-export const broadcastJobsRelations = relations(broadcastJobs, ({ one }) => ({
+export const broadcastDeliveryChannelEnum = pgEnum("broadcast_delivery_channel", [
+  "email",
+  "in_app",
+  "pusher",
+]);
+
+export const broadcastJobDeliveries = pgTable(
+  "broadcast_job_deliveries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    jobId: uuid("job_id")
+      .notNull()
+      .references(() => broadcastJobs.id, { onDelete: "cascade" }),
+    recipientId: text("recipient_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    channel: broadcastDeliveryChannelEnum("channel").notNull(),
+    status: text("status").notNull().default("processing"),
+    attempts: integer("attempts").notNull().default(1),
+    lockedAt: timestamp("locked_at").notNull().defaultNow(),
+    completedAt: timestamp("completed_at"),
+    errorMessage: text("error_message"),
+  },
+  (t) => [
+    uniqueIndex("broadcast_job_deliveries_job_recipient_channel_unique_idx").on(
+      t.jobId,
+      t.recipientId,
+      t.channel,
+    ),
+    index("broadcast_job_deliveries_job_status_idx").on(t.jobId, t.status),
+  ],
+);
+
+export const broadcastJobRecipients = pgTable(
+  "broadcast_job_recipients",
+  {
+    jobId: uuid("job_id")
+      .notNull()
+      .references(() => broadcastJobs.id, { onDelete: "cascade" }),
+    recipientId: text("recipient_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name"),
+    email: text("email").notNull(),
+  },
+  (t) => [
+    uniqueIndex("broadcast_job_recipients_job_recipient_unique_idx").on(
+      t.jobId,
+      t.recipientId,
+    ),
+  ],
+);
+
+export const broadcastJobsRelations = relations(broadcastJobs, ({ one, many }) => ({
   sender: one(users, { fields: [broadcastJobs.senderId], references: [users.id] }),
+  deliveries: many(broadcastJobDeliveries),
+  recipients: many(broadcastJobRecipients),
 }));
+
+export const broadcastJobDeliveriesRelations = relations(
+  broadcastJobDeliveries,
+  ({ one }) => ({
+    job: one(broadcastJobs, {
+      fields: [broadcastJobDeliveries.jobId],
+      references: [broadcastJobs.id],
+    }),
+    recipient: one(users, {
+      fields: [broadcastJobDeliveries.recipientId],
+      references: [users.id],
+    }),
+  }),
+);
+
+export const broadcastJobRecipientsRelations = relations(
+  broadcastJobRecipients,
+  ({ one }) => ({
+    job: one(broadcastJobs, {
+      fields: [broadcastJobRecipients.jobId],
+      references: [broadcastJobs.id],
+    }),
+    recipient: one(users, {
+      fields: [broadcastJobRecipients.recipientId],
+      references: [users.id],
+    }),
+  }),
+);
 
 export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
   actor: one(users, { fields: [activityLogs.actorId], references: [users.id] }),

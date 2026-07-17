@@ -53,11 +53,31 @@ export type MassDeliveryStats = {
   failureCount: number;
 };
 
+export type MassDeliveryChannel = "email" | "in_app" | "pusher";
+
+export type MassDeliveryHooks = {
+  claim?: (
+    recipient: MassCommunicationRecipient,
+    channel: MassDeliveryChannel,
+  ) => Promise<"deliver" | "already-delivered">;
+  complete?: (
+    recipient: MassCommunicationRecipient,
+    channel: MassDeliveryChannel,
+  ) => Promise<void>;
+  fail?: (
+    recipient: MassCommunicationRecipient,
+    channel: MassDeliveryChannel,
+    error: unknown,
+  ) => Promise<void>;
+  heartbeat?: () => Promise<void>;
+};
+
 const DEFAULT_BATCH_SIZE = resolveBroadcastBatchSize(env.BROADCAST_BATCH_SIZE);
 
 async function deliverToRecipient(
   recipient: MassCommunicationRecipient,
   payload: MassCommunicationPayload,
+  hooks?: MassDeliveryHooks,
 ): Promise<boolean> {
   const {
     eventId,
@@ -71,10 +91,21 @@ async function deliverToRecipient(
     metadata = {},
   } = payload;
 
-  let delivered = false;
+  const enabledChannels: MassDeliveryChannel[] = [];
+  if (channels.inApp) enabledChannels.push("in_app");
+  // NotificationService.create already emits the realtime Pusher notification.
+  if (!channels.inApp && channels.pusher) enabledChannels.push("pusher");
+  if (channels.email && recipient.email) enabledChannels.push("email");
 
-  try {
-    if (channels.inApp) {
+  if (enabledChannels.length === 0) return false;
+
+  let failed = false;
+  for (const channel of enabledChannels) {
+    try {
+      const claim = await hooks?.claim?.(recipient, channel);
+      if (claim === "already-delivered") continue;
+
+      if (channel === "in_app") {
       await NotificationService.create({
         userId: recipient.id,
         type: notificationType,
@@ -82,9 +113,7 @@ async function deliverToRecipient(
         message: body,
         metadata: { eventId, eventTitle, sentBy: senderId, ...metadata },
       });
-      delivered = true;
-    } else if (channels.pusher) {
-      try {
+      } else if (channel === "pusher") {
         await NotificationService.deliver([
           {
             userId: recipient.id,
@@ -94,41 +123,42 @@ async function deliverToRecipient(
             metadata: { eventId, eventTitle, sentBy: senderId, ...metadata },
           },
         ]);
-      } catch (error) {
-        console.error(`Pusher notification failed for user ${recipient.id}:`, error);
+      } else {
+        await sendBroadcastEmail({
+          email: recipient.email,
+          name: recipient.name,
+          subject: title,
+          message: body,
+          eventTitle,
+          locale,
+        });
       }
-    }
 
-    if (channels.email && recipient.email) {
-      await sendBroadcastEmail({
-        email: recipient.email,
-        name: recipient.name,
-        subject: title,
-        message: body,
-        eventTitle,
-        locale,
-      });
-      delivered = true;
+      await hooks?.complete?.(recipient, channel);
+    } catch (error) {
+      failed = true;
+      await hooks?.fail?.(recipient, channel, error);
+      console.error(`Mass communication failed for user ${recipient.id} via ${channel}:`, error);
     }
-
-    return delivered;
-  } catch (error) {
-    console.error(`Mass communication failed for user ${recipient.id}:`, error);
-    return false;
   }
+
+  return !failed;
 }
 
 export async function deliverMassCommunication(
   recipients: MassCommunicationRecipient[],
   payload: MassCommunicationPayload,
-  options?: { batchSize?: number },
+  options?: { batchSize?: number; hooks?: MassDeliveryHooks },
 ): Promise<MassDeliveryStats> {
   const batchSize = options?.batchSize ?? DEFAULT_BATCH_SIZE;
   let successCount = 0;
   let failureCount = 0;
 
   for (const batch of chunkRecipients(recipients, batchSize)) {
-    const results = await Promise.all(batch.map((recipient) => deliverToRecipient(recipient, payload)));
+    await options?.hooks?.heartbeat?.();
+    const results = await Promise.all(
+      batch.map((recipient) => deliverToRecipient(recipient, payload, options?.hooks)),
+    );
     for (const ok of results) {
       if (ok) successCount++;
       else failureCount++;

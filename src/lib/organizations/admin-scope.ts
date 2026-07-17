@@ -1,10 +1,10 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { cache } from "react";
 import { eq, and, type SQL, inArray, sql, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { events, users, categories, registrations, payments, transportRoutes, transportBookings, activityLogs, organizationMembers } from "@/lib/db/schema";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { OrganizationService } from "@/lib/organizations/organization.service";
+import { getRequestSession } from "@/lib/request-context";
 
 export type AdminScope =
   | { mode: "platform" }
@@ -20,8 +20,8 @@ export function isUnassignedAdminScope(scope: AdminScope): boolean {
   return scope.mode === "unassigned";
 }
 
-export async function resolveAdminScope(): Promise<AdminScope> {
-  const session = await auth.api.getSession({ headers: await headers() });
+export const resolveAdminScope = cache(async (): Promise<AdminScope> => {
+  const session = await getRequestSession();
   if (!session?.user) throw new Error("Unauthorized");
 
   const role = normalizeRole(session.user.role);
@@ -43,7 +43,7 @@ export async function resolveAdminScope(): Promise<AdminScope> {
   }
 
   return { mode: "platform" };
-}
+});
 
 export async function resolveAdminScopeForUser(
   userId: string,

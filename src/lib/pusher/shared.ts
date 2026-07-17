@@ -1,9 +1,13 @@
 // Shared constants safe for both client and server
 export const PUSHER_CHANNELS = {
-    event: (eventId: string) => `event-${eventId}`,
+    event: (eventId: string) => `private-event-${eventId}`,
+    publicEventCount: (eventId: string) => `event-count-${eventId}`,
     userNotifications: (userId: string) => `private-user-${userId}`,
     presence: (eventId: string) => `presence-event-${eventId}`,
-    adminDashboard: "private-admin-dashboard",
+    platformDashboard: "private-admin-dashboard",
+    organizationDashboard: (organizationId: string) =>
+        `private-org-${organizationId}-dashboard`,
+    organizerDashboard: (userId: string) => `private-organizer-${userId}-dashboard`,
 } as const;
 
 export const PUSHER_EVENTS = {

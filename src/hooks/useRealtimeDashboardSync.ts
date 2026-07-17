@@ -7,47 +7,9 @@ import {
   PUSHER_CHANNELS,
   PUSHER_EVENTS,
   type TableRefreshPayload,
-  type TableResource,
 } from "@/lib/pusher/client";
 import { normalizeRole } from "@/lib/auth/rbac";
-
-function matchesResource(pathname: string, resource: TableResource): boolean {
-  switch (resource) {
-    case "dashboard":
-      return true;
-    case "registrations":
-      return /\/(admin|superadmin)\/registrations/.test(pathname);
-    case "attendees":
-      return /\/organizer\/attendees/.test(pathname) || /\/(admin|superadmin)\/registrations/.test(pathname);
-    case "events":
-      return (
-        /\/(admin|superadmin|organizer)\/events/.test(pathname) ||
-        /\/member\/events/.test(pathname) ||
-        /\/superadmin\/my-events/.test(pathname)
-      );
-    case "payments":
-      return /\/(admin|superadmin|organizer|member)\/payments/.test(pathname);
-    case "users":
-      return /\/(admin|superadmin)\/users/.test(pathname);
-    case "team":
-      return /\/admin\/team/.test(pathname);
-    case "transport":
-      return /\/member\/transport/.test(pathname) || /\/organizer\/transport/.test(pathname);
-    case "broadcasts":
-      return /\/(admin|superadmin|organizer)\/broadcasts/.test(pathname);
-    case "categories":
-      return /\/admin\/categories/.test(pathname);
-    case "plans":
-      return /\/superadmin\/plans/.test(pathname);
-    default:
-      return false;
-  }
-}
-
-function shouldRefreshPath(pathname: string, payload: TableRefreshPayload) {
-  const resources = Array.isArray(payload.resource) ? payload.resource : [payload.resource];
-  return resources.some((resource) => matchesResource(pathname, resource));
-}
+import { shouldRefreshRealtimePath } from "@/lib/pusher/refresh-policy";
 
 const NOTIFICATION_TYPES_REFRESH_ALL_PAGES = new Set([
   "registration_confirmed",
@@ -59,9 +21,11 @@ const NOTIFICATION_TYPES_REFRESH_ALL_PAGES = new Set([
 export function useRealtimeDashboardSync({
   userId,
   role,
+  organizationId,
 }: {
   userId: string;
   role?: string | null;
+  organizationId?: string | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -96,11 +60,20 @@ export function useRealtimeDashboardSync({
       normalizedRole === "super_admin" ||
       normalizedRole === "organizer";
     if (!isStaff) return;
+    const dashboardChannel =
+      normalizedRole === "super_admin"
+        ? PUSHER_CHANNELS.platformDashboard
+        : normalizedRole === "admin"
+          ? organizationId
+            ? PUSHER_CHANNELS.organizationDashboard(organizationId)
+            : null
+          : PUSHER_CHANNELS.organizerDashboard(userId);
+    if (!dashboardChannel) return;
 
     const scheduleRefresh = (payload?: TableRefreshPayload) => {
       if (cancelledRef.current) return;
       const currentPath = pathnameRef.current;
-      if (payload && !shouldRefreshPath(currentPath, payload)) return;
+      if (payload && !shouldRefreshRealtimePath(currentPath, payload)) return;
 
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
       refreshTimerRef.current = setTimeout(() => {
@@ -109,7 +82,7 @@ export function useRealtimeDashboardSync({
     };
 
     const pusher = getPusherClient();
-    const channel = pusher.subscribe(PUSHER_CHANNELS.adminDashboard);
+    const channel = pusher.subscribe(dashboardChannel);
 
     channel.bind(PUSHER_EVENTS.tableRefresh, (data: TableRefreshPayload) => {
       scheduleRefresh(data);
@@ -134,13 +107,13 @@ export function useRealtimeDashboardSync({
       channel.unbind_all();
       channel.unsubscribe();
     };
-  }, [role]);
+  }, [organizationId, role, userId]);
 
   useEffect(() => {
     const scheduleRefresh = (payload?: TableRefreshPayload) => {
       if (cancelledRef.current) return;
       const currentPath = pathnameRef.current;
-      if (payload && !shouldRefreshPath(currentPath, payload)) return;
+      if (payload && !shouldRefreshRealtimePath(currentPath, payload)) return;
 
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
       refreshTimerRef.current = setTimeout(() => {

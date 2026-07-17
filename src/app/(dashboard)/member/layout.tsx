@@ -1,11 +1,10 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { DashboardSidebar, DashboardTopbar } from "@/components/dashboard";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";
 import { DashboardAICopilot } from "@/components/dashboard/IACopilot/DashboardAICopilot";
 import { redirectIfAccountDisabled } from "@/lib/auth/redirect-if-disabled";
+import { getRequestSession } from "@/lib/request-context";
 
 export default async function MemberLayout({
   children,
@@ -14,7 +13,7 @@ export default async function MemberLayout({
 }) {
   let session;
   try {
-    session = await auth.api.getSession({ headers: await headers() });
+    session = await getRequestSession();
   } catch {
     redirect("/login");
   }

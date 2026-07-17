@@ -23,7 +23,6 @@ export function resolveSafeAuthRedirect(
     const allowed = new Set(
       [
         process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, ""),
-        process.env.NEXT_PUBLIC_DOCS_URL?.replace(/\/$/, ""),
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:3001",

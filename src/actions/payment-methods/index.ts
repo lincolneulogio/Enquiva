@@ -22,6 +22,7 @@ import {
 } from "@/lib/auth/guards";
 import { assertOrganizerCulqiKeys } from "@/lib/culqi/keys";
 import { assertAllowedPaymentMethodType, isLegacyWalletType } from "@/lib/payments/allowed-types";
+import { assertEventInAdminScope } from "@/lib/organizations/admin-scope";
 
 function sanitizeMethodsForClient(methods: PaymentMethod[]): PaymentMethod[] {
   return methods.map(({ culqiSecretKey: _secret, ...method }) => ({
@@ -412,17 +413,11 @@ export async function detachLegacyWalletMethodsFromEvents() {
 export { isLegacyWalletType };
 
 export async function setEventPaymentMethods(eventId: string, methodIds: string[]) {
-  await requireAuth();
   const user = await requireEventManager();
 
   const [event] = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
   if (!event) throw new Error("Evento no encontrado");
-  if (
-    event.organizerId !== user.id &&
-    !["super_admin", "admin"].includes(user.role ?? "")
-  ) {
-    throw new Error("No puedes editar medios de pago de este evento");
-  }
+  await assertEventInAdminScope(eventId, user.id, user.role);
 
   if (methodIds.length > 0) {
     const usesPlatform = await eventOrganizerUsesPlatformPaymentsByUserId(event.organizerId);
