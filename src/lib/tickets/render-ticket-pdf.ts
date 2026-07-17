@@ -85,7 +85,7 @@ export function getActiveTicketPrimaryRgb(): [number, number, number] {
 
 /** Client: load brand mark as data URL for jsPDF. */
 export async function loadBrandLogoDataUrl(
-  src: string = BRAND.logo.markMd,
+  src: string = BRAND.logo.markLg,
 ): Promise<string | null> {
   try {
     const res = await fetch(src);
@@ -144,36 +144,40 @@ export function drawOfficialTicketPage(
   doc.rect(0, 0, W, H, "F");
 
   // --- Header ---
-  const headerH = 92;
+  const headerH = 104;
   doc.setFillColor(...primary);
   doc.rect(0, 0, W, headerH, "F");
 
-  // Soft decorative orbs (subtle, not loud)
+  // Decorative shapes remain contained inside the header.
   doc.setFillColor(...primarySoft);
-  doc.circle(W - 28, 18, 46, "F");
-  doc.setFillColor(...primaryDeep);
-  doc.circle(18, headerH - 6, 28, "F");
+  doc.circle(W - 20, 14, 40, "F");
+  doc.setFillColor(...mixRgb(primary, primaryDeep, 0.55));
+  doc.circle(14, headerH - 17, 17, "F");
 
-  // Brand lockup: logo + name centered
-  const logoSize = 26;
-  const brandGap = 8;
+  // Brand lockup: high-resolution mark in a crisp frame + name.
+  const logoFrameSize = 36;
+  const logoSize = 28;
+  const brandGap = 10;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
+  doc.setFontSize(17);
   const nameWidth = doc.getTextWidth(brandName);
-  const lockupWidth = (theme.logoDataUrl ? logoSize + brandGap : 0) + nameWidth;
+  const lockupWidth = (theme.logoDataUrl ? logoFrameSize + brandGap : 0) + nameWidth;
   const lockupX = (W - lockupWidth) / 2;
-  const brandY = 38;
+  const brandCenterY = 39;
 
   if (theme.logoDataUrl) {
-    // White disc behind logo so black-backed marks stay clean on any accent
+    const frameY = brandCenterY - logoFrameSize / 2;
     doc.setFillColor(255, 255, 255);
-    doc.circle(lockupX + logoSize / 2, brandY - 2, logoSize / 2 + 3, "F");
+    doc.roundedRect(lockupX, frameY, logoFrameSize, logoFrameSize, 9, 9, "F");
+    doc.setDrawColor(...mixRgb(primary, [255, 255, 255], 0.72));
+    doc.setLineWidth(0.7);
+    doc.roundedRect(lockupX, frameY, logoFrameSize, logoFrameSize, 9, 9, "S");
     try {
       doc.addImage(
         theme.logoDataUrl,
         "PNG",
-        lockupX,
-        brandY - logoSize / 2 - 2,
+        lockupX + (logoFrameSize - logoSize) / 2,
+        brandCenterY - logoSize / 2,
         logoSize,
         logoSize,
       );
@@ -184,29 +188,27 @@ export function drawOfficialTicketPage(
 
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
+  doc.setFontSize(17);
   doc.text(
     brandName,
-    theme.logoDataUrl ? lockupX + logoSize + brandGap : lockupX,
-    brandY + 5,
+    theme.logoDataUrl ? lockupX + logoFrameSize + brandGap : lockupX,
+    brandCenterY + 5.5,
   );
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8.5);
-  doc.setTextColor(255, 255, 255);
-  // Slightly translucent feel via soft mix
-  const subtitle = mixRgb([255, 255, 255], primary, 0.12);
+  doc.setFontSize(8);
+  const subtitle = mixRgb([255, 255, 255], primary, 0.1);
   doc.setTextColor(...subtitle);
   doc.text(
-    locale === "en" ? "Official Event Ticket" : "Entrada Oficial del Evento",
+    locale === "en" ? "OFFICIAL EVENT ACCESS" : "ACCESO OFICIAL AL EVENTO",
     W / 2,
-    62,
+    76,
     { align: "center" },
   );
 
-  // Thin accent bar under header
+  // Fine finish line separating header and ticket content.
   doc.setFillColor(...mixRgb(primary, [255, 255, 255], 0.35));
-  doc.rect(0, headerH, W, 3, "F");
+  doc.rect(0, headerH, W, 2, "F");
 
   // --- Body ---
   let y = headerH + 28;
