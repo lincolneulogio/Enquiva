@@ -85,6 +85,13 @@ export async function requestPlanUpgrade(planSlug: string, confirmed = false) {
   }
 
   const preview = await SubscriptionService.getPlanChangePreview(user.id, planSlug, user.role);
+  const currentSubscription = await SubscriptionService.findSubscriptionForBillingUser(
+    user.id,
+    user.role,
+  );
+  if (currentSubscription?.pendingPlanId) {
+    throw new Error("Ya existe un cambio de plan programado para esta suscripción.");
+  }
 
   if (preview?.requiresConfirmation && !confirmed) {
     return {
@@ -99,7 +106,9 @@ export async function requestPlanUpgrade(planSlug: string, confirmed = false) {
   if (Number(plan.priceMonthly) <= 0) {
     const [planRow] = await db.select().from(plans).where(eq(plans.slug, planSlug)).limit(1);
     if (!planRow) throw new Error("Plan no encontrado");
-    await SubscriptionService.assignPlanFromOrganizerPayment(user.id, user.role, planRow.id);
+    await SubscriptionService.assignPlanFromOrganizerPayment(user.id, user.role, planRow.id, {
+      paymentReceived: false,
+    });
     revalidatePath("/organizer/billing");
     revalidatePath("/admin/plan");
     return {

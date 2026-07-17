@@ -40,7 +40,10 @@ export type PlanChangePreview = {
   targetPlanName: string;
   daysRemaining: number;
   newPeriodEnd: string;
+  effectiveAt: string;
   isDowngrade: boolean;
+  timing: "immediate" | "scheduled";
+  preservesRemainingDays: boolean;
 };
 
 export type SubscriptionInfo = {
@@ -62,6 +65,8 @@ export type SubscriptionInfo = {
   billingScope?: "organization" | "user" | "platform";
   canManageBilling?: boolean;
   organizationName?: string | null;
+  pendingPlan?: ResolvedPlan | null;
+  pendingPlanEffectiveAt?: Date | null;
   /** false cuando el superadmin aún no creó el plan free (u otros). */
   plansConfigured?: boolean;
 };

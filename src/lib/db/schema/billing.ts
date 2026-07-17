@@ -85,6 +85,10 @@ export const subscriptions = pgTable(
     planId: uuid("plan_id")
       .notNull()
       .references(() => plans.id, { onDelete: "restrict" }),
+    pendingPlanId: uuid("pending_plan_id").references(() => plans.id, {
+      onDelete: "set null",
+    }),
+    pendingPlanEffectiveAt: timestamp("pending_plan_effective_at"),
     status: subscriptionStatusEnum("status").notNull().default("active"),
     currentPeriodStart: timestamp("current_period_start").notNull().defaultNow(),
     currentPeriodEnd: timestamp("current_period_end").notNull(),
@@ -103,6 +107,7 @@ export const subscriptions = pgTable(
   (t) => [
     index("subscriptions_org_idx").on(t.organizationId),
     index("subscriptions_plan_idx").on(t.planId),
+    index("subscriptions_pending_plan_idx").on(t.pendingPlanId, t.pendingPlanEffectiveAt),
     index("subscriptions_status_idx").on(t.status),
     uniqueIndex("subscriptions_org_user_unique_idx")
       .on(t.organizationId, t.userId)

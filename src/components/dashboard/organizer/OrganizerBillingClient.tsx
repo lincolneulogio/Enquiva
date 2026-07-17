@@ -209,6 +209,9 @@ export function OrganizerBillingClient({
 
   const dateLocale = locale === "en" ? "en-US" : "es-PE";
   const renewalDate = new Date(subscription.currentPeriodEnd).toLocaleDateString(dateLocale);
+  const pendingPlanDate = subscription.pendingPlanEffectiveAt
+    ? new Date(subscription.pendingPlanEffectiveAt).toLocaleDateString(dateLocale)
+    : null;
   const historyWithoutActivePending = paymentHistory.filter(
     (row) => !(row.payment.status === "pending" && pendingPayment?.payment.id === row.payment.id),
   );
@@ -269,6 +272,24 @@ export function OrganizerBillingClient({
                 billed: billedPlan?.name ?? displayPlanName,
                 date: renewalDate,
                 active: plan.name,
+              })}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {subscription.pendingPlan && pendingPlanDate && (
+        <div className="flex items-start gap-3 rounded-2xl border border-sky-200/60 bg-sky-50/50 p-4 dark:border-sky-900/30 dark:bg-sky-950/20">
+          <Clock className="mt-0.5 h-5 w-5 shrink-0 text-sky-600 dark:text-sky-400" />
+          <div>
+            <p className="font-medium text-foreground">
+              {t("billing.organizer.scheduledPlanTitle")}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("billing.organizer.scheduledPlanHelp", {
+                current: displayPlanName,
+                target: subscription.pendingPlan.name,
+                date: pendingPlanDate,
               })}
             </p>
           </div>

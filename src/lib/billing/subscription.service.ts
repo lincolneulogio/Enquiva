@@ -20,6 +20,7 @@ import {
   inArray,
   isNull,
   lt,
+  lte,
   ne,
   notInArray,
   or,
@@ -43,6 +44,11 @@ import { eventOccupiesPlanSlotSql } from "./active-events";
 import type { PlanUsage, PlanChangePreview, ResolvedPlan, SubscriptionInfo } from "./types";
 import { isOrganizerSubscriptionBlocked } from "./subscription-auto-renew.service";
 import { clearRenewalTrackingFields } from "./subscription-renewal.service";
+import {
+  addBillingMonth,
+  decidePlanChangeTiming,
+  purchasedPeriodEnd,
+} from "./plan-change-policy";
 import { normalizeRole } from "@/lib/auth/rbac";
 import {
   resolveSubscriptionBillingContext,
@@ -56,9 +62,7 @@ function isPaidPlanRow(plan: { slug: string; priceMonthly: string | number }) {
 }
 
 function addOneMonth(from = new Date()) {
-  const periodEnd = new Date(from);
-  periodEnd.setMonth(periodEnd.getMonth() + 1);
-  return periodEnd;
+  return addBillingMonth(from);
 }
 
 export class SubscriptionService {
@@ -476,6 +480,15 @@ export class SubscriptionService {
     const usage = await this.getUsage(userId, ctx);
     const { getAiChatUsage } = await import("./ai-chat-usage");
     const aiUsage = await getAiChatUsage(userId, role, effectivePlan);
+    const pendingPlanRow = subscription.pendingPlanId
+      ? (
+          await db
+            .select()
+            .from(plans)
+            .where(eq(plans.id, subscription.pendingPlanId))
+            .limit(1)
+        )[0]
+      : null;
 
     return {
       id: subscription.id,
@@ -499,6 +512,8 @@ export class SubscriptionService {
       billingScope: ctx.mode === "organization" ? "organization" : "user",
       canManageBilling: canManageSubscriptionBilling(userId, role, ctx),
       organizationName: ctx.mode === "organization" ? ctx.organizationName : null,
+      pendingPlan: pendingPlanRow ? mapPlanRow(pendingPlanRow) : null,
+      pendingPlanEffectiveAt: subscription.pendingPlanEffectiveAt,
       plansConfigured,
     };
   }
@@ -509,6 +524,8 @@ export class SubscriptionService {
 
     const billingUserId = getBillingUserId(ctx);
     if (!billingUserId) return;
+
+    await this.applyDuePendingPlanForContext(ctx);
 
     const [row] = await db
       .select({
@@ -593,6 +610,71 @@ export class SubscriptionService {
     }
   }
 
+  private static async applyDuePendingPlanForContext(ctx: SubscriptionBillingContext) {
+    const now = new Date();
+    const [subscription] = await db
+      .select()
+      .from(subscriptions)
+      .where(
+        and(
+          this.subscriptionWhere(ctx),
+          sql`${subscriptions.pendingPlanId} IS NOT NULL`,
+          lte(subscriptions.pendingPlanEffectiveAt, now),
+        ),
+      )
+      .limit(1);
+
+    if (!subscription?.pendingPlanId || !subscription.pendingPlanEffectiveAt) return false;
+    return this.applyPendingPlanChange(subscription, now);
+  }
+
+  private static async applyPendingPlanChange(
+    subscription: typeof subscriptions.$inferSelect,
+    now: Date,
+  ) {
+    if (!subscription.pendingPlanId || !subscription.pendingPlanEffectiveAt) return false;
+
+    const [targetPlan] = await db
+      .select()
+      .from(plans)
+      .where(eq(plans.id, subscription.pendingPlanId))
+      .limit(1);
+    if (!targetPlan) return false;
+
+    const effectiveAt = subscription.pendingPlanEffectiveAt;
+    const periodEnd =
+      subscription.currentPeriodEnd > effectiveAt
+        ? subscription.currentPeriodEnd
+        : addOneMonth(effectiveAt);
+
+    const [updated] = await db
+      .update(subscriptions)
+      .set({
+        planId: targetPlan.id,
+        pendingPlanId: null,
+        pendingPlanEffectiveAt: null,
+        status: "active",
+        currentPeriodStart: effectiveAt,
+        currentPeriodEnd: periodEnd,
+        cancelledAt: null,
+        ...(isPaidPlanRow(targetPlan)
+          ? {}
+          : { autoRenewEnabled: false }),
+        ...clearRenewalTrackingFields(),
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(subscriptions.id, subscription.id),
+          eq(subscriptions.pendingPlanId, targetPlan.id),
+          lte(subscriptions.pendingPlanEffectiveAt, now),
+        ),
+      )
+      .returning({ id: subscriptions.id });
+
+    return Boolean(updated);
+  }
+
   /** @deprecated Usar syncSubscriptionForContext */
   static async syncSubscriptionForUser(userId: string) {
     const [user] = await db
@@ -610,6 +692,22 @@ export class SubscriptionService {
    */
   static async processSubscriptionLifecycle() {
     const now = new Date();
+
+    const duePlanChanges = await db
+      .select()
+      .from(subscriptions)
+      .where(
+        and(
+          sql`${subscriptions.pendingPlanId} IS NOT NULL`,
+          lte(subscriptions.pendingPlanEffectiveAt, now),
+        ),
+      );
+    let appliedPlanChanges = 0;
+    for (const subscription of duePlanChanges) {
+      if (await this.applyPendingPlanChange(subscription, now)) {
+        appliedPlanChanges += 1;
+      }
+    }
 
     const { SubscriptionRenewalService } = await import("./subscription-renewal.service");
     const remindersSent = await SubscriptionRenewalService.sendUpcomingRenewalReminders();
@@ -646,8 +744,13 @@ export class SubscriptionService {
       autoRenewed: expiredResult.autoRenewed,
       autoRenewAttempts: expiredResult.autoRenewAttempts,
       markedPastDue: expiredResult.markedPastDue,
+      appliedPlanChanges,
       renewedFree,
-      processed: expiredResult.markedPastDue + expiredResult.autoRenewed + renewedFree,
+      processed:
+        expiredResult.markedPastDue +
+        expiredResult.autoRenewed +
+        renewedFree +
+        appliedPlanChanges,
     };
   }
 
@@ -697,26 +800,45 @@ export class SubscriptionService {
         )
       : 0;
 
-    const isActivePaid =
-      row &&
-      row.subscription.status === "active" &&
-      isPaidPlanRow(row.plan) &&
-      row.subscription.currentPeriodEnd > now;
-
     const isDifferentPlan = currentPlan.slug !== targetPlanSlug;
-    const isDowngrade =
-      targetPlan.slug === "free" ||
-      Number(targetPlan.priceMonthly) < Number(currentPlan.priceMonthly);
-
-    const newPeriodEnd = addOneMonth(now);
+    const decision = row
+      ? decidePlanChangeTiming({
+          currentPrice: Number(currentPlan.priceMonthly),
+          targetPrice: Number(targetPlan.priceMonthly),
+          currentPlanId: currentPlan.id,
+          targetPlanId: targetPlan.id,
+          currentStatus: row.subscription.status,
+          currentPeriodEnd: row.subscription.currentPeriodEnd,
+          now,
+        })
+      : {
+          timing: "immediate" as const,
+          isDowngrade: false,
+          hasActivePaidPeriod: false,
+        };
+    const targetIsPaid = Number(targetPlan.priceMonthly) > 0;
+    const newPeriodEnd =
+      decision.hasActivePaidPeriod && targetIsPaid
+        ? addOneMonth(row!.subscription.currentPeriodEnd)
+        : decision.timing === "scheduled"
+          ? row!.subscription.currentPeriodEnd
+          : addOneMonth(now);
 
     return {
-      requiresConfirmation: Boolean(isActivePaid && isDifferentPlan && daysRemaining > 0),
+      requiresConfirmation: Boolean(
+        decision.hasActivePaidPeriod && isDifferentPlan && daysRemaining > 0,
+      ),
       currentPlanName: currentPlan.name,
       targetPlanName: targetPlan.name,
       daysRemaining,
       newPeriodEnd: newPeriodEnd.toISOString(),
-      isDowngrade,
+      effectiveAt:
+        decision.timing === "scheduled" && row
+          ? row.subscription.currentPeriodEnd.toISOString()
+          : now.toISOString(),
+      isDowngrade: decision.isDowngrade,
+      timing: decision.timing,
+      preservesRemainingDays: decision.hasActivePaidPeriod,
     };
   }
 
@@ -724,6 +846,7 @@ export class SubscriptionService {
     actorUserId: string,
     actorRole: string | null | undefined,
     planId: string,
+    options: { paymentReceived?: boolean } = {},
   ) {
     const ctx = await resolveSubscriptionBillingContext(actorUserId, actorRole);
     if (!canManageSubscriptionBilling(actorUserId, actorRole, ctx)) {
@@ -733,7 +856,9 @@ export class SubscriptionService {
     if (!billingUserId) throw new Error("Contexto de facturación inválido");
 
     return db.transaction(async (tx) =>
-      this.assignPlanToContextTx(tx, ctx, planId, billingUserId),
+      this.assignPlanToContextTx(tx, ctx, planId, billingUserId, {
+        paymentReceived: options.paymentReceived ?? true,
+      }),
     );
   }
 
@@ -751,7 +876,9 @@ export class SubscriptionService {
     const billingUserId = getBillingUserId(ctx);
     if (!billingUserId) throw new Error("Contexto de facturación inválido");
 
-    return this.assignPlanToContextTx(tx, ctx, planId, billingUserId);
+    return this.assignPlanToContextTx(tx, ctx, planId, billingUserId, {
+      paymentReceived: true,
+    });
   }
 
   /** @deprecated Usar assignPlanToContextTx */
@@ -764,6 +891,7 @@ export class SubscriptionService {
     ctx: SubscriptionBillingContext,
     planId: string,
     billingUserId: string,
+    options: { paymentReceived: boolean },
   ) {
     if (ctx.mode === "platform_unlimited") {
       throw new Error("El plan del superadministrador no se asigna por suscripción.");
@@ -777,11 +905,17 @@ export class SubscriptionService {
 
     const now = new Date();
 
-    const [existing] = await tx
-      .select()
+    const [existingRow] = await tx
+      .select({
+        subscription: subscriptions,
+        plan: plans,
+      })
       .from(subscriptions)
+      .innerJoin(plans, eq(subscriptions.planId, plans.id))
       .where(this.subscriptionWhere(ctx))
       .limit(1);
+    const existing = existingRow?.subscription;
+    const currentPlan = existingRow?.plan;
 
     const stillActive =
       existing &&
@@ -789,22 +923,70 @@ export class SubscriptionService {
       existing.currentPeriodEnd > now;
 
     const isSamePlan = existing?.planId === planId;
-
-    const periodStart =
-      existing && isSamePlan && stillActive ? existing.currentPeriodStart : now;
-    const periodEnd =
-      existing && isSamePlan && stillActive
-        ? addOneMonth(existing.currentPeriodEnd)
-        : addOneMonth(now);
+    const decision =
+      existing && currentPlan
+        ? decidePlanChangeTiming({
+            currentPrice: Number(currentPlan.priceMonthly),
+            targetPrice: Number(plan.priceMonthly),
+            currentPlanId: currentPlan.id,
+            targetPlanId: plan.id,
+            currentStatus: existing.status,
+            currentPeriodEnd: existing.currentPeriodEnd,
+            now,
+          })
+        : {
+            timing: "immediate" as const,
+            isDowngrade: false,
+            hasActivePaidPeriod: false,
+          };
 
     if (existing) {
+      if (existing.pendingPlanId) {
+        if (existing.pendingPlanId === planId) return existing.id;
+        throw new Error("Ya existe un cambio de plan programado para esta suscripción.");
+      }
+
+      if (decision.timing === "scheduled") {
+        const paidFuturePeriod =
+          options.paymentReceived && Number(plan.priceMonthly) > 0;
+        const periodEnd = paidFuturePeriod
+          ? purchasedPeriodEnd({
+              currentPeriodEnd: existing.currentPeriodEnd,
+              now,
+              hasActivePaidPeriod: decision.hasActivePaidPeriod,
+              paymentReceived: true,
+            })
+          : existing.currentPeriodEnd;
+
+        await tx
+          .update(subscriptions)
+          .set({
+            pendingPlanId: planId,
+            pendingPlanEffectiveAt: existing.currentPeriodEnd,
+            currentPeriodEnd: periodEnd,
+            updatedAt: now,
+          })
+          .where(eq(subscriptions.id, existing.id));
+
+        return existing.id;
+      }
+
+      const periodEnd = purchasedPeriodEnd({
+        currentPeriodEnd: existing.currentPeriodEnd,
+        now,
+        hasActivePaidPeriod: decision.hasActivePaidPeriod,
+        paymentReceived: options.paymentReceived,
+      });
       await tx
         .update(subscriptions)
         .set({
           planId,
+          pendingPlanId: null,
+          pendingPlanEffectiveAt: null,
           userId: billingUserId,
           status: "active",
-          currentPeriodStart: periodStart,
+          currentPeriodStart:
+            isSamePlan && stillActive ? existing.currentPeriodStart : now,
           currentPeriodEnd: periodEnd,
           cancelledAt: null,
           ...clearRenewalTrackingFields(),
@@ -822,8 +1004,8 @@ export class SubscriptionService {
         organizationId: ctx.mode === "organization" ? ctx.organizationId : null,
         planId,
         status: "active",
-        currentPeriodStart: periodStart,
-        currentPeriodEnd: periodEnd,
+        currentPeriodStart: now,
+        currentPeriodEnd: addOneMonth(now),
       })
       .returning({ id: subscriptions.id });
 

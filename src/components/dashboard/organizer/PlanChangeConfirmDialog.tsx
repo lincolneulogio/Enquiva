@@ -28,6 +28,11 @@ export function PlanChangeConfirmDialog({
     month: "long",
     year: "numeric",
   });
+  const effectiveDate = new Date(preview.effectiveAt).toLocaleDateString(dateLocale, {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <div
@@ -60,9 +65,24 @@ export function PlanChangeConfirmDialog({
         </div>
 
         <div className="space-y-3 px-5 py-4 text-sm text-muted-foreground">
-          <p>{t("billing.organizer.planChangeLose", { target: preview.targetPlanName })}</p>
+          <p>
+            {preview.timing === "scheduled"
+              ? t("billing.organizer.planChangeScheduled", {
+                  current: preview.currentPlanName,
+                  target: preview.targetPlanName,
+                  date: effectiveDate,
+                })
+              : t("billing.organizer.planChangeUpgrade", {
+                  target: preview.targetPlanName,
+                })}
+          </p>
+          {preview.timing === "scheduled" && Number(targetPlan.priceMonthly) > 0 && (
+            <p>{t("billing.organizer.planChangeScheduledCharge")}</p>
+          )}
           <p className="rounded-xl border border-border bg-muted/30 px-3 py-2.5 text-foreground">
-            {t("billing.organizer.planChangeNewExpiry", { date: newExpiry })}
+            {preview.timing === "scheduled" && Number(targetPlan.priceMonthly) <= 0
+              ? t("billing.organizer.planChangeEffectiveDate", { date: newExpiry })
+              : t("billing.organizer.planChangeNewExpiry", { date: newExpiry })}
           </p>
           {preview.isDowngrade && (
             <p className="text-amber-700 dark:text-amber-400">
