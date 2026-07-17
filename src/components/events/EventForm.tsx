@@ -127,10 +127,15 @@ export function EventForm({
     const [categoryOptions, setCategoryOptions] = useState(categories);
     const [createCategoryOpen, setCreateCategoryOpen] = useState(false);
     const pendingCategorySelectionRef = useRef<string | null>(null);
+    const [minimumEventDate, setMinimumEventDate] = useState("");
 
     useEffect(() => {
         setCategoryOptions(categories);
     }, [categories]);
+
+    useEffect(() => {
+        setMinimumEventDate(toLocalDateTimeInputValue(new Date()).slice(0, 10));
+    }, []);
 
     const getLocalizedValidationMessage = (message?: string) => {
         if (!message) return t("events.form.requiredFieldsError");
@@ -677,6 +682,7 @@ export function EventForm({
                                         ref={eventDateInputRef}
                                         id="event-date-part"
                                         type="date"
+                                        min={minimumEventDate || undefined}
                                         value={eventDatePart}
                                         onChange={(e) => updateEventDateTime(e.target.value, eventTimePart)}
                                         aria-invalid={Boolean(errors.date)}

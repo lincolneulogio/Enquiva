@@ -60,7 +60,7 @@ export default async function MemberEventsPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
                 <div>
-                    <h1 className="font-display text-2xl font-bold text-foreground">{t("dashboard.member.myEvents")}</h1>
+                    <h1 className="font-display text-2xl font-bold text-foreground">{t("dashboard.member.registeredEventsTitle")}</h1>
                     <p className="mt-1 text-sm text-muted-foreground">{t("dashboard.member.allRegistrationsInOnePlace")}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">

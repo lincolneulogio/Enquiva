@@ -230,7 +230,11 @@ export function getOrganizationIdFromScope(scope: AdminScope): string | null {
   return scope.mode === "org" ? scope.organizationId : null;
 }
 
-const UNASSIGNED_ADMIN_ALLOWED_PATHS = ["/admin/onboarding", "/admin/profile"];
+const UNASSIGNED_ADMIN_ALLOWED_PATHS = [
+  "/admin/onboarding",
+  "/admin/profile",
+  "/admin/registered-events",
+];
 
 export function isPathAllowedForUnassignedAdmin(pathname: string): boolean {
   return UNASSIGNED_ADMIN_ALLOWED_PATHS.some(

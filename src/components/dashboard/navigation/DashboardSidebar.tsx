@@ -92,6 +92,11 @@ const organizerSections = (options: OrganizerNavOptions): NavSection[] =>
           permissions: ["events:create", "events:update:own", "events:delete:own"],
         },
         {
+          labelKey: "dashboard.sidebar.organizer.registeredEvents",
+          href: "/organizer/registered-events",
+          icon: Ticket,
+        },
+        {
           labelKey: "dashboard.sidebar.organizer.attendees",
           href: "/organizer/attendees",
           icon: Users,
@@ -189,6 +194,11 @@ const adminUnassignedSections = (): NavSection[] =>
           href: "/admin/onboarding",
           icon: ShieldCheck,
         },
+        {
+          labelKey: "dashboard.sidebar.admin.registeredEvents",
+          href: "/admin/registered-events",
+          icon: Ticket,
+        },
       ],
     },
     {
@@ -256,6 +266,11 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
             "events:delete:any",
             "events:delete:own",
           ],
+        },
+        {
+          labelKey: "dashboard.sidebar.admin.registeredEvents",
+          href: p("/registered-events"),
+          icon: Ticket,
         },
         {
           labelKey: "dashboard.sidebar.admin.categories",
