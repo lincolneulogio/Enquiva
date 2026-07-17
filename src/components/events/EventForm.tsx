@@ -9,7 +9,7 @@ import { createEvent, updateEvent } from "@/actions/events";
 import { getPaymentMethodsForEventForm, setEventPaymentMethods } from "@/actions/payment-methods";
 import { UploadDropzone } from "@/lib/uploadthing/components";
 import { toast } from "sonner";
-import { Loader2, ImageIcon, MapPin, Video, Star, Bus, Smartphone, QrCode, Wallet, CreditCard, Plus } from "lucide-react";
+import { Loader2, ImageIcon, MapPin, Video, Star, Bus, Smartphone, QrCode, Wallet, CreditCard, Plus, CalendarDays, Clock3 } from "lucide-react";
 import { EventCoverFrame } from "@/components/events/EventCoverFrame";
 import { CreateCategoryModal } from "@/components/events/CreateCategoryModal";
 import type { Event } from "@/lib/db/schema";
@@ -42,6 +42,12 @@ interface EventFormProps {
 }
 
 const EVENT_DRAFT_STORAGE_KEY = formStorageKey("event.create");
+
+function toLocalDateTimeInputValue(value: Date | string) {
+    const date = new Date(value);
+    const pad = (part: number) => String(part).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 type EventFormDraft = {
     coverImage: string | null;
@@ -114,12 +120,14 @@ export function EventForm({
 
     const form = useForm<CreateEventInput>({
         resolver: zodResolver(createEventSchema),
+        mode: "onTouched",
+        reValidateMode: "onChange",
         defaultValues: event
             ? {
                 title: event.title,
                 description: event.description,
                 category: event.category,
-                date: new Date(event.date).toISOString().slice(0, 16),
+                date: toLocalDateTimeInputValue(event.date),
                 location: event.location ?? undefined,
                 isVirtual: event.isVirtual,
                 virtualLink: event.virtualLink ?? undefined,
@@ -153,9 +161,48 @@ export function EventForm({
         setValue,
         setFocus,
         clearErrors,
+        trigger,
         reset,
         formState: { errors },
     } = form;
+    const initialDateTime = form.getValues("date") ?? "";
+    const [eventDatePart, setEventDatePart] = useState(initialDateTime.slice(0, 10));
+    const [eventTimePart, setEventTimePart] = useState(initialDateTime.slice(11, 16));
+    const datePartsUpdateRef = useRef(false);
+    const watchedDateTime = watch("date");
+
+    useEffect(() => {
+        if (datePartsUpdateRef.current) {
+            datePartsUpdateRef.current = false;
+            return;
+        }
+        setEventDatePart(watchedDateTime?.slice(0, 10) ?? "");
+        setEventTimePart(watchedDateTime?.slice(11, 16) ?? "");
+    }, [watchedDateTime]);
+
+    const updateEventDateTime = (nextDate: string, nextTime: string) => {
+        setEventDatePart(nextDate);
+        setEventTimePart(nextTime);
+
+        const combined = nextDate && nextTime ? `${nextDate}T${nextTime}` : "";
+        if (combined !== watchedDateTime) {
+            datePartsUpdateRef.current = true;
+            setValue("date", combined, {
+                shouldDirty: true,
+                shouldTouch: true,
+                shouldValidate: Boolean(combined),
+            });
+        }
+
+        if (combined) {
+            void trigger("date").then((valid) => {
+                if (!valid) return;
+                clearErrors("date");
+                setHighlightedField((current) => current === "date" ? null : current);
+                toast.dismiss("event-form-validation");
+            });
+        }
+    };
 
     useEffect(() => {
         const slug = pendingCategorySelectionRef.current;
@@ -327,6 +374,12 @@ export function EventForm({
         }
     }, [highlightedField, errors]);
 
+    useEffect(() => {
+        if (Object.keys(errors).length === 0) {
+            toast.dismiss("event-form-validation");
+        }
+    }, [errors]);
+
     const onSubmit = (data: CreateEventInput) => {
         if (
             planMaxAttendees != null &&
@@ -387,7 +440,12 @@ export function EventForm({
         const firstFieldWithError = FIRST_ERROR_FIELD_ORDER.find((field) => !!errs[field]);
 
         if (firstFieldWithError) {
-            setFocus(firstFieldWithError);
+            if (firstFieldWithError === "date") {
+                const dateInputId = eventDatePart ? "event-time-part" : "event-date-part";
+                document.getElementById(dateInputId)?.focus();
+            } else {
+                setFocus(firstFieldWithError);
+            }
             setHighlightedField(firstFieldWithError);
             if (highlightTimeoutRef.current) {
                 window.clearTimeout(highlightTimeoutRef.current);
@@ -396,7 +454,10 @@ export function EventForm({
                 setHighlightedField(null);
             }, 1400);
 
-            const fieldElement = document.querySelector<HTMLElement>(`[name="${firstFieldWithError}"]`);
+            const fieldElement =
+                firstFieldWithError === "date"
+                    ? document.getElementById(eventDatePart ? "event-time-part" : "event-date-part")
+                    : document.querySelector<HTMLElement>(`[name="${firstFieldWithError}"]`);
             fieldElement?.scrollIntoView({ behavior: "smooth", block: "center" });
         }
 
@@ -543,17 +604,42 @@ export function EventForm({
                         </div>
 
                         <div>
-                            <label htmlFor="event-date" className="mb-1.5 block text-sm font-medium text-foreground">{t("events.form.dateTime")}</label>
-                            <input
-                                id="event-date"
-                                type="datetime-local"
-                                {...register("date")}
-                                aria-invalid={Boolean(errors.date)}
-                                aria-describedby={errors.date ? "event-date-error" : undefined}
-                                className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("date")}`}
-                            />
+                            <p className="mb-1.5 text-sm font-medium text-foreground">{t("events.form.dateTime")}</p>
+                            <input type="hidden" {...register("date")} />
+                            <div className="grid grid-cols-[minmax(0,1fr)_minmax(8rem,0.72fr)] gap-2">
+                                <div className="relative">
+                                    <label htmlFor="event-date-part" className="sr-only">{t("events.form.date")}</label>
+                                    <CalendarDays aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                    <input
+                                        id="event-date-part"
+                                        type="date"
+                                        value={eventDatePart}
+                                        onChange={(e) => updateEventDateTime(e.target.value, eventTimePart)}
+                                        aria-invalid={Boolean(errors.date)}
+                                        aria-describedby={errors.date ? "event-date-error" : undefined}
+                                        className={`w-full rounded-xl border border-border bg-background py-2.5 pl-9 pr-3 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("date")}`}
+                                    />
+                                </div>
+                                <div className="relative">
+                                    <label htmlFor="event-time-part" className="sr-only">{t("events.form.time")}</label>
+                                    <Clock3 aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                    <input
+                                        id="event-time-part"
+                                        type="time"
+                                        value={eventTimePart}
+                                        onChange={(e) => updateEventDateTime(eventDatePart, e.target.value)}
+                                        aria-invalid={Boolean(errors.date)}
+                                        aria-describedby={errors.date ? "event-date-error" : undefined}
+                                        className={`w-full rounded-xl border border-border bg-background py-2.5 pl-9 pr-3 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("date")}`}
+                                    />
+                                </div>
+                            </div>
                             {errors.date && (
-                                <p id="event-date-error" role="alert" className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.date.message)}</p>
+                                <p id="event-date-error" role="alert" className="mt-1 text-xs text-destructive">
+                                    {eventDatePart && !eventTimePart
+                                        ? t("events.form.validation.timeRequired")
+                                        : getLocalizedValidationMessage(errors.date.message)}
+                                </p>
                             )}
                         </div>
                     </div>
