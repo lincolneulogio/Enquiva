@@ -17,6 +17,11 @@ import { getExportEventOptions } from "@/actions/exports";
 import { getMyPlanSummary } from "@/actions/billing";
 import { planIncludesFeature } from "@/lib/billing/enforce";
 import { PlanUsageBanner } from "@/components/dashboard/organizer/PlanUsageBanner";
+import {
+    getViewerEventStatuses,
+    VIEWER_EVENT_STATUS_I18N_KEY,
+} from "@/lib/events/viewer-event-status";
+import { ViewerEventStatusBadge } from "@/components/events/ViewerEventStatusBadge";
 
 const PAGE_SIZE = 10;
 
@@ -102,6 +107,10 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
         .orderBy(desc(events.createdAt))
         .limit(PAGE_SIZE)
         .offset(offset);
+    const viewerStatuses = await getViewerEventStatuses(
+        organizerId,
+        filteredEvents.map(({ event }) => event.id),
+    );
 
     // Export options (all organizer events, unfiltered)
     const exportEventOptions = await getExportEventOptions("organizer");
@@ -129,6 +138,13 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                         })}
                     </p>
                 </div>
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                    <Link
+                        href="/events"
+                        className="inline-flex w-full items-center justify-center rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted sm:w-auto"
+                    >
+                        {t("dashboard.member.exploreEvents")}
+                    </Link>
                 {planSummary.canCreateEvent ? (
                     <Link
                         href="/organizer/events/new"
@@ -149,6 +165,7 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                         {t("dashboard.organizer.planLimitContactAdmin")}
                     </p>
                 )}
+                </div>
             </div>
 
             <PlanUsageBanner summary={planSummary} />
@@ -210,13 +227,14 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                 <div className="overflow-hidden rounded-xl border border-border bg-card">
                     <p className="px-3 pt-2 text-[11px] text-muted-foreground sm:hidden">↔ Scroll</p>
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[820px] text-sm">
+                        <table className="w-full min-w-[1020px] text-sm">
                             <thead>
                                 <tr className="border-b border-border bg-muted/50">
                                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("dashboard.admin.title")}</th>
                                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.category")}</th>
                                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.date")}</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.status")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("public.events.viewerStatus.eventStatusLabel")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("public.events.viewerStatus.label")}</th>
                                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.registrations")}</th>
                                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">{t("common.actions")}</th>
                                 </tr>
@@ -231,6 +249,18 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                                             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor(event.status)}`}>
                                                 {eventStatusLabel(event.status, locale)}
                                             </span>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {(() => {
+                                                const viewerStatus =
+                                                    viewerStatuses.get(event.id) ?? "not_registered";
+                                                return (
+                                                    <ViewerEventStatusBadge
+                                                        status={viewerStatus}
+                                                        label={t(VIEWER_EVENT_STATUS_I18N_KEY[viewerStatus])}
+                                                    />
+                                                );
+                                            })()}
                                         </td>
                                         <td className="px-4 py-3 text-muted-foreground">
                                             {attendeeCount ?? 0}

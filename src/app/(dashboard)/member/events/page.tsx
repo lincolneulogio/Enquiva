@@ -6,11 +6,24 @@ import { Calendar, MapPin, CheckCircle2, Clock, XCircle, ArrowRight, Sparkles } 
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
 import { registrationStatusLabel } from "@/lib/utils";
+import {
+    getViewerEventStatuses,
+    VIEWER_EVENT_STATUS_I18N_KEY,
+    type ViewerEventStatus,
+} from "@/lib/events/viewer-event-status";
+import { ViewerEventStatusBadge } from "@/components/events/ViewerEventStatusBadge";
+import { translate, type Locale } from "@/lib/i18n/core";
 
 export default async function MemberEventsPage() {
     const { locale, t } = await getI18n();
-    await auth.api.getSession({ headers: await headers() });
+    const session = await auth.api.getSession({ headers: await headers() });
     const registrations = await getUserRegistrations();
+    const viewerStatuses = session?.user
+        ? await getViewerEventStatuses(
+            session.user.id,
+            registrations.map(({ event }) => event.id),
+        )
+        : new Map<string, ViewerEventStatus>();
     const intlLocale = getIntlLocale(locale);
 
     const upcoming = registrations.filter(
@@ -50,12 +63,21 @@ export default async function MemberEventsPage() {
                     <h1 className="font-display text-2xl font-bold text-foreground">{t("dashboard.member.myEvents")}</h1>
                     <p className="mt-1 text-sm text-muted-foreground">{t("dashboard.member.allRegistrationsInOnePlace")}</p>
                 </div>
+                <div className="flex flex-wrap items-center gap-2">
+                <Link
+                    href="/events"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted"
+                >
+                    {t("dashboard.member.exploreEvents")}
+                    <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
                 {hasAny && (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary/60 rounded-xl px-3 py-2 border border-border self-start sm:self-auto">
                         <Sparkles className="h-3.5 w-3.5 text-primary" />
                         <span>{registrations.length} {locale === "en" ? "registrations total" : "inscripciones en total"}</span>
                     </div>
                 )}
+                </div>
             </div>
 
             {/* Empty state */}
@@ -96,6 +118,7 @@ export default async function MemberEventsPage() {
                             getMonthAbbr={getMonthAbbr}
                             getDay={getDay}
                             statusLabel={registrationStatusLabel(registration.status, locale)}
+                            viewerStatus={viewerStatuses.get(event.id) ?? "registered"}
                             viewLabel={t("common.view")}
                         />
                     ))}
@@ -122,6 +145,7 @@ export default async function MemberEventsPage() {
                             getMonthAbbr={getMonthAbbr}
                             getDay={getDay}
                             statusLabel={registrationStatusLabel(registration.status, locale)}
+                            viewerStatus={viewerStatuses.get(event.id) ?? "checked_in"}
                             viewLabel={t("common.view")}
                         />
                     ))}
@@ -148,6 +172,7 @@ export default async function MemberEventsPage() {
                             getMonthAbbr={getMonthAbbr}
                             getDay={getDay}
                             statusLabel={registrationStatusLabel(registration.status, locale)}
+                            viewerStatus={viewerStatuses.get(event.id) ?? "waitlisted"}
                             viewLabel={t("common.view")}
                         />
                     ))}
@@ -175,6 +200,7 @@ export default async function MemberEventsPage() {
                             getMonthAbbr={getMonthAbbr}
                             getDay={getDay}
                             statusLabel={registrationStatusLabel(registration.status, locale)}
+                            viewerStatus="not_registered"
                             viewLabel={t("common.view")}
                         />
                     ))}
@@ -258,6 +284,7 @@ function EventCard({
     locale,
     intlLocale,
     statusLabel,
+    viewerStatus,
     viewLabel,
     getMonthAbbr,
     getDay,
@@ -265,12 +292,13 @@ function EventCard({
     event: { title: string; slug: string; date: Date; location: string | null; isVirtual: boolean };
     registration: { id: string; status: string };
     status: "upcoming" | "checked_in" | "waitlisted" | "cancelled";
-    locale: string;
+    locale: Locale;
     intlLocale: string;
     formatDate: (d: Date) => string;
     getMonthAbbr: (d: Date) => string;
     getDay: (d: Date) => string;
     statusLabel: string;
+    viewerStatus: ViewerEventStatus;
     viewLabel: string;
 }) {
     const accent = status === "upcoming" ? "primary"
@@ -323,9 +351,17 @@ function EventCard({
 
             {/* Right: badge + link */}
             <div className="shrink-0 flex flex-col items-end justify-between gap-2 ml-1">
-                <span className={`text-[9px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5 ${a.badge}`}>
-                    {statusLabel}
-                </span>
+                {status === "cancelled" ? (
+                    <span className={`text-[9px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5 ${a.badge}`}>
+                        {statusLabel}
+                    </span>
+                ) : (
+                    <ViewerEventStatusBadge
+                        status={viewerStatus}
+                        label={translate(locale, VIEWER_EVENT_STATUS_I18N_KEY[viewerStatus])}
+                        className="max-w-44"
+                    />
+                )}
                 <Link
                     href={`/events/${event.slug}`}
                     className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-primary transition-colors"

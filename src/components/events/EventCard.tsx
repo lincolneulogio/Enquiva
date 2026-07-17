@@ -1,5 +1,16 @@
 import Link from "next/link";
-import { ArrowUpRight, Calendar, Lock, MapPin, Users } from "lucide-react";
+import {
+  ArrowUpRight,
+  BadgeCheck,
+  Calendar,
+  Clock3,
+  CreditCard,
+  Lock,
+  MapPin,
+  UserRoundCheck,
+  Users,
+  XCircle,
+} from "lucide-react";
 import { EventCoverFrame, EventCoverPlaceholder } from "@/components/events/EventCoverFrame";
 import type { Event } from "@/lib/db/schema";
 import {
@@ -11,11 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { getLocale } from "@/lib/i18n/server";
 import { translate } from "@/lib/i18n/core";
-import { db } from "@/lib/db";
-import { registrations } from "@/lib/db/schema";
-import { and, eq, ne } from "drizzle-orm";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import type { ViewerEventStatus } from "@/lib/events/viewer-event-status";
 
 interface EventCardProps {
   event: Event & { attendeeCount?: number };
@@ -24,6 +31,7 @@ interface EventCardProps {
   priority?: boolean;
   /** Oculta la fila de fecha en meta (ya aparece en la portada). */
   hideDateMeta?: boolean;
+  viewerStatus?: ViewerEventStatus;
 }
 
 export async function EventCard({
@@ -32,6 +40,7 @@ export async function EventCard({
   categoryMap,
   priority = false,
   hideDateMeta = false,
+  viewerStatus,
 }: EventCardProps) {
   const locale = await getLocale();
   const t = (key: string, params?: Record<string, string | number>) =>
@@ -42,22 +51,76 @@ export async function EventCard({
   const isEventExpired = new Date(event.date).getTime() <= Date.now();
   const categoryMeta = categoryMap?.[event.category];
 
-  const session = await auth.api.getSession({ headers: await headers() });
-  let isUserRegistered = false;
-  if (session?.user) {
-    const [reg] = await db
-      .select({ id: registrations.id })
-      .from(registrations)
-      .where(
-        and(
-          eq(registrations.eventId, event.id),
-          eq(registrations.userId, session.user.id),
-          ne(registrations.status, "cancelled"),
-        ),
-      )
-      .limit(1);
-    isUserRegistered = !!reg;
-  }
+  const hasRegistration =
+    viewerStatus != null &&
+    viewerStatus !== "guest" &&
+    viewerStatus !== "not_registered";
+  const viewerStatusMeta = viewerStatus
+    ? {
+        guest: {
+          label: t("public.events.viewerStatus.guest"),
+          tone: "border-border bg-muted/90 text-muted-foreground",
+          Icon: UserRoundCheck,
+        },
+        not_registered: {
+          label: t("public.events.viewerStatus.notRegistered"),
+          tone: "border-slate-300 bg-slate-100/90 text-slate-700 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-300",
+          Icon: UserRoundCheck,
+        },
+        registered: {
+          label: t("public.events.viewerStatus.registered"),
+          tone: "border-emerald-300 bg-emerald-100/90 text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/90 dark:text-emerald-300",
+          Icon: BadgeCheck,
+        },
+        reserved: {
+          label: t("public.events.viewerStatus.reserved"),
+          tone: "border-amber-300 bg-amber-100/90 text-amber-950 dark:border-amber-800 dark:bg-amber-950/90 dark:text-amber-300",
+          Icon: Clock3,
+        },
+        reservation_expired: {
+          label: t("public.events.viewerStatus.reservationExpired"),
+          tone: "border-rose-300 bg-rose-100/90 text-rose-950 dark:border-rose-800 dark:bg-rose-950/90 dark:text-rose-300",
+          Icon: XCircle,
+        },
+        paid: {
+          label: t("public.events.viewerStatus.paid"),
+          tone: "border-sky-300 bg-sky-100/90 text-sky-950 dark:border-sky-800 dark:bg-sky-950/90 dark:text-sky-300",
+          Icon: CreditCard,
+        },
+        payment_rejected: {
+          label: t("public.events.viewerStatus.paymentRejected"),
+          tone: "border-rose-300 bg-rose-100/90 text-rose-950 dark:border-rose-800 dark:bg-rose-950/90 dark:text-rose-300",
+          Icon: XCircle,
+        },
+        waitlisted: {
+          label: t("public.events.viewerStatus.waitlisted"),
+          tone: "border-violet-300 bg-violet-100/90 text-violet-950 dark:border-violet-800 dark:bg-violet-950/90 dark:text-violet-300",
+          Icon: Clock3,
+        },
+        checked_in: {
+          label: t("public.events.viewerStatus.checkedIn"),
+          tone: "border-emerald-300 bg-emerald-100/90 text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/90 dark:text-emerald-300",
+          Icon: BadgeCheck,
+        },
+      }[viewerStatus]
+    : null;
+  const ViewerStatusIcon = viewerStatusMeta?.Icon;
+  const viewerCta =
+    viewerStatus === "paid" || viewerStatus === "checked_in"
+      ? t("public.events.viewerStatus.viewTicket")
+      : viewerStatus === "reserved"
+        ? t("public.events.viewerStatus.completePayment")
+        : viewerStatus === "reservation_expired" ||
+            viewerStatus === "payment_rejected"
+          ? t("public.events.viewerStatus.retryPayment")
+          : viewerStatus === "waitlisted"
+            ? t("public.events.viewerStatus.viewStatus")
+            : viewerStatus === "registered"
+              ? t("public.events.viewerStatus.viewRegistration")
+              : t("common.view");
+  const paymentNeedsAttention =
+    viewerStatus === "reservation_expired" ||
+    viewerStatus === "payment_rejected";
 
   const cardContent = (
     <article
@@ -109,16 +172,17 @@ export async function EventCard({
           </div>
         )}
 
-        {/* Registered badge */}
-        {isUserRegistered && (
+        {/* Estado personal del usuario; separado del estado público del evento. */}
+        {hasRegistration && viewerStatusMeta && ViewerStatusIcon && (
           <div
             className={cn(
-              "absolute right-3 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold text-emerald-950 bg-emerald-100/90 border border-emerald-300 dark:bg-emerald-950/90 dark:text-emerald-300 dark:border-emerald-800 shadow-md backdrop-blur-md",
+              "absolute right-3 z-30 flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold shadow-md backdrop-blur-md",
+              viewerStatusMeta.tone,
               event.isFeatured ? "top-12" : "top-3",
             )}
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Inscrito
+            <ViewerStatusIcon className="h-3.5 w-3.5" aria-hidden="true" />
+            {viewerStatusMeta.label}
           </div>
         )}
 
@@ -204,6 +268,27 @@ export async function EventCard({
               )}
             </span>
           </div>
+
+          {viewerStatusMeta && ViewerStatusIcon && (
+            <div
+              className={cn(
+                "flex items-center gap-2.5 rounded-2xl border px-3 py-2",
+                viewerStatusMeta.tone,
+              )}
+            >
+              <span className="inline-flex h-6.5 w-6.5 shrink-0 items-center justify-center rounded-xl bg-background/60">
+                <ViewerStatusIcon className="h-3.5 w-3.5" aria-hidden="true" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[10px] font-semibold uppercase tracking-wide opacity-70">
+                  {t("public.events.viewerStatus.label")}
+                </span>
+                <span className="block truncate font-semibold leading-tight">
+                  {viewerStatusMeta.label}
+                </span>
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="mt-4 border-t border-border/50 pt-4">
@@ -211,16 +296,20 @@ export async function EventCard({
             <div
               className={cn(
                 "inline-flex w-full items-center justify-between rounded-2xl border px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-all duration-300 shadow-sm",
-                isUserRegistered
+                paymentNeedsAttention
+                  ? "border-rose-500/25 bg-rose-500/5 text-rose-600 dark:text-rose-400 group-hover:bg-rose-600 group-hover:text-white group-hover:border-rose-600"
+                  : viewerStatus === "reserved"
+                    ? "border-amber-500/25 bg-amber-500/5 text-amber-700 dark:text-amber-400 group-hover:bg-amber-600 group-hover:text-white group-hover:border-amber-600"
+                    : hasRegistration
                   ? "border-emerald-500/25 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-600 group-hover:shadow-md group-hover:shadow-emerald-500/10"
                   : "border-primary/25 bg-primary/5 text-primary group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary group-hover:shadow-lg group-hover:shadow-primary/20",
               )}
             >
               <span className="font-bold flex items-center gap-1.5">
-                {isUserRegistered ? (
+                {hasRegistration ? (
                   <>
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse group-hover:bg-white transition-colors duration-300" />
-                    Ver mi Inscripción
+                    {viewerCta}
                   </>
                 ) : (
                   t("common.view")

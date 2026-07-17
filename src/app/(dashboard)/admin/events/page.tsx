@@ -18,6 +18,12 @@ import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server"
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { normalizeRole } from "@/lib/auth/rbac";
+import {
+    getViewerEventStatuses,
+    VIEWER_EVENT_STATUS_I18N_KEY,
+    type ViewerEventStatus,
+} from "@/lib/events/viewer-event-status";
+import { ViewerEventStatusBadge } from "@/components/events/ViewerEventStatusBadge";
 
 interface AdminEventsPageProps {
     searchParams: Promise<{
@@ -120,6 +126,9 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
 
     const eventIds = allEvents.map((e) => e.id);
     const regCountsMap = new Map<string, number>();
+    const viewerStatuses = session?.user
+        ? await getViewerEventStatuses(session.user.id, eventIds)
+        : new Map<string, ViewerEventStatus>();
 
     if (eventIds.length > 0) {
         const counts = await db
@@ -160,6 +169,13 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                         )}
                     </p>
                 </div>
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                <Link
+                    href="/events"
+                    className="inline-flex w-full items-center justify-center rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted sm:w-auto"
+                >
+                    {t("dashboard.member.exploreEvents")}
+                </Link>
                 {canCreateEvents && (
                 <Link
                     href={`${eventsPath}/new`}
@@ -169,6 +185,7 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                     {t("common.createEvent")}
                 </Link>
                 )}
+                </div>
             </div>
 
             <Suspense>
@@ -212,7 +229,7 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                         </span>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[1450px] table-fixed text-sm">
+                        <table className="w-full min-w-[1600px] table-fixed text-sm">
                             <thead>
                                 <tr className="border-b border-border bg-muted/50">
                                     <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[60px]">N°</th>
@@ -222,13 +239,16 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                                     <th className="px-4 py-3 text-right font-medium text-muted-foreground w-[130px]">{locale === "en" ? "Price" : "Precio"}</th>
                                     <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[180px]">{locale === "en" ? "Capacity / Registrants" : "Aforo / Inscritos"}</th>
                                     <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[140px]">{locale === "en" ? "Event Date" : "Fecha de Evento"}</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[140px]">{t("common.status")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[140px]">{t("public.events.viewerStatus.eventStatusLabel")}</th>
+                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[190px]">{t("public.events.viewerStatus.label")}</th>
                                     <th className="px-4 py-3 text-right font-medium text-muted-foreground w-[160px]">{t("common.actions")}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
                                 {allEvents.map((event, index) => {
                                     const regCount = regCountsMap.get(event.id) ?? 0;
+                                    const viewerStatus =
+                                        viewerStatuses.get(event.id) ?? "not_registered";
                                     const canMutate = Boolean(
                                         session?.user &&
                                             canMutateEventRecord(
@@ -277,6 +297,12 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                                                 <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor[event.status] ?? ""}`}>
                                                     {eventStatusLabel(event.status, locale)}
                                                 </span>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <ViewerEventStatusBadge
+                                                    status={viewerStatus}
+                                                    label={t(VIEWER_EVENT_STATUS_I18N_KEY[viewerStatus])}
+                                                />
                                             </td>
                                             <td className="px-4 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-3 text-xs">

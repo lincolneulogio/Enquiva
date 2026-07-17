@@ -6,6 +6,8 @@ import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
 import { EventsPagination } from "@/components/events/EventsPagination";
 import { PublicHeader } from "@/components/shared/PublicHeader";
 import { getI18n } from "@/lib/i18n/server";
+import { getRequestSession } from "@/lib/request-context";
+import { getViewerEventStatuses } from "@/lib/events/viewer-event-status";
 
 interface EventsPageProps {
   searchParams: Promise<{
@@ -36,6 +38,13 @@ async function EventsGrid({
     page,
     limit: 12,
   });
+  const session = await getRequestSession();
+  const viewerStatuses = session?.user
+    ? await getViewerEventStatuses(
+        session.user.id,
+        events.map((event) => event.id),
+      )
+    : null;
 
   if (events.length === 0) {
     return (
@@ -56,7 +65,12 @@ async function EventsGrid({
       </p>
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {events.map((event) => (
-          <EventCard key={event.id} event={event} categoryMap={categoryMap} />
+          <EventCard
+            key={event.id}
+            event={event}
+            categoryMap={categoryMap}
+            viewerStatus={viewerStatuses?.get(event.id) ?? "guest"}
+          />
         ))}
       </div>
       <EventsPagination
