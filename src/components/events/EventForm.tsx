@@ -683,6 +683,10 @@ export function EventForm({
                                         aria-describedby={errors.date ? "event-date-error" : undefined}
                                         className={`w-full rounded-xl border border-border bg-background py-2.5 pl-9 pr-3 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("date")}`}
                                     />
+                                    <span
+                                        aria-hidden="true"
+                                        className="pointer-events-none absolute bottom-px right-px top-px z-[5] w-10 rounded-r-[11px] bg-background"
+                                    />
                                 </div>
                                 <div ref={timePickerRef} className="relative">
                                     <label htmlFor="event-time-part" className="sr-only">{t("events.form.time")}</label>
