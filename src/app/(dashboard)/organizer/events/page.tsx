@@ -230,6 +230,7 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                         <table className="w-full min-w-[1020px] text-sm">
                             <thead>
                                 <tr className="border-b border-border bg-muted/50">
+                                    <th className="w-12 px-3 py-3 text-left font-medium text-muted-foreground">N°</th>
                                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("dashboard.admin.title")}</th>
                                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.category")}</th>
                                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t("common.date")}</th>
@@ -240,8 +241,9 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
-                                {filteredEvents.map(({ event, attendeeCount }) => (
+                                {filteredEvents.map(({ event, attendeeCount }, index) => (
                                     <tr key={event.id} className="hover:bg-muted/30 transition-colors">
+                                        <td className="px-3 py-3 text-muted-foreground">{offset + index + 1}</td>
                                         <td className="px-4 py-3 font-medium text-foreground">{event.title}</td>
                                         <td className="px-4 py-3 text-muted-foreground">{categoryLabel(event.category, locale)}</td>
                                         <td className="px-4 py-3 text-muted-foreground">{formatEventDateShort(event.date, locale)}</td>
