@@ -224,24 +224,24 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                             <ClipboardList className="h-4 w-4 text-primary" />
                             {locale === "en" ? "Events Ledger" : "Directorio de Eventos"}
                         </span>
-                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium lg:hidden">
                             ↔ {locale === "en" ? "Scroll horizontally to view all columns" : "Desliza horizontalmente para ver todas las columnas"}
                         </span>
                     </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full min-w-[1600px] table-fixed text-sm">
+                    <div className="overflow-x-auto lg:overflow-x-visible">
+                        <table className="w-full min-w-[980px] table-fixed text-xs lg:min-w-0 2xl:text-sm">
                             <thead>
                                 <tr className="border-b border-border bg-muted/50">
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[60px]">N°</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[260px]">{t("dashboard.admin.title")}</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[200px]">{t("common.organizer")}</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[150px]">{t("common.category")}</th>
-                                    <th className="px-4 py-3 text-right font-medium text-muted-foreground w-[130px]">{locale === "en" ? "Price" : "Precio"}</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[180px]">{locale === "en" ? "Capacity / Registrants" : "Aforo / Inscritos"}</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[140px]">{locale === "en" ? "Event Date" : "Fecha de Evento"}</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[140px]">{t("public.events.viewerStatus.eventStatusLabel")}</th>
-                                    <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[190px]">{t("public.events.viewerStatus.label")}</th>
-                                    <th className="px-4 py-3 text-right font-medium text-muted-foreground w-[160px]">{t("common.actions")}</th>
+                                    <th className="w-[4%] px-2 py-3 text-left font-medium text-muted-foreground">N°</th>
+                                    <th className="w-[16%] px-2 py-3 text-left font-medium text-muted-foreground">{t("dashboard.admin.title")}</th>
+                                    <th className="w-[12%] px-2 py-3 text-left font-medium text-muted-foreground">{t("common.organizer")}</th>
+                                    <th className="w-[8%] px-2 py-3 text-left font-medium text-muted-foreground">{t("common.category")}</th>
+                                    <th className="w-[9%] px-2 py-3 text-right font-medium text-muted-foreground">{locale === "en" ? "Price" : "Precio"}</th>
+                                    <th className="w-[9%] px-2 py-3 text-left font-medium text-muted-foreground">{locale === "en" ? "Capacity / Registrants" : "Aforo / Inscritos"}</th>
+                                    <th className="w-[9%] px-2 py-3 text-left font-medium text-muted-foreground">{locale === "en" ? "Event Date" : "Fecha de Evento"}</th>
+                                    <th className="w-[9%] px-2 py-3 text-left font-medium text-muted-foreground">{t("public.events.viewerStatus.eventStatusLabel")}</th>
+                                    <th className="w-[14%] px-2 py-3 text-left font-medium text-muted-foreground">{t("public.events.viewerStatus.label")}</th>
+                                    <th className="w-[10%] px-2 py-3 text-right font-medium text-muted-foreground">{t("common.actions")}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
@@ -263,49 +263,50 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                                     );
                                     return (
                                         <tr key={event.id} className="hover:bg-muted/30 transition-colors">
-                                            <td className="px-4 py-4 text-muted-foreground">{rowStart + index + 1}</td>
-                                            <td className="px-4 py-4 font-medium text-foreground truncate" title={event.title}>{event.title}</td>
-                                            <td className="px-4 py-4 text-muted-foreground truncate" title={event.organizerName ?? ""}>{event.organizerName ?? "—"}</td>
-                                            <td className="px-4 py-4 text-muted-foreground truncate">{categoryLabel(event.category, locale)}</td>
-                                            <td className="px-4 py-4 text-right font-semibold text-foreground">
+                                            <td className="px-2 py-3 text-muted-foreground">{rowStart + index + 1}</td>
+                                            <td className="truncate px-2 py-3 font-medium text-foreground" title={event.title}>{event.title}</td>
+                                            <td className="truncate px-2 py-3 text-muted-foreground" title={event.organizerName ?? ""}>{event.organizerName ?? "—"}</td>
+                                            <td className="truncate px-2 py-3 text-muted-foreground">{categoryLabel(event.category, locale)}</td>
+                                            <td className="px-2 py-3 text-right font-semibold text-foreground">
                                                 {event.price && Number(event.price) > 0 
                                                     ? formatCurrency(Number(event.price), "PEN", locale) 
                                                     : (locale === "en" ? "Free" : "Gratuito")
                                                 }
                                             </td>
-                                            <td className="px-4 py-4 text-muted-foreground text-xs leading-relaxed">
-                                                <div className="font-semibold text-foreground text-sm flex items-center gap-1.5">
+                                            <td className="px-2 py-3 text-muted-foreground text-xs leading-relaxed">
+                                                <div className="flex items-center gap-1 font-semibold text-foreground">
                                                     <span className="text-primary">{regCount}</span> 
                                                     <span className="text-muted-foreground/60 font-normal">/</span>
                                                     <span>{event.capacity ? `${event.capacity}` : "∞"}</span>
                                                 </div>
-                                                <span className="text-[10px] text-muted-foreground/80 block mt-0.5">
+                                                <span className="mt-0.5 hidden text-[9px] text-muted-foreground/80 2xl:block">
                                                     {event.capacity 
                                                         ? (locale === "en" ? `${event.capacity - regCount} remaining` : `${event.capacity - regCount} vacantes libres`) 
                                                         : (locale === "en" ? "unlimited vacancies" : "vacantes ilimitadas")
                                                     }
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-4 text-muted-foreground">
+                                            <td className="px-2 py-3 text-muted-foreground">
                                                 {new Date(event.date).toLocaleDateString(getIntlLocale(locale), {
                                                     month: "short",
                                                     day: "numeric",
                                                     year: "numeric",
                                                 })}
                                             </td>
-                                            <td className="px-4 py-4">
-                                                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor[event.status] ?? ""}`}>
+                                            <td className="overflow-hidden px-2 py-3">
+                                                <span className={`inline-flex max-w-full items-center truncate rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColor[event.status] ?? ""}`}>
                                                     {eventStatusLabel(event.status, locale)}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-4">
+                                            <td className="overflow-hidden px-2 py-3">
                                                 <ViewerEventStatusBadge
                                                     status={viewerStatus}
                                                     label={t(VIEWER_EVENT_STATUS_I18N_KEY[viewerStatus])}
+                                                    className="max-w-full gap-1 truncate px-2 py-0.5 text-[10px]"
                                                 />
                                             </td>
-                                            <td className="px-4 py-4 text-right">
-                                                <div className="flex items-center justify-end gap-3 text-xs">
+                                            <td className="px-2 py-3 text-right">
+                                                <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1 text-[10px] 2xl:text-xs">
                                                     <Link
                                                         href={`/events/${event.slug}`}
                                                         target="_blank"
