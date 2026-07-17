@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { flushSync } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import { toast } from "sonner";
 import { CreditCard, Loader2, X, ShieldCheck, DollarSign, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -60,10 +60,12 @@ export function PlanUpgradeCheckout({
   const [enableAutoRenew, setEnableAutoRenew] = useState(true);
   const [entered, setEntered] = useState(false);
   const [culqiOpen, setCulqiOpen] = useState(false);
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const { data: session } = useSession();
   const checkoutEmail = userEmail ?? session?.user?.email ?? null;
 
   useEffect(() => {
+    setPortalTarget(document.body);
     const id = requestAnimationFrame(() => setEntered(true));
     return () => cancelAnimationFrame(id);
   }, []);
@@ -193,7 +195,9 @@ export function PlanUpgradeCheckout({
     onClose();
   };
 
-  return (
+  if (!portalTarget) return null;
+
+  return createPortal(
     <div
       data-checkout-overlay
       aria-hidden={culqiOpen}
@@ -330,6 +334,7 @@ export function PlanUpgradeCheckout({
           <p className="text-xs text-muted-foreground">*{t("payments.checkout.reviewBeforePay")}</p>
         </div>
       </div>
-    </div>
+    </div>,
+    portalTarget,
   );
 }

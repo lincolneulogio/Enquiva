@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { AlertTriangle, X } from "lucide-react";
+import { createPortal } from "react-dom";
 import { useTranslations, useLocale } from "@/components/providers/LocaleProvider";
 import type { PlanChangePreview } from "@/lib/billing/types";
 import type { Plan } from "@/lib/db/schema";
@@ -22,6 +24,8 @@ export function PlanChangeConfirmDialog({
 }: PlanChangeConfirmDialogProps) {
   const t = useTranslations();
   const { locale } = useLocale();
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+  useEffect(() => setPortalTarget(document.body), []);
   const dateLocale = locale === "en" ? "en-US" : "es-PE";
   const newExpiry = new Date(preview.newPeriodEnd).toLocaleDateString(dateLocale, {
     day: "numeric",
@@ -34,7 +38,9 @@ export function PlanChangeConfirmDialog({
     year: "numeric",
   });
 
-  return (
+  if (!portalTarget) return null;
+
+  return createPortal(
     <div
       data-checkout-overlay
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
@@ -110,6 +116,7 @@ export function PlanChangeConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    portalTarget,
   );
 }
