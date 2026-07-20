@@ -81,7 +81,7 @@ export function getLandingCopy({ role, locale, t }: BuildArgs): LandingCopy {
         },
         showPlans: true,
         aboutTitleStart: isEn ? "Your workspace to" : "Tu espacio para",
-        aboutTitleHighlight: isEn ? "govern Evora" : "gobernar Evora",
+        aboutTitleHighlight: isEn ? "govern Enquiva" : "gobernar Enquiva",
         aboutDescription: isEn
           ? "As platform owner you configure SaaS plans, permissions and the experience for every organization."
           : "Como dueño de la plataforma configures planes SaaS, permisos y la experiencia de cada organización.",
@@ -108,7 +108,7 @@ export function getLandingCopy({ role, locale, t }: BuildArgs): LandingCopy {
       return {
         audience,
         heroTitleStart: isEn ? "Lead your organization" : "Dirige tu organización",
-        heroTitleHighlight: isEn ? "with Evora" : "con Evora",
+        heroTitleHighlight: isEn ? "with Enquiva" : "con Enquiva",
         heroDescription: isEn
           ? "Manage your team, events and entity plan from one place."
           : "Gestiona tu equipo, eventos y el plan de tu entidad desde un solo lugar.",
@@ -169,8 +169,8 @@ export function getLandingCopy({ role, locale, t }: BuildArgs): LandingCopy {
         aboutTitleStart: isEn ? "Everything you need to" : "Todo lo que necesitas para",
         aboutTitleHighlight: isEn ? "run events" : "hacer eventos",
         aboutDescription: isEn
-          ? "From registrations to QR check-in and transport, Evora keeps your event operations organized."
-          : "Desde inscripciones hasta check-in QR y transporte, Evora mantiene tu operación ordenada.",
+          ? "From registrations to QR check-in and transport, Enquiva keeps your event operations organized."
+          : "Desde inscripciones hasta check-in QR y transporte, Enquiva mantiene tu operación ordenada.",
         aboutButtonLabel: isEn ? "Organizer panel" : "Panel organizador",
         aboutButtonHref: dashboard,
         footerExploreLinks: [
@@ -299,8 +299,8 @@ export function getLandingCopy({ role, locale, t }: BuildArgs): LandingCopy {
         aboutTitleStart: t("public.home.aboutTitleStart"),
         aboutTitleHighlight: t("public.home.aboutTitleHighlight"),
         aboutDescription: isEn
-          ? "No account needed to explore. Sign up in minutes to register for events or launch your own with Evora."
-          : "No necesitas cuenta para explorar. Regístrate en minutos para inscribirte a eventos o lanzar los tuyos con Evora.",
+          ? "No account needed to explore. Sign up in minutes to register for events or launch your own with Enquiva."
+          : "No necesitas cuenta para explorar. Regístrate en minutos para inscribirte a eventos o lanzar los tuyos con Enquiva.",
         aboutButtonLabel: t("public.home.aboutButton"),
         aboutButtonHref: "/register",
         footerExploreLinks: [
@@ -313,7 +313,7 @@ export function getLandingCopy({ role, locale, t }: BuildArgs): LandingCopy {
           { href: "/register", label: t("common.getStarted") },
           {
             href: "/pricing",
-            label: isEn ? "Organize with Evora" : "Organiza con Evora",
+            label: isEn ? "Organize with Enquiva" : "Organiza con Enquiva",
           },
         ],
         footerContactCta: {

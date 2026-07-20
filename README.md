@@ -1,4 +1,4 @@
-# Evora
+# Enquiva
 
 Plataforma de gestión de eventos, inscripciones, pagos (Yape/Plin), transporte y control de acceso QR.
 
@@ -11,7 +11,7 @@ Plataforma de gestión de eventos, inscripciones, pagos (Yape/Plin), transporte 
 | **Datos** | Aislados en volumen Docker | BD remota propia del deploy |
 | **Git push** | Solo sube código, no eventos | Igual: los eventos viven en PostgreSQL |
 
-Los eventos **no están en Git**. Si ves eventos en [evora.app](https://evora.app), están en la `DATABASE_URL` de producción.
+Los eventos **no están en Git**. Si ves eventos en [enquiva.app](https://enquiva.app), están en la `DATABASE_URL` de producción.
 
 ## Requisitos
 

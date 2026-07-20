@@ -7,7 +7,7 @@ export const platformSettings = pgTable("platform_settings", {
   organizationName: text("organization_name").notNull(),
   supportEmail: text("support_email").notNull(),
   /** Correo público (landing / contacto), distinto del soporte operativo. */
-  publicContactEmail: text("public_contact_email").notNull().default("hola@evora.app"),
+  publicContactEmail: text("public_contact_email").notNull().default("hola@enquiva.app"),
   publicLocation: text("public_location").notNull().default(""),
   socialFacebook: text("social_facebook").notNull().default(""),
   socialInstagram: text("social_instagram").notNull().default(""),

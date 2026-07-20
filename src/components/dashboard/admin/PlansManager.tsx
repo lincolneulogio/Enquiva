@@ -562,7 +562,7 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                 disabled={editingSpecial}
               />
               <p className="text-xs text-muted-foreground">
-                Evora gana este monto por cada inscrito (titular + invitados) al aprobar el pago, además del %.
+                Enquiva gana este monto por cada inscrito (titular + invitados) al aprobar el pago, además del %.
               </p>
             </div>
             <div className="space-y-1.5">

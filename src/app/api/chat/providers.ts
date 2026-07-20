@@ -88,7 +88,7 @@ function getOpenRouterModels(): ResolvedModel[] {
       name: "openrouter",
       headers: {
         "HTTP-Referer": env.NEXT_PUBLIC_APP_URL,
-        "X-Title": "Evora Copilot",
+        "X-Title": "Enquiva Copilot",
       },
       fetch: async (input, init) => {
         if (!init?.body || typeof init.body !== "string") {
@@ -203,16 +203,16 @@ async function toTextResponseAfterFirstChunk(
     "Content-Type": "text/plain; charset=utf-8",
     "Cache-Control": "no-cache",
     Connection: "keep-alive",
-    "X-Evora-Model": meta.modelId,
+    "X-Enquiva-Model": meta.modelId,
     "Access-Control-Expose-Headers":
-      "X-Evora-Model, X-Evora-Citations, X-Evora-Intent, X-Evora-Rag-Mode, X-Evora-Status",
+      "X-Enquiva-Model, X-Enquiva-Citations, X-Enquiva-Intent, X-Enquiva-Rag-Mode, X-Enquiva-Status",
   };
   if (meta.citations?.length) {
-    headers["X-Evora-Citations"] = encodeURIComponent(JSON.stringify(meta.citations));
+    headers["X-Enquiva-Citations"] = encodeURIComponent(JSON.stringify(meta.citations));
   }
-  if (meta.intent) headers["X-Evora-Intent"] = meta.intent;
-  if (meta.ragMode) headers["X-Evora-Rag-Mode"] = meta.ragMode;
-  if (meta.statusHint) headers["X-Evora-Status"] = encodeURIComponent(meta.statusHint);
+  if (meta.intent) headers["X-Enquiva-Intent"] = meta.intent;
+  if (meta.ragMode) headers["X-Enquiva-Rag-Mode"] = meta.ragMode;
+  if (meta.statusHint) headers["X-Enquiva-Status"] = encodeURIComponent(meta.statusHint);
 
   return new Response(stream, { headers });
 }

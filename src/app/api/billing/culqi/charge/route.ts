@@ -118,7 +118,7 @@ export async function POST(req: Request) {
         sourceId: chargeSourceId,
         recurrent: useRecurrent,
         customer,
-        description: `Suscripción ${plan.name} - Evora`,
+        description: `Suscripción ${plan.name} - Enquiva`,
         metadata: {
           userId: billingUserId,
           planId: plan.id,

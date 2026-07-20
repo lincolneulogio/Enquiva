@@ -6,7 +6,7 @@
 const SPECIAL_TOKEN_RE = /<[|｜][^|｜]*[|｜]>/g;
 
 const SPANISH_START_RE =
-  /(?:En la plataforma|En Evora|En tu |La plataforma|El evento|Hay |Actualmente |Según |He consultado |Puedo |Como |Tu |Tus |El módulo|Los eventos|Las inscripciones|Usuario|Admin|Organizador|Miembro|Total|Eventos totales|No encontr|No hay|Sí\.|Si deseas)/i;
+  /(?:En la plataforma|En Enquiva|En tu |La plataforma|El evento|Hay |Actualmente |Según |He consultado |Puedo |Como |Tu |Tus |El módulo|Los eventos|Las inscripciones|Usuario|Admin|Organizador|Miembro|Total|Eventos totales|No encontr|No hay|Sí\.|Si deseas)/i;
 
 export function stripModelControlTokens(text: string): string {
   if (!text) return text;

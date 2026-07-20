@@ -1,4 +1,4 @@
-import { buildEvoraCorpus } from "./corpus";
+import { buildEnquivaCorpus } from "./corpus";
 import { cosineSimilarity, embedText, tokenize } from "./embed";
 import { rewriteQuery } from "./query-rewrite";
 import { rerankHits } from "./rerank";
@@ -16,7 +16,7 @@ let INDEX: IndexedChunk[] | null = null;
 
 function getIndex(): IndexedChunk[] {
   if (INDEX) return INDEX;
-  const corpus = buildEvoraCorpus();
+  const corpus = buildEnquivaCorpus();
   INDEX = corpus.map((chunk) => {
     const blob = `${chunk.title}\n${chunk.text}\n${chunk.tags.join(" ")}`;
     return {
@@ -83,7 +83,7 @@ export async function hybridRetrieveAsync(
 ): Promise<RagRetrievalResult> {
   const topK = options.topK ?? 5;
   const intent = options.intent ?? "unknown";
-  const { original, rewritten } = rewriteQuery(query || "evora modulos");
+  const { original, rewritten } = rewriteQuery(query || "enquiva modulos");
 
   let scored = scoreInMemory(rewritten);
 
@@ -131,7 +131,7 @@ export async function hybridRetrieveAsync(
 
 /** Sync wrapper para código legado / smoke tests. */
 export function hybridRetrieve(query: string, topK = 6): RagRetrievalResult {
-  const { original, rewritten } = rewriteQuery(query || "evora modulos");
+  const { original, rewritten } = rewriteQuery(query || "enquiva modulos");
   let scored = scoreInMemory(rewritten);
   scored.sort((a, b) => b.score - a.score);
   const minScore = 0.12;

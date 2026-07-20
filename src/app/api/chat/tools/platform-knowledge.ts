@@ -5,7 +5,7 @@ import { hybridRetrieveAsync, getCorpusSize } from "@/lib/chat/rag";
 export function createGetPlatformKnowledge() {
   return {
     description:
-      "Busca en la base de conocimiento interna de Evora (Hybrid RAG: rewrite + semántica + lexical + rerank). Úsala para módulos, cómo funciona X, rutas, pagos, tickets, transporte, auth. Devuelve fragmentos con citas.",
+      "Busca en la base de conocimiento interna de Enquiva (Hybrid RAG: rewrite + semántica + lexical + rerank). Úsala para módulos, cómo funciona X, rutas, pagos, tickets, transporte, auth. Devuelve fragmentos con citas.",
     parameters: z.object({
       topic: z
         .string()
@@ -14,7 +14,7 @@ export function createGetPlatformKnowledge() {
         ),
     }),
     execute: async ({ topic }: { topic: string }) => {
-      const query = topic?.trim() || "módulos evora";
+      const query = topic?.trim() || "módulos enquiva";
       const rag = await hybridRetrieveAsync(query, { topK: 5, intent: "module_detail" });
       const inventory = buildPlatformKnowledgePayload(query);
 

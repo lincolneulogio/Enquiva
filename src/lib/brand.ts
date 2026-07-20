@@ -1,10 +1,10 @@
 /** Central brand constants — update here to rebrand across the app. */
 export const BRAND = {
-  name: "Evora",
-  supportEmail: "soporte@evora.app",
-  contactEmail: "hola@evora.app",
-  domain: "evora.app",
-  botName: "EvoraBot",
+  name: "Enquiva",
+  supportEmail: "soporte@enquiva.app",
+  contactEmail: "hola@enquiva.app",
+  domain: "enquiva.app",
+  botName: "EnquivaBot",
   logo: {
     source: "/images/logo.png",
     markXs: "/images/logo-mark-xs.png",

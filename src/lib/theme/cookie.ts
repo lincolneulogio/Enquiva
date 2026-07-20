@@ -1,4 +1,4 @@
-export const THEME_COOKIE_NAME = "evora-theme";
+export const THEME_COOKIE_NAME = "enquiva-theme";
 export const THEME_STORAGE_KEY = "theme";
 
 export type AppTheme = "light" | "dark";
@@ -8,7 +8,7 @@ export function parseAppTheme(value: string | null | undefined): AppTheme | null
   return null;
 }
 
-/** Dominio de cookie compartido entre app y docs (p. ej. `.evora.site`). */
+/** Dominio de cookie compartido entre app y docs (p. ej. `.enquiva.site`). */
 export function resolveThemeCookieDomain(
   appUrl?: string | null,
   docsUrl?: string | null,

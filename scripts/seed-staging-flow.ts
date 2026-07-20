@@ -128,7 +128,7 @@ async function upsertEvent(input: {
         price: input.price,
         capacity: 100,
         category: "other",
-        location: "Lima — Staging Evora",
+        location: "Lima — Staging Enquiva",
         hasTransport: false,
         updatedAt: now,
       })
@@ -145,7 +145,7 @@ async function upsertEvent(input: {
       description: input.description,
       category: "other",
       date: eventDate,
-      location: "Lima — Staging Evora",
+      location: "Lima — Staging Enquiva",
       capacity: 100,
       status: "published",
       price: input.price,
@@ -178,7 +178,7 @@ async function upsertCashMethod(organizerId: string, paidEventId: string) {
     await db
       .update(paymentMethods)
       .set({
-        holderName: "Evora Staging",
+        holderName: "Enquiva Staging",
         isActive: true,
         updatedAt: now,
       })
@@ -190,7 +190,7 @@ async function upsertCashMethod(organizerId: string, paidEventId: string) {
         organizerId,
         type: "cash",
         label: "Efectivo Staging",
-        holderName: "Evora Staging",
+        holderName: "Enquiva Staging",
         isActive: true,
         createdAt: now,
         updatedAt: now,

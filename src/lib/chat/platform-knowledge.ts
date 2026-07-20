@@ -298,12 +298,12 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     id: 11,
     name: "IA y extras",
     summary:
-      "EvoraBot (copilot), idiomas ES/EN, almacenamiento de archivos, Redis, Docker, CI y tareas programadas.",
+      "EnquivaBot (copilot), idiomas ES/EN, almacenamiento de archivos, Redis, Docker, CI y tareas programadas.",
     synonyms: [
       "ia",
       "ai",
       "copilot",
-      "evorabot",
+      "enquivabot",
       "bot",
       "asistente",
       "i18n",
@@ -314,7 +314,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
       "upload",
     ],
     faqs: [
-      "EvoraBot responde con conocimiento de módulos y consulta datos reales mediante herramientas.",
+      "EnquivaBot responde con conocimiento de módulos y consulta datos reales mediante herramientas.",
       "La plataforma soporta español e inglés.",
       "Hay almacenamiento de archivos, Redis para rate limits/caché, Docker y crons de mantenimiento.",
     ],
@@ -322,7 +322,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
 ];
 
 export const PLATFORM_OVERVIEW =
-  "Evora cubre el ciclo completo de un evento: publicación, inscripción, pago, transporte, acceso en puerta y operación del negocio.";
+  "Enquiva cubre el ciclo completo de un evento: publicación, inscripción, pago, transporte, acceso en puerta y operación del negocio.";
 
 export function buildPlatformKnowledgePayload(topic?: string) {
   const retrieved = topic?.trim()
@@ -354,7 +354,7 @@ export function formatPlatformKnowledgeForPrompt(): string {
       `${m.id}. ${m.name}\n${m.summary}${m.details ? `\n${m.details}` : ""}`,
   );
   return [
-    `La plataforma Evora tiene ${PLATFORM_MODULE_COUNT} módulos principales.`,
+    `La plataforma Enquiva tiene ${PLATFORM_MODULE_COUNT} módulos principales.`,
     PLATFORM_OVERVIEW,
     ...lines,
   ].join("\n\n");

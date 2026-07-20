@@ -36,7 +36,7 @@ export function CommissionSettlementPanel({
               Liquidación de comisiones (plataforma)
             </h2>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              Ganancias del dueño de Evora. Usa <strong>Facturar</strong> para emitir cobro cash /
+              Ganancias del dueño de Enquiva. Usa <strong>Facturar</strong> para emitir cobro cash /
               factura automática al organizador (email). Luego marca <strong>Cobrado</strong> cuando
               recibas transferencia o pago Culqi.
             </p>

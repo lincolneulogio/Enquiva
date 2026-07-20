@@ -2,25 +2,25 @@ import { PLATFORM_MODULES, PLATFORM_OVERVIEW, PLATFORM_MODULE_COUNT } from "../p
 import type { RagChunk } from "./types";
 
 /**
- * Corpus canónico de Evora (base de conocimiento del RAG).
+ * Corpus canónico de Enquiva (base de conocimiento del RAG).
  * En producción avanzada estos chunks viven en PostgreSQL + pgvector;
  * aquí el índice se construye en memoria al arrancar el proceso.
  */
-export function buildEvoraCorpus(): RagChunk[] {
+export function buildEnquivaCorpus(): RagChunk[] {
   const chunks: RagChunk[] = [
     {
       id: "overview-core",
-      title: "Qué es Evora",
+      title: "Qué es Enquiva",
       kind: "overview",
-      tags: ["evora", "plataforma", "saas", "eventos", "sistema"],
-      text: `Evora es una plataforma SaaS para gestionar el ciclo completo de eventos: publicación, inscripción, pago, transporte, acceso en puerta y operación del negocio. Tiene exactamente ${PLATFORM_MODULE_COUNT} módulos principales. ${PLATFORM_OVERVIEW}`,
+      tags: ["enquiva", "plataforma", "saas", "eventos", "sistema"],
+      text: `Enquiva es una plataforma SaaS para gestionar el ciclo completo de eventos: publicación, inscripción, pago, transporte, acceso en puerta y operación del negocio. Tiene exactamente ${PLATFORM_MODULE_COUNT} módulos principales. ${PLATFORM_OVERVIEW}`,
     },
     {
       id: "overview-modules-list",
       title: "Inventario de 11 módulos",
       kind: "overview",
       tags: ["modulos", "módulos", "inventario", "lista"],
-      text: `La plataforma Evora tiene ${PLATFORM_MODULE_COUNT} módulos: 1 Público y marketing, 2 Autenticación y cuentas, 3 Eventos, 4 Inscripciones y tickets, 5 Pagos, 6 Transporte, 7 Organizaciones, 8 Planes y billing SaaS, 9 Comunicaciones, 10 Admin y operaciones, 11 IA y extras.`,
+      text: `La plataforma Enquiva tiene ${PLATFORM_MODULE_COUNT} módulos: 1 Público y marketing, 2 Autenticación y cuentas, 3 Eventos, 4 Inscripciones y tickets, 5 Pagos, 6 Transporte, 7 Organizaciones, 8 Planes y billing SaaS, 9 Comunicaciones, 10 Admin y operaciones, 11 IA y extras.`,
     },
     {
       id: "policy-no-hallucinate",

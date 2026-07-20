@@ -84,7 +84,7 @@ export async function confirmDeleteAction({
 }
 
 /**
- * Modal especial Evora (fe-swal) con advertencia + campo de contraseña obligatorio.
+ * Modal especial Enquiva (fe-swal) con advertencia + campo de contraseña obligatorio.
  */
 export async function confirmWithPasswordAction({
   title = "Confirmar acción",

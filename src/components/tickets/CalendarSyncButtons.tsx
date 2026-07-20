@@ -35,9 +35,9 @@ export function CalendarSyncButtons({ event, className = "" }: CalendarSyncButto
       const icsLines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        "PRODID:-//Evora//Event Calendar//ES",
+        "PRODID:-//Enquiva//Event Calendar//ES",
         "BEGIN:VEVENT",
-        `UID:${event.id}@Evora.com`,
+        `UID:${event.id}@Enquiva.com`,
         `DTSTAMP:${start}`,
         `DTSTART:${start}`,
         `DTEND:${end}`,

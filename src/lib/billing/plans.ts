@@ -56,7 +56,7 @@ export const FREE_PLAN_DEFINITION = DEFAULT_PLAN_DEFINITIONS[0]!;
  * Plan interno exclusivo del superadmin: todo ilimitado, sin comisión.
  * No es público (no aparece en /pricing ni en selector de organizadores/admin).
  */
-export const PLATFORM_SPECIAL_PLAN_SLUG = "evora-platform" as const;
+export const PLATFORM_SPECIAL_PLAN_SLUG = "enquiva-platform" as const;
 
 /** Slugs que deben existir tras bootstrap / sync (el resto se elimina). */
 export const CANONICAL_PLAN_SLUGS = ["free", PLATFORM_SPECIAL_PLAN_SLUG] as const;

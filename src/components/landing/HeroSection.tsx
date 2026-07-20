@@ -84,7 +84,7 @@ export function HeroSection({ t, locale, copy, features }: HeroSectionProps) {
 
           <div className="relative overflow-hidden rounded-none border-y border-border/80 bg-card/90 p-5 shadow-xl backdrop-blur-sm sm:rounded-[1.75rem] sm:border sm:p-6">
             <div className="mb-5 flex items-center justify-between gap-3">
-              <p className="font-display text-lg font-semibold text-foreground">Evora</p>
+              <p className="font-display text-lg font-semibold text-foreground">Enquiva</p>
               <span className="inline-flex items-center rounded-full border border-border/80 bg-background/80 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
                 {copy.audience === "guest"
                   ? locale === "en"

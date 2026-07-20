@@ -57,7 +57,7 @@ export async function generateMetadata({
       .replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ")
       .trim()
-      .slice(0, 160) || `Inscríbete a ${event.title} en Evora.`;
+      .slice(0, 160) || `Inscríbete a ${event.title} en Enquiva.`;
   const images = event.coverImage
     ? [{ url: event.coverImage, width: 1200, height: 630, alt: event.title }]
     : undefined;
@@ -72,7 +72,7 @@ export async function generateMetadata({
       title: event.title,
       description,
       images,
-      siteName: "Evora",
+      siteName: "Enquiva",
     },
     twitter: {
       card: images ? "summary_large_image" : "summary",

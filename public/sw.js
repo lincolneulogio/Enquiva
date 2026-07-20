@@ -1,4 +1,4 @@
-/* Evora service worker — Web Push */
+/* Enquiva service worker — Web Push */
 /* eslint-disable no-undef */
 self.addEventListener("push", (event) => {
   let data = { title: "", body: "", url: "/", brand: "" };
@@ -10,7 +10,7 @@ self.addEventListener("push", (event) => {
     // ignore malformed payloads
   }
 
-  const title = (data.title || data.brand || "Evora").trim() || "Evora";
+  const title = (data.title || data.brand || "Enquiva").trim() || "Enquiva";
 
   event.waitUntil(
     self.registration.showNotification(title, {

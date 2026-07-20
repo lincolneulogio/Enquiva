@@ -73,7 +73,7 @@
 
 @layer base {
   :root {
-    --evora-banner-offset: 0px;
+    --enquiva-banner-offset: 0px;
     --background: 34 44% 93%;
     --foreground: 25 60% 16%;
     --card: 0 0% 99%;
@@ -417,7 +417,7 @@ main {
 
 /* Culqi por encima de modales de la app (z-50).
    No ocultar overlays con opacity/pointer-events: si la clase body
-   queda pegada al cerrar Culqi, el checkout de Evora deja de responder. */
+   queda pegada al cerrar Culqi, el checkout de Enquiva deja de responder. */
 body.culqi-checkout-open [class*="Culqi-"] {
   z-index: 2147483646 !important;
 }

@@ -17,7 +17,7 @@ function createClient() {
     idle_timeout: 30,
     max_lifetime: 300,
     connection: {
-      application_name: "Evora",
+      application_name: "Enquiva",
     },
   });
 }

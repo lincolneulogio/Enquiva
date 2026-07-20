@@ -37,7 +37,7 @@ export async function DashboardTopbar({ user }: DashboardTopbarProps) {
     <header
       className="fixed inset-x-0 z-30 flex w-full min-w-0 items-center justify-between border-b border-border bg-background/95 px-4 pb-3.5 pt-3 backdrop-blur-md sm:px-6 lg:sticky lg:bg-background/80"
       style={{
-        top: "var(--evora-banner-offset, 0px)",
+        top: "var(--enquiva-banner-offset, 0px)",
         paddingTop: "calc(env(safe-area-inset-top) + 0.75rem)",
       }}
     >

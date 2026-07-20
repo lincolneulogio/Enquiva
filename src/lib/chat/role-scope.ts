@@ -16,14 +16,14 @@ const PROFILES: Record<AppRole, RoleScopeProfile> = {
     roleKey: "super_admin",
     labelEs: "Superadministrador",
     labelEn: "Super administrator",
-    dataScopeEs: "toda la plataforma Evora (global)",
+    dataScopeEs: "toda la plataforma Enquiva (global)",
     allowedTopicsEs: [
       "métricas globales de la plataforma",
       "usuarios y roles a nivel plataforma",
       "auditoría de seguridad",
       "planes SaaS, billing de plataforma y configuración",
       "eventos/inscripciones/pagos con visión global",
-      "módulos de Evora desde la operación de plataforma",
+      "módulos de Enquiva desde la operación de plataforma",
       "check-in, transporte y broadcasts a escala plataforma",
     ],
     forbiddenTopicsEs: [
@@ -136,7 +136,7 @@ const PROFILES: Record<AppRole, RoleScopeProfile> = {
       "estado de tus pagos",
       "buscar eventos públicos para inscribirte",
       "cómo usar checkout y tu plan personal si aplica",
-      "explicación general de funciones de Evora para asistentes",
+      "explicación general de funciones de Enquiva para asistentes",
     ],
     forbiddenTopicsEs: [
       "métricas internas de organizadores o de la plataforma",

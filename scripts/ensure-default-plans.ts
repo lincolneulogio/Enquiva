@@ -1,7 +1,7 @@
 /**
  * Deja solo los planes canónicos:
  * - Free (público)
- * - Plan Plataforma / evora-platform (solo superadmin)
+ * - Plan Plataforma / enquiva-platform (solo superadmin)
  *
  * Elimina Pro/Enterprise u otros planes residuales (suscripciones → Free).
  * Uso: pnpm run db:sync:plans

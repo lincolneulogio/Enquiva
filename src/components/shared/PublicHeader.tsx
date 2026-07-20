@@ -49,7 +49,7 @@ export async function PublicHeader() {
   return (
     <nav
       className="sticky z-50 border-b border-border bg-background/80 backdrop-blur-md"
-      style={{ top: "var(--evora-banner-offset, 0px)" }}
+      style={{ top: "var(--enquiva-banner-offset, 0px)" }}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
         <BrandLogo href="/" size="md" priority className="shrink-0" />

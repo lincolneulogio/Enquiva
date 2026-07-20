@@ -12,9 +12,9 @@ import { getPricingCta } from "@/lib/navigation/pricing-cta";
 import { cn } from "@/lib/utils";
 
 export const metadata = {
-  title: "Planes y precios | Evora",
+  title: "Planes y precios | Enquiva",
   description:
-    "Elige el plan Evora para tu organización: eventos, Culqi, transporte, IA y comisiones transparentes.",
+    "Elige el plan Enquiva para tu organización: eventos, Culqi, transporte, IA y comisiones transparentes.",
 };
 
 function fallbackPlans() {

@@ -47,7 +47,7 @@ export function LenisProvider({ children }: LenisProviderProps) {
 
             lenisRef.current = lenis;
             if (typeof window !== "undefined") {
-                window.__evoraLenis = lenis;
+                window.__enquivaLenis = lenis;
             }
         });
 
@@ -57,8 +57,8 @@ export function LenisProvider({ children }: LenisProviderProps) {
             if (lenisRef.current === lenis) {
                 lenisRef.current = null;
             }
-            if (typeof window !== "undefined" && window.__evoraLenis === lenis) {
-                window.__evoraLenis = null;
+            if (typeof window !== "undefined" && window.__enquivaLenis === lenis) {
+                window.__enquivaLenis = null;
             }
         };
     }, [isDashboardRoute]);

@@ -107,8 +107,8 @@ export async function BroadcastsPageContent({ billingPath = "/organizer/billing"
                 eventTitle={firstEvent?.title ?? (locale === "en" ? "Event" : "Evento")}
                 message={
                   locale === "en"
-                    ? "We have news about the event. Reply here or register on Evora."
-                    : "Tenemos novedades del evento. Responde aquí o inscríbete en Evora."
+                    ? "We have news about the event. Reply here or register on Enquiva."
+                    : "Tenemos novedades del evento. Responde aquí o inscríbete en Enquiva."
                 }
                 eventUrl={eventUrl}
                 orgWhatsApp={organization?.whatsappNumber}

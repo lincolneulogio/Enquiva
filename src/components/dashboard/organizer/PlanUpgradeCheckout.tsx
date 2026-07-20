@@ -159,7 +159,7 @@ export function PlanUpgradeCheckout({
         }
       }
 
-      // Ocultar el modal Evora solo cuando Culqi ya va a montarse (onOpen),
+      // Ocultar el modal Enquiva solo cuando Culqi ya va a montarse (onOpen),
       // para no dejar un frame vacío negro durante la creación de la orden.
       const checkoutResult = await openCulqiCheckout({
         publicKey: culqiPublicKey,

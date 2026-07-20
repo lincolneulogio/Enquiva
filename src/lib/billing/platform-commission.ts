@@ -11,7 +11,7 @@ import type { ResolvedPlan } from "@/lib/billing/types";
 type Tx = Parameters<typeof SubscriptionService.recordPlatformTransactionTx>[0];
 
 /**
- * Comisión Evora por inscrito/pago de evento.
+ * Comisión Enquiva por inscrito/pago de evento.
  * fee = % del monto (commissionPercent) + fijo × N inscritos (commissionPerRegistration).
  */
 export function computeEventCommissionFee(

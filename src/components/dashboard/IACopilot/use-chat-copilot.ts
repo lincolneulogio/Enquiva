@@ -133,14 +133,14 @@ export function useChatCopilot() {
     ],
     onResponse: (res) => {
       try {
-        const raw = res.headers.get("X-Evora-Citations");
+        const raw = res.headers.get("X-Enquiva-Citations");
         const citations = raw
           ? (JSON.parse(decodeURIComponent(raw)) as string[])
           : [];
-        const intent = res.headers.get("X-Evora-Intent") ?? undefined;
-        const modelId = res.headers.get("X-Evora-Model") ?? undefined;
-        const statusRaw = res.headers.get("X-Evora-Status");
-        const convId = res.headers.get("X-Evora-Conversation-Id");
+        const intent = res.headers.get("X-Enquiva-Intent") ?? undefined;
+        const modelId = res.headers.get("X-Enquiva-Model") ?? undefined;
+        const statusRaw = res.headers.get("X-Enquiva-Status");
+        const convId = res.headers.get("X-Enquiva-Conversation-Id");
         if (convId) setConversationId(convId);
         if (statusRaw) setStatusHint(decodeURIComponent(statusRaw));
         pendingCitationsRef.current = citations;

@@ -96,12 +96,12 @@ export async function POST(req: Request) {
     });
 
     if (persisted?.conversationId) {
-      response.headers.set("X-Evora-Conversation-Id", persisted.conversationId);
+      response.headers.set("X-Enquiva-Conversation-Id", persisted.conversationId);
       const expose = response.headers.get("Access-Control-Expose-Headers") ?? "";
-      if (!expose.includes("X-Evora-Conversation-Id")) {
+      if (!expose.includes("X-Enquiva-Conversation-Id")) {
         response.headers.set(
           "Access-Control-Expose-Headers",
-          `${expose}, X-Evora-Conversation-Id`.replace(/^,\s*/, ""),
+          `${expose}, X-Enquiva-Conversation-Id`.replace(/^,\s*/, ""),
         );
       }
     }
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
         userId,
         path: pageContext?.pathname,
         latencyMs: Date.now() - started,
-        modelId: response.headers.get("X-Evora-Model") ?? undefined,
+        modelId: response.headers.get("X-Enquiva-Model") ?? undefined,
       }),
     );
 

@@ -24,7 +24,7 @@ export interface OpenCulqiCheckoutParams {
   orderId?: string | null;
   /** Habilitar Yape en checkout (requiere orderId y monto >= S/ 6) */
   enableYape?: boolean;
-  /** Se llama justo antes de `checkout.open()` (p. ej. para ocultar el modal Evora). */
+  /** Se llama justo antes de `checkout.open()` (p. ej. para ocultar el modal Enquiva). */
   onOpen?: () => void;
 }
 
@@ -234,7 +234,7 @@ export async function openCulqiCheckout(params: OpenCulqiCheckoutParams): Promis
           },
         },
         // Solo después de la gracia: evita cancelar el open() al reintentar.
-        // Siempre limpia la clase body para que el modal Evora vuelva a ser usable.
+        // Siempre limpia la clase body para que el modal Enquiva vuelva a ser usable.
         onClose: () => {
           scrubCulqiBodyClass();
           if (acceptClose) cancel();

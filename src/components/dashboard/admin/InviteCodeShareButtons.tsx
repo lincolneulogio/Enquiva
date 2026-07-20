@@ -90,7 +90,7 @@ const CHANNELS: {
 ];
 
 function getAppUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "https://evora.app";
+  return process.env.NEXT_PUBLIC_APP_URL ?? "https://enquiva.app";
 }
 
 export function InviteCodeShareButtons({

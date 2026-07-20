@@ -4,7 +4,7 @@ const DIMS = 256;
 
 /**
  * Embedding local determinista (hashing trick / feature hashing).
- * Suficiente para un corpus cerrado de Evora sin depender de API externa.
+ * Suficiente para un corpus cerrado de Enquiva sin depender de API externa.
  * Evolución natural: reemplazar por text-embedding de Gemini/OpenAI + pgvector.
  */
 export function embedText(text: string): Float32Array {

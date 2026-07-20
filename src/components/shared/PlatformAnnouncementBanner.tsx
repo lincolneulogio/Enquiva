@@ -7,7 +7,7 @@ import type { AnnouncementSeverity } from "@/lib/settings/platform-ops";
 import { isWithinInclusiveStartWindow } from "@/lib/datetime/zoned-day";
 import { useLocale } from "@/components/providers/LocaleProvider";
 
-export const BANNER_OFFSET_VAR = "--evora-banner-offset";
+export const BANNER_OFFSET_VAR = "--enquiva-banner-offset";
 
 const severityStyles: Record<
   AnnouncementSeverity,
@@ -53,7 +53,7 @@ function dismissKey(parts: {
   startsAt: string | null;
   endsAt: string | null;
 }) {
-  return `evora-announcement-dismissed:${parts.message.slice(0, 80)}|${parts.eventAt ?? ""}|${parts.startsAt ?? ""}|${parts.endsAt ?? ""}`;
+  return `enquiva-announcement-dismissed:${parts.message.slice(0, 80)}|${parts.eventAt ?? ""}|${parts.startsAt ?? ""}|${parts.endsAt ?? ""}`;
 }
 
 function setBannerOffset(px: number) {

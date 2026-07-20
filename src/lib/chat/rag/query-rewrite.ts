@@ -1,5 +1,5 @@
 /**
- * Query rewrite: expande preguntas cortas a términos del dominio Evora
+ * Query rewrite: expande preguntas cortas a términos del dominio Enquiva
  * antes del retrieve (advanced RAG).
  */
 
@@ -30,7 +30,7 @@ const EXPANSIONS: Array<{ pattern: RegExp; terms: string }> = [
   },
   {
     pattern: /\b(modulo|módulo|modulos|módulos)\b/i,
-    terms: "inventario módulos Evora plataforma",
+    terms: "inventario módulos Enquiva plataforma",
   },
   {
     pattern: /\b(contrase[nñ]a|login|registro|cuenta|auth)\b/i,
@@ -40,7 +40,7 @@ const EXPANSIONS: Array<{ pattern: RegExp; terms: string }> = [
 
 export function rewriteQuery(raw: string): { original: string; rewritten: string } {
   const original = raw.trim();
-  if (!original) return { original: "", rewritten: "evora módulos plataforma" };
+  if (!original) return { original: "", rewritten: "enquiva módulos plataforma" };
 
   const extras: string[] = [];
   for (const rule of EXPANSIONS) {

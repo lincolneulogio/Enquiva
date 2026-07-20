@@ -1,5 +1,5 @@
 /**
- * Evora Hybrid / Agentic RAG
+ * Enquiva Hybrid / Agentic RAG
  *
  * Flujo:
  *   Usuario → query rewrite → hybrid (lexical + vectors + pgvector) → rerank →
@@ -9,7 +9,7 @@
  */
 
 export type { RagChunk, RagHit, RagRetrievalResult } from "./types";
-export { buildEvoraCorpus } from "./corpus";
+export { buildEnquivaCorpus } from "./corpus";
 export {
   hybridRetrieve,
   hybridRetrieveAsync,

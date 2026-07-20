@@ -21,8 +21,8 @@ export function getCopilotSuggestions(role: string): CopilotSuggestion[] {
           prompt: "Resumen de check-in de los eventos más recientes a nivel plataforma.",
         },
         {
-          label: "Módulos Evora",
-          prompt: "Como superadministrador, ¿qué módulos de Evora debo operar desde el panel de plataforma?",
+          label: "Módulos Enquiva",
+          prompt: "Como superadministrador, ¿qué módulos de Enquiva debo operar desde el panel de plataforma?",
         },
       ];
     case "admin":

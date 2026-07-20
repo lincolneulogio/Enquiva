@@ -1635,7 +1635,7 @@ export function SettingsTabs({
                                             value={smtpFromName}
                                             onChange={(e) => setSmtpFromName(e.target.value)}
                                             disabled={!smtpUseCustom}
-                                            placeholder="Evora"
+                                            placeholder="Enquiva"
                                             className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground disabled:opacity-50"
                                         />
                                     </div>
@@ -1793,7 +1793,7 @@ export function SettingsTabs({
                                             setSettingsValue("pushNotificationTitle", e.target.value.slice(0, 64))
                                         }
                                         placeholder={
-                                            (platformOrgName || initialPlatformSettings?.organizationName || "Evora").trim()
+                                            (platformOrgName || initialPlatformSettings?.organizationName || "Enquiva").trim()
                                         }
                                         className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
                                     />
@@ -1825,7 +1825,7 @@ export function SettingsTabs({
                                                         {(pushNotificationTitle ?? "").trim() ||
                                                             (platformOrgName ||
                                                                 initialPlatformSettings?.organizationName ||
-                                                                "Evora").trim()}
+                                                                "Enquiva").trim()}
                                                     </p>
                                                     <span className="shrink-0 text-[10px] text-muted-foreground">
                                                         {locale === "en" ? "now" : "ahora"}

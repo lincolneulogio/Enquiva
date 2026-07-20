@@ -315,7 +315,7 @@ export function createDraftBroadcast(scope: ChatToolScope) {
           eventDate ? `Fecha: ${eventDate}.` : null,
           eventLocation ? `Lugar: ${eventLocation}.` : null,
           ``,
-          `Si ya tienes tu entrada, llévala (QR) el día del evento. Si tienes dudas, responde a este canal o entra a tu panel Evora.`,
+          `Si ya tienes tu entrada, llévala (QR) el día del evento. Si tienes dudas, responde a este canal o entra a tu panel Enquiva.`,
           ``,
           `Saludos,`,
           `Equipo organizador`,

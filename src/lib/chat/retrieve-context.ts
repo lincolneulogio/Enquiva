@@ -111,7 +111,7 @@ function detectIntent(query: string): ChatIntent {
     return "modules_overview";
   }
   if (
-    /(que es evora|qué es evora|que hace la (app|plataforma)|cómo funciona evora|para que sirve|de que trata)/.test(
+    /(que es enquiva|qué es enquiva|que hace la (app|plataforma)|cómo funciona enquiva|para que sirve|de que trata)/.test(
       q,
     )
   ) {
@@ -123,7 +123,7 @@ function detectIntent(query: string): ChatIntent {
   if (/(modulo|módulo|como funciona|cómo funciona|que hace|qué hace|explicame|explícame|para que sirve)/.test(q)) {
     return "module_detail";
   }
-  if (/(evora|plataforma|sistema|panel|checkout|culqi|pago|ticket)/.test(q)) {
+  if (/(enquiva|plataforma|sistema|panel|checkout|culqi|pago|ticket)/.test(q)) {
     return "general_platform";
   }
   return "unknown";
@@ -153,7 +153,7 @@ export async function retrieveChatContext(
   role: string,
   page?: PageContext | null,
 ): Promise<RetrievedContext> {
-  const query = lastUserText(messages) || "evora modulos";
+  const query = lastUserText(messages) || "enquiva modulos";
   const intent = detectIntent(query);
   const staff = role === "super_admin" || role === "admin" || role === "organizer";
   const rag = await hybridRetrieveAsync(query, {
@@ -165,7 +165,7 @@ export async function retrieveChatContext(
 
   const docsBlock = [
     pageBlock,
-    "RESULTADOS HYBRID RAG (documentos internos Evora):",
+    "RESULTADOS HYBRID RAG (documentos internos Enquiva):",
     rag.contextBlock,
     `Citas: ${rag.citations.join("; ")}`,
   ]
@@ -292,7 +292,7 @@ export async function retrieveChatContext(
         requiredTools: ["getPlatformKnowledge", "getMyPlanBilling"],
         citations: rag.citations,
         statusHint: "Buscando en la base de conocimiento…",
-        mustDo: `Usa el CONTEXTO HYBRID RAG. Evora tiene ${PLATFORM_MODULE_COUNT} módulos. ${PLATFORM_OVERVIEW} Prohibido decir que no tienes contexto. Si falta detalle, llama getPlatformKnowledge. Para plan/límites: getMyPlanBilling.`,
+        mustDo: `Usa el CONTEXTO HYBRID RAG. Enquiva tiene ${PLATFORM_MODULE_COUNT} módulos. ${PLATFORM_OVERVIEW} Prohibido decir que no tienes contexto. Si falta detalle, llama getPlatformKnowledge. Para plan/límites: getMyPlanBilling.`,
         contextText: docsBlock,
       };
   }
@@ -316,7 +316,7 @@ export function appendRetrievedContextToSystem(
 ${isolation}
 
 ---
-PIPELINE RAG EVORA (Hybrid + Agentic) — Rol: ${profile.labelEs}
+PIPELINE RAG ENQUIVA (Hybrid + Agentic) — Rol: ${profile.labelEs}
 Modo: ${retrieved.ragMode}
 Intención: ${retrieved.intent}
 Tools recomendadas (solo las de tu rol): ${toolsForRole.join(", ") || "ninguna / rechazar si es de otro rol"}

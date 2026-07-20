@@ -77,7 +77,7 @@ export const auth = betterAuth({
     : undefined,
   plugins: [
     twoFactor({
-      issuer: "Evora",
+      issuer: "Enquiva",
     }),
   ],
   user: {

@@ -6,7 +6,7 @@ import { calculateOutstandingCommission } from "@/lib/billing/commission-math";
 
 /**
  * Facturación de comisiones de plataforma cobradas al organizador
- * (ledger = ganancia Evora; factura = cobro/documentación hacia el org).
+ * (ledger = ganancia Enquiva; factura = cobro/documentación hacia el org).
  */
 export class CommissionInvoiceService {
   static async listRecent(limit = 40) {
@@ -125,7 +125,7 @@ export class CommissionInvoiceService {
           periodEnd: input.periodEnd ?? null,
           notes:
             input.notes ??
-            "Factura automática de comisión de plataforma Evora (% + fijo por inscrito).",
+            "Factura automática de comisión de plataforma Enquiva (% + fijo por inscrito).",
           issuedAt: now,
           createdBy: input.createdBy,
           updatedAt: now,

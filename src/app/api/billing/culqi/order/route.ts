@@ -100,7 +100,7 @@ export async function POST(req: Request) {
         amount,
         email: customer.email,
         customer,
-        description: `Suscripción ${plan.name} - Evora`,
+        description: `Suscripción ${plan.name} - Enquiva`,
         orderNumber,
         metadata: {
           userId: billingUserId,

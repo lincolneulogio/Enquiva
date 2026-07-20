@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { knowledgeChunks } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { buildEvoraCorpus } from "./corpus";
+import { buildEnquivaCorpus } from "./corpus";
 import { cosineSimilarity, embedDocument } from "./remote-embed";
 
 let syncPromise: Promise<void> | null = null;
@@ -23,7 +23,7 @@ export async function ensureKnowledgeSynced(force = false): Promise<{ ok: boolea
   }
 
   syncPromise = (async () => {
-    const corpus = buildEvoraCorpus();
+    const corpus = buildEnquivaCorpus();
     for (const chunk of corpus) {
       const blob = `${chunk.title}\n${chunk.text}\n${chunk.tags.join(" ")}`;
       const emb = await embedDocument(blob);
@@ -63,7 +63,7 @@ export async function ensureKnowledgeSynced(force = false): Promise<{ ok: boolea
 
   try {
     await syncPromise;
-    return { ok: true, count: buildEvoraCorpus().length };
+    return { ok: true, count: buildEnquivaCorpus().length };
   } catch (err) {
     console.warn("[RAG] knowledge sync skipped (¿migración 0017?):", err);
     syncPromise = null;

@@ -50,8 +50,8 @@ export function welcomeEmailCopy(
 ) {
   if (locale === "en") {
     const common = {
-      subject: `Welcome to ${accountType === "platform_owner" ? "Evora" : "the platform"}!`,
-      title: "Welcome to Evora!",
+      subject: `Welcome to ${accountType === "platform_owner" ? "Enquiva" : "the platform"}!`,
+      title: "Welcome to Enquiva!",
       intro:
         "Your account is verified and ready. We're glad to have you on our events platform.",
     };
@@ -60,10 +60,10 @@ export function welcomeEmailCopy(
       case "platform_owner":
         return {
           ...common,
-          subject: "Welcome — your Evora platform is ready",
+          subject: "Welcome — your Enquiva platform is ready",
           title: "Your platform is ready",
           intro:
-            "You are now the super administrator of Evora. From the control panel you can manage plans, entities, and users.",
+            "You are now the super administrator of Enquiva. From the control panel you can manage plans, entities, and users.",
           steps: [
             "Sign in at the super admin area",
             "Initialize roles and subscription plans",
@@ -125,8 +125,8 @@ export function welcomeEmailCopy(
   }
 
   const common = {
-    subject: "¡Bienvenido a Evora!",
-    title: "¡Bienvenido a Evora!",
+    subject: "¡Bienvenido a Enquiva!",
+    title: "¡Bienvenido a Enquiva!",
     intro:
       "Tu cuenta quedó verificada y lista para usar. Nos alegra tenerte en nuestra plataforma de eventos.",
   };
@@ -135,10 +135,10 @@ export function welcomeEmailCopy(
     case "platform_owner":
       return {
         ...common,
-        subject: "Bienvenido — tu plataforma Evora está lista",
+        subject: "Bienvenido — tu plataforma Enquiva está lista",
         title: "Tu plataforma está lista",
         intro:
-          "Ya eres el superadministrador de Evora. Desde el panel podrás gestionar planes, entidades y usuarios.",
+          "Ya eres el superadministrador de Enquiva. Desde el panel podrás gestionar planes, entidades y usuarios.",
         steps: [
           "Inicia sesión en el área de superadministrador",
           "Inicializa roles y planes de suscripción",

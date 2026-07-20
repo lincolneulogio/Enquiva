@@ -168,7 +168,7 @@ export class SubscriptionAutoRenewService {
           sourceId: subscription.culqiCardId,
           recurrent: true,
           customer,
-          description: `Renovación automática ${plan.name} - Evora`,
+          description: `Renovación automática ${plan.name} - Enquiva`,
           metadata: {
             userId,
             planId: plan.id,
