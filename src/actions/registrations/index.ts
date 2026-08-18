@@ -104,7 +104,11 @@ export async function checkInAttendee(input: unknown) {
 
 export async function getUserRegistrations() {
   const user = await requireAuth();
-  await authorize({ user, permissions: ["registrations:view:own", "tickets:view:own"] });
+  // Staff también se inscribe como asistente: basta un permiso :own o el de inscripciones de entidad.
+  await authorize({
+    user,
+    permissions: ["registrations:view:own", "tickets:view:own", "registrations:view:org"],
+  });
   return RegistrationService.getUserRegistrations(user.id);
 }
 
@@ -122,7 +126,10 @@ export async function getEventAttendees(eventId: string) {
 
 export async function getRegistrationForEvent(eventId: string) {
   const user = await requireAuth();
-  await authorize({ user, permissions: ["registrations:view:own", "tickets:view:own"] });
+  await authorize({
+    user,
+    permissions: ["registrations:view:own", "tickets:view:own", "registrations:view:org"],
+  });
   return RegistrationService.getRegistrationForEvent(user.id, eventId);
 }
 

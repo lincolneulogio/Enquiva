@@ -123,6 +123,15 @@ describe("decideAuthorization", () => {
     expect(decision.allowed).toBe(true);
   });
 
+  it("permite al admin ver eventos en los que se inscribió", () => {
+    const decision = decideAuthorization({
+      actor: actor({ id: "admin-a", role: "admin", organizationId: ORG_A }),
+      granted: grantedFor("admin"),
+      requested: ["tickets:view:own", "registrations:view:own", "registrations:view:org"],
+    });
+    expect(decision.allowed).toBe(true);
+  });
+
   it("permite al miembro cancelar su inscripción", () => {
     const decision = decideAuthorization({
       actor: actor({ id: "member-a", role: "member" }),

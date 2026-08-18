@@ -24,8 +24,11 @@ export function permissionsForDashboardPath(pathname: string): readonly Permissi
   if (pathname.startsWith("/member/transport")) {
     return ["transport:book:own"];
   }
-  if (pathname.startsWith("/member/events")) {
-    return ["registrations:view:own", "tickets:view:own"];
+  if (
+    pathname.startsWith("/member/events") ||
+    /\/(admin|superadmin|organizer)\/registered-events/.test(pathname)
+  ) {
+    return ["registrations:view:own", "tickets:view:own", "registrations:view:org"];
   }
 
   if (/\/organizer\/events/.test(pathname)) {

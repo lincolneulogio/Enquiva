@@ -16,6 +16,13 @@ describe("dashboard permission gates", () => {
     expect(canAccessDashboardPath("/scanner/scan", ["attendees:checkin:org"])).toBe(true);
   });
 
+  it("permite eventos inscritos al admin de entidad", () => {
+    expect(
+      canAccessDashboardPath("/admin/registered-events", ["registrations:view:org"]),
+    ).toBe(true);
+    expect(canAccessDashboardPath("/admin/registered-events", ["events:create"])).toBe(false);
+  });
+
   it("exige check-in para escanear desde el panel de organizador o admin", () => {
     expect(canAccessDashboardPath("/organizer/scan", ["events:create"])).toBe(false);
     expect(canAccessDashboardPath("/organizer/scan", ["attendees:checkin:own"])).toBe(true);
