@@ -5,9 +5,15 @@ export function matchesRealtimeResource(pathname: string, resource: TableResourc
     case "dashboard":
       return /^\/(admin|superadmin|organizer|member)\/?$/.test(pathname);
     case "registrations":
-      return /\/(admin|superadmin)\/registrations/.test(pathname);
+      return (
+        /\/(admin|superadmin)\/registrations/.test(pathname) ||
+        /\/(member|attendee)\/tickets/.test(pathname)
+      );
     case "attendees":
-      return /\/organizer\/attendees/.test(pathname) || /\/(admin|superadmin)\/registrations/.test(pathname);
+      return (
+        /\/organizer\/attendees/.test(pathname) ||
+        /\/(admin|superadmin)\/registrations/.test(pathname)
+      );
     case "events":
       return (
         /\/(admin|superadmin|organizer)\/events/.test(pathname) ||
@@ -21,7 +27,11 @@ export function matchesRealtimeResource(pathname: string, resource: TableResourc
     case "team":
       return /\/admin\/team/.test(pathname);
     case "transport":
-      return /\/member\/transport/.test(pathname) || /\/organizer\/transport/.test(pathname);
+      return (
+        /\/member\/transport/.test(pathname) ||
+        /\/(organizer|admin|superadmin)\/transport/.test(pathname) ||
+        /\/(organizer|admin|superadmin)\/events\/[^/]+\/transport/.test(pathname)
+      );
     case "broadcasts":
       return /\/(admin|superadmin|organizer)\/broadcasts/.test(pathname);
     case "categories":

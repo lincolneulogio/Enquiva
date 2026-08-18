@@ -6,6 +6,9 @@ import { Search, CheckCircle, Clock, QrCode, User, Check, Loader2, AlertCircle, 
 import { searchPreRegisteredAttendeesAction, checkInAttendee } from "@/actions/registrations";
 import { translateRegistrationError } from "@/lib/errors/registration";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+import { EventPresenceIndicator } from "@/components/events/EventPresenceIndicator";
+import { getPusherClient, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/client";
+import type { CheckInPayload, NewRegistrationPayload } from "@/lib/pusher/shared";
 
 interface EventOption {
   value: string;
@@ -65,6 +68,35 @@ export function ExpressCheckInConsole({ events }: ExpressCheckInConsoleProps) {
     return () => clearTimeout(delayDebounce);
   }, [selectedEventId, query]);
 
+  useEffect(() => {
+    if (!selectedEventId) return;
+
+    const pusher = getPusherClient();
+    const channel = pusher.subscribe(PUSHER_CHANNELS.event(selectedEventId));
+
+    channel.bind(PUSHER_EVENTS.checkIn, (data: CheckInPayload) => {
+      setAttendees((prev) =>
+        prev.map((attendee) =>
+          attendee.registrationId === data.registrationId
+            ? { ...attendee, status: "checked_in", checkedInAt: new Date(data.checkedInAt) }
+            : attendee,
+        ),
+      );
+    });
+
+    channel.bind(PUSHER_EVENTS.newRegistration, (_data: NewRegistrationPayload) => {
+      if (query.trim().length === 0) return;
+      void searchPreRegisteredAttendeesAction(selectedEventId, query).then((res) => {
+        if (res.success) setAttendees(res.attendees ?? []);
+      });
+    });
+
+    return () => {
+      channel.unbind_all();
+      pusher.unsubscribe(PUSHER_CHANNELS.event(selectedEventId));
+    };
+  }, [query, selectedEventId]);
+
   const handleCheckIn = (attendee: Attendee) => {
     setCheckingId(attendee.registrationId);
     startTransition(async () => {
@@ -98,9 +130,14 @@ export function ExpressCheckInConsole({ events }: ExpressCheckInConsoleProps) {
 
   return (
     <div className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-5">
-      <div className="flex items-center gap-2.5 border-b border-border pb-3">
-        <QrCode className="h-5 w-5 text-primary" />
-        <h2 className="text-lg font-semibold text-foreground">Consola de Check-in Express (Búsqueda Rápida)</h2>
+      <div className="flex flex-col gap-3 border-b border-border pb-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2.5">
+          <QrCode className="h-5 w-5 text-primary" />
+          <h2 className="text-lg font-semibold text-foreground">Consola de Check-in Express (Búsqueda Rápida)</h2>
+        </div>
+        {selectedEventId ? (
+          <EventPresenceIndicator eventId={selectedEventId} variant="staff" className="sm:max-w-sm" />
+        ) : null}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3 items-end">

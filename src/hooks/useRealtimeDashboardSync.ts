@@ -8,6 +8,7 @@ import {
   PUSHER_EVENTS,
   type TableRefreshPayload,
 } from "@/lib/pusher/client";
+import type { AttendeeCountUpdatedPayload, NewRegistrationPayload } from "@/lib/pusher/shared";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { shouldRefreshRealtimePath } from "@/lib/pusher/refresh-policy";
 
@@ -87,11 +88,17 @@ export function useRealtimeDashboardSync({
     channel.bind(PUSHER_EVENTS.tableRefresh, (data: TableRefreshPayload) => {
       scheduleRefresh(data);
     });
-    channel.bind(PUSHER_EVENTS.newRegistration, () => {
-      scheduleRefresh({ resource: ["registrations", "attendees", "events"] });
+    channel.bind(PUSHER_EVENTS.newRegistration, (data: NewRegistrationPayload) => {
+      scheduleRefresh({
+        resource: ["registrations", "attendees", "events"],
+        eventId: data.eventId,
+      });
     });
-    channel.bind(PUSHER_EVENTS.attendeeCountUpdated, () => {
-      scheduleRefresh({ resource: ["registrations", "attendees"] });
+    channel.bind(PUSHER_EVENTS.attendeeCountUpdated, (data: AttendeeCountUpdatedPayload) => {
+      scheduleRefresh({
+        resource: ["registrations", "attendees"],
+        eventId: data.eventId,
+      });
     });
     channel.bind(PUSHER_EVENTS.paymentUpdated, () => {
       scheduleRefresh({ resource: "payments" });

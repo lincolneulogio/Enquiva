@@ -22,7 +22,7 @@ export function canAccessEventRealtime(
 
   if (role === "super_admin") return true;
   if (role === "organizer") return event.organizerId === user.id;
-  if (role === "admin") {
+  if (role === "admin" || role === "scanner") {
     return Boolean(
       user.organizationId &&
         event.organizationId &&

@@ -5,6 +5,7 @@ import { createTransportBookingInTx } from "@/lib/transport/booking";
 import { NotificationService } from "@/lib/notifications/notification.service";
 import { maybeNotifyTransportCapacityAlert } from "@/lib/notifications/transport-capacity-alert";
 import { runBackground } from "@/lib/background";
+import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
 
 export type StandaloneTransportPaymentInput = {
   registrationId: string;
@@ -124,6 +125,13 @@ export async function bookTransportWithPayment(
           bookedSeats,
           totalSeats: route.totalSeats,
           newSeats: input.seats,
+        });
+
+        await broadcastTableRefresh({
+          resource: ["transport", "payments", "registrations"],
+          eventId: event.id,
+          organizationId: event.organizationId ?? undefined,
+          userId: input.userId,
         });
       });
     }

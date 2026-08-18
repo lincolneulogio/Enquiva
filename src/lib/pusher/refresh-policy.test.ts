@@ -17,5 +17,11 @@ describe("realtime refresh policy", () => {
         resource: ["registrations", "attendees"],
       }),
     ).toBe(true);
+    expect(
+      shouldRefreshRealtimePath("/admin/transport", { resource: "transport" }),
+    ).toBe(true);
+    expect(
+      shouldRefreshRealtimePath("/member/tickets", { resource: "registrations" }),
+    ).toBe(true);
   });
 });

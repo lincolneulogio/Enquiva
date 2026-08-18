@@ -31,6 +31,23 @@ describe("event realtime access policy", () => {
     ).toBe(false);
   });
 
+  it("allows scanners of the same organization", () => {
+    expect(
+      canAccessEventRealtime(event, {
+        id: "scanner-a",
+        role: "scanner",
+        organizationId: "org-a",
+      }),
+    ).toBe(true);
+    expect(
+      canAccessEventRealtime(event, {
+        id: "scanner-b",
+        role: "scanner",
+        organizationId: "org-b",
+      }),
+    ).toBe(false);
+  });
+
   it("allows only registered members while preserving platform access", () => {
     expect(canAccessEventRealtime(event, { id: "member-a", role: "member" })).toBe(true);
     expect(canAccessEventRealtime(event, { id: "member-b", role: "member" })).toBe(false);

@@ -12,11 +12,8 @@ import {
   type CreatePaymentInput,
   type UpdatePaymentStatusInput,
 } from "@/lib/validations";
-import {
-  pusherServer,
-  PUSHER_CHANNELS,
-  PUSHER_EVENTS,
-} from "@/lib/pusher/server";
+import { broadcastPaymentUpdated } from "@/lib/pusher/broadcast";
+import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
 import { generateTicketForRegistration, buildTicketPublicUrl, resolveTicketQrDataUrl } from "@/lib/tickets";
 import { sendTicketEmailWithPdf } from "@/lib/mail";
 import { env } from "@/env";
@@ -29,7 +26,6 @@ import {
 } from "@/lib/organizations/admin-scope";
 import { NotificationService, type NotificationPayload } from "@/lib/notifications/notification.service";
 import { getEntityStaffUserIds } from "@/lib/notifications/notification-targets";
-import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
 import { invalidateAdminDashboardStatsCache } from "@/lib/analytics/admin";
 import { computeManualHoldExpiresAt } from "@/lib/registrations/payment-hold";
 import { resolveGuestRegistrationIds } from "@/lib/registrations/cleanup";
@@ -433,24 +429,17 @@ export class PaymentService {
 
         // Notificar en tiempo real vía Pusher (evento)
         try {
-          await pusherServer.trigger(
-            PUSHER_CHANNELS.event(event.id),
-            PUSHER_EVENTS.paymentUpdated,
+          await broadcastPaymentUpdated(
             {
               eventId: event.id,
               paymentId: payment.id,
               status: updated.status,
-            }
-          );
-
-          await pusherServer.trigger(
-            PUSHER_CHANNELS.event(event.id),
-            PUSHER_EVENTS.notificationCreated,
+            },
             {
               eventId: event.id,
-              type: "payment_status_updated",
-              paymentId: payment.id,
-            }
+              organizationId: event.organizationId,
+              userId: payment.userId,
+            },
           );
           await broadcastTableRefresh({
             resource: ["payments", "registrations", "attendees", "events"],

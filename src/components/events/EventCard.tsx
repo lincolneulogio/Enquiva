@@ -12,6 +12,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { EventCoverFrame, EventCoverPlaceholder } from "@/components/events/EventCoverFrame";
+import { LiveAttendeeCount } from "@/components/events/LiveAttendeeCount";
 import type { Event } from "@/lib/db/schema";
 import {
   categoryColor,
@@ -247,23 +248,11 @@ export async function EventCard({
               <Users className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" />
             </span>
             <span className="font-semibold text-foreground/80 leading-none truncate flex-1">
-              {event.capacity != null ? (
-                <>
-                  {t("common.registeredCount", {
-                    count: event.attendeeCount ?? 0,
-                    capacity: event.capacity,
-                  })}
-                  {isFull && (
-                    <span className="ml-1 font-bold text-destructive">
-                      ({t("common.full")})
-                    </span>
-                  )}
-                </>
-              ) : (
-                isVirtual
-                  ? `${t("public.eventDetail.capacityLabel")}: ${t("public.eventDetail.unlimited")}`
-                  : t("common.registered")
-              )}
+              <LiveAttendeeCount
+                eventId={event.id}
+                initialCount={event.attendeeCount ?? 0}
+                capacity={event.capacity}
+              />
             </span>
           </div>
 

@@ -13,7 +13,7 @@ import { and, eq } from "drizzle-orm";
 import { RegistrationErrorCode, registrationError } from "@/lib/errors/registration";
 import { verifyTicketSignature } from "@/lib/tickets/signature";
 import { runBackground } from "@/lib/background";
-import { pusherServer, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/server";
+import { broadcastCheckIn } from "@/lib/pusher/broadcast";
 import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
 
 export type CheckInByRegistrationInput = {
@@ -105,11 +105,14 @@ async function performCheckIn(
 
   runBackground(async () => {
     try {
-      await pusherServer.trigger(PUSHER_CHANNELS.event(eventId), PUSHER_EVENTS.checkIn, {
-        registrationId: registration.id,
-        userId: registration.userId,
-        checkedInAt: now,
-      });
+      await broadcastCheckIn(
+        {
+          registrationId: registration.id,
+          userId: registration.userId,
+          checkedInAt: now.toISOString(),
+        },
+        { eventId, userId: registration.userId },
+      );
       await broadcastTableRefresh({
         resource: ["registrations", "attendees"],
         eventId,

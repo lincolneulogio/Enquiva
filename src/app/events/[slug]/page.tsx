@@ -6,13 +6,14 @@ import { getRegistrationForEvent } from "@/actions/registrations";
 import { getUserPayments } from "@/actions/payments";
 import { RegisterButton } from "@/components/events/RegisterButton";
 import { TicketCard } from "@/components/tickets/TicketCard";
+import { LiveAttendeeCount } from "@/components/events/LiveAttendeeCount";
+import { EventPresenceIndicator } from "@/components/events/EventPresenceIndicator";
 import { PublicHeader } from "@/components/shared/PublicHeader";
 import Link from "next/link";
 import { EventCoverFrame } from "@/components/events/EventCoverFrame";
 import { EventLocationMapDynamic } from "@/components/events/EventLocationMapDynamic";
 import { categoryColor, categoryLabel, cn, formatEventDate } from "@/lib/utils";
 import { getI18n } from "@/lib/i18n/server";
-import { getIntlLocale } from "@/lib/i18n/core";
 import { recordEventView } from "@/lib/analytics/event-views";
 import { getEventCapacitySnapshot } from "@/lib/events/capacity-snapshot";
 import { getOrgPublicBrand } from "@/lib/brand/org-brand";
@@ -40,6 +41,9 @@ import {
   Info,
 } from "lucide-react";
 import { getRequestSession } from "@/lib/request-context";
+import { canAccessEventRealtime } from "@/lib/organizations/event-access-policy";
+import { OrganizationService } from "@/lib/organizations/organization.service";
+import { normalizeRole } from "@/lib/auth/rbac";
 
 export async function generateMetadata({
   params,
@@ -278,6 +282,31 @@ export default async function EventDetailPage({ params }: EventPageProps) {
     ? payments.find(({ registration: item }) => item.id === registration.id)
     : null;
   const capacitySnap = await getEventCapacitySnapshot(event.id, event.capacity);
+
+  let viewerOrganizationId: string | null = null;
+  const viewerRole = session?.user ? normalizeRole(session.user.role) : null;
+  if (session?.user && (viewerRole === "admin" || viewerRole === "scanner")) {
+    const org = await OrganizationService.getOrganizationForUser(session.user.id);
+    viewerOrganizationId = org?.id ?? null;
+  }
+  const activeRegistration =
+    registration &&
+    ["registered", "checked_in", "waitlisted"].includes(registration.status);
+  const enablePresence = Boolean(
+    session?.user &&
+      canAccessEventRealtime(
+        {
+          organizerId: event.organizerId,
+          organizationId: event.organizationId,
+          registeredUserIds: activeRegistration ? [session.user.id] : [],
+        },
+        {
+          id: session.user.id,
+          role: session.user.role,
+          organizationId: viewerOrganizationId,
+        },
+      ),
+  );
   const isFull = capacitySnap.isFull;
   const isEventExpired = new Date(event.date).getTime() <= Date.now();
   const isRegistrationClosed = isEventExpired || event.status !== "published";
@@ -425,22 +454,13 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                       <Users className="h-5 w-5" />
                     </div>
                     <div className="space-y-1">
-                      <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
-                        Cupos
-                      </span>
-                      <span className="font-semibold text-foreground text-sm leading-tight block">
-                        {capacitySnap.capacity == null
-                          ? t("public.eventDetail.unlimited")
-                          : `${capacitySnap.occupied} / ${capacitySnap.capacity}`}
-                      </span>
-                      <span className="block text-[11px] text-muted-foreground">
-                        {capacitySnap.remaining != null
-                          ? `${capacitySnap.remaining} disponibles`
-                          : "Sin límite"}
-                        {capacitySnap.waitlisted > 0
-                          ? ` · ${capacitySnap.waitlisted} en espera`
-                          : ""}
-                      </span>
+                      <LiveAttendeeCount
+                        eventId={event.id}
+                        initialCount={capacitySnap.occupied}
+                        initialWaitlisted={capacitySnap.waitlisted}
+                        capacity={capacitySnap.capacity}
+                        variant="detail"
+                      />
                     </div>
                   </div>
 
@@ -616,23 +636,21 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                   <Users className="h-6 w-6" />
                 </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 leading-none">
-                    {t("public.eventDetail.attendeesLabel")}
-                  </p>
-                  <p className="text-3xl font-extrabold text-foreground leading-none pt-1">
-                    {capacitySnap.occupied.toLocaleString(getIntlLocale(locale))}
-                  </p>
-                  {capacitySnap.waitlisted > 0 ? (
-                    <p className="text-xs text-amber-700 dark:text-amber-300">
-                      +{capacitySnap.waitlisted} en lista de espera
-                    </p>
-                  ) : null}
-                  <p className="text-xs text-muted-foreground font-medium pt-0.5">
-                    {t("public.eventDetail.attendingSuffix")}
-                  </p>
-                </div>
+                <LiveAttendeeCount
+                  eventId={event.id}
+                  initialCount={capacitySnap.occupied}
+                  initialWaitlisted={capacitySnap.waitlisted}
+                  capacity={capacitySnap.capacity}
+                  variant="sidebar"
+                />
               </div>
+              {enablePresence && session?.user ? (
+                <EventPresenceIndicator
+                  eventId={event.id}
+                  currentUserId={session.user.id}
+                  variant="staff"
+                />
+              ) : null}
 
               {/* PASAJEROS BUS */}
               {event.hasTransport && totalTransportSeats > 0 && (

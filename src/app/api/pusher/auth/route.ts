@@ -24,11 +24,13 @@ async function canAccessEventChannel(
     .limit(1);
   if (!event) return false;
 
-  const role = normalizeRole(user.role);
-  const scope =
-    role === "admin" ? await resolveAdminScopeForUser(user.id, user.role) : null;
-  let registered = false;
-  if (!["super_admin", "organizer", "admin"].includes(role)) {
+    const role = normalizeRole(user.role);
+    const scope =
+      role === "admin" || role === "scanner"
+        ? await resolveAdminScopeForUser(user.id, user.role)
+        : null;
+    let registered = false;
+    if (!["super_admin", "organizer", "admin", "scanner"].includes(role)) {
     const [registration] = await db
       .select({ id: registrations.id })
       .from(registrations)
@@ -75,7 +77,9 @@ export async function POST(request: NextRequest) {
 
     const role = normalizeRole(user.role);
     const adminScope =
-      role === "admin" ? await resolveAdminScopeForUser(user.id, user.role) : null;
+      role === "admin" || role === "scanner"
+        ? await resolveAdminScopeForUser(user.id, user.role)
+        : null;
     const decision = decidePusherChannelAccess({
       channelName,
       userId: user.id,
@@ -95,8 +99,9 @@ export async function POST(request: NextRequest) {
       ? {
           user_id: user.id,
           user_info: {
-            name: user.name,
-            image: user.image,
+            name: user.name ?? "Participante",
+            image: user.image ?? null,
+            role,
           },
         }
       : undefined;

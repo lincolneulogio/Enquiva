@@ -5,7 +5,17 @@ import { isPusherClientConfigured } from "./config";
 import { PUSHER_CHANNELS, PUSHER_EVENTS } from "./shared";
 
 function createNoopChannel() {
-    return { bind: function () { return this; }, unbind_all: function () {}, unbind: function () {} };
+    return {
+        bind: function () { return this; },
+        unbind_all: function () {},
+        unbind: function () {},
+        members: {
+            count: 0,
+            me: null,
+            each: () => {},
+            get: () => null,
+        },
+    };
 }
 
 function createNoopClient() {
@@ -40,5 +50,12 @@ export function getPusherClient(): PusherClient {
     return pusherClientInstance;
 }
 
-export { PUSHER_CHANNELS, PUSHER_EVENTS };
-export type { TableRefreshPayload, TableResource } from "./shared";
+export { PUSHER_CHANNELS, PUSHER_EVENTS, isPusherClientConfigured };
+export type {
+    TableRefreshPayload,
+    TableResource,
+    AttendeeCountUpdatedPayload,
+    NewRegistrationPayload,
+    CheckInPayload,
+    PresenceUserInfo,
+} from "./shared";

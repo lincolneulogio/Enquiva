@@ -3,12 +3,13 @@ import {
   transportRoutes,
   transportBookings,
   registrations,
-  events,
   payments,
 } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { bookTransportWithPayment } from "@/lib/transport/standalone-booking";
+import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
+import { runBackground } from "@/lib/background";
 
 import { TRANSPORT_MAX_SEATS_PER_BOOKING } from "@/lib/transport/constants";
 
@@ -78,8 +79,14 @@ export class BookingService {
     }
 
     const [booking] = await db
-      .select()
+      .select({
+        id: transportBookings.id,
+        status: transportBookings.status,
+        userId: transportBookings.userId,
+        eventId: transportRoutes.eventId,
+      })
       .from(transportBookings)
+      .innerJoin(transportRoutes, eq(transportRoutes.id, transportBookings.routeId))
       .where(and(eq(transportBookings.id, bookingId), eq(transportBookings.userId, userId)))
       .limit(1);
 
@@ -88,7 +95,7 @@ export class BookingService {
       throw new Error("No puedes cancelar una reserva ya confirmada. Contacta al organizador.");
     }
 
-    return db.transaction(async (tx) => {
+    await db.transaction(async (tx) => {
       await tx
         .update(transportBookings)
         .set({ status: "cancelled", updatedAt: new Date() })
@@ -99,5 +106,15 @@ export class BookingService {
         .set({ status: "rejected", updatedAt: new Date(), notes: "Reserva cancelada por el usuario" })
         .where(and(eq(payments.transportBookingId, bookingId), eq(payments.status, "pending")));
     });
+
+    runBackground(async () => {
+      await broadcastTableRefresh({
+        resource: ["transport", "payments"],
+        eventId: booking.eventId,
+        userId,
+      });
+    });
+
+    return { success: true as const };
   }
 }

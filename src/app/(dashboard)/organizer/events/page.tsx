@@ -13,6 +13,7 @@ import { ExportDataPanel } from "@/components/dashboard";
 import { Suspense } from "react";
 import { getCategories } from "@/actions/events";
 import { TablePagination } from "@/components/dashboard";
+import { LiveAttendeeCount } from "@/components/events/LiveAttendeeCount";
 import { getExportEventOptions } from "@/actions/exports";
 import { getMyPlanSummary } from "@/actions/billing";
 import { planIncludesFeature } from "@/lib/billing/enforce";
@@ -265,8 +266,12 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                                             })()}
                                         </td>
                                         <td className="px-4 py-3 text-muted-foreground">
-                                            {attendeeCount ?? 0}
-                                            {event.capacity ? ` / ${event.capacity}` : ""}
+                                            <LiveAttendeeCount
+                                                eventId={event.id}
+                                                initialCount={attendeeCount ?? 0}
+                                                capacity={event.capacity}
+                                                variant="table"
+                                            />
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             <div className="flex items-center justify-end gap-3 text-xs">

@@ -51,7 +51,7 @@ export async function resolveAdminScopeForUser(
 ): Promise<AdminScope> {
   const normalized = normalizeRole(role);
   if (normalized === "super_admin") return { mode: "platform" };
-  if (normalized === "admin") {
+  if (normalized === "admin" || normalized === "scanner") {
     const org = await OrganizationService.getOrganizationForUser(userId);
     if (org) {
       return {

@@ -8,6 +8,7 @@ import { getIntlLocale } from "@/lib/i18n/core";
 import { categoryLabel, registrationStatusLabel, formatCurrency } from "@/lib/utils";
 import { TablePagination } from "@/components/dashboard";
 import { ExportDataPanel } from "@/components/dashboard";
+import { EventPresenceIndicator } from "@/components/events/EventPresenceIndicator";
 import { getExportEventOptions } from "@/actions/exports";
 import { getCategories } from "@/actions/events";
 import { Suspense } from "react";
@@ -268,6 +269,9 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
           )}
         </p>
       </div>
+      {params.eventId ? (
+        <EventPresenceIndicator eventId={params.eventId} variant="staff" />
+      ) : null}
 
       <Suspense>
         <ExportDataPanel

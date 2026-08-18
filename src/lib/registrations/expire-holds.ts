@@ -7,6 +7,7 @@ import {
 } from "@/lib/registrations/cleanup";
 import { NotificationService, type NotificationPayload } from "@/lib/notifications/notification.service";
 import { holdMinutesRemaining } from "@/lib/registrations/payment-hold";
+import { publishRegistrationRealtime } from "@/lib/pusher/registration-live";
 
 /**
  * Cancela reservas vencidas (pago no completado) y libera cupo/transporte.
@@ -97,8 +98,20 @@ async function expireHolds(now: Date) {
   }
 
   for (const eventId of eventIdsToPromote) {
-    await db.transaction(async (tx) => {
-      await promoteNextWaitlisted(tx, eventId);
+    const promotion = await db.transaction(async (tx) => {
+      return promoteNextWaitlisted(tx, eventId);
+    });
+
+    if (promotion?.payload) {
+      await NotificationService.deliver([promotion.payload]);
+    }
+
+    await publishRegistrationRealtime({
+      eventId,
+      userId: promotion?.userId,
+      status: promotion ? "registered" : undefined,
+      source: promotion ? "waitlist_promoted" : undefined,
+      resource: ["registrations", "attendees", "events", "payments"],
     });
   }
 

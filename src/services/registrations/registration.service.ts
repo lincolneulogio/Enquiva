@@ -9,16 +9,8 @@ import {
 } from "@/lib/db/schema";
 import { eq, and, inArray, sql, desc, count } from "drizzle-orm";
 import crypto from "crypto";
-import {
-  pusherServer,
-  PUSHER_CHANNELS,
-  PUSHER_EVENTS,
-} from "@/lib/pusher/server";
-import {
-  redis,
-  CACHE_KEYS,
-  invalidateCache,
-} from "@/lib/redis";
+import { CACHE_KEYS, invalidateCache } from "@/lib/redis";
+import { publishRegistrationRealtime } from "@/lib/pusher/registration-live";
 import { TicketCheckInService } from "@/lib/tickets/check-in";
 import { generateTicketForRegistration } from "@/lib/tickets";
 import { runBackground } from "@/lib/background";
@@ -37,7 +29,6 @@ import {
 import { createTransportBookingInTx } from "@/lib/transport/booking";
 import { NotificationService, type NotificationPayload } from "@/lib/notifications/notification.service";
 import { maybeNotifyTransportCapacityAlert } from "@/lib/notifications/transport-capacity-alert";
-import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
 
 export interface RegisterEventInput {
   eventId: string;
@@ -437,34 +428,17 @@ export class RegistrationService {
           });
         }
 
-        // Obtener nuevo conteo total de registrados para actualizar Pusher y Redis
-        const [{ count: newCount }] = await db
-          .select({ count: count() })
-          .from(registrations)
-          .where(occupyingCapacityCondition(eventId));
-
-        // Notificar en tiempo real cambio en la cantidad de asistentes
         try {
-          await pusherServer.trigger(
-            PUSHER_CHANNELS.publicEventCount(eventId),
-            PUSHER_EVENTS.attendeeCountUpdated,
-            { eventId, count: newCount }
-          );
-          await broadcastTableRefresh({
-            resource: ["registrations", "attendees", "payments", "events"],
+          await publishRegistrationRealtime({
             eventId,
-            organizationId: event.organizationId ?? undefined,
+            organizationId: event.organizationId,
             userId: attendee.id,
+            status,
+            source: "self_register",
+            resource: ["registrations", "attendees", "payments", "events", "transport"],
           });
         } catch (error) {
-          console.error("Fallo al enviar contador de asistentes vía Pusher", error);
-        }
-
-        // Guardar contador actualizado en Redis
-        try {
-          await redis.set(CACHE_KEYS.eventAttendeesCount(eventId), newCount);
-        } catch (error) {
-          console.error("Fallo al actualizar contador en Redis", error);
+          console.error("Fallo al enviar inscripción en vivo vía Pusher", error);
         }
       });
 
@@ -531,30 +505,16 @@ export class RegistrationService {
           await NotificationService.deliver([promotion.payload]);
         }
 
-        const [{ count: newCount }] = await db
-          .select({ count: count() })
-          .from(registrations)
-          .where(occupyingCapacityCondition(reg.eventId));
-
         try {
-          await pusherServer.trigger(
-            PUSHER_CHANNELS.publicEventCount(reg.eventId),
-            PUSHER_EVENTS.attendeeCountUpdated,
-            { eventId: reg.eventId, count: newCount },
-          );
-          await broadcastTableRefresh({
-            resource: ["registrations", "attendees", "events"],
+          await publishRegistrationRealtime({
             eventId: reg.eventId,
             userId,
+            status: promotion?.userId ? "registered" : undefined,
+            source: promotion?.userId ? "waitlist_promoted" : undefined,
+            resource: ["registrations", "attendees", "events", "payments", "transport"],
           });
         } catch (error) {
           console.error("Fallo al actualizar contador tras cancelación", error);
-        }
-
-        try {
-          await redis.set(CACHE_KEYS.eventAttendeesCount(reg.eventId), newCount);
-        } catch (error) {
-          console.error("Fallo al actualizar Redis tras cancelación", error);
         }
       });
 
@@ -747,10 +707,12 @@ export class RegistrationService {
     });
 
     runBackground(async () => {
-      await broadcastTableRefresh({
-        resource: ["registrations", "attendees", "payments", "events"],
+      await publishRegistrationRealtime({
         eventId: result.eventId,
-        organizationId: result.organizationId ?? undefined,
+        organizationId: result.organizationId,
+        status: "registered",
+        source: "offline",
+        resource: ["registrations", "attendees", "payments", "events"],
       });
     });
 

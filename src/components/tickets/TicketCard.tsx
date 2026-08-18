@@ -12,6 +12,7 @@ import {
 import { usePlatformBrand } from "@/components/providers/PlatformBrandProvider";
 import { useState, useEffect } from "react";
 import { getPusherClient, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/client";
+import { EventPresenceIndicator } from "@/components/events/EventPresenceIndicator";
 import Swal from "@/lib/ui/swal-client";
 import { toast } from "sonner";
 import { paymentCheckoutPath } from "@/lib/navigation/attendee-paths";
@@ -413,6 +414,11 @@ export function TicketCard({
                 </span>
               )}
             </div>
+            <EventPresenceIndicator
+              eventId={event.id}
+              currentUserId={registration.userId}
+              className="mt-2"
+            />
           </div>
         </div>
 

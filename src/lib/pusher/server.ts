@@ -41,11 +41,24 @@ export const pusherServer = {
   },
 };
 
-export async function triggerPusher(channel: string, event: string, data: unknown) {
+const PUSHER_TRIGGER_BATCH_SIZE = 10;
+
+export async function triggerPusher(
+  channel: string | readonly string[],
+  event: string,
+  data: unknown,
+) {
   const pusher = getPusherServer();
   if (!pusher) return;
+  const channels = [
+    ...new Set((Array.isArray(channel) ? [...channel] : [channel]).filter((name) => name.length > 0)),
+  ];
+  if (channels.length === 0) return;
   try {
-    await pusher.trigger(channel, event, data);
+    for (let index = 0; index < channels.length; index += PUSHER_TRIGGER_BATCH_SIZE) {
+      const batch = channels.slice(index, index + PUSHER_TRIGGER_BATCH_SIZE);
+      await pusher.trigger(batch, event, data);
+    }
   } catch (error) {
     console.warn("[Pusher] trigger failed:", error);
   }

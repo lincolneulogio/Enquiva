@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { OrganizerGettingStarted } from "@/components/dashboard/organizer/OrganizerGettingStarted";
 import { getI18n } from "@/lib/i18n/server";
 import { OrganizationService } from "@/lib/organizations/organization.service";
+import { LiveAttendeeCount } from "@/components/events/LiveAttendeeCount";
 
 export default async function OrganizerDashboardPage() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -191,8 +192,12 @@ export default async function OrganizerDashboardPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">
-                      {attendeeCount ?? 0}
-                      {event.capacity ? ` / ${event.capacity}` : ""}
+                      <LiveAttendeeCount
+                        eventId={event.id}
+                        initialCount={attendeeCount ?? 0}
+                        capacity={event.capacity}
+                        variant="table"
+                      />
                     </td>
                     <td className="px-6 py-4">
                       <Link

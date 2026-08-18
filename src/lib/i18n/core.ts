@@ -980,6 +980,15 @@ const translations: Record<Locale, TranslationDictionary> = {
         eventCard: {
             registered: "inscritos",
         },
+        realtime: {
+            onlineCount: "{count} en línea",
+            viewingNow: "Viendo ahora",
+            noOneOnline: "Nadie más conectado",
+            you: "Tú",
+            remaining: "{count} disponibles",
+            waitlisted: "{count} en espera",
+            unlimited: "Sin límite",
+        },
         ticket: {
             yourTicket: "Tu entrada",
             qrPending: "QR pendiente",
@@ -2947,6 +2956,15 @@ const translations: Record<Locale, TranslationDictionary> = {
         },
         eventCard: {
             registered: "registered",
+        },
+        realtime: {
+            onlineCount: "{count} online",
+            viewingNow: "Viewing now",
+            noOneOnline: "Nobody else is online",
+            you: "You",
+            remaining: "{count} available",
+            waitlisted: "{count} waitlisted",
+            unlimited: "No limit",
         },
         ticket: {
             yourTicket: "Your ticket",

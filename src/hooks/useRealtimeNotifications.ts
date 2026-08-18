@@ -38,15 +38,3 @@ export function useRealtimeNotifications({
     };
   }, [userId]);
 }
-
-export function useEventPresence(eventId: string) {
-  useEffect(() => {
-    const pusher = getPusherClient();
-    const channel = pusher.subscribe(PUSHER_CHANNELS.presence(eventId));
-
-    return () => {
-      channel.unbind_all();
-      pusher.unsubscribe(PUSHER_CHANNELS.presence(eventId));
-    };
-  }, [eventId]);
-}

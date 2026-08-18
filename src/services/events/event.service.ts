@@ -10,7 +10,7 @@ import {
   CACHE_KEYS,
   CACHE_TTL,
 } from "@/lib/redis";
-import { pusherServer, PUSHER_CHANNELS, PUSHER_EVENTS } from "@/lib/pusher/server";
+import { broadcastEventUpdated } from "@/lib/pusher/broadcast";
 import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
 import { generateUniqueSlug } from "@/lib/utils";
 import { assertCanManageEvent } from "@/lib/organizations/admin-scope";
@@ -220,10 +220,9 @@ export class EventService {
     }
 
     // Notificar a los participantes en tiempo real
-    await pusherServer.trigger(
-      PUSHER_CHANNELS.event(eventId),
-      PUSHER_EVENTS.eventUpdated,
-      { eventId, title: updated.title, status: updated.status }
+    await broadcastEventUpdated(
+      { eventId, title: updated.title, status: updated.status },
+      { eventId, organizationId: updated.organizationId },
     );
     await broadcastTableRefresh({
       resource: "events",
