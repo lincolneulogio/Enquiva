@@ -29,7 +29,9 @@ export async function resolveChatToolScope(
 
 export function scopeEventsForChat(scope: ChatToolScope): SQL | undefined {
   if (scope.role === "super_admin") return undefined;
-  if (scope.role === "admin") return scopeEventCondition(scope.adminScope);
+  if (scope.role === "admin" || scope.role === "scanner") {
+    return scopeEventCondition(scope.adminScope);
+  }
   if (scope.role === "organizer") return eq(events.organizerId, scope.userId);
   return scopeDenyAllCondition();
 }
@@ -42,7 +44,7 @@ export function scopeUsersForChat(scope: ChatToolScope): SQL | undefined {
 
 export function scopeRegistrationsForChat(scope: ChatToolScope): SQL | undefined {
   if (scope.role === "super_admin") return undefined;
-  if (scope.role === "admin") {
+  if (scope.role === "admin" || scope.role === "scanner") {
     if (scope.adminScope.mode !== "org") return scopeDenyAllCondition();
     return registrationInOrgCondition(scope.adminScope.organizationId);
   }
@@ -69,4 +71,9 @@ export function canUseScopedUserList(scope: ChatToolScope): boolean {
 
 export function canUseStaffChatTools(scope: ChatToolScope): boolean {
   return scope.role === "super_admin" || scope.role === "admin" || scope.role === "organizer";
+}
+
+/** Scanner de entidad: check-in / listados con SQL de tenant, sin analytics ni usuarios. */
+export function canUseOrgDoorChatTools(scope: ChatToolScope): boolean {
+  return canUseStaffChatTools(scope) || scope.role === "scanner";
 }

@@ -19,7 +19,7 @@ import { exportEventsData } from "./exports/events";
 import { exportRegistrationsData } from "./exports/registrations";
 import { exportPaymentsData } from "./exports/payments";
 import { requirePlanFeature } from "@/lib/billing/enforce";
-import { assertPermission } from "@/lib/auth/permission-guards";
+import { assertAnyPermission } from "@/lib/auth/permission-guards";
 
 export type {
     ExportScope,
@@ -32,7 +32,7 @@ export type {
 
 export async function getExportEventOptions(scope: ExportScope): Promise<ExportEventOption[]> {
     const user = await requireUser();
-    await assertPermission(user, "data:export");
+    await assertAnyPermission(user, ["data:export:org", "data:export:own", "data:export:platform"]);
     assertScopeAccess(user, scope);
 
     const orgEventFilter = scope === "admin" ? await getAdminOrgEventFilter(user) : undefined;
@@ -54,7 +54,7 @@ export async function getExportData(input: z.infer<typeof exportSchema>): Promis
     const user = await requireUser();
     const validated = exportSchema.parse(input);
 
-    await assertPermission(user, "data:export");
+    await assertAnyPermission(user, ["data:export:org", "data:export:own", "data:export:platform"]);
     assertScopeAccess(user, validated.scope);
     await requirePlanFeature(user.id, user.role, "exports");
 

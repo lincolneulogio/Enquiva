@@ -1,39 +1,56 @@
-import { hasEffectivePermission } from "./effective-permissions";
+import { authorize, PermissionError, type AuthResource } from "./authorize";
 import { normalizeRole, type Permission } from "./rbac";
 
-/** Sujeto mínimo para evaluar permisos: solo se necesita el rol. */
-type PermissionSubject = { role?: string | null };
+export { PermissionError };
+export type { AuthResource };
 
-/**
- * Error de autorización basado en la matriz de permisos efectiva (rol + overrides en BD).
- * Se distingue de otros errores para poder mapearlo a un mensaje claro en la UI.
- */
-export class PermissionError extends Error {
-  code = "PERMISSION_DENIED";
+type PermissionSubject = { id?: string; role?: string | null; name?: string | null };
 
-  constructor(message = "No tienes permiso para realizar esta acción.") {
-    super(message);
-    this.name = "PermissionError";
+function requireUserId(user: PermissionSubject): string {
+  if (!user.id) {
+    throw new PermissionError("No se pudo resolver el usuario para autorizar.");
   }
+  return user.id;
 }
 
 /** `true` si el usuario tiene el permiso efectivo (super_admin siempre `true`). */
 export async function can(
   user: PermissionSubject,
   permission: Permission,
+  resource?: AuthResource,
 ): Promise<boolean> {
-  return hasEffectivePermission(user.role, permission);
+  try {
+    await authorize({
+      user: { id: requireUserId(user), role: user.role, name: user.name },
+      permission,
+      resource,
+      audit: false,
+    });
+    return true;
+  } catch (error) {
+    if (error instanceof PermissionError) return false;
+    throw error;
+  }
 }
 
 /** `true` si el usuario tiene al menos uno de los permisos. */
 export async function canAny(
   user: PermissionSubject,
   permissions: Permission[],
+  resource?: AuthResource,
 ): Promise<boolean> {
-  for (const permission of permissions) {
-    if (await hasEffectivePermission(user.role, permission)) return true;
+  try {
+    await authorize({
+      user: { id: requireUserId(user), role: user.role, name: user.name },
+      permissions,
+      resource,
+      audit: false,
+    });
+    return true;
+  } catch (error) {
+    if (error instanceof PermissionError) return false;
+    throw error;
   }
-  return false;
 }
 
 /** Lanza `PermissionError` si el usuario no tiene el permiso efectivo. */
@@ -41,10 +58,14 @@ export async function assertPermission(
   user: PermissionSubject,
   permission: Permission,
   message?: string,
+  resource?: AuthResource,
 ): Promise<void> {
-  if (!(await hasEffectivePermission(user.role, permission))) {
-    throw new PermissionError(message);
-  }
+  await authorize({
+    user: { id: requireUserId(user), role: user.role, name: user.name },
+    permission,
+    resource,
+    message,
+  });
 }
 
 /** Lanza si el usuario no tiene ninguno de los permisos indicados. */
@@ -52,16 +73,19 @@ export async function assertAnyPermission(
   user: PermissionSubject,
   permissions: Permission[],
   message?: string,
+  resource?: AuthResource,
 ): Promise<void> {
-  if (!(await canAny(user, permissions))) {
-    throw new PermissionError(message);
-  }
+  await authorize({
+    user: { id: requireUserId(user), role: user.role, name: user.name },
+    permissions,
+    resource,
+    message,
+  });
 }
 
 /**
- * Autoriza una acción sobre un recurso que puede ser "propio" o "de cualquiera".
- * - admin/organizer: `anyPermission` o (`ownPermission` + dueño)
- * - super_admin: solo si es dueño (ve plataforma; muta solo lo que creó)
+ * Autoriza una acción sobre un recurso propio o de la entidad.
+ * `anyPermission` debe ser alcance :org; `ownPermission` alcance :own.
  */
 export async function assertOwnOrAnyPermission(
   user: PermissionSubject,
@@ -69,22 +93,27 @@ export async function assertOwnOrAnyPermission(
     anyPermission: Permission;
     ownPermission: Permission;
     isOwner: boolean;
+    organizationId?: string | null;
+    organizerId?: string | null;
+    ownerUserId?: string | null;
+    resourceId?: string;
+    resourceType?: AuthResource["type"];
     message?: string;
   },
 ): Promise<void> {
+  const userId = requireUserId(user);
   const role = normalizeRole(user.role);
 
-  if (role === "super_admin") {
-    if (opts.isOwner) return;
-    throw new PermissionError(
-      opts.message ??
-        "Como superadmin solo puedes modificar recursos de eventos que creaste.",
-    );
-  }
-
-  if (await hasEffectivePermission(user.role, opts.anyPermission)) return;
-  if (opts.isOwner && (await hasEffectivePermission(user.role, opts.ownPermission))) {
-    return;
-  }
-  throw new PermissionError(opts.message);
+  await authorize({
+    user: { id: userId, role, name: user.name },
+    permissions: [opts.anyPermission, opts.ownPermission],
+    resource: {
+      type: opts.resourceType ?? "event",
+      id: opts.resourceId,
+      organizationId: opts.organizationId,
+      organizerId: opts.organizerId ?? (opts.isOwner ? userId : null),
+      ownerUserId: opts.ownerUserId ?? (opts.isOwner ? userId : null),
+    },
+    message: opts.message,
+  });
 }

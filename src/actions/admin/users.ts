@@ -24,7 +24,7 @@ import {
     requireAdminOrSuper,
     revokeUserSessions,
 } from "@/lib/auth/guards";
-import { assertPermission } from "@/lib/auth/permission-guards";
+import { assertAnyPermission } from "@/lib/auth/permission-guards";
 import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
 import {
     andWithScope,
@@ -37,7 +37,7 @@ export { requireSuperAdmin, requireAdminOrSuper };
 /** Activa o suspende una cuenta; al suspender invalida todas las sesiones. */
 export async function setUserActive(userId: string, isActive: boolean) {
     const currentUser = await requireAdminOrSuper();
-    await assertPermission(currentUser, "users:manage");
+    await assertAnyPermission(currentUser, ["users:manage:org", "users:manage:platform"]);
     const scope = await resolveAdminScopeForUser(currentUser.id, currentUser.role);
 
     if (currentUser.id === userId && !isActive) {
@@ -101,7 +101,7 @@ export async function updateUserRole(
     role: "member" | "organizer" | "admin" | "super_admin" | "scanner"
 ) {
     const currentUser = await requireAdminOrSuper();
-    await assertPermission(currentUser, "users:manage");
+    await assertAnyPermission(currentUser, ["users:manage:org", "users:manage:platform"]);
     const actorRole = normalizeRole(currentUser.role);
     const hdrs = await headers();
     const ipAddress = hdrs.get("x-forwarded-for") ?? hdrs.get("x-real-ip") ?? "unknown";

@@ -4,6 +4,7 @@ import { payments, registrations, events, users } from "@/lib/db/schema";
 import { and, count, desc, eq, ilike, or } from "drizzle-orm";
 import {
   canUseStaffChatTools,
+  canUseOrgDoorChatTools,
   scopeEventsForChat,
   scopeRegistrationsForChat,
   type ChatToolScope,
@@ -99,7 +100,7 @@ export function createGetPaymentStatus(scope: ChatToolScope) {
 }
 
 export function createGetCheckInStats(scope: ChatToolScope) {
-  if (!canUseStaffChatTools(scope)) return null;
+  if (!canUseOrgDoorChatTools(scope)) return null;
 
   return {
     description:

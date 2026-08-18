@@ -51,7 +51,7 @@ export default async function AdminAnalyticsPage({ searchParams }: AdminAnalytic
   const session = await auth.api.getSession({ headers: await headers() });
   const role = session?.user?.role;
 
-  if (role !== "super_admin" && !(await hasEffectivePermission(role, "analytics:view:any"))) {
+  if (role !== "super_admin" && !(await hasEffectivePermission(role, "analytics:view:org"))) {
     redirect("/admin");
   }
 

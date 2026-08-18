@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requireOrganizerOrHigherWithHeaders } from "@/lib/auth/guards";
-import { assertAnyPermission } from "@/lib/auth/permission-guards";
+import { authorize } from "@/lib/auth/authorize";
+import { loadPaymentAuthResource } from "@/lib/auth/load-resource";
 import { CulqiRefundService } from "@/lib/culqi/refund.service";
 import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
 
@@ -12,7 +13,11 @@ export async function initiatePaymentRefund(input: {
   reason?: string;
 }) {
   const { user } = await requireOrganizerOrHigherWithHeaders();
-  await assertAnyPermission(user, ["payments:update:own", "payments:update:any"]);
+  await authorize({
+    user,
+    permissions: ["payments:update:own", "payments:update:org"],
+    resource: await loadPaymentAuthResource(input.paymentId),
+  });
 
   const result = await CulqiRefundService.initiateRefund({
     actorId: user.id,

@@ -7,7 +7,8 @@ import { scopeEventsForChat, type ChatToolScope } from "./scope";
 const LATEST_KEYWORDS = ["ultimo", "último", "reciente", "recientes", "últimos", "ultimos", "creado"];
 
 export function createSearchEvents(scope: ChatToolScope) {
-  const staffScope = scope.role !== "member" ? scopeEventsForChat(scope) : undefined;
+  const staffScope =
+    scope.role === "member" ? undefined : scopeEventsForChat(scope);
 
   return {
     description:
@@ -15,7 +16,7 @@ export function createSearchEvents(scope: ChatToolScope) {
         ? "Busca eventos publicados en la plataforma por título, descripción o categoría."
         : scope.role === "super_admin"
           ? "Busca eventos publicados en la plataforma."
-          : scope.role === "admin"
+          : scope.role === "admin" || scope.role === "scanner"
             ? "Busca eventos publicados de tu entidad."
             : "Busca tus eventos publicados.",
     parameters: z.object({

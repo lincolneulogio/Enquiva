@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireApiRole, apiAuthErrorResponse } from "@/lib/auth/api-guards";
 import { ticketVerifyRatelimit, enforceRateLimit } from "@/lib/redis";
 import { assertCanScanEvent } from "@/lib/organizations/admin-scope";
+import { authorize, PermissionError } from "@/lib/auth/authorize";
 import { db } from "@/lib/db";
 import { tickets, registrations, events } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -43,6 +44,16 @@ export async function POST(req: Request) {
 
           if (eventRecord) {
             try {
+              await authorize({
+                user,
+                permissions: ["attendees:checkin:org", "attendees:checkin:own"],
+                resource: {
+                  type: "event",
+                  id: eventRecord.id,
+                  organizationId: eventRecord.organizationId,
+                  organizerId: eventRecord.organizerId,
+                },
+              });
               await assertCanScanEvent(
                 {
                   id: eventRecord.id,
@@ -52,7 +63,16 @@ export async function POST(req: Request) {
                 user.id,
                 role,
               );
-            } catch {
+            } catch (error) {
+              if (error instanceof PermissionError) {
+                return NextResponse.json(
+                  {
+                    success: false,
+                    error: "Forbidden: No tienes permisos para verificar tickets de este evento",
+                  },
+                  { status: 403 },
+                );
+              }
               return NextResponse.json(
                 {
                   success: false,

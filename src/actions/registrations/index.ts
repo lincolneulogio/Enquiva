@@ -2,12 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { db } from "@/lib/db";
+import { registrations, users, tickets } from "@/lib/db/schema";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import { createRegistrationSchema, checkInSchema } from "@/lib/validations";
 import { RegistrationService } from "@/services/registrations/registration.service";
 import { registrationRatelimit, enforceRateLimit } from "@/lib/redis";
-import { assertEventInAdminScope } from "@/lib/organizations/admin-scope";
+import { assertCanScanEvent, assertEventInAdminScope, getEventScopeRecord } from "@/lib/organizations/admin-scope";
 import { requireAuth } from "@/lib/auth/guards";
-import { assertPermission, assertAnyPermission } from "@/lib/auth/permission-guards";
+import { authorize } from "@/lib/auth/authorize";
+import { loadRegistrationAuthResource } from "@/lib/auth/load-resource";
+import type { Permission } from "@/lib/auth/rbac";
 
 /**
  * Controller Server Action: Registra a un asistente en un evento.
@@ -49,62 +54,78 @@ export async function registerForEvent(input: unknown) {
  */
 export async function cancelRegistration(registrationId: string, password?: string) {
   const user = await requireAuth();
+  await authorize({
+    user,
+    permission: "registrations:cancel:own",
+    resource: await loadRegistrationAuthResource(registrationId),
+  });
 
   return RegistrationService.cancelRegistration(registrationId, user.id, password);
 }
 
-/**
- * Controller Server Action: Registra el ingreso (Check-In) de un asistente.
- */
+async function authorizeEventByPermissions(
+  user: { id: string; role?: string | null; name?: string | null },
+  eventId: string,
+  permissions: Permission[],
+  mode: "scan" | "manage",
+) {
+  const event = await getEventScopeRecord(eventId);
+  if (!event) throw new Error("Evento no encontrado");
+  await authorize({
+    user,
+    permissions,
+    resource: {
+      type: "event",
+      id: event.id,
+      organizationId: event.organizationId,
+      organizerId: event.organizerId,
+    },
+  });
+  if (mode === "scan") {
+    await assertCanScanEvent(event, user.id, user.role);
+  } else {
+    await assertEventInAdminScope(eventId, user.id, user.role);
+  }
+  return event;
+}
+
 export async function checkInAttendee(input: unknown) {
   const user = await requireAuth();
-  if (user.role !== "organizer" && user.role !== "super_admin" && user.role !== "admin") {
-    throw new Error("Only organizers or administrators can check in attendees");
-  }
-  await assertPermission(user, "attendees:checkin");
-
   const validated = checkInSchema.parse(input);
-  await assertEventInAdminScope(validated.eventId, user.id, user.role);
+  await authorizeEventByPermissions(
+    user,
+    validated.eventId,
+    ["attendees:checkin:org", "attendees:checkin:own"],
+    "scan",
+  );
 
   return RegistrationService.checkInAttendee(user.id, validated);
 }
 
-/**
- * Controller Server Action: Obtiene las inscripciones del usuario autenticado.
- */
 export async function getUserRegistrations() {
   const user = await requireAuth();
-
+  await authorize({ user, permissions: ["registrations:view:own", "tickets:view:own"] });
   return RegistrationService.getUserRegistrations(user.id);
 }
 
-/**
- * Controller Server Action: Obtiene todos los asistentes de un evento (Admin/Organizador).
- */
 export async function getEventAttendees(eventId: string) {
   const user = await requireAuth();
-  if (user.role !== "organizer" && user.role !== "super_admin" && user.role !== "admin") {
-    throw new Error("Unauthorized");
-  }
-  await assertAnyPermission(user, ["registrations:view:any", "registrations:view:own"]);
-
-  await assertEventInAdminScope(eventId, user.id, user.role);
+  await authorizeEventByPermissions(
+    user,
+    eventId,
+    ["registrations:view:org", "registrations:view:own"],
+    "scan",
+  );
 
   return RegistrationService.getEventAttendees(eventId);
 }
 
-/**
- * Controller Server Action: Obtiene el registro del usuario logueado en un evento específico.
- */
 export async function getRegistrationForEvent(eventId: string) {
   const user = await requireAuth();
-
+  await authorize({ user, permissions: ["registrations:view:own", "tickets:view:own"] });
   return RegistrationService.getRegistrationForEvent(user.id, eventId);
 }
 
-/**
- * Controller Server Action: Registra manualmente a un asistente sin cuenta (offline) con pago en efectivo pre-aprobado.
- */
 export async function registerOfflineAttendeeAction(input: {
   eventId: string;
   name: string;
@@ -112,12 +133,12 @@ export async function registerOfflineAttendeeAction(input: {
   notes?: string | null;
 }) {
   const user = await requireAuth();
-  if (user.role !== "organizer" && user.role !== "super_admin" && user.role !== "admin") {
-    throw new Error("Solo los organizadores o administradores pueden registrar asistentes manualmente.");
-  }
-  await assertPermission(user, "attendees:checkin");
-
-  await assertEventInAdminScope(input.eventId, user.id, user.role);
+  await authorizeEventByPermissions(
+    user,
+    input.eventId,
+    ["attendees:checkin:org", "attendees:checkin:own"],
+    "manage",
+  );
 
   const result = await RegistrationService.registerOfflineAttendee(
     user.id,
@@ -125,31 +146,24 @@ export async function registerOfflineAttendeeAction(input: {
     input
   );
 
-  // Revalidar rutas relevantes
   revalidatePath("/organizer/attendees");
   revalidatePath("/admin/registrations");
 
   return result;
 }
 
-// ─── Search Attendees Action for Express Check-In ───────────────────────────
-
-import { db } from "@/lib/db";
-import { registrations, users, tickets } from "@/lib/db/schema";
-import { eq, and, sql, inArray } from "drizzle-orm";
-
 export async function searchPreRegisteredAttendeesAction(eventId: string, queryText: string) {
   const user = await requireAuth();
-  if (user.role !== "organizer" && user.role !== "super_admin" && user.role !== "admin") {
-    throw new Error("Unauthorized");
-  }
-  await assertAnyPermission(user, ["attendees:checkin", "registrations:view:any", "registrations:view:own"]);
-
   if (!eventId) {
     return { success: true, attendees: [] };
   }
 
-  await assertEventInAdminScope(eventId, user.id, user.role);
+  await authorizeEventByPermissions(
+    user,
+    eventId,
+    ["attendees:checkin:org", "attendees:checkin:own", "registrations:view:org", "registrations:view:own"],
+    "scan",
+  );
 
   const normalizedQuery = `%${queryText.toLowerCase().trim()}%`;
 

@@ -5,6 +5,7 @@ import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { normalizeRole, type AppRole } from "@/lib/auth/rbac";
+import { PermissionError } from "@/lib/auth/authorize";
 import type { SessionUser } from "@/lib/auth/guards";
 
 export type ApiSession = {
@@ -68,6 +69,9 @@ export async function requireApiRole(
 export function apiAuthErrorResponse(error: unknown): NextResponse | null {
   if (error instanceof ApiAuthError) {
     return NextResponse.json({ error: error.message }, { status: error.status });
+  }
+  if (error instanceof PermissionError) {
+    return NextResponse.json({ error: error.message }, { status: 403 });
   }
   return null;
 }

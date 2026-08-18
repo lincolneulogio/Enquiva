@@ -25,7 +25,7 @@ export async function getMyPendingOrganizerRequest() {
 
 export async function approveOrganizerRequest(targetUserId: string) {
   const user = await requireAuth();
-  await assertPermission(user, "team:manage");
+  await assertPermission(user, "team:manage:org");
   const result = await OrganizationService.approveOrganizerRequest({
     actorId: user.id,
     actorRole: user.role,
@@ -67,7 +67,7 @@ export async function approveOrganizerRequest(targetUserId: string) {
 
 export async function rejectOrganizerRequest(targetUserId: string) {
   const user = await requireAuth();
-  await assertPermission(user, "team:manage");
+  await assertPermission(user, "team:manage:org");
   const result = await OrganizationService.rejectOrganizerRequest({
     actorId: user.id,
     actorRole: user.role,
@@ -107,7 +107,7 @@ export async function rejectOrganizerRequest(targetUserId: string) {
 
 export async function promoteOrgMember(targetUserId: string, newRole: "organizer" | "member") {
   const user = await requireAuth();
-  await assertPermission(user, "team:manage");
+  await assertPermission(user, "team:manage:org");
   await OrganizationService.promoteUserInOrg({
     actorId: user.id,
     actorRole: user.role,
@@ -143,7 +143,7 @@ export async function createMyOrganization(orgName: string) {
 
 export async function saveEntitySettingsAction(input: { name: string }) {
   const user = await requireAuth();
-  await assertPermission(user, "team:manage");
+  await assertPermission(user, "team:manage:org");
   const role = normalizeRole(user.role);
   if (role !== "admin" && role !== "super_admin") {
     throw new Error("No autorizado");

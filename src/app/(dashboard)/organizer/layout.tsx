@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { DashboardSidebar, DashboardTopbar } from "@/components/dashboard";
+import { redirectIfDashboardPathForbidden } from "@/lib/navigation/enforce-dashboard-path";
 import { getOrganizerPlanSummary, planIncludesBroadcasts, planIncludesFeature } from "@/lib/billing/enforce";
 import { getEffectivePermissionsForRole } from "@/lib/auth/effective-permissions";
 import { getMySubscription } from "@/actions/billing";
@@ -31,7 +32,8 @@ export default async function OrganizerLayout({
   const role = session.user.role;
   if (role !== "organizer" && role !== "super_admin") {
     if (role === "admin") redirect("/admin");
-    else redirect("/member");
+    if (role === "scanner") redirect("/scanner");
+    redirect("/member");
   }
 
   const pathname = await getRequestPathname();
@@ -100,6 +102,7 @@ export default async function OrganizerLayout({
   }
 
   const allowedPermissions = await getEffectivePermissionsForRole(role);
+  redirectIfDashboardPathForbidden(pathname, allowedPermissions, role);
 
   return (
     <div className="flex min-h-screen bg-background">

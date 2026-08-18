@@ -10,6 +10,8 @@ import {
   requireAuth,
   requireOrganizerOrHigher,
 } from "@/lib/auth/guards";
+import { authorize } from "@/lib/auth/authorize";
+import { loadTransportBookingAuthResource } from "@/lib/auth/load-resource";
 import { assertAnyPermission } from "@/lib/auth/permission-guards";
 import { logAdminAction } from "@/lib/analytics/log-admin-action";
 
@@ -43,7 +45,7 @@ export async function getRoutesByEvent(eventId: string) {
 
 export async function createRoute(input: z.infer<typeof createRouteSchema>) {
     const user = await requireOrganizerOrHigher();
-    await assertAnyPermission(user, ["transport:manage:any", "transport:manage:own"]);
+    await assertAnyPermission(user, ["transport:manage:org", "transport:manage:own"]);
     await requirePlanFeature(user.id, user.role, "transport");
     const route = await TransportService.createRoute(input, user.id, user.role ?? "member");
 
@@ -93,7 +95,7 @@ export async function updateRoute(
     input: Partial<z.infer<typeof createRouteSchema>>
 ) {
     const user = await requireOrganizerOrHigher();
-    await assertAnyPermission(user, ["transport:manage:any", "transport:manage:own"]);
+    await assertAnyPermission(user, ["transport:manage:org", "transport:manage:own"]);
     const eventId = await TransportService.updateRoute(routeId, input, user.id, user.role ?? "member");
 
     await logAdminAction({
@@ -111,7 +113,7 @@ export async function updateRoute(
 
 export async function deleteRoute(routeId: string) {
     const user = await requireOrganizerOrHigher();
-    await assertAnyPermission(user, ["transport:manage:any", "transport:manage:own"]);
+    await assertAnyPermission(user, ["transport:manage:org", "transport:manage:own"]);
     const eventId = await TransportService.deleteRoute(routeId, user.id, user.role ?? "member");
 
     await logAdminAction({
@@ -129,7 +131,7 @@ export async function deleteRoute(routeId: string) {
 
 export async function toggleRouteActive(routeId: string, isActive: boolean) {
     const user = await requireOrganizerOrHigher();
-    await assertAnyPermission(user, ["transport:manage:any", "transport:manage:own"]);
+    await assertAnyPermission(user, ["transport:manage:org", "transport:manage:own"]);
     await TransportService.toggleRouteActive(routeId, isActive, user.id, user.role ?? "member");
 
     if (isActive) {
@@ -172,7 +174,7 @@ export async function toggleRouteActive(routeId: string, isActive: boolean) {
 
 export async function toggleEventTransport(eventId: string, hasTransport: boolean) {
     const user = await requireOrganizerOrHigher();
-    await assertAnyPermission(user, ["transport:manage:any", "transport:manage:own"]);
+    await assertAnyPermission(user, ["transport:manage:org", "transport:manage:own"]);
     if (hasTransport) {
         await requirePlanFeature(user.id, user.role, "transport");
     }
@@ -214,16 +216,23 @@ export async function toggleEventTransport(eventId: string, hasTransport: boolea
 
 export async function getMyTransportBookings() {
     const user = await requireAuth();
+    await authorize({ user, permission: "transport:book:own" });
     return TransportService.getMyTransportBookings(user.id);
 }
 
 export async function getMemberTransportOptions() {
     const user = await requireAuth();
+    await authorize({ user, permission: "transport:book:own" });
     return TransportService.getMemberTransportOptions(user.id);
 }
 
 export async function bookTransport(input: z.infer<typeof bookTransportSchema>) {
     const user = await requireAuth();
+    await authorize({
+      user,
+      permission: "transport:book:own",
+      resource: { type: "transport", ownerUserId: user.id },
+    });
     const { booking, payment } = await TransportService.bookTransport(input, user.id, user.name ?? "Un participante");
 
     revalidatePath("/member/transport");
@@ -233,6 +242,11 @@ export async function bookTransport(input: z.infer<typeof bookTransportSchema>) 
 
 export async function cancelTransportBooking(bookingId: string, password?: string) {
     const user = await requireAuth();
+    await authorize({
+      user,
+      permission: "transport:book:own",
+      resource: await loadTransportBookingAuthResource(bookingId),
+    });
     await TransportService.cancelTransportBooking(bookingId, user.id, password);
 
     revalidatePath("/member/transport");
@@ -243,13 +257,14 @@ export async function cancelTransportBooking(bookingId: string, password?: strin
 
 export async function getTransportBookingsForEvent(eventId: string) {
     const user = await requireOrganizerOrHigher();
+    await assertAnyPermission(user, ["transport:manage:org", "transport:manage:own", "payments:view:org", "payments:view:own"]);
     await assertEventInAdminScope(eventId, user.id, user.role);
     return TransportService.getTransportBookingsForEvent(eventId);
 }
 
 export async function approveTransportPayment(paymentId: string) {
     const user = await requireOrganizerOrHigher();
-    await assertAnyPermission(user, ["payments:update:any", "payments:update:own"]);
+    await assertAnyPermission(user, ["payments:update:org", "payments:update:own"]);
     await TransportService.approveTransportPayment(paymentId, user.id, user.role ?? "member");
 
     revalidatePath("/admin/payments");
@@ -260,7 +275,7 @@ export async function approveTransportPayment(paymentId: string) {
 
 export async function rejectTransportPayment(paymentId: string, reason?: string) {
     const user = await requireOrganizerOrHigher();
-    await assertAnyPermission(user, ["payments:update:any", "payments:update:own"]);
+    await assertAnyPermission(user, ["payments:update:org", "payments:update:own"]);
     await TransportService.rejectTransportPayment(paymentId, user.id, user.role ?? "member", reason);
 
     revalidatePath("/admin/payments");
@@ -339,7 +354,7 @@ export async function createTransportStop(input: {
     maxSeats?: number | null;
 }) {
     const user = await requireOrganizerOrHigher();
-    await assertAnyPermission(user, ["transport:manage:any", "transport:manage:own"]);
+    await assertAnyPermission(user, ["transport:manage:org", "transport:manage:own"]);
     await assertRouteInAdminScope(input.routeId, user.id, user.role);
 
     if (!input.routeId || !input.name.trim()) {
@@ -405,7 +420,7 @@ export async function updateTransportStop(
     },
 ) {
     const user = await requireOrganizerOrHigher();
-    await assertAnyPermission(user, ["transport:manage:any", "transport:manage:own"]);
+    await assertAnyPermission(user, ["transport:manage:org", "transport:manage:own"]);
 
     const [existing] = await db
         .select({ routeId: transportStops.routeId })
@@ -447,7 +462,7 @@ export async function updateTransportStop(
 
 export async function deleteTransportStop(stopId: string) {
     const user = await requireOrganizerOrHigher();
-    await assertAnyPermission(user, ["transport:manage:any", "transport:manage:own"]);
+    await assertAnyPermission(user, ["transport:manage:org", "transport:manage:own"]);
 
     const [stop] = await db
         .select({ routeId: transportStops.routeId })

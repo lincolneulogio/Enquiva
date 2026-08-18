@@ -27,4 +27,14 @@ describe("RBAC applyOverrides", () => {
       getDefaultPermissionMatrix().organizer["events:create"],
     );
   });
+
+  it("canonicaliza aliases históricos :any al alcance :org", () => {
+    const matrix = getDefaultPermissionMatrix();
+    applyOverrides(matrix, [
+      { roleName: "organizer", permission: "events:update:any", allowed: true },
+      { roleName: "member", permission: "attendees:checkin", allowed: true },
+    ]);
+    expect(matrix.organizer["events:update:org"]).toBe(true);
+    expect(matrix.member["attendees:checkin:org"]).toBe(true);
+  });
 });

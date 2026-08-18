@@ -89,7 +89,7 @@ const organizerSections = (options: OrganizerNavOptions): NavSection[] =>
           labelKey: "dashboard.sidebar.organizer.myEvents",
           href: "/organizer/events",
           icon: Calendar,
-          permissions: ["events:create", "events:update:own", "events:delete:own"],
+          permissions: ["events:create", "events:update:own", "events:delete:own", "events:update:org"],
         },
         {
           labelKey: "dashboard.sidebar.organizer.registeredEvents",
@@ -100,7 +100,7 @@ const organizerSections = (options: OrganizerNavOptions): NavSection[] =>
           labelKey: "dashboard.sidebar.organizer.attendees",
           href: "/organizer/attendees",
           icon: Users,
-          permissions: ["registrations:view:own"],
+          permissions: ["registrations:view:own", "registrations:view:org"],
         },
         ...(options.showBroadcasts
           ? [
@@ -155,7 +155,7 @@ const organizerSections = (options: OrganizerNavOptions): NavSection[] =>
           labelKey: "dashboard.sidebar.organizer.scan",
           href: "/organizer/scan",
           icon: QrCode,
-          permissions: ["attendees:checkin"],
+          permissions: ["attendees:checkin:own", "attendees:checkin:org"],
         },
         ...(options.showExports
           ? [
@@ -163,7 +163,7 @@ const organizerSections = (options: OrganizerNavOptions): NavSection[] =>
                 labelKey: "dashboard.sidebar.organizer.exports",
                 href: "/organizer/exports",
                 icon: FileSpreadsheet,
-                permissions: ["data:export"] as const,
+                permissions: ["data:export:own", "data:export:org", "data:export:platform"] as const,
               },
             ]
           : []),
@@ -230,7 +230,7 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
                 labelKey: "dashboard.sidebar.admin.analyticsGlobal",
                 href: p("/analytics"),
                 icon: BarChart3,
-                permissions: ["analytics:view:any"] as const,
+                permissions: ["analytics:view:org"] as const,
               },
               {
                 labelKey: "dashboard.sidebar.admin.analyticsOwn",
@@ -244,7 +244,7 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
                 labelKey: "dashboard.sidebar.admin.analytics",
                 href: p("/analytics"),
                 icon: BarChart3,
-                permissions: ["analytics:view:any"] as const,
+                permissions: ["analytics:view:org"] as const,
               },
             ]),
         { labelKey: "dashboard.sidebar.admin.notifications", href: p("/notifications"), icon: Bell },
@@ -261,9 +261,9 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
           icon: Calendar,
           permissions: [
             "events:create",
-            "events:update:any",
+            "events:update:org",
             "events:update:own",
-            "events:delete:any",
+            "events:delete:org",
             "events:delete:own",
           ],
         },
@@ -276,13 +276,13 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
           labelKey: "dashboard.sidebar.admin.categories",
           href: p("/categories"),
           icon: ClipboardList,
-          permissions: ["categories:manage"],
+          permissions: ["categories:manage:org", "categories:manage:platform"],
         },
         {
           labelKey: "dashboard.sidebar.admin.users",
           href: p("/users"),
           icon: UserCog,
-          permissions: ["users:manage"],
+          permissions: ["users:manage:org", "users:manage:platform"],
         },
         ...(options.showEntityTeam
           ? [
@@ -290,7 +290,7 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
                 labelKey: "dashboard.sidebar.admin.myEntity",
                 href: "/admin/team",
                 icon: Users,
-                permissions: ["team:manage"] as const,
+                permissions: ["team:manage:org"] as const,
               },
             ]
           : []),
@@ -308,7 +308,7 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
           labelKey: "dashboard.sidebar.admin.registrations",
           href: p("/registrations"),
           icon: ClipboardList,
-          permissions: ["registrations:view:any"],
+          permissions: ["registrations:view:org", "registrations:view:own"],
         },
         ...(isEntityAdmin || isSuperAdmin
           ? [
@@ -316,7 +316,7 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
                 labelKey: "dashboard.sidebar.admin.broadcasts",
                 href: p("/broadcasts"),
                 icon: Megaphone,
-                permissions: ["broadcasts:send:any"] as const,
+                permissions: ["broadcasts:send:org", "broadcasts:send:own"] as const,
               },
             ]
           : []),
@@ -331,7 +331,7 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
             : "dashboard.sidebar.admin.payments",
           href: p("/payments"),
           icon: CreditCard,
-          permissions: ["payments:view:any", "payments:update:any"],
+          permissions: ["payments:view:org", "payments:update:org", "payments:view:own", "payments:update:own"],
         },
         ...(isSuperAdmin
           ? [
@@ -347,7 +347,7 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
           labelKey: "dashboard.sidebar.admin.transport",
           href: p("/transport"),
           icon: Bus,
-          permissions: ["transport:manage:any"],
+          permissions: ["transport:manage:org", "transport:manage:own"],
         },
         ...(isSuperAdmin
           ? [
@@ -376,7 +376,7 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
           labelKey: "dashboard.sidebar.admin.scan",
           href: p("/scan"),
           icon: QrCode,
-          permissions: ["attendees:checkin"],
+          permissions: ["attendees:checkin:own", "attendees:checkin:org"],
         },
         ...(isSuperAdmin
           ? [
@@ -408,16 +408,36 @@ const memberSections: NavSection[] = compactSections([
     titleKey: "dashboard.sidebar.groups.core",
     items: [
       { labelKey: "dashboard.sidebar.member.discover", href: "/member", icon: LayoutDashboard },
-      { labelKey: "dashboard.sidebar.member.myEvents", href: "/member/events", icon: Calendar },
+      {
+        labelKey: "dashboard.sidebar.member.myEvents",
+        href: "/member/events",
+        icon: Calendar,
+        permissions: ["registrations:view:own", "tickets:view:own"],
+      },
       { labelKey: "dashboard.sidebar.member.notifications", href: "/member/notifications", icon: Bell },
     ],
   },
   {
     titleKey: "dashboard.sidebar.groups.finances",
     items: [
-      { labelKey: "dashboard.sidebar.member.transport", href: "/member/transport", icon: Bus },
-      { labelKey: "dashboard.sidebar.member.payments", href: "/member/payments", icon: CreditCard },
-      { labelKey: "dashboard.sidebar.member.tickets", href: "/member/tickets", icon: Ticket },
+      {
+        labelKey: "dashboard.sidebar.member.transport",
+        href: "/member/transport",
+        icon: Bus,
+        permissions: ["transport:book:own"],
+      },
+      {
+        labelKey: "dashboard.sidebar.member.payments",
+        href: "/member/payments",
+        icon: CreditCard,
+        permissions: ["payments:view:own", "payments:create:own"],
+      },
+      {
+        labelKey: "dashboard.sidebar.member.tickets",
+        href: "/member/tickets",
+        icon: Ticket,
+        permissions: ["tickets:view:own"],
+      },
     ],
   },
   {
@@ -436,7 +456,7 @@ const scannerSections: NavSection[] = compactSections([
         labelKey: "dashboard.sidebar.organizer.scan",
         href: "/scanner/scan",
         icon: QrCode,
-        permissions: ["attendees:checkin"],
+          permissions: ["attendees:checkin:org", "attendees:checkin:own"],
       },
     ],
   },
@@ -456,8 +476,8 @@ interface DashboardSidebarProps {
   /** Solo panel admin: diferencia super_admin vs admin de entidad */
   adminNav?: AdminNavOptions;
   /**
-   * Permisos efectivos del rol (defaults + overrides de `/superadmin/permissions`).
-   * Si se omite (p. ej. member), no se filtra por matriz.
+   * Permisos efectivos del rol (defaults + overrides).
+   * Si se omite, no se filtra por matriz.
    */
   allowedPermissions?: readonly Permission[];
 }
@@ -498,10 +518,6 @@ export function DashboardSidebar({
             : normalizedRole === "scanner"
               ? scannerSections
               : memberSections;
-
-    // Member: navegación de producto, sin matriz staff.
-    if (normalizedRole === "member") return roleSections;
-    if (normalizedRole === "scanner") return roleSections;
 
     return applyPermissionFilter(roleSections, allowedPermissions);
   }, [normalizedRole, adminNav, organizerNav, allowedPermissions]);

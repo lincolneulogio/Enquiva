@@ -5,6 +5,7 @@ import { getEffectivePermissionsForRole } from "@/lib/auth/effective-permissions
 import { mapSuperadminPathToAdmin } from "@/lib/navigation/dashboard-paths";
 import { DashboardAICopilot } from "@/components/dashboard/IACopilot/DashboardAICopilot";
 import { redirectIfAccountDisabled } from "@/lib/auth/redirect-if-disabled";
+import { redirectIfDashboardPathForbidden } from "@/lib/navigation/enforce-dashboard-path";
 import { getRequestPathname, getRequestSession } from "@/lib/request-context";
 
 export default async function SuperadminLayout({
@@ -35,6 +36,7 @@ export default async function SuperadminLayout({
   }
 
   const allowedPermissions = await getEffectivePermissionsForRole(role);
+  redirectIfDashboardPathForbidden(pathname, allowedPermissions, role);
 
   return (
     <div className="flex min-h-screen bg-background">

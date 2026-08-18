@@ -9,6 +9,7 @@ import {
   type Permission,
   type PermissionMatrix,
 } from "@/lib/auth/rbac";
+import { canonicalizePermission } from "@/lib/auth/permission-legacy";
 
 export function applyOverrides(
   matrix: PermissionMatrix,
@@ -16,8 +17,8 @@ export function applyOverrides(
 ) {
   for (const row of overrides) {
     const role = normalizeRole(row.roleName);
-    const permission = row.permission as Permission;
-    if (role !== "super_admin" && PERMISSIONS.includes(permission)) {
+    const permission = canonicalizePermission(row.permission);
+    if (role !== "super_admin" && permission) {
       matrix[role][permission] = row.allowed;
     }
   }
@@ -64,9 +65,9 @@ export async function hasEffectivePermission(
   const overrides = await getOverridesForRole(role);
 
   for (const row of overrides) {
-    const p = row.permission as Permission;
-    if (PERMISSIONS.includes(p)) {
-      matrix[role][p] = row.allowed;
+    const canonical = canonicalizePermission(row.permission);
+    if (canonical) {
+      matrix[role][canonical] = row.allowed;
     }
   }
 

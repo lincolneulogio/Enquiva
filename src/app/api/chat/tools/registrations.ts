@@ -2,10 +2,10 @@ import { db } from "@/lib/db";
 import { registrations, users, events } from "@/lib/db/schema";
 import { and, eq, ilike, type SQL } from "drizzle-orm";
 import { z } from "zod";
-import { canUseStaffChatTools, scopeRegistrationsForChat, type ChatToolScope } from "./scope";
+import { canUseOrgDoorChatTools, scopeRegistrationsForChat, type ChatToolScope } from "./scope";
 
 export function createGetRegistrationsList(scope: ChatToolScope) {
-  if (!canUseStaffChatTools(scope)) {
+  if (!canUseOrgDoorChatTools(scope)) {
     return null;
   }
 

@@ -112,6 +112,7 @@ export async function updateEvent(eventId: string, input: UpdateEventInput) {
       status: events.status,
       hasTransport: events.hasTransport,
       organizerId: events.organizerId,
+      organizationId: events.organizationId,
       capacity: events.capacity,
       isVirtual: events.isVirtual,
       date: events.date,
@@ -124,9 +125,12 @@ export async function updateEvent(eventId: string, input: UpdateEventInput) {
   if (!existing) throw new Error("Event not found");
   await assertEventInAdminScope(eventId, user.id, user.role);
   await assertOwnOrAnyPermission(user, {
-    anyPermission: "events:update:any",
+    anyPermission: "events:update:org",
     ownPermission: "events:update:own",
     isOwner: existing.organizerId === user.id,
+    organizationId: existing.organizationId,
+    organizerId: existing.organizerId,
+    resourceId: eventId,
   });
 
   const planUserId = existing.organizerId;
@@ -176,9 +180,12 @@ export async function deleteEvent(eventId: string, password: string) {
   const user = await requireApprovedEventManager();
   const scope = await assertEventInAdminScope(eventId, user.id, user.role);
   await assertOwnOrAnyPermission(user, {
-    anyPermission: "events:delete:any",
+    anyPermission: "events:delete:org",
     ownPermission: "events:delete:own",
     isOwner: scope.organizerId === user.id,
+    organizationId: scope.organizationId,
+    organizerId: scope.organizerId,
+    resourceId: eventId,
   });
 
   await verifyAccountPassword(user.id, password);
@@ -280,9 +287,13 @@ export async function sendBroadcastAction(input: {
   }
 
   await assertOwnOrAnyPermission(user, {
-    anyPermission: "broadcasts:send:any",
+    anyPermission: "broadcasts:send:org",
     ownPermission: "broadcasts:send:own",
     isOwner: event.organizerId === user.id,
+    organizationId: event.organizationId,
+    organizerId: event.organizerId,
+    resourceId: event.id,
+    resourceType: "broadcast",
   });
   await assertEventInAdminScope(input.eventId, user.id, user.role);
 

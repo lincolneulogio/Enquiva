@@ -14,7 +14,8 @@ import {
   requireOrganizerOrHigherWithHeaders,
   requireAdminOrHigherWithHeaders,
 } from "@/lib/auth/guards";
-import { assertAnyPermission } from "@/lib/auth/permission-guards";
+import { authorize } from "@/lib/auth/authorize";
+import { loadPaymentAuthResource, loadRegistrationAuthResource } from "@/lib/auth/load-resource";
 import { resolveAdminScopeForUser } from "@/lib/organizations/admin-scope";
 
 /**
@@ -23,6 +24,11 @@ import { resolveAdminScopeForUser } from "@/lib/organizations/admin-scope";
 export async function createPayment(input: CreatePaymentInput) {
   const { user } = await requireAuthWithHeaders();
   const validated = createPaymentSchema.parse(input);
+  await authorize({
+    user,
+    permission: "payments:create:own",
+    resource: await loadRegistrationAuthResource(validated.registrationId),
+  });
 
   const result = await PaymentService.createPayment(user.id, validated);
 
@@ -44,6 +50,11 @@ export async function createPayment(input: CreatePaymentInput) {
  */
 export async function getPaymentCheckoutContext(registrationId: string) {
   const { user } = await requireAuthWithHeaders();
+  await authorize({
+    user,
+    permissions: ["payments:view:own", "payments:create:own", "payments:view:org"],
+    resource: await loadRegistrationAuthResource(registrationId),
+  });
 
   return PaymentService.getPaymentCheckoutContext(user.id, registrationId);
 }
@@ -53,8 +64,12 @@ export async function getPaymentCheckoutContext(registrationId: string) {
  */
 export async function updatePaymentStatus(input: UpdatePaymentStatusInput) {
   const { user, headers: hdrs } = await requireOrganizerOrHigherWithHeaders();
-  await assertAnyPermission(user, ["payments:update:any", "payments:update:own"]);
   const validated = updatePaymentStatusSchema.parse(input);
+  await authorize({
+    user,
+    permissions: ["payments:update:org", "payments:update:own"],
+    resource: await loadPaymentAuthResource(validated.paymentId),
+  });
 
   const result = await PaymentService.updatePaymentStatus(
     user.id,
@@ -100,6 +115,10 @@ function paymentUserIdOrSimulated(id: string | null): string {
  */
 export async function getUserPayments() {
   const { user } = await requireAuthWithHeaders();
+  await authorize({
+    user,
+    permissions: ["payments:view:own", "payments:create:own", "payments:view:org"],
+  });
 
   return PaymentService.getUserPayments(user.id);
 }
@@ -109,7 +128,10 @@ export async function getUserPayments() {
  */
 export async function getOrganizerPayments() {
   const { user } = await requireOrganizerOrHigherWithHeaders();
-  await assertAnyPermission(user, ["payments:view:any", "payments:view:own"]);
+  await authorize({
+    user,
+    permissions: ["payments:view:org", "payments:view:own"],
+  });
 
   return PaymentService.getOrganizerPayments(user.id);
 }
@@ -119,7 +141,10 @@ export async function getOrganizerPayments() {
  */
 export async function getAdminPayments() {
   const { user } = await requireAdminOrHigherWithHeaders();
-  await assertAnyPermission(user, ["payments:view:any", "payments:view:own"]);
+  await authorize({
+    user,
+    permissions: ["payments:view:org", "payments:view:own"],
+  });
   const scope = await resolveAdminScopeForUser(user.id, user.role);
 
   return PaymentService.getAdminPayments(scope);
@@ -130,7 +155,10 @@ export async function getAdminPayments() {
  */
 export async function getAdminPaymentsPaginated(page = 1, limit = 10) {
   const { user } = await requireAdminOrHigherWithHeaders();
-  await assertAnyPermission(user, ["payments:view:any", "payments:view:own"]);
+  await authorize({
+    user,
+    permissions: ["payments:view:org", "payments:view:own"],
+  });
   const scope = await resolveAdminScopeForUser(user.id, user.role);
 
   return PaymentService.getAdminPaymentsPaginated(scope, page, limit);

@@ -12,6 +12,7 @@ import { DashboardAICopilot } from "@/components/dashboard/IACopilot/DashboardAI
 import { PlatformPlansPendingBanner } from "@/components/dashboard/billing/PlatformPlansPendingBanner";
 import { getOrganizerPlanSummary } from "@/lib/billing/enforce";
 import { redirectIfAccountDisabled } from "@/lib/auth/redirect-if-disabled";
+import { redirectIfDashboardPathForbidden } from "@/lib/navigation/enforce-dashboard-path";
 import { getRequestPathname, getRequestSession } from "@/lib/request-context";
 
 export default async function AdminLayout({
@@ -38,6 +39,7 @@ export default async function AdminLayout({
 
   if (role !== "admin") {
     if (role === "member") redirect("/member");
+    if (role === "scanner") redirect("/scanner");
     redirect("/organizer");
   }
 
@@ -52,6 +54,9 @@ export default async function AdminLayout({
     : "entity_admin";
 
   const allowedPermissions = await getEffectivePermissionsForRole(role);
+  if (!isUnassignedAdminScope(adminScope)) {
+    redirectIfDashboardPathForbidden(pathname, allowedPermissions, role);
+  }
   const planSummary = await getOrganizerPlanSummary(session.user.id, role);
 
   return (

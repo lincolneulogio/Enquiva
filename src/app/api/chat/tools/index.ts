@@ -14,8 +14,9 @@ import {
   createGetMyNextEvent,
   createDraftBroadcast,
 } from "./business-extras";
-import { hasEffectivePermission } from "@/lib/auth/effective-permissions";
+import { getEffectivePermissionsForRole } from "@/lib/auth/effective-permissions";
 import { resolveChatToolScope, type ChatToolScope } from "./scope";
+import { enabledChatTools, type ChatToolName } from "./chat-tool-policy";
 import { normalizeChatTool } from "./chat-tool";
 import type { AppRole } from "@/lib/auth/rbac";
 
@@ -26,59 +27,31 @@ function addTool(tools: Record<string, unknown>, name: string, raw: Parameters<t
 
 export async function buildTools(userRole: AppRole, userId: string, userName: string) {
   const scope = await resolveChatToolScope(userId, userName, userRole);
+  const granted = new Set(await getEffectivePermissionsForRole(userRole));
+  const enabled = enabledChatTools(granted, userRole);
   const tools: Record<string, unknown> = {};
 
-  addTool(tools, "getPlatformKnowledge", createGetPlatformKnowledge());
-  addTool(tools, "searchEvents", createSearchEvents(scope));
-  addTool(tools, "getPaymentStatus", createGetPaymentStatus(scope));
-  addTool(tools, "getMyPlanBilling", createGetMyPlanBilling(scope));
-  addTool(tools, "getMyNextEvent", createGetMyNextEvent(scope));
+  const maybeAdd = (name: ChatToolName, factory: () => Parameters<typeof normalizeChatTool>[0]) => {
+    if (!enabled.has(name)) return;
+    addTool(tools, name, factory());
+  };
 
-  if (userRole === "member") {
-    addTool(tools, "getMyTickets", getMyTickets(userId));
-    return tools;
-  }
-
-  const canViewRegistrations =
-    userRole === "super_admin" ||
-    userRole === "organizer" ||
-    (userRole === "admin" && (await hasEffectivePermission(userRole, "registrations:view:any")));
-
-  const canViewUsers =
-    userRole === "super_admin" ||
-    (userRole === "admin" && (await hasEffectivePermission(userRole, "users:manage")));
-
-  const canSendNotifications =
-    userRole === "super_admin" ||
-    userRole === "organizer" ||
-    (userRole === "admin" && (await hasEffectivePermission(userRole, "events:update:any")));
-
-  addTool(tools, "getEventStats", createGetEventStats(scope));
-  addTool(tools, "getEventRoutes", createGetEventRoutes(scope));
-  addTool(tools, "getCheckInStats", createGetCheckInStats(scope));
-  addTool(tools, "getTransportSeats", createGetTransportSeats(scope));
-  addTool(tools, "draftBroadcast", createDraftBroadcast(scope));
-
-  if (canViewRegistrations) {
-    addTool(tools, "getRegistrationsList", createGetRegistrationsList(scope));
-  }
-
-  if (canSendNotifications) {
-    addTool(tools, "previewMassNotification", createPreviewMassNotification(scope));
-    addTool(tools, "sendMassNotification", createSendMassNotification(scope));
-  }
-
-  if (canViewUsers) {
-    addTool(tools, "getUsersList", createGetUsersList(scope));
-  }
-
-  const canViewAudit =
-    (userRole === "super_admin" && (await hasEffectivePermission(userRole, "permissions:view"))) ||
-    (scope.adminScope.mode === "org" && userRole === "admin");
-
-  if (canViewAudit) {
-    addTool(tools, "getAuditLogs", createGetAuditLogs(scope));
-  }
+  maybeAdd("getPlatformKnowledge", () => createGetPlatformKnowledge());
+  maybeAdd("searchEvents", () => createSearchEvents(scope));
+  maybeAdd("getPaymentStatus", () => createGetPaymentStatus(scope));
+  maybeAdd("getMyPlanBilling", () => createGetMyPlanBilling(scope));
+  maybeAdd("getMyNextEvent", () => createGetMyNextEvent(scope));
+  maybeAdd("getMyTickets", () => getMyTickets(userId));
+  maybeAdd("getEventStats", () => createGetEventStats(scope));
+  maybeAdd("getEventRoutes", () => createGetEventRoutes(scope));
+  maybeAdd("getCheckInStats", () => createGetCheckInStats(scope));
+  maybeAdd("getTransportSeats", () => createGetTransportSeats(scope));
+  maybeAdd("draftBroadcast", () => createDraftBroadcast(scope));
+  maybeAdd("getRegistrationsList", () => createGetRegistrationsList(scope));
+  maybeAdd("previewMassNotification", () => createPreviewMassNotification(scope));
+  maybeAdd("sendMassNotification", () => createSendMassNotification(scope));
+  maybeAdd("getUsersList", () => createGetUsersList(scope));
+  maybeAdd("getAuditLogs", () => createGetAuditLogs(scope));
 
   return tools;
 }
