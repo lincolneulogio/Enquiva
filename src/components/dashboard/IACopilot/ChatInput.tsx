@@ -2,7 +2,7 @@
 
 import { Send } from "lucide-react";
 import type { ChangeEvent, FormEvent } from "react";
-import { getInputPlaceholder } from "@/lib/chat/role-scope";
+import { useLocale } from "@/components/providers/LocaleProvider";
 
 interface ChatInputProps {
   input: string;
@@ -12,6 +12,20 @@ interface ChatInputProps {
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
 }
 
+function placeholderKey(role: string, loading: boolean): string {
+  if (loading) return "copilot.inputLoading";
+  switch (role) {
+    case "super_admin":
+      return "copilot.inputPlaceholderSuperAdmin";
+    case "admin":
+      return "copilot.inputPlaceholderAdmin";
+    case "organizer":
+      return "copilot.inputPlaceholderOrganizer";
+    default:
+      return "copilot.inputPlaceholderMember";
+  }
+}
+
 export function ChatInput({
   input,
   isLoading,
@@ -19,6 +33,8 @@ export function ChatInput({
   onInputChange,
   onSubmit,
 }: ChatInputProps) {
+  const { t } = useLocale();
+
   return (
     <form onSubmit={onSubmit} className="p-4 border-t border-border bg-card flex gap-2 items-center">
       <input
@@ -26,7 +42,7 @@ export function ChatInput({
         value={input}
         onChange={onInputChange}
         disabled={isLoading}
-        placeholder={getInputPlaceholder(userRole, isLoading)}
+        placeholder={t(placeholderKey(userRole, isLoading))}
         className="flex-1 px-4 py-2.5 text-xs bg-background border border-border rounded-xl focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-foreground disabled:opacity-50"
       />
       <button

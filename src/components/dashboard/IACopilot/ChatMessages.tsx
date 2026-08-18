@@ -2,6 +2,8 @@
 
 import { Bot, Loader2, AlertCircle, ThumbsUp, ThumbsDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { stripMarkdownArtifacts } from "@/lib/chat/plain-text";
+import { useLocale } from "@/components/providers/LocaleProvider";
 import type { Message } from "@ai-sdk/react";
 import type { RefObject } from "react";
 
@@ -50,6 +52,7 @@ export function ChatMessages({
   feedbackByMessage = {},
   onFeedback,
 }: ChatMessagesProps) {
+  const { t } = useLocale();
   const lastMessage = messages[messages.length - 1];
   const lastHasText = lastMessage ? Boolean(getVisibleText(lastMessage)) : false;
   const showThinking =
@@ -61,6 +64,7 @@ export function ChatMessages({
         const isAssistant = message.role === "assistant";
         const visibleText = getVisibleText(message);
         if (!visibleText) return null;
+        const displayText = stripMarkdownArtifacts(visibleText);
         const citations = citationsByMessage[message.id] ?? [];
         const fb = feedbackByMessage[message.id];
 
@@ -104,12 +108,12 @@ export function ChatMessages({
                     : "bg-primary text-primary-foreground border-primary/20 rounded-tr-none",
                 )}
               >
-                {visibleText}
+                {displayText}
               </div>
 
               {isAssistant && message.id !== "welcome" && citations.length > 0 && (
                 <p className="text-[10px] text-muted-foreground px-1 leading-snug">
-                  Según:{" "}
+                  {t("copilot.citationsPrefix")}{" "}
                   {citations
                     .slice(0, 3)
                     .map(formatCitationLabel)
@@ -161,7 +165,7 @@ export function ChatMessages({
               <span>{statusHint}</span>
             </div>
             <p className="text-[10px] text-muted-foreground/80 font-normal">
-              Hybrid RAG + datos en vivo
+              {t("copilot.thinkingFooter")}
             </p>
           </div>
         </div>

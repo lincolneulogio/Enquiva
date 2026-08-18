@@ -242,8 +242,17 @@ export async function streamWithFallback(
         system,
         tools,
         maxRetries: 0,
-        stopWhen: stepCountIs(5),
-        maxOutputTokens: 1200,
+        stopWhen: stepCountIs(3),
+        maxOutputTokens: 512,
+        providerOptions: {
+          google: {
+            thinkingConfig: {
+              thinkingBudget: 0,
+              includeThoughts: false,
+              thinkingLevel: "minimal",
+            },
+          },
+        },
       } as Parameters<typeof streamText>[0]);
 
       return await toTextResponseAfterFirstChunk(result.textStream, {

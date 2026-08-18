@@ -25,10 +25,27 @@ export async function persistChatTurn(input: {
           ),
         )
         .limit(1);
-      if (!owned) conversationId = undefined;
-    }
 
-    if (!conversationId) {
+      if (owned) {
+        await db
+          .update(chatConversations)
+          .set({
+            updatedAt: new Date(),
+            pathContext: input.pathContext ?? undefined,
+          })
+          .where(eq(chatConversations.id, conversationId));
+      } else {
+        const title =
+          input.userMessage.trim().slice(0, 80) ||
+          `Chat ${new Date().toLocaleString("es-PE")}`;
+        await db.insert(chatConversations).values({
+          id: conversationId,
+          userId: input.userId,
+          title,
+          pathContext: input.pathContext,
+        });
+      }
+    } else {
       const title =
         input.userMessage.trim().slice(0, 80) ||
         `Chat ${new Date().toLocaleString("es-PE")}`;
@@ -41,14 +58,6 @@ export async function persistChatTurn(input: {
         })
         .returning({ id: chatConversations.id });
       conversationId = created?.id;
-    } else {
-      await db
-        .update(chatConversations)
-        .set({
-          updatedAt: new Date(),
-          pathContext: input.pathContext ?? undefined,
-        })
-        .where(eq(chatConversations.id, conversationId));
     }
 
     if (!conversationId || !input.userMessage.trim()) {

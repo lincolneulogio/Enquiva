@@ -3,6 +3,8 @@
  * al texto visible, p. ej. `<|message|>`, `<|end|>` o basura al inicio.
  */
 
+import { stripMarkdownArtifacts } from "@/lib/chat/plain-text";
+
 const SPECIAL_TOKEN_RE = /<[|｜][^|｜]*[|｜]>/g;
 
 const SPANISH_START_RE =
@@ -13,9 +15,6 @@ export function stripModelControlTokens(text: string): string {
   return text.replace(SPECIAL_TOKEN_RE, "");
 }
 
-/**
- * Quita el prefijo corrupto típico antes del texto real en español.
- */
 export function stripLeakedPreface(text: string): string {
   if (!text) return text;
   let cleaned = stripModelControlTokens(text).replace(/^\uFEFF/, "");
@@ -58,13 +57,13 @@ export function createResponseSanitizer() {
       }
 
       if (hasSpanish || final || (!suspicious && buffer.length >= PREFACE_WAIT_CHARS)) {
-        buffer = stripLeakedPreface(buffer);
+        buffer = stripMarkdownArtifacts(stripLeakedPreface(buffer));
         prefaceStripped = true;
       } else {
         return "";
       }
     } else {
-      buffer = stripModelControlTokens(buffer);
+      buffer = stripMarkdownArtifacts(stripModelControlTokens(buffer));
     }
 
     if (final) {

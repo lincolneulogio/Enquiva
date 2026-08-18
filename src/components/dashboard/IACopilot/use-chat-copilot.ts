@@ -13,12 +13,13 @@ import { formStorageKey, loadFormDraft, saveFormDraft } from "@/lib/form-persist
 import { getCopilotSuggestions } from "@/lib/chat/suggestions";
 import { getWelcomeCapabilityKey } from "@/lib/chat/role-scope";
 
-type AiUsage = {
+export type AiUsage = {
   used: number;
   limit: number | null;
   remaining: number | null;
   percentUsed?: number | null;
   nearLimit?: boolean;
+  unlimited?: boolean;
 };
 
 export type MessageCitations = Record<string, string[]>;
@@ -44,6 +45,7 @@ function parseAiUsage(data: unknown): AiUsage | null {
   if (typeof used !== "number") return null;
   const limit = (data as { limit?: unknown }).limit;
   const remaining = (data as { remaining?: unknown }).remaining;
+  const unlimited = (data as { unlimited?: unknown }).unlimited === true;
   const limitNum = typeof limit === "number" ? limit : null;
   const remainingNum = typeof remaining === "number" ? remaining : null;
   const percentUsed =
@@ -54,6 +56,7 @@ function parseAiUsage(data: unknown): AiUsage | null {
     remaining: remainingNum,
     percentUsed,
     nearLimit: percentUsed != null && percentUsed >= 80,
+    unlimited: unlimited || limitNum == null,
   };
 }
 
@@ -70,23 +73,23 @@ const ROLE_ICON: Record<string, LucideIcon> = {
   member: UserRound,
 };
 
-const THINKING_STATUSES = [
-  "Buscando en la base de conocimiento…",
-  "Consultando la plataforma…",
-  "Analizando datos en tiempo real…",
-];
+const THINKING_KEYS = [
+  "copilot.thinkingRag",
+  "copilot.thinkingPlatform",
+  "copilot.thinkingLive",
+] as const;
 
-export function useChatCopilot() {
+export function useChatCopilot(initialAiUsage?: AiUsage | null) {
   const { data: session } = useSession();
   const { locale, t } = useLocale();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
-  const [aiUsage, setAiUsage] = useState<AiUsage | null>(null);
+  const [aiUsage, setAiUsage] = useState<AiUsage | null>(initialAiUsage ?? null);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [citationsByMessage, setCitationsByMessage] = useState<MessageCitations>({});
   const [feedbackByMessage, setFeedbackByMessage] = useState<Record<string, 1 | -1>>({});
-  const [statusHint, setStatusHint] = useState(THINKING_STATUSES[0]!);
+  const [statusHint, setStatusHint] = useState(() => t(THINKING_KEYS[0]));
   const [lastMeta, setLastMeta] = useState<{
     citations: string[];
     intent?: string;
@@ -108,6 +111,13 @@ export function useChatCopilot() {
     [pathname],
   );
 
+  const requestExtrasRef = useRef({
+    locale,
+    pageContext,
+    conversationId,
+  });
+  requestExtrasRef.current = { locale, pageContext, conversationId };
+
   const {
     messages,
     input,
@@ -120,9 +130,14 @@ export function useChatCopilot() {
   } = useChat({
     api: "/api/chat",
     streamProtocol: "text",
-    body: {
-      pageContext,
-      conversationId: conversationId ?? undefined,
+    experimental_prepareRequestBody: ({ messages: chatMessages }) => ({
+      messages: chatMessages,
+      pageContext: requestExtrasRef.current.pageContext,
+      conversationId: requestExtrasRef.current.conversationId ?? undefined,
+      locale: requestExtrasRef.current.locale,
+    }),
+    headers: {
+      "X-Enquiva-Locale": locale,
     },
     initialMessages: [
       {
@@ -142,7 +157,10 @@ export function useChatCopilot() {
         const statusRaw = res.headers.get("X-Enquiva-Status");
         const convId = res.headers.get("X-Enquiva-Conversation-Id");
         if (convId) setConversationId(convId);
-        if (statusRaw) setStatusHint(decodeURIComponent(statusRaw));
+        if (statusRaw) {
+          const decoded = decodeURIComponent(statusRaw);
+          setStatusHint(locale === "en" ? t(THINKING_KEYS[1]) : decoded);
+        }
         pendingCitationsRef.current = citations;
         setLastMeta({ citations, intent, modelId });
       } catch {
@@ -201,8 +219,8 @@ export function useChatCopilot() {
     if (!isLoading) return;
     let i = 0;
     const id = window.setInterval(() => {
-      i = (i + 1) % THINKING_STATUSES.length;
-      setStatusHint(THINKING_STATUSES[i]!);
+      i = (i + 1) % THINKING_KEYS.length;
+      setStatusHint(t(THINKING_KEYS[i]!));
     }, 2200);
     return () => window.clearInterval(id);
   }, [isLoading]);

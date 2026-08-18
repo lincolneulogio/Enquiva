@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { buildPlatformKnowledgePayload } from "@/lib/chat/platform-knowledge";
-import { hybridRetrieveAsync, getCorpusSize } from "@/lib/chat/rag";
+import { hybridRetrieve, getCorpusSize } from "@/lib/chat/rag";
 
 export function createGetPlatformKnowledge() {
   return {
@@ -15,7 +15,7 @@ export function createGetPlatformKnowledge() {
     }),
     execute: async ({ topic }: { topic: string }) => {
       const query = topic?.trim() || "módulos enquiva";
-      const rag = await hybridRetrieveAsync(query, { topK: 5, intent: "module_detail" });
+      const rag = hybridRetrieve(query, 5);
       const inventory = buildPlatformKnowledgePayload(query);
 
       return {

@@ -15,6 +15,8 @@ import {
 } from "@/lib/chat/retrieve-context";
 import { logCopilotTrace, traceFromRetrieved } from "@/lib/chat/observability";
 import { persistChatTurn } from "@/lib/chat/history";
+import { parseChatLocale } from "@/lib/chat/output-locale";
+import { getLocale } from "@/lib/i18n/server";
 
 export const maxDuration = 60;
 
@@ -27,10 +29,15 @@ export async function POST(req: Request) {
       messages?: unknown;
       pageContext?: PageContext;
       conversationId?: string;
+      locale?: unknown;
     };
     const { messages, pageContext, conversationId } = body;
+    const locale = parseChatLocale(
+      body.locale ?? req.headers.get("x-enquiva-locale"),
+      await getLocale(),
+    );
     const userRole = normalizeRole(user.role ?? "member");
-    const userName = user.name ?? "Usuario";
+    const userName = user.name ?? (locale === "en" ? "User" : "Usuario");
     const userId = user.id;
 
     await requirePlanFeature(userId, userRole, "ai");
@@ -50,11 +57,17 @@ export async function POST(req: Request) {
 
     await assertAiChatMessageAllowed(userId, userRole);
 
-    const basePrompt = buildSystemPrompt(userName, userRole);
-    const retrieved = await retrieveChatContext(messages, userRole, pageContext ?? null);
-    const systemPrompt = appendRetrievedContextToSystem(basePrompt, retrieved, userRole);
-
-    const tools = await buildTools(userRole, userId, userName);
+    const basePrompt = buildSystemPrompt(userName, userRole, locale);
+    const [retrieved, tools] = await Promise.all([
+      retrieveChatContext(messages, userRole, pageContext ?? null),
+      buildTools(userRole, userId, userName),
+    ]);
+    const systemPrompt = appendRetrievedContextToSystem(
+      basePrompt,
+      retrieved,
+      userRole,
+      locale,
+    );
     const convertedMessages = await convertToModelMessages(messages as never);
 
     const lastUser =
@@ -75,9 +88,10 @@ export async function POST(req: Request) {
       }),
     );
 
-    const persisted = await persistChatTurn({
+    const nextConversationId = conversationId ?? crypto.randomUUID();
+    void persistChatTurn({
       userId,
-      conversationId,
+      conversationId: nextConversationId,
       pathContext: pageContext?.pathname,
       userMessage: lastUser,
       intent: retrieved.intent,
@@ -85,7 +99,6 @@ export async function POST(req: Request) {
       requiredTools: retrieved.requiredTools,
     }).catch((err) => {
       console.warn("[Copilot] persist turn:", err);
-      return null;
     });
 
     const response = await streamWithFallback(convertedMessages, systemPrompt, tools, {
@@ -95,15 +108,13 @@ export async function POST(req: Request) {
       statusHint: retrieved.statusHint,
     });
 
-    if (persisted?.conversationId) {
-      response.headers.set("X-Enquiva-Conversation-Id", persisted.conversationId);
-      const expose = response.headers.get("Access-Control-Expose-Headers") ?? "";
-      if (!expose.includes("X-Enquiva-Conversation-Id")) {
-        response.headers.set(
-          "Access-Control-Expose-Headers",
-          `${expose}, X-Enquiva-Conversation-Id`.replace(/^,\s*/, ""),
-        );
-      }
+    response.headers.set("X-Enquiva-Conversation-Id", nextConversationId);
+    const expose = response.headers.get("Access-Control-Expose-Headers") ?? "";
+    if (!expose.includes("X-Enquiva-Conversation-Id")) {
+      response.headers.set(
+        "Access-Control-Expose-Headers",
+        `${expose}, X-Enquiva-Conversation-Id`.replace(/^,\s*/, ""),
+      );
     }
 
     logCopilotTrace(

@@ -2,22 +2,27 @@
 
 import { Sparkles } from "lucide-react";
 import { useSession } from "@/lib/auth/client";
-import { useChatCopilot } from "./use-chat-copilot";
+import { useChatCopilot, type AiUsage } from "./use-chat-copilot";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessages } from "./ChatMessages";
 import { ChatInput } from "./ChatInput";
 
-export function AICopilot({ enabled = true }: { enabled?: boolean }) {
+export function AICopilot({
+  enabled = true,
+  initialAiUsage = null,
+}: {
+  enabled?: boolean;
+  initialAiUsage?: AiUsage | null;
+}) {
   const { data: session, isPending } = useSession();
   if (!enabled || isPending || !session?.user) return null;
-  return <AICopilotInner />;
+  return <AICopilotInner initialAiUsage={initialAiUsage} />;
 }
 
-function AICopilotInner() {
+function AICopilotInner({ initialAiUsage }: { initialAiUsage?: AiUsage | null }) {
   const {
     session,
     userRole,
-    locale,
     isOpen,
     hasUnread,
     messagesEndRef,
@@ -38,7 +43,7 @@ function AICopilotInner() {
     feedbackByMessage,
     submitFeedback,
     statusHint,
-  } = useChatCopilot();
+  } = useChatCopilot(initialAiUsage);
 
   if (!session) return null;
 
@@ -58,7 +63,6 @@ function AICopilotInner() {
           <div className="mb-4 w-96 max-w-[calc(100vw-2rem)] h-[540px] max-h-[80vh] flex flex-col rounded-3xl border border-border bg-card/95 backdrop-blur-xl shadow-2xl overflow-hidden animate-fade-in transition-all duration-300">
             <ChatHeader
               userRole={userRole}
-              locale={locale}
               RoleIcon={RoleIcon}
               roleBadgeStyle={ROLE_BADGE_STYLES[userRole]}
               aiUsage={aiUsage}

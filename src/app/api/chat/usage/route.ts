@@ -20,6 +20,7 @@ export async function GET() {
       ...usage,
       percentUsed,
       nearLimit: percentUsed != null && percentUsed >= 80,
+      unlimited: usage.limit == null,
     });
   } catch (error: unknown) {
     const authResponse = apiAuthErrorResponse(error);

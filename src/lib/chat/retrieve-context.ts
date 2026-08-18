@@ -3,8 +3,10 @@ import {
   PLATFORM_OVERVIEW,
   normalizeQuery,
 } from "./platform-knowledge";
-import { hybridRetrieveAsync } from "./rag";
+import { hybridRetrieve } from "./rag";
 import { buildRoleIsolationBlock, getRoleScopeProfile } from "./role-scope";
+import { chatOutputLanguageLock, chatStyleLine } from "@/lib/chat/output-locale";
+import type { Locale } from "@/lib/i18n/core";
 
 export type ChatIntent =
   | "modules_overview"
@@ -145,8 +147,15 @@ function formatPageContext(page?: PageContext | null): string {
     .join("\n");
 }
 
+const LIVE_DATA_INTENTS = new Set<ChatIntent>([
+  "live_stats",
+  "live_users",
+  "live_registrations",
+  "my_tickets",
+]);
+
 /**
- * Agentic + Hybrid RAG (async: rewrite + pgvector + rerank).
+ * Agentic + Hybrid RAG (léxico + vectores locales; sin embeddings remotos en el hot path).
  */
 export async function retrieveChatContext(
   messages: unknown,
@@ -156,18 +165,17 @@ export async function retrieveChatContext(
   const query = lastUserText(messages) || "enquiva modulos";
   const intent = detectIntent(query);
   const staff = role === "super_admin" || role === "admin" || role === "organizer";
-  const rag = await hybridRetrieveAsync(query, {
-    topK: intent === "modules_overview" ? 8 : 5,
-    intent,
-    usePgvector: true,
-  });
   const pageBlock = formatPageContext(page);
+
+  const rag = LIVE_DATA_INTENTS.has(intent)
+    ? { citations: [] as string[], contextBlock: "" }
+    : hybridRetrieve(query, intent === "modules_overview" ? 6 : 4);
 
   const docsBlock = [
     pageBlock,
-    "RESULTADOS HYBRID RAG (documentos internos Enquiva):",
-    rag.contextBlock,
-    `Citas: ${rag.citations.join("; ")}`,
+    rag.contextBlock
+      ? `RESULTADOS HYBRID RAG (documentos internos Enquiva):\n${rag.contextBlock}\nCitas: ${rag.citations.join("; ")}`
+      : "",
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -289,10 +297,10 @@ export async function retrieveChatContext(
       return {
         intent,
         ragMode: "hybrid_docs",
-        requiredTools: ["getPlatformKnowledge", "getMyPlanBilling"],
+        requiredTools: ["getPlatformKnowledge"],
         citations: rag.citations,
         statusHint: "Buscando en la base de conocimiento…",
-        mustDo: `Usa el CONTEXTO HYBRID RAG. Enquiva tiene ${PLATFORM_MODULE_COUNT} módulos. ${PLATFORM_OVERVIEW} Prohibido decir que no tienes contexto. Si falta detalle, llama getPlatformKnowledge. Para plan/límites: getMyPlanBilling.`,
+        mustDo: `Usa el CONTEXTO HYBRID RAG. Enquiva tiene ${PLATFORM_MODULE_COUNT} módulos. ${PLATFORM_OVERVIEW} Prohibido decir que no tienes contexto. Si falta detalle, llama getPlatformKnowledge.`,
         contextText: docsBlock,
       };
   }
@@ -302,9 +310,11 @@ export function appendRetrievedContextToSystem(
   systemPrompt: string,
   retrieved: RetrievedContext,
   role?: string,
+  locale: Locale = "es",
 ): string {
   const profile = getRoleScopeProfile(role ?? "member");
   const isolation = buildRoleIsolationBlock(role ?? "member");
+  const roleLabel = locale === "en" ? profile.labelEn : profile.labelEs;
 
   // Filtra tools recomendadas a las permitidas del rol
   const allowed = new Set(profile.allowedToolsHint);
@@ -316,7 +326,7 @@ export function appendRetrievedContextToSystem(
 ${isolation}
 
 ---
-PIPELINE RAG ENQUIVA (Hybrid + Agentic) — Rol: ${profile.labelEs}
+PIPELINE RAG ENQUIVA (Hybrid + Agentic) — Rol: ${roleLabel}
 Modo: ${retrieved.ragMode}
 Intención: ${retrieved.intent}
 Tools recomendadas (solo las de tu rol): ${toolsForRole.join(", ") || "ninguna / rechazar si es de otro rol"}
@@ -327,10 +337,12 @@ ${retrieved.mustDo}
 ${retrieved.contextText}
 
 Instrucciones de generación:
-1. Español profesional, sin ** ni emojis.
-2. Solo datos de tools/RAG de ESTE rol (${profile.labelEs}). Alcance: ${profile.dataScopeEs}.
+1. ${chatStyleLine(locale)}
+2. Solo datos de tools/RAG de ESTE rol (${roleLabel}). Alcance: ${profile.dataScopeEs}.
 3. Si la pregunta es de otro rol, NO inventes: usa el mensaje de rechazo del aislamiento.
 4. Cita módulos del RAG si aplica; no inventes cifras.
 5. Si hay CONTEXTO DE PÁGINA, úsalo solo si esa ruta es coherente con tu rol.
-6. No digas "como organizador/miembro/admin" si no es tu rol activo.`;
+6. No digas "como organizador/miembro/admin" si no es tu rol activo.
+
+${chatOutputLanguageLock(locale)}`;
 }
