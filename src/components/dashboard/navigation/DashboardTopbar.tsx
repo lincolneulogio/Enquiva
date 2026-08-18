@@ -12,6 +12,9 @@ import Link from "next/link";
 import { Globe } from "lucide-react";
 import { BrandLogo } from "@/components/shared/BrandLogo";
 import { resolveAdminScopeForUser } from "@/lib/organizations/admin-scope";
+import { OrganizationService } from "@/lib/organizations/organization.service";
+import { OrganizationSwitcher } from "./OrganizationSwitcher";
+import { normalizeRole } from "@/lib/auth/rbac";
 
 interface DashboardTopbarProps {
   user: {
@@ -24,12 +27,16 @@ interface DashboardTopbarProps {
 }
 
 export async function DashboardTopbar({ user }: DashboardTopbarProps) {
-  const [unreadCount, initialNotifications, adminScope] = await Promise.all([
+  const role = normalizeRole(user.role);
+  const [unreadCount, initialNotifications, adminScope, memberships] = await Promise.all([
     getUnreadNotificationsCount(),
     getNotifications(8),
-    user.id && user.role === "admin"
+    user.id && role === "admin"
       ? resolveAdminScopeForUser(user.id, user.role)
       : Promise.resolve(null),
+    user.id && role !== "super_admin"
+      ? OrganizationService.listActiveMembershipsForUser(user.id)
+      : Promise.resolve([]),
   ]);
   const organizationId = adminScope?.mode === "org" ? adminScope.organizationId : null;
 
@@ -61,6 +68,10 @@ export async function DashboardTopbar({ user }: DashboardTopbarProps) {
         <ThemeToggle />
 
         <LanguageSwitcher />
+
+        {role !== "super_admin" ? (
+          <OrganizationSwitcher memberships={memberships} canJoin />
+        ) : null}
 
         {/* Notificaciones */}
         {user.id && (

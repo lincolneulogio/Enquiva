@@ -282,6 +282,17 @@ const translations: Record<Locale, TranslationDictionary> = {
             "permissions:view": "Ver la matriz de permisos por rol.",
         },
         dashboard: {
+            organizationSwitcher: {
+                label: "Entidad",
+                switch: "Cambiar de entidad",
+                current: "Contexto actual",
+                empty: "Sin entidad",
+                join: "Unirse con código",
+                joinPlaceholder: "Código de invitación",
+                joinSubmit: "Solicitar acceso",
+                joinSuccess: "Solicitud enviada a {name}",
+                switching: "Cambiando…",
+            },
             sidebar: {
                 groups: {
                     core: "Principal",
@@ -2277,6 +2288,17 @@ const translations: Record<Locale, TranslationDictionary> = {
             "permissions:view": "View the per-role permission matrix.",
         },
         dashboard: {
+            organizationSwitcher: {
+                label: "Organization",
+                switch: "Switch organization",
+                current: "Current context",
+                empty: "No organization",
+                join: "Join with invite code",
+                joinPlaceholder: "Invite code",
+                joinSubmit: "Request access",
+                joinSuccess: "Request sent to {name}",
+                switching: "Switching…",
+            },
             sidebar: {
                 groups: {
                     core: "Core",

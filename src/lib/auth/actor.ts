@@ -3,32 +3,29 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { organizationMembers, organizations, users } from "@/lib/db/schema";
 import { normalizeRole, type AppRole } from "./rbac";
+import {
+  appRoleForOrganizationContext,
+  isMembershipRole,
+  type MembershipRole,
+} from "./membership-role";
 
-export type MembershipRole = "owner" | "organizer" | "member" | "scanner";
+export type { MembershipRole };
 
 export type AuthorizationActor = {
   id: string;
   name: string;
-  /** Rol usado para la matriz de permisos. */
+  /** Rol usado para la matriz de permisos (membresía activa, o plataforma). */
   role: AppRole;
-  /** Rol global en `users.role`. */
+  /** Rol persistido en `users.role` (espejo del contexto activo, o super_admin). */
   globalRole: AppRole;
   organizationId: string | null;
   membershipRole: MembershipRole | null;
 };
 
-function mapMembershipToAppRole(membershipRole: MembershipRole): AppRole {
-  if (membershipRole === "owner") return "admin";
-  if (membershipRole === "organizer") return "organizer";
-  if (membershipRole === "scanner") return "scanner";
-  return "member";
-}
-
 /**
  * Resuelve el actor de autorización.
- * Plataforma (`super_admin`) usa el rol global.
- * En una entidad, el rol de membresía manda salvo que el global sea `admin`
- * (dueño/admin de entidad), para no degradar al admin a organizador.
+ * `super_admin` es el único rol de plataforma.
+ * En una entidad, manda la membresía activa (`users.organizationId`).
  */
 export const resolveAuthorizationActor = cache(
   async (userId: string, fallbackRole?: string | null): Promise<AuthorizationActor> => {
@@ -47,7 +44,18 @@ export const resolveAuthorizationActor = cache(
     const organizationId = user?.organizationId ?? null;
     const name = user?.name ?? "Usuario";
 
-    if (globalRole === "super_admin" || !organizationId) {
+    if (globalRole === "super_admin") {
+      return {
+        id: userId,
+        name,
+        role: "super_admin",
+        globalRole,
+        organizationId,
+        membershipRole: null,
+      };
+    }
+
+    if (!organizationId) {
       return {
         id: userId,
         name,
@@ -62,6 +70,7 @@ export const resolveAuthorizationActor = cache(
       .select({
         role: organizationMembers.role,
         status: organizationMembers.status,
+        ownerId: organizations.ownerId,
       })
       .from(organizationMembers)
       .innerJoin(organizations, eq(organizations.id, organizationMembers.organizationId))
@@ -73,7 +82,7 @@ export const resolveAuthorizationActor = cache(
       )
       .limit(1);
 
-    if (!membership || membership.status !== "active") {
+    if (!membership || membership.status !== "active" || !isMembershipRole(membership.role)) {
       return {
         id: userId,
         name,
@@ -84,9 +93,12 @@ export const resolveAuthorizationActor = cache(
       };
     }
 
-    const membershipRole = membership.role as MembershipRole;
-    const roleFromMembership = mapMembershipToAppRole(membershipRole);
-    const role = globalRole === "admin" ? "admin" : roleFromMembership;
+    const membershipRole = membership.role;
+    const role = appRoleForOrganizationContext({
+      userId,
+      organizationOwnerId: membership.ownerId,
+      membershipRole,
+    });
 
     return {
       id: userId,

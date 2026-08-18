@@ -182,14 +182,17 @@ export function AdminTeamPanel({
                   </p>
                   <p className="text-xs text-muted-foreground">{user.email}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {getRoleLabel((user.role ?? "member") as "member", locale)}
+                    {getRoleLabel(
+                      member.role === "owner" ? "admin" : member.role,
+                      locale,
+                    )}
                   </p>
                 </div>
                 {isOwner && !isOwnerRow && (
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      disabled={isPending || user.role === "organizer"}
+                      disabled={isPending || member.role === "organizer"}
                       onClick={() => changeRole(user.id, "organizer")}
                       className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium disabled:opacity-50"
                     >
@@ -197,7 +200,7 @@ export function AdminTeamPanel({
                     </button>
                     <button
                       type="button"
-                      disabled={isPending || user.role === "member"}
+                      disabled={isPending || member.role === "member"}
                       onClick={() => changeRole(user.id, "member")}
                       className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium disabled:opacity-50"
                     >

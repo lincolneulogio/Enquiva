@@ -96,6 +96,11 @@ export const auth = betterAuth({
         defaultValue: true,
         input: false,
       },
+      organizationId: {
+        type: "string",
+        required: false,
+        input: false,
+      },
     },
   },
   databaseHooks: {

@@ -41,10 +41,12 @@ export default async function OrganizerLayout({
   // Solicitud con código de entidad: bloquear el panel hasta que el admin apruebe.
   // No depender de redirects/x-pathname (evita skeleton infinito).
   if (role === "organizer") {
-    const pendingApproval =
-      await OrganizationService.getPendingOrganizerMembershipForUser(session.user.id);
+    const [pendingApproval, activeMemberships] = await Promise.all([
+      OrganizationService.getPendingOrganizerMembershipForUser(session.user.id),
+      OrganizationService.listActiveMembershipsForUser(session.user.id),
+    ]);
 
-    if (pendingApproval) {
+    if (pendingApproval && activeMemberships.length === 0) {
       const allowedPermissions = await getEffectivePermissionsForRole(role);
       return (
         <div className="flex min-h-screen bg-background">

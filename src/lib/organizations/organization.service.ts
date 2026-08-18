@@ -6,7 +6,14 @@ import {
   type Organization,
 } from "@/lib/db/schema";
 import { and, eq, asc, count, inArray, or, ilike, desc } from "drizzle-orm";
-import { normalizeRole } from "@/lib/auth/rbac";
+import { normalizeRole, type AppRole } from "@/lib/auth/rbac";
+import {
+  appRoleForOrganizationContext,
+  isMembershipRole,
+  shouldApplyMembershipToUserRecord,
+  type MembershipRole,
+} from "@/lib/auth/membership-role";
+import type { ActiveOrganizationMembership } from "@/lib/organizations/active-membership";
 import { SubscriptionService } from "@/lib/billing/subscription.service";
 import { PlanLimitError } from "@/lib/billing/enforce";
 
@@ -34,6 +41,8 @@ export type SignupIntentPayload =
   | { type: "organizer"; inviteCode?: string }
   | { type: "entity_admin"; orgName: string }
   | { type: "platform_owner" };
+
+export type { ActiveOrganizationMembership };
 
 export class OrganizationService {
   static async getByInviteCode(code: string) {
@@ -68,6 +77,110 @@ export class OrganizationService {
       .where(eq(organizations.id, user.organizationId))
       .limit(1);
     return org ?? null;
+  }
+
+  static async listActiveMembershipsForUser(userId: string): Promise<ActiveOrganizationMembership[]> {
+    const [user] = await db
+      .select({ organizationId: users.organizationId })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    const rows = await db
+      .select({
+        organizationId: organizations.id,
+        organizationName: organizations.name,
+        membershipRole: organizationMembers.role,
+        ownerId: organizations.ownerId,
+      })
+      .from(organizationMembers)
+      .innerJoin(organizations, eq(organizations.id, organizationMembers.organizationId))
+      .where(
+        and(
+          eq(organizationMembers.userId, userId),
+          eq(organizationMembers.status, "active"),
+          eq(organizations.isActive, true),
+        ),
+      )
+      .orderBy(asc(organizations.name));
+
+    return rows
+      .filter((row): row is typeof row & { membershipRole: MembershipRole } =>
+        isMembershipRole(row.membershipRole),
+      )
+      .map((row) => ({
+        organizationId: row.organizationId,
+        organizationName: row.organizationName,
+        membershipRole: row.membershipRole,
+        appRole: appRoleForOrganizationContext({
+          userId,
+          organizationOwnerId: row.ownerId,
+          membershipRole: row.membershipRole,
+        }),
+        isCurrent: user?.organizationId === row.organizationId,
+      }));
+  }
+
+  static async switchActiveOrganization(input: {
+    userId: string;
+    organizationId: string;
+  }): Promise<{ organizationId: string; appRole: AppRole; organizationName: string }> {
+    const [user] = await db
+      .select({ id: users.id, role: users.role })
+      .from(users)
+      .where(eq(users.id, input.userId))
+      .limit(1);
+
+    if (!user) throw new Error("Usuario no encontrado.");
+    if (normalizeRole(user.role) === "super_admin") {
+      throw new Error("El rol de plataforma no cambia de entidad.");
+    }
+
+    const [membership] = await db
+      .select({
+        role: organizationMembers.role,
+        status: organizationMembers.status,
+        ownerId: organizations.ownerId,
+        organizationName: organizations.name,
+        isActive: organizations.isActive,
+      })
+      .from(organizationMembers)
+      .innerJoin(organizations, eq(organizations.id, organizationMembers.organizationId))
+      .where(
+        and(
+          eq(organizationMembers.userId, input.userId),
+          eq(organizationMembers.organizationId, input.organizationId),
+        ),
+      )
+      .limit(1);
+
+    if (!membership || membership.status !== "active" || !membership.isActive) {
+      throw new Error("No tienes una membresía activa en esa entidad.");
+    }
+    if (!isMembershipRole(membership.role)) {
+      throw new Error("Rol de membresía no válido.");
+    }
+
+    const appRole = appRoleForOrganizationContext({
+      userId: input.userId,
+      organizationOwnerId: membership.ownerId,
+      membershipRole: membership.role,
+    });
+
+    await db
+      .update(users)
+      .set({
+        organizationId: input.organizationId,
+        role: appRole,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, input.userId));
+
+    return {
+      organizationId: input.organizationId,
+      appRole,
+      organizationName: membership.organizationName,
+    };
   }
 
   static async isOrgAdmin(userId: string, role?: string | null) {
@@ -171,6 +284,12 @@ export class OrganizationService {
       throw new Error("Tu solicitud ya está pendiente de aprobación.");
     }
 
+    const [currentUser] = await db
+      .select({ organizationId: users.organizationId })
+      .from(users)
+      .where(eq(users.id, input.userId))
+      .limit(1);
+
     if (existingMember?.status === "rejected") {
       await db
         .update(organizationMembers)
@@ -185,10 +304,12 @@ export class OrganizationService {
       });
     }
 
-    await db
-      .update(users)
-      .set({ organizationId: org.id, role: "organizer", updatedAt: new Date() })
-      .where(eq(users.id, input.userId));
+    if (shouldApplyMembershipToUserRecord(currentUser?.organizationId, org.id)) {
+      await db
+        .update(users)
+        .set({ organizationId: org.id, role: "organizer", updatedAt: new Date() })
+        .where(eq(users.id, input.userId));
+    }
 
     return org;
   }
@@ -238,7 +359,12 @@ export class OrganizationService {
     await this.assertCanAddOrganizerToOrg(actorOrg.id);
 
     const [target] = await db
-      .select({ id: users.id, name: users.name, email: users.email })
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        organizationId: users.organizationId,
+      })
       .from(users)
       .where(eq(users.id, input.targetUserId))
       .limit(1);
@@ -250,10 +376,12 @@ export class OrganizationService {
         .set({ status: "active" })
         .where(eq(organizationMembers.id, memberRow.id));
 
-      await trx
-        .update(users)
-        .set({ organizationId: actorOrg.id, role: "organizer", updatedAt: new Date() })
-        .where(eq(users.id, input.targetUserId));
+      if (shouldApplyMembershipToUserRecord(target.organizationId, actorOrg.id)) {
+        await trx
+          .update(users)
+          .set({ organizationId: actorOrg.id, role: "organizer", updatedAt: new Date() })
+          .where(eq(users.id, input.targetUserId));
+      }
     });
 
     return { organization: actorOrg, user: target };
@@ -418,15 +546,6 @@ export class OrganizationService {
     const memberRole = input.newRole;
 
     await db.transaction(async (trx) => {
-      await trx
-        .update(users)
-        .set({
-          role: globalRole,
-          organizationId: actorOrg.id,
-          updatedAt: new Date(),
-        })
-        .where(eq(users.id, input.targetUserId));
-
       if (memberRow) {
         await trx
           .update(organizationMembers)
@@ -442,6 +561,17 @@ export class OrganizationService {
           role: memberRole,
           status: memberStatus,
         });
+      }
+
+      if (shouldApplyMembershipToUserRecord(target.organizationId, actorOrg.id)) {
+        await trx
+          .update(users)
+          .set({
+            role: globalRole,
+            organizationId: actorOrg.id,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, input.targetUserId));
       }
     });
 

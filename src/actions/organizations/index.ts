@@ -1,10 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { OrganizationService } from "@/lib/organizations/organization.service";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { requireAuth } from "@/lib/auth/guards";
 import { assertPermission } from "@/lib/auth/permission-guards";
+import { getDashboardHomeForRole } from "@/lib/navigation/dashboard-paths";
 
 export async function getMyOrganization() {
   const user = await requireAuth();
@@ -174,9 +176,9 @@ export async function canManageOrgTeam() {
 
 export async function joinOrganizationWithInviteCode(inviteCode: string) {
   const user = await requireAuth();
-
-  const existing = await OrganizationService.getOrganizationForUser(user.id);
-  if (existing) throw new Error("Ya perteneces a una entidad.");
+  if (normalizeRole(user.role) === "super_admin") {
+    throw new Error("El rol de plataforma no se une a entidades.");
+  }
 
   const pending = await OrganizationService.getPendingOrganizerMembershipForUser(user.id);
   if (pending) throw new Error("Ya tienes una solicitud pendiente de aprobación.");
@@ -203,3 +205,19 @@ export async function joinOrganizationWithInviteCode(inviteCode: string) {
   revalidatePath("/admin/team");
   return { success: true, organizationName: org.name, pending: true };
 }
+
+export async function switchActiveOrganization(organizationId: string) {
+  const user = await requireAuth();
+  if (normalizeRole(user.role) === "super_admin") {
+    throw new Error("El rol de plataforma no cambia de entidad.");
+  }
+
+  const result = await OrganizationService.switchActiveOrganization({
+    userId: user.id,
+    organizationId,
+  });
+
+  revalidatePath("/", "layout");
+  redirect(getDashboardHomeForRole(result.appRole));
+}
+

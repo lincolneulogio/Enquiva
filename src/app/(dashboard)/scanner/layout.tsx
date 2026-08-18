@@ -47,6 +47,7 @@ export default async function ScannerLayout({
       <div className="flex min-w-0 flex-1 flex-col">
         <DashboardTopbar
           user={{
+            id: session.user.id,
             name: session.user.name,
             email: session.user.email,
             image: session.user.image,
