@@ -7,7 +7,7 @@ import {
     events,
     transportStops,
 } from "@/lib/db/schema";
-import { eq, and, sql, desc, inArray } from "drizzle-orm";
+import { eq, inArray, and, ne, sql, desc } from "drizzle-orm";
 
 export class BookingQueriesService {
   /**
@@ -60,7 +60,8 @@ export class BookingQueriesService {
         .where(
             and(
                 eq(registrations.userId, userId),
-                eq(registrations.status, "registered")
+                inArray(registrations.status, ["registered", "checked_in"]),
+                eq(events.hasTransport, true),
             )
         )
         .orderBy(desc(events.date));
@@ -84,6 +85,7 @@ export class BookingQueriesService {
             totalSeats: transportRoutes.totalSeats,
             description: transportRoutes.description,
             isActive: transportRoutes.isActive,
+            isRoundTrip: transportRoutes.isRoundTrip,
             bookedSeats: sql<number>`(
         SELECT COALESCE(SUM(tb.seats), 0)
         FROM transport_bookings tb
@@ -96,9 +98,18 @@ export class BookingQueriesService {
         .orderBy(transportRoutes.departureTime);
 
     const existingBookings = await db
-        .select({ routeId: transportBookings.routeId, registrationId: transportBookings.registrationId })
+        .select({
+            routeId: transportBookings.routeId,
+            registrationId: transportBookings.registrationId,
+            status: transportBookings.status,
+        })
         .from(transportBookings)
-        .where(eq(transportBookings.userId, userId));
+        .where(
+            and(
+                eq(transportBookings.userId, userId),
+                ne(transportBookings.status, "cancelled"),
+            ),
+        );
 
     const bookedSet = new Set(
         existingBookings.map((b) => `${b.registrationId}:${b.routeId}`)
@@ -115,7 +126,10 @@ export class BookingQueriesService {
             .map((r) => {
                 const availableSeats = Math.max(0, r.totalSeats - Number(r.bookedSeats));
                 const key = `${reg.registrationId}:${r.id}`;
-                const routeStops = allStops.filter((s) => s.routeId === r.id);
+                const routeStops = allStops
+                    .filter((s) => s.routeId === r.id)
+                    .slice()
+                    .sort((a, b) => a.sortOrder - b.sortOrder);
 
                 return {
                     ...r,
@@ -124,7 +138,8 @@ export class BookingQueriesService {
                     registrationId: reg.registrationId,
                     stops: routeStops,
                 };
-            });
+            })
+            .filter((r) => r.alreadyBooked || r.availableSeats > 0);
 
         return {
             ...reg,

@@ -77,10 +77,10 @@ export async function assertStopBelongsToRoute(
   routeId: string,
   stopId: string | null | undefined,
 ) {
-  if (!stopId) return;
+  if (!stopId) return null;
 
   const [stop] = await tx
-    .select({ id: transportStops.id })
+    .select()
     .from(transportStops)
     .where(and(eq(transportStops.id, stopId), eq(transportStops.routeId, routeId)))
     .limit(1);
@@ -88,6 +88,43 @@ export async function assertStopBelongsToRoute(
   if (!stop) {
     throw new Error("La parada seleccionada no pertenece a esta ruta");
   }
+  return stop;
+}
+
+export async function assertStopCapacityAvailable(
+  tx: DBClient,
+  stopId: string,
+  seats: number,
+  maxSeats: number | null | undefined,
+  options?: { useRegistrationErrors?: boolean },
+) {
+  if (maxSeats == null || maxSeats <= 0) return;
+
+  const [{ bookedCount }] = await tx
+    .select({
+      bookedCount: sql<number>`COALESCE(SUM(${transportBookings.seats}), 0)`,
+    })
+    .from(transportBookings)
+    .where(
+      and(
+        eq(transportBookings.stopId, stopId),
+        sql`${transportBookings.status} != 'cancelled'`,
+      ),
+    );
+
+  const available = maxSeats - Number(bookedCount);
+  if (seats <= available) return;
+
+  if (options?.useRegistrationErrors) {
+    throw registrationError(RegistrationErrorCode.TRANSPORT_SEATS_INSUFFICIENT, {
+      available: String(Math.max(available, 0)),
+      routeName: "paradero",
+    });
+  }
+
+  throw new Error(
+    `Solo quedan ${Math.max(available, 0)} asiento${available === 1 ? "" : "s"} en este paradero`,
+  );
 }
 
 export async function assertNoExistingBooking(
@@ -170,7 +207,12 @@ export async function createTransportBookingInTx(
     await assertNoExistingBooking(tx, params.registrationId, params.routeId);
   }
 
-  await assertStopBelongsToRoute(tx, params.routeId, params.stopId);
+  const stop = await assertStopBelongsToRoute(tx, params.routeId, params.stopId);
+  if (stop) {
+    await assertStopCapacityAvailable(tx, stop.id, params.seats, stop.maxSeats, {
+      useRegistrationErrors: params.useRegistrationErrors,
+    });
+  }
 
   const [booking] = await tx
     .insert(transportBookings)

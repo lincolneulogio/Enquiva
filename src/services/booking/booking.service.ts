@@ -10,10 +10,12 @@ import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { bookTransportWithPayment } from "@/lib/transport/standalone-booking";
 
+import { TRANSPORT_MAX_SEATS_PER_BOOKING } from "@/lib/transport/constants";
+
 export const bookTransportSchema = z.object({
   routeId: z.string().uuid(),
   registrationId: z.string().uuid(),
-  seats: z.number().int().min(1).max(10),
+  seats: z.number().int().min(1).max(TRANSPORT_MAX_SEATS_PER_BOOKING),
   notes: z.string().optional(),
   receiptUrl: z.string().url().optional(),
   receiptFileName: z.string().optional(),

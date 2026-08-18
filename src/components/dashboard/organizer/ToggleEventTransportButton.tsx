@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Loader2, Bus, BusFront } from "lucide-react";
 import { toggleEventTransport } from "@/actions/transport";
-import { useTranslations } from "@/components/providers/LocaleProvider";
+import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 
 interface ToggleEventTransportButtonProps {
     eventId: string;
@@ -18,6 +18,7 @@ export function ToggleEventTransportButton({
     className = "",
 }: ToggleEventTransportButtonProps) {
     const t = useTranslations();
+    const { locale } = useLocale();
     const [hasTransport, setHasTransport] = useState(initialHasTransport);
     const [isPending, startTransition] = useTransition();
 
@@ -30,7 +31,9 @@ export function ToggleEventTransportButton({
                     setHasTransport(nextState);
                     toast.success(
                         nextState
-                            ? t("transport.manager.routeActivated") || "Transporte habilitado"
+                            ? locale === "en"
+                                ? "Transport enabled. Registrants without a bus booking can pay for seats separately."
+                                : "Transporte habilitado. Los inscritos sin bus podrán pagar asientos por separado."
                             : t("transport.manager.routeDeactivated") || "Transporte deshabilitado"
                     );
                 }

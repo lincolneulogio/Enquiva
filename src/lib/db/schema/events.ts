@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, integer, numeric, pgEnum, uuid, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer, numeric, doublePrecision, pgEnum, uuid, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { users } from "./auth";
 import { organizations } from "./organizations";
@@ -29,6 +29,8 @@ export const events = pgTable(
     endDate: timestamp("end_date"),
     location: text("location"),
     locationUrl: text("location_url"),
+    latitude: doublePrecision("latitude"),
+    longitude: doublePrecision("longitude"),
     isVirtual: boolean("is_virtual").notNull().default(false),
     virtualLink: text("virtual_link"),
     capacity: integer("capacity"),

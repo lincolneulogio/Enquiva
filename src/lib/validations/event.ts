@@ -55,6 +55,26 @@ const baseEventSchema = z.object({
     }),
   location: z.string().max(300).optional().nullable(),
   locationUrl: optionalUrl,
+  latitude: z
+    .union([z.string(), z.number()])
+    .optional()
+    .nullable()
+    .transform((value) => {
+      if (value === "" || value === null || value === undefined) return null;
+      const num = Number(value);
+      return Number.isNaN(num) ? null : num;
+    })
+    .pipe(z.number().min(-90).max(90).nullable()),
+  longitude: z
+    .union([z.string(), z.number()])
+    .optional()
+    .nullable()
+    .transform((value) => {
+      if (value === "" || value === null || value === undefined) return null;
+      const num = Number(value);
+      return Number.isNaN(num) ? null : num;
+    })
+    .pipe(z.number().min(-180).max(180).nullable()),
   isVirtual: z.boolean().default(false),
   virtualLink: optionalUrl,
   capacity: z.number().int().positive().optional().nullable(),
@@ -96,6 +116,16 @@ export const createEventSchema = baseEventSchema
   .refine(
     (data) => data.isVirtual || !!data.location?.trim(),
     { message: "Venue address is required for in-person events", path: ["location"] }
+  )
+  .refine(
+    (data) =>
+      data.isVirtual ||
+      data.status !== "published" ||
+      (data.latitude != null && data.longitude != null),
+    {
+      message: "Map pin is required to publish an in-person event",
+      path: ["latitude"],
+    }
   );
 
 export const updateEventSchema = baseEventSchema
@@ -107,6 +137,17 @@ export const updateEventSchema = baseEventSchema
   .refine(
     (data) => data.isVirtual === undefined || data.isVirtual || !!data.location?.trim(),
     { message: "Venue address is required for in-person events", path: ["location"] }
+  )
+  .refine(
+    (data) => {
+      if (data.status !== "published") return true;
+      if (data.isVirtual === true) return true;
+      return data.latitude != null && data.longitude != null;
+    },
+    {
+      message: "Map pin is required to publish an in-person event",
+      path: ["latitude"],
+    }
   );
 
 export const eventFilterSchema = z.object({

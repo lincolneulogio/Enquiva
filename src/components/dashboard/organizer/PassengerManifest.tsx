@@ -16,9 +16,13 @@ interface BookingItem {
   passengerName: string | null;
   passengerEmail: string | null;
   passengerPhone: string | null;
+  routeId?: string;
   routeName: string;
   departurePoint: string;
+  driverName?: string | null;
+  vehiclePlate?: string | null;
   stopName: string | null;
+  stopSortOrder?: number | null;
   paymentStatus: string | null;
 }
 
@@ -43,7 +47,13 @@ export function PassengerManifest({ eventId }: PassengerManifestProps) {
         setLoading(true);
         const res = await getEventPassengerManifest(eventId);
         if (res.success) {
-          setBookings(res.bookings || []);
+          const list = res.bookings || [];
+          setBookings(list);
+          const withDriver = list.find((b) => b.driverName || b.vehiclePlate);
+          if (withDriver) {
+            setDriverName(withDriver.driverName ?? "");
+            setVehiclePlate(withDriver.vehiclePlate ?? "");
+          }
         } else {
           setError("No se pudieron cargar las reservas.");
         }

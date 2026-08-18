@@ -34,7 +34,18 @@ export default async function AdminEventTransportPage({ params }: Props) {
     }
 
     const [event] = await db
-        .select({ id: events.id, title: events.title, organizerId: events.organizerId, hasTransport: events.hasTransport })
+        .select({
+            id: events.id,
+            title: events.title,
+            organizerId: events.organizerId,
+            hasTransport: events.hasTransport,
+            date: events.date,
+            endDate: events.endDate,
+            location: events.location,
+            isVirtual: events.isVirtual,
+            latitude: events.latitude,
+            longitude: events.longitude,
+        })
         .from(events)
         .where(eq(events.id, eventId))
         .limit(1);
@@ -75,6 +86,15 @@ export default async function AdminEventTransportPage({ params }: Props) {
 
             <TransportRoutesManager
                 eventId={eventId}
+                eventInfo={{
+                    title: event.title,
+                    date: event.date,
+                    endDate: event.endDate,
+                    location: event.location,
+                    isVirtual: event.isVirtual,
+                    latitude: event.latitude,
+                    longitude: event.longitude,
+                }}
                 initialRoutes={routes.map((r) => ({
                     ...r,
                     departureTime: new Date(r.departureTime),

@@ -9,7 +9,7 @@ import { createEvent, updateEvent } from "@/actions/events";
 import { getPaymentMethodsForEventForm, setEventPaymentMethods } from "@/actions/payment-methods";
 import { UploadDropzone } from "@/lib/uploadthing/components";
 import { toast } from "sonner";
-import { Loader2, ImageIcon, MapPin, Video, Star, Bus, Smartphone, QrCode, Wallet, CreditCard, Plus, CalendarDays, Clock3 } from "lucide-react";
+import { Loader2, ImageIcon, Video, Star, Bus, Smartphone, QrCode, Wallet, CreditCard, Plus, CalendarDays, Clock3 } from "lucide-react";
 import { EventCoverFrame } from "@/components/events/EventCoverFrame";
 import { CreateCategoryModal } from "@/components/events/CreateCategoryModal";
 import type { Event } from "@/lib/db/schema";
@@ -22,8 +22,12 @@ import { PlanUsageBanner } from "@/components/dashboard/organizer/PlanUsageBanne
 import type { getOrganizerPlanSummary } from "@/lib/billing/enforce";
 import Link from "next/link";
 import { Lock } from "lucide-react";
+import { EventLocationPickerDynamic } from "@/components/events/EventLocationMapDynamic";
+import { VenueAddressAutocomplete } from "@/components/events/VenueAddressAutocomplete";
 import { useFormPersistence } from "@/hooks/useFormPersistence";
 import { formStorageKey, loadFormDraft, saveFormDraft } from "@/lib/form-persistence";
+import type { LatLng } from "@/lib/geo";
+import type { PlaceSuggestion } from "@/lib/geo/nominatim";
 
 type PlanSummary = Awaited<ReturnType<typeof getOrganizerPlanSummary>>;
 
@@ -88,6 +92,7 @@ const VALIDATION_MESSAGE_KEY_BY_TEXT: Record<string, string> = {
     "Event date cannot be in the past": "events.form.validation.datePast",
     "Meeting link is required for virtual events": "events.form.validation.virtualLinkRequired",
     "Venue address is required for in-person events": "events.form.validation.locationRequired",
+    "Map pin is required to publish an in-person event": "events.form.validation.mapPinRequired",
     "Invalid url": "events.form.validation.invalidUrl",
     "Expected number, received nan": "events.form.validation.capacityInvalid",
     "Expected number, received string": "events.form.validation.capacityInvalid",
@@ -102,6 +107,7 @@ const FIRST_ERROR_FIELD_ORDER: Array<keyof CreateEventInput> = [
     "date",
     "virtualLink",
     "location",
+    "latitude",
     "capacity",
     "status",
 ];
@@ -159,6 +165,8 @@ export function EventForm({
                 category: event.category,
                 date: toLocalDateTimeInputValue(event.date),
                 location: event.location ?? undefined,
+                latitude: event.latitude ?? null,
+                longitude: event.longitude ?? null,
                 isVirtual: event.isVirtual,
                 virtualLink: event.virtualLink ?? undefined,
                 capacity: event.capacity ?? undefined,
@@ -178,6 +186,8 @@ export function EventForm({
                 isFeatured: false,
                 hasTransport: false,
                 price: undefined,
+                latitude: null,
+                longitude: null,
                 holdMinutesCard: 30,
                 holdHoursManual: 24,
                 nearEventWindowHours: 48,
@@ -285,6 +295,18 @@ export function EventForm({
     const isVirtual = useWatch({ control, name: "isVirtual" });
     const hasTransport = useWatch({ control, name: "hasTransport" });
     const watchedPrice = useWatch({ control, name: "price" });
+    const watchedTitle = useWatch({ control, name: "title" });
+    const watchedLocation = useWatch({ control, name: "location" });
+    const watchedLatitude = useWatch({ control, name: "latitude" });
+    const watchedLongitude = useWatch({ control, name: "longitude" });
+    const watchedEndDate = useWatch({ control, name: "endDate" });
+
+    useEffect(() => {
+        if (!isVirtual) return;
+        setValue("latitude", null, { shouldDirty: true });
+        setValue("longitude", null, { shouldDirty: true });
+    }, [isVirtual, setValue]);
+
     const canUseTransport = planSummary?.isUnlimited || planSummary?.features.transport || event?.hasTransport;
     const canUseCulqi = planSummary?.isUnlimited || planSummary?.features.culqi;
     const canCreateEvent = planSummary?.isUnlimited || planSummary?.canCreateEvent !== false;
@@ -455,6 +477,17 @@ export function EventForm({
             return;
         }
 
+        if (
+            !data.isVirtual &&
+            data.status === "published" &&
+            (data.latitude == null || data.longitude == null)
+        ) {
+            toast.error(t("events.form.validation.mapPinRequired"));
+            setHighlightedField("location");
+            document.getElementById("event-location")?.focus();
+            return;
+        }
+
         startTransition(async () => {
             try {
                 const payload = {
@@ -462,6 +495,8 @@ export function EventForm({
                     coverImage,
                     capacity: data.isVirtual ? null : data.capacity,
                     location: data.isVirtual ? null : data.location,
+                    latitude: data.isVirtual ? null : data.latitude,
+                    longitude: data.isVirtual ? null : data.longitude,
                     virtualLink: data.isVirtual ? data.virtualLink : null,
                     isFeatured: canFeature ? data.isFeatured : false,
                     status: data.status ?? "draft",
@@ -855,20 +890,80 @@ export function EventForm({
                             </div>
                         ) : (
                             <div key="physical-fields">
-                                <div className="relative">
-                                    <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                    <input
-                                        id="event-location"
-                                        {...register("location")}
-                                        aria-invalid={Boolean(errors.location)}
-                                        aria-describedby={errors.location ? "event-location-error" : undefined}
-                                        placeholder={t("events.form.venuePlaceholder")}
-                                        className={`w-full rounded-xl border border-border bg-background pl-9 pr-4 py-2.5 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("location")}`}
-                                    />
-                                </div>
-                                {errors.location && (
-                                    <p id="event-location-error" role="alert" className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.location.message)}</p>
+                                <VenueAddressAutocomplete
+                                    id="event-location"
+                                    value={watchedLocation ?? ""}
+                                    onChange={(next) => {
+                                        setValue("location", next, {
+                                            shouldDirty: true,
+                                            shouldValidate: true,
+                                        });
+                                    }}
+                                    onSelectSuggestion={(suggestion: PlaceSuggestion) => {
+                                        setValue("location", suggestion.label, {
+                                            shouldDirty: true,
+                                            shouldValidate: true,
+                                            shouldTouch: true,
+                                        });
+                                        setValue("latitude", suggestion.lat, {
+                                            shouldDirty: true,
+                                            shouldValidate: true,
+                                        });
+                                        setValue("longitude", suggestion.lng, {
+                                            shouldDirty: true,
+                                            shouldValidate: true,
+                                        });
+                                    }}
+                                    invalid={Boolean(errors.location || errors.latitude)}
+                                    describedBy={
+                                        errors.location || errors.latitude
+                                            ? "event-location-error"
+                                            : undefined
+                                    }
+                                    placeholder={t("events.form.venuePlaceholder")}
+                                    inputClassName={getFieldHighlightClass("location")}
+                                />
+                                {(errors.location || errors.latitude) && (
+                                    <p id="event-location-error" role="alert" className="mt-1 text-xs text-destructive">
+                                        {getLocalizedValidationMessage(
+                                            errors.location?.message || errors.latitude?.message,
+                                        )}
+                                    </p>
                                 )}
+                                <EventLocationPickerDynamic
+                                    className="mt-3"
+                                    address={watchedLocation ?? ""}
+                                    latitude={
+                                        typeof watchedLatitude === "number"
+                                            ? watchedLatitude
+                                            : null
+                                    }
+                                    longitude={
+                                        typeof watchedLongitude === "number"
+                                            ? watchedLongitude
+                                            : null
+                                    }
+                                    onChange={(coords: LatLng | null) => {
+                                        setValue("latitude", coords?.lat ?? null, {
+                                            shouldDirty: true,
+                                            shouldValidate: true,
+                                        });
+                                        setValue("longitude", coords?.lng ?? null, {
+                                            shouldDirty: true,
+                                            shouldValidate: true,
+                                        });
+                                    }}
+                                    onAddressChange={(nextAddress) => {
+                                        setValue("location", nextAddress, {
+                                            shouldDirty: true,
+                                            shouldValidate: true,
+                                            shouldTouch: true,
+                                        });
+                                    }}
+                                    onRequestEditAddress={() => {
+                                        document.getElementById("event-location")?.focus();
+                                    }}
+                                />
                             </div>
                         )}
                     </div>
@@ -1059,6 +1154,25 @@ export function EventForm({
                                         <TransportRoutesManager
                                             eventId={event.id}
                                             initialRoutes={routes}
+                                            eventInfo={{
+                                                title: watchedTitle || event.title,
+                                                date: watchedDateTime || event.date,
+                                                endDate: watchedEndDate || event.endDate,
+                                                location: watchedLocation ?? event.location,
+                                                isVirtual: Boolean(isVirtual),
+                                                latitude:
+                                                    typeof watchedLatitude === "number"
+                                                        ? watchedLatitude
+                                                        : typeof event.latitude === "number"
+                                                          ? event.latitude
+                                                          : null,
+                                                longitude:
+                                                    typeof watchedLongitude === "number"
+                                                        ? watchedLongitude
+                                                        : typeof event.longitude === "number"
+                                                          ? event.longitude
+                                                          : null,
+                                            }}
                                         />
                                     </div>
                                 )

@@ -72,6 +72,8 @@ interface TicketCardProps {
       longitude: string | null;
     } | null;
   } | null;
+  /** Precio desde el cual se ofrece el add-on de transporte (sin booking aún) */
+  transportOfferFromPrice?: number | null;
   guests?: Array<{
     registration: Registration;
     ticket: Ticket | null;
@@ -95,6 +97,7 @@ export function TicketCard({
   paymentReceiptUrl,
   paymentMethod,
   transportBooking,
+  transportOfferFromPrice,
   guests,
   attendeeName,
   defaultExpanded = false,
@@ -739,6 +742,41 @@ export function TicketCard({
                   </p>
                 </div>
               )}
+            </div>
+          )}
+
+          {!transportBooking && hasTransport && transportOfferFromPrice != null && (
+            <div className="rounded-2xl border border-sky-500/25 bg-sky-500/10 p-4 md:p-5 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-500/15 text-sky-700 dark:text-sky-300">
+                  <Bus className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <h4 className="text-sm font-bold text-foreground">
+                    {locale === "en" ? "Transport now available" : "Transporte disponible"}
+                  </h4>
+                  <p className="text-xs leading-relaxed text-sky-950/80 dark:text-sky-50/90">
+                    {locale === "en"
+                      ? `Your entry QR is ready. Bus seats are a separate paid add-on from S/ ${transportOfferFromPrice.toFixed(2)} per seat.`
+                      : `Tu QR de entrada ya está listo. El bus es un pago aparte, desde S/ ${transportOfferFromPrice.toFixed(2)} por asiento.`}
+                  </p>
+                  <Link
+                    href="/member/transport"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition hover:bg-sky-700 active:scale-[0.98]"
+                  >
+                    <Bus className="h-3.5 w-3.5" />
+                    {locale === "en" ? "Book & pay transport" : "Reservar y pagar transporte"}
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!transportBooking && hasTransport && transportOfferFromPrice == null && (
+            <div className="rounded-2xl border border-border/80 bg-muted/30 p-4 text-xs text-muted-foreground">
+              {locale === "en"
+                ? "This event has transport enabled. Routes will appear in My trips when the organizer publishes them."
+                : "Este evento tiene transporte habilitado. Las rutas aparecerán en Mis viajes cuando el organizador las publique."}
             </div>
           )}
 

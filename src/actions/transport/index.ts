@@ -24,6 +24,10 @@ const createRouteSchema = z.object({
     pricePerSeat: z.number().nonnegative(),
     totalSeats: z.number().int().positive(),
     description: z.string().optional().nullable(),
+    driverName: z.string().max(120).optional().nullable(),
+    vehiclePlate: z.string().max(20).optional().nullable(),
+    isRoundTrip: z.boolean().optional(),
+    pendingHoldHours: z.number().int().min(1).max(168).optional(),
 });
 
 // ─── Organizer: Gestión de rutas ──────────────────────────────────────────────
@@ -52,8 +56,36 @@ export async function createRoute(input: z.infer<typeof createRouteSchema>) {
         details: `Ruta creada: ${input.name} (evento ${input.eventId})`,
     });
 
+    let transportOfferNotified = 0;
+    // Primera ruta usable → ofrecer add-on de transporte a inscritos sin booking
+    try {
+        const { db } = await import("@/lib/db");
+        const { transportRoutes } = await import("@/lib/db/schema");
+        const { and, eq, sql } = await import("drizzle-orm");
+        const [stats] = await db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(transportRoutes)
+            .where(
+                and(
+                    eq(transportRoutes.eventId, input.eventId),
+                    eq(transportRoutes.isActive, true),
+                ),
+            );
+        if (Number(stats?.count ?? 0) === 1) {
+            const { notifyRegistrantsTransportAvailable } = await import(
+                "@/lib/notifications/transport-available-offer"
+            );
+            const result = await notifyRegistrantsTransportAvailable(input.eventId);
+            transportOfferNotified = result.notified;
+        }
+    } catch (err) {
+        console.error("[createRoute] transport offer notify failed", err);
+    }
+
     revalidatePath(`/organizer/events/${input.eventId}`);
-    return { success: true, route };
+    revalidatePath(`/member/transport`);
+    revalidatePath(`/member/tickets`);
+    return { success: true, route, transportOfferNotified };
 }
 
 export async function updateRoute(
@@ -99,6 +131,42 @@ export async function toggleRouteActive(routeId: string, isActive: boolean) {
     const user = await requireOrganizerOrHigher();
     await assertAnyPermission(user, ["transport:manage:any", "transport:manage:own"]);
     await TransportService.toggleRouteActive(routeId, isActive, user.id, user.role ?? "member");
+
+    if (isActive) {
+        try {
+            const { db } = await import("@/lib/db");
+            const { transportRoutes } = await import("@/lib/db/schema");
+            const { eq, and, sql } = await import("drizzle-orm");
+            const [routeRow] = await db
+                .select({ eventId: transportRoutes.eventId })
+                .from(transportRoutes)
+                .where(eq(transportRoutes.id, routeId))
+                .limit(1);
+            if (routeRow?.eventId) {
+                const [stats] = await db
+                    .select({ count: sql<number>`count(*)::int` })
+                    .from(transportRoutes)
+                    .where(
+                        and(
+                            eq(transportRoutes.eventId, routeRow.eventId),
+                            eq(transportRoutes.isActive, true),
+                        ),
+                    );
+                if (Number(stats?.count ?? 0) === 1) {
+                    const { notifyRegistrantsTransportAvailable } = await import(
+                        "@/lib/notifications/transport-available-offer"
+                    );
+                    const { runBackground } = await import("@/lib/background");
+                    runBackground(async () => {
+                        await notifyRegistrantsTransportAvailable(routeRow.eventId);
+                    });
+                }
+            }
+        } catch (err) {
+            console.error("[toggleRouteActive] transport offer notify failed", err);
+        }
+    }
+
     return { success: true };
 }
 
@@ -119,9 +187,26 @@ export async function toggleEventTransport(eventId: string, hasTransport: boolea
         details: `Transporte ${hasTransport ? "habilitado" : "deshabilitado"} para el evento`,
     });
 
+    if (hasTransport) {
+        try {
+            const { shouldAnnounceTransportOffer, notifyRegistrantsTransportAvailable } =
+                await import("@/lib/notifications/transport-available-offer");
+            const { runBackground } = await import("@/lib/background");
+            if (await shouldAnnounceTransportOffer(eventId)) {
+                runBackground(async () => {
+                    await notifyRegistrantsTransportAvailable(eventId);
+                });
+            }
+        } catch (err) {
+            console.error("[toggleEventTransport] transport offer notify failed", err);
+        }
+    }
+
     revalidatePath(`/organizer/transport`);
     revalidatePath(`/organizer/events/${eventId}`);
     revalidatePath(`/admin/transport`);
+    revalidatePath(`/member/transport`);
+    revalidatePath(`/member/tickets`);
     return { success: true };
 }
 
@@ -212,9 +297,13 @@ export async function getEventPassengerManifest(eventId: string) {
             passengerName: users.name,
             passengerEmail: users.email,
             passengerPhone: registrations.contactPhone,
+            routeId: transportRoutes.id,
             routeName: transportRoutes.name,
             departurePoint: transportRoutes.departurePoint,
+            driverName: transportRoutes.driverName,
+            vehiclePlate: transportRoutes.vehiclePlate,
             stopName: transportStops.name,
+            stopSortOrder: transportStops.sortOrder,
             paymentStatus: payments.status,
         })
         .from(transportBookings)
@@ -224,7 +313,7 @@ export async function getEventPassengerManifest(eventId: string) {
         .leftJoin(transportStops, eq(transportBookings.stopId, transportStops.id))
         .leftJoin(payments, eq(payments.transportBookingId, transportBookings.id))
         .where(eq(transportRoutes.eventId, eventId))
-        .orderBy(transportRoutes.name, users.name);
+        .orderBy(transportRoutes.name, transportStops.sortOrder, users.name);
 
     return { success: true, bookings };
 }
@@ -236,7 +325,8 @@ export async function getStopsByRoute(routeId: string) {
     return db
         .select()
         .from(transportStops)
-        .where(eq(transportStops.routeId, routeId));
+        .where(eq(transportStops.routeId, routeId))
+        .orderBy(transportStops.sortOrder, transportStops.createdAt);
 }
 
 export async function createTransportStop(input: {
@@ -244,6 +334,9 @@ export async function createTransportStop(input: {
     name: string;
     latitude?: string | null;
     longitude?: string | null;
+    sortOrder?: number;
+    estimatedArrivalTime?: string | null;
+    maxSeats?: number | null;
 }) {
     const user = await requireOrganizerOrHigher();
     await assertAnyPermission(user, ["transport:manage:any", "transport:manage:own"]);
@@ -253,13 +346,38 @@ export async function createTransportStop(input: {
         throw new Error("Route ID and Stop Name are required");
     }
 
+    if (input.estimatedArrivalTime) {
+        const eta = new Date(input.estimatedArrivalTime);
+        if (Number.isNaN(eta.getTime())) {
+            throw new Error("Hora estimada inválida");
+        }
+        if (eta.getTime() < Date.now() - 60_000) {
+            throw new Error("La hora estimada del paradero no puede ser en el pasado");
+        }
+    }
+
+    const existing = await db
+        .select({ sortOrder: transportStops.sortOrder })
+        .from(transportStops)
+        .where(eq(transportStops.routeId, input.routeId));
+    const nextOrder =
+        input.sortOrder ??
+        (existing.length > 0
+            ? Math.max(...existing.map((s) => s.sortOrder)) + 1
+            : 1);
+
     const [stop] = await db
         .insert(transportStops)
         .values({
             routeId: input.routeId,
-            name: input.name,
+            name: input.name.trim(),
             latitude: input.latitude || null,
             longitude: input.longitude || null,
+            sortOrder: nextOrder,
+            estimatedArrivalTime: input.estimatedArrivalTime
+                ? new Date(input.estimatedArrivalTime)
+                : null,
+            maxSeats: input.maxSeats ?? null,
         })
         .returning();
 
@@ -271,6 +389,58 @@ export async function createTransportStop(input: {
         entityId: stop.id,
         details: `Parada creada: ${input.name} (ruta ${input.routeId})`,
     });
+
+    return { success: true, stop };
+}
+
+export async function updateTransportStop(
+    stopId: string,
+    input: {
+        name?: string;
+        latitude?: string | null;
+        longitude?: string | null;
+        sortOrder?: number;
+        estimatedArrivalTime?: string | null;
+        maxSeats?: number | null;
+    },
+) {
+    const user = await requireOrganizerOrHigher();
+    await assertAnyPermission(user, ["transport:manage:any", "transport:manage:own"]);
+
+    const [existing] = await db
+        .select({ routeId: transportStops.routeId })
+        .from(transportStops)
+        .where(eq(transportStops.id, stopId))
+        .limit(1);
+    if (!existing) throw new Error("Parada no encontrada");
+    await assertRouteInAdminScope(existing.routeId, user.id, user.role);
+
+    if (input.estimatedArrivalTime) {
+        const eta = new Date(input.estimatedArrivalTime);
+        if (Number.isNaN(eta.getTime())) {
+            throw new Error("Hora estimada inválida");
+        }
+        if (eta.getTime() < Date.now() - 60_000) {
+            throw new Error("La hora estimada del paradero no puede ser en el pasado");
+        }
+    }
+
+    const [stop] = await db
+        .update(transportStops)
+        .set({
+            ...(input.name !== undefined && { name: input.name.trim() }),
+            ...(input.latitude !== undefined && { latitude: input.latitude }),
+            ...(input.longitude !== undefined && { longitude: input.longitude }),
+            ...(input.sortOrder !== undefined && { sortOrder: input.sortOrder }),
+            ...(input.estimatedArrivalTime !== undefined && {
+                estimatedArrivalTime: input.estimatedArrivalTime
+                    ? new Date(input.estimatedArrivalTime)
+                    : null,
+            }),
+            ...(input.maxSeats !== undefined && { maxSeats: input.maxSeats }),
+        })
+        .where(eq(transportStops.id, stopId))
+        .returning();
 
     return { success: true, stop };
 }

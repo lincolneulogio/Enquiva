@@ -36,6 +36,8 @@ interface UnifiedTicketItem {
       longitude: string | null;
     } | null;
   } | null;
+  /** Precio mínimo de rutas activas si aún no reservó transporte (add-on) */
+  transportOfferFromPrice?: number | null;
   guests?: Array<{
     registration: Registration;
     ticket: Ticket | null;
@@ -144,6 +146,7 @@ export function MemberTicketsClient({ tickets }: MemberTicketsClientProps) {
             paymentReceiptUrl={tickets[0].paymentReceiptUrl}
             paymentMethod={tickets[0].paymentMethod}
             transportBooking={tickets[0].transportBooking}
+            transportOfferFromPrice={tickets[0].transportOfferFromPrice}
             guests={tickets[0].guests}
             attendeeName={tickets[0].attendeeName}
             defaultExpanded={true}
@@ -337,6 +340,7 @@ export function MemberTicketsClient({ tickets }: MemberTicketsClientProps) {
                   paymentReceiptUrl={activeTicketItem.paymentReceiptUrl}
                   paymentMethod={activeTicketItem.paymentMethod}
                   transportBooking={activeTicketItem.transportBooking}
+                  transportOfferFromPrice={activeTicketItem.transportOfferFromPrice}
                   guests={activeTicketItem.guests}
                   attendeeName={activeTicketItem.attendeeName}
                   defaultExpanded={true}
@@ -416,6 +420,7 @@ export function MemberTicketsClient({ tickets }: MemberTicketsClientProps) {
                       paymentReceiptUrl={item.paymentReceiptUrl}
                       paymentMethod={item.paymentMethod}
                       transportBooking={item.transportBooking}
+                      transportOfferFromPrice={item.transportOfferFromPrice}
                       guests={item.guests}
                       attendeeName={item.attendeeName}
                       isExpanded={isItemExpanded}

@@ -50,13 +50,18 @@ interface RegisterButtonProps {
     returnTime: string | null;
     pricePerSeat: string;
     totalSeats: number;
+    availableSeats?: number;
     description: string | null;
     isActive: boolean;
+    isRoundTrip?: boolean;
     stops?: Array<{
       id: string;
       name: string;
       latitude: string | null;
       longitude: string | null;
+      sortOrder?: number;
+      estimatedArrivalTime?: string | null;
+      maxSeats?: number | null;
     }>;
   }>;
   eventPrice?: number;
@@ -655,6 +660,14 @@ export function RegisterButton({
                               {t("register.pricePerSeat", { price: Number(route.pricePerSeat).toFixed(2) })}
                             </span>
                           </div>
+                          <div className="flex flex-wrap gap-2 text-[10px]">
+                            <span className="rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 font-semibold">
+                              {route.availableSeats ?? route.totalSeats} asientos libres
+                            </span>
+                            <span className="rounded-md bg-muted px-2 py-0.5 text-muted-foreground">
+                              {route.isRoundTrip === false ? "Solo ida" : "Ida y vuelta"}
+                            </span>
+                          </div>
                           
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground pt-1.5 border-t border-border/40">
                             <div className="flex items-center gap-1.5">
@@ -686,12 +699,44 @@ export function RegisterButton({
                         className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                       >
                         <option value="">{t("register.generalDeparturePoint", { point: activeRoute.departurePoint })}</option>
-                        {activeRoute.stops.map((stop) => (
+                        {[...activeRoute.stops]
+                          .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+                          .map((stop, index) => (
                           <option key={stop.id} value={stop.id}>
-                            {stop.name}
+                            {index + 1}. {stop.name}
+                            {stop.estimatedArrivalTime
+                              ? ` · ETA ${new Date(stop.estimatedArrivalTime).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}`
+                              : ""}
+                            {stop.maxSeats != null ? ` (máx. ${stop.maxSeats})` : ""}
                           </option>
                         ))}
                       </select>
+                      {selectedStopId && (() => {
+                        const stop = activeRoute.stops?.find((s) => s.id === selectedStopId);
+                        if (!stop?.latitude || !stop?.longitude) return null;
+                        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${stop.latitude},${stop.longitude}`;
+                        const waUrl = `https://wa.me/?text=${encodeURIComponent(`Paradero ${stop.name}: ${mapsUrl}`)}`;
+                        return (
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            <a
+                              href={mapsUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[11px] font-semibold text-primary hover:underline"
+                            >
+                              Cómo llegar (Maps)
+                            </a>
+                            <a
+                              href={waUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[11px] font-semibold text-emerald-600 hover:underline"
+                            >
+                              Compartir por WhatsApp
+                            </a>
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
 

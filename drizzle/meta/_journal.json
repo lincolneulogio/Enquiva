@@ -169,6 +169,20 @@
       "when": 1784244600000,
       "tag": "0023_scheduled_plan_changes",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1784245500000,
+      "tag": "0024_event_coordinates",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1784246400000,
+      "tag": "0025_transport_ops_improvements",
+      "breakpoints": true
     }
   ]
 }

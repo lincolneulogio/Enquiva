@@ -1,5 +1,5 @@
 import { db, type DBClient } from "@/lib/db";
-import { payments, events } from "@/lib/db/schema";
+import { payments, events, transportBookings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { createTransportBookingInTx } from "@/lib/transport/booking";
 import { NotificationService } from "@/lib/notifications/notification.service";
@@ -28,7 +28,7 @@ export async function bookTransportWithPayment(
   tx: DBClient = db,
 ) {
   const run = async (innerTx: DBClient) => {
-    const { booking, route, transportPrice, bookedSeats } = await createTransportBookingInTx(innerTx, {
+    const draft = await createTransportBookingInTx(innerTx, {
       routeId: input.routeId,
       registrationId: input.registrationId,
       userId: input.userId,
@@ -38,7 +38,20 @@ export async function bookTransportWithPayment(
       status: "pending",
     });
 
-    const totalAmount = transportPrice.toFixed(2);
+    const isFree = draft.transportPrice <= 0;
+    let booking = draft.booking;
+
+    if (isFree) {
+      const [confirmed] = await innerTx
+        .update(transportBookings)
+        .set({ status: "confirmed", updatedAt: new Date() })
+        .where(eq(transportBookings.id, booking.id))
+        .returning();
+      booking = confirmed ?? booking;
+    }
+
+    const totalAmount = draft.transportPrice.toFixed(2);
+    const { route, bookedSeats } = draft;
 
     const [payment] = await innerTx
       .insert(payments)
@@ -52,7 +65,7 @@ export async function bookTransportWithPayment(
         reference: input.reference ?? null,
         receiptUrl: input.receiptUrl ?? null,
         receiptFileName: input.receiptFileName ?? null,
-        status: "pending",
+        status: isFree ? "approved" : "pending",
         notes: `Reserva de transporte: ${route.name} (${input.seats} asiento${input.seats > 1 ? "s" : ""})`,
       })
       .returning();
@@ -73,7 +86,7 @@ export async function bookTransportWithPayment(
         {
           userId: event.organizerId,
           type: "payment_submitted",
-          title: "Nueva reserva de transporte",
+          title: isFree ? "Reserva de transporte confirmada" : "Nueva reserva de transporte",
           message: `${input.userName} reservó ${input.seats} asiento${input.seats > 1 ? "s" : ""} en "${route.name}" para "${event.title}"`,
           metadata: {
             bookingId: booking.id,
@@ -90,7 +103,7 @@ export async function bookTransportWithPayment(
           {
             userId: event.organizerId,
             type: "payment_submitted",
-            title: "Nueva reserva de transporte",
+            title: isFree ? "Reserva de transporte confirmada" : "Nueva reserva de transporte",
             message: `${input.userName} reservó ${input.seats} asiento${input.seats > 1 ? "s" : ""} en "${route.name}" para "${event.title}"`,
             metadata: {
               bookingId: booking.id,

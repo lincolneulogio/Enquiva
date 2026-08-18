@@ -13,6 +13,8 @@ import Swal from "@/lib/ui/swal-client";
 import { confirmDeleteAction } from "@/lib/ui/confirm";
 import { usePersistedFormFields } from "@/hooks/useFormPersistence";
 import { formStorageKey } from "@/lib/form-persistence";
+import { TRANSPORT_MAX_SEATS_PER_BOOKING } from "@/lib/transport/constants";
+import { CulqiPaymentForm } from "@/components/payments/CulqiPaymentForm";
 
 function MobilePaymentInstructions() {
     return (
@@ -43,6 +45,9 @@ interface Stop {
     name: string;
     latitude: string | null;
     longitude: string | null;
+    sortOrder?: number;
+    estimatedArrivalTime?: Date | string | null;
+    maxSeats?: number | null;
 }
 
 interface Route {
@@ -54,6 +59,7 @@ interface Route {
     pricePerSeat: string;
     totalSeats: number;
     availableSeats: number;
+    isRoundTrip?: boolean;
     stops?: Stop[];
 }
 
@@ -64,24 +70,30 @@ interface PaymentMethod {
     qrCodeUrl?: string | null;
     phone?: string | null;
     holderName: string;
+    culqiPublicKey?: string | null;
 }
 
 interface TransportBookingFormProps {
     route: Route;
     registrationId: string;
     paymentMethods: PaymentMethod[];
+    culqiPublicKey?: string | null;
+    eventTitle?: string;
 }
 
 const TYPE_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
     yape: { label: "Yape", icon: Smartphone },
     plin: { label: "Plin", icon: QrCode },
     cash: { label: "Efectivo", icon: Wallet },
+    culqi: { label: "Tarjeta / Culqi", icon: CreditCard },
 };
 
 export function TransportBookingForm({
     route,
     registrationId,
     paymentMethods,
+    culqiPublicKey,
+    eventTitle = "Transporte",
 }: TransportBookingFormProps) {
     const router = useRouter();
     const t = useTranslations();
@@ -101,9 +113,14 @@ export function TransportBookingForm({
     const { seats, stopId, methodId, reference, receiptUrl, receiptFileName } = values;
     const [isPending, startTransition] = useTransition();
     const [isUploading, setIsUploading] = useState(false);
+    const [culqiPaymentId, setCulqiPaymentId] = useState<string | null>(null);
 
     const currentMethod = paymentMethods.find((m) => m.id === methodId);
     const method = currentMethod?.type ?? "";
+    const resolvedCulqiKey =
+        culqiPublicKey || currentMethod?.culqiPublicKey || null;
+    const isRoundTrip = route.isRoundTrip !== false;
+    const maxSeats = Math.min(route.availableSeats, TRANSPORT_MAX_SEATS_PER_BOOKING);
 
     const downloadQr = async (url: string, filename: string) => {
         try {
@@ -132,14 +149,14 @@ export function TransportBookingForm({
             return;
         }
 
-        if (currentMethod?.type !== "cash" && !receiptUrl) {
+        if (currentMethod?.type !== "cash" && currentMethod?.type !== "culqi" && !receiptUrl) {
             toast.error(t("transport.booking.receiptRequired"));
             return;
         }
 
         startTransition(async () => {
             try {
-                await bookTransport({
+                const result = await bookTransport({
                     routeId: route.id,
                     registrationId,
                     seats,
@@ -150,6 +167,11 @@ export function TransportBookingForm({
                     stopId: stopId || undefined,
                 });
                 clear();
+                if (currentMethod?.type === "culqi" && result.payment?.id && Number(route.pricePerSeat) > 0) {
+                    setCulqiPaymentId(result.payment.id);
+                    toast.success("Reserva creada. Completa el pago con tarjeta.");
+                    return;
+                }
                 toast.success(t("transport.booking.reservationSent"));
                 router.refresh();
             } catch (e) {
@@ -188,9 +210,9 @@ export function TransportBookingForm({
                     <input
                         type="number"
                         min={1}
-                        max={Math.min(route.availableSeats, 5)}
+                        max={maxSeats}
                         value={seats}
-                        onChange={(e) => setValue("seats", Math.max(1, parseInt(e.target.value) || 1))}
+                        onChange={(e) => setValue("seats", Math.max(1, Math.min(maxSeats, parseInt(e.target.value) || 1)))}
                         className={inputClass}
                     />
                     <p className="mt-1 text-xs text-muted-foreground">
@@ -198,9 +220,10 @@ export function TransportBookingForm({
                             available: route.availableSeats,
                             price: Number(route.pricePerSeat).toFixed(2),
                         })}
+                        {" · "}máx. {TRANSPORT_MAX_SEATS_PER_BOOKING} por reserva
                     </p>
                     <p className="mt-1 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
-                        * El precio del pasaje incluye el viaje de ida y vuelta.
+                        * El precio del pasaje es {isRoundTrip ? "ida y vuelta" : "solo ida"}.
                     </p>
                 </div>
 
@@ -230,38 +253,65 @@ export function TransportBookingForm({
                             <option value="">Punto de salida general por defecto ({route.departurePoint})</option>
                             {route.stops.map((stop) => (
                                 <option key={stop.id} value={stop.id}>
+                                    {stop.sortOrder != null ? `${stop.sortOrder}. ` : ""}
                                     {stop.name}
+                                    {stop.estimatedArrivalTime
+                                        ? ` · ETA ${new Date(stop.estimatedArrivalTime).toLocaleTimeString(getIntlLocale(locale), { hour: "2-digit", minute: "2-digit" })}`
+                                        : ""}
                                 </option>
                             ))}
                         </select>
                         
-                        {/* Dynamic directions GPS button */}
                         {stopId && (() => {
                             const selectedStop = route.stops?.find((s) => s.id === stopId);
                             if (selectedStop && selectedStop.latitude && selectedStop.longitude) {
+                                const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${selectedStop.latitude},${selectedStop.longitude}`;
+                                const waUrl = `https://wa.me/?text=${encodeURIComponent(`Paradero ${selectedStop.name}: ${mapsUrl}`)}`;
                                 return (
-                                    <div className="rounded-xl bg-primary/5 border border-primary/10 p-3.5 text-xs text-primary flex items-center justify-between gap-3 animate-in fade-in duration-200">
+                                    <div className="rounded-xl bg-primary/5 border border-primary/10 p-3.5 text-xs text-primary flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
                                         <div className="min-w-0 flex-1">
                                             <p className="font-bold flex items-center gap-1.5">
                                                 <MapPin className="h-3.5 w-3.5 shrink-0" /> Paradero: {selectedStop.name}
                                             </p>
                                             <p className="text-muted-foreground mt-0.5 leading-relaxed">
-                                                El autobús realizará una parada rápida aquí. Abre el enlace GPS para ver la ubicación exacta.
+                                                Abre Maps o comparte la ubicación por WhatsApp.
                                             </p>
                                         </div>
-                                        <a
-                                            href={`https://www.google.com/maps/search/?api=1&query=${selectedStop.latitude},${selectedStop.longitude}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center justify-center rounded-lg bg-primary hover:bg-primary/95 text-primary-foreground font-bold px-3 py-2 text-[10px] shrink-0 transition-all shadow-xs"
-                                        >
-                                            Ver Mapa GPS
-                                        </a>
+                                        <div className="flex gap-2 shrink-0">
+                                            <a
+                                                href={mapsUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center justify-center rounded-lg bg-primary hover:bg-primary/95 text-primary-foreground font-bold px-3 py-2 text-[10px] transition-all shadow-xs"
+                                            >
+                                                Cómo llegar
+                                            </a>
+                                            <a
+                                                href={waUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center justify-center rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-bold px-3 py-2 text-[10px]"
+                                            >
+                                                WhatsApp
+                                            </a>
+                                        </div>
                                     </div>
                                 );
                             }
                             return null;
                         })()}
+                    </div>
+                )}
+
+                {culqiPaymentId && resolvedCulqiKey && (
+                    <div className="sm:col-span-2">
+                        <CulqiPaymentForm
+                            paymentId={culqiPaymentId}
+                            amount={totalPrice}
+                            eventTitle={eventTitle}
+                            culqiPublicKey={resolvedCulqiKey}
+                            successHref="/member/transport"
+                        />
                     </div>
                 )}
 
@@ -411,14 +461,23 @@ export function TransportBookingForm({
                             </div>
                         )}
 
-                        {currentMethod?.type === "cash" && (
-                            <div className="sm:col-span-2 rounded-xl border border-purple-200 bg-purple-50 dark:bg-purple-950/10 dark:border-purple-900/30 p-4 text-sm">
-                                <p className="font-semibold text-purple-800 dark:text-purple-300">Pagarás en efectivo el día del viaje</p>
-                                <p className="mt-1 text-purple-700 dark:text-purple-400">Lleva el monto exacto (<span className="font-semibold">S/. {totalPrice.toFixed(2)}</span>) y paga al momento de abordar el bus (Ida y Vuelta).</p>
+                        {currentMethod?.type === "culqi" && !culqiPaymentId && (
+                            <div className="sm:col-span-2 rounded-xl border border-violet-200 bg-violet-50/50 dark:bg-violet-950/10 dark:border-violet-900/30 p-4 text-sm">
+                                <p className="font-semibold text-violet-800 dark:text-violet-300">Pago con tarjeta / Culqi</p>
+                                <p className="mt-1 text-violet-700 dark:text-violet-400 text-xs">
+                                    Al confirmar se abrirá el checkout seguro de Culqi (Visa, Mastercard, Yape si aplica). No necesitas subir voucher.
+                                </p>
                             </div>
                         )}
 
-                        {currentMethod?.type !== "cash" && (
+                        {currentMethod?.type === "cash" && (
+                            <div className="sm:col-span-2 rounded-xl border border-purple-200 bg-purple-50 dark:bg-purple-950/10 dark:border-purple-900/30 p-4 text-sm">
+                                <p className="font-semibold text-purple-800 dark:text-purple-300">Pagarás en efectivo el día del viaje</p>
+                                <p className="mt-1 text-purple-700 dark:text-purple-400">Lleva el monto exacto (<span className="font-semibold">S/. {totalPrice.toFixed(2)}</span>) y paga al momento de abordar ({isRoundTrip ? "ida y vuelta" : "solo ida"}).</p>
+                            </div>
+                        )}
+
+                        {currentMethod?.type !== "cash" && currentMethod?.type !== "culqi" && (
                             <>
                                 <div>
                                     <label className="mb-1.5 block text-sm font-medium text-foreground">
@@ -491,11 +550,11 @@ export function TransportBookingForm({
                 )}
             </div>
 
-            {paymentMethods.length > 0 && (
+            {paymentMethods.length > 0 && !culqiPaymentId && (
                 <button
                     type="button"
                     onClick={handleSubmit}
-                    disabled={isPending || isUploading}
+                    disabled={isPending || isUploading || route.availableSeats < 1}
                     className="fe-btn-glow flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
                 >
                     {isPending || isUploading ? (

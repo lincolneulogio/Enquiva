@@ -100,6 +100,9 @@ export class EventService {
       .values({
         ...validated,
         price: validated.price != null ? String(validated.price) : null,
+        latitude: validated.isVirtual ? null : validated.latitude,
+        longitude: validated.isVirtual ? null : validated.longitude,
+        location: validated.isVirtual ? null : validated.location,
         organizerId,
         organizationId: organizer?.organizationId ?? null,
         slug,
@@ -152,6 +155,9 @@ export class EventService {
       .set({
         ...validated,
         price: priceValue,
+        ...(validated.isVirtual === true
+          ? { latitude: null, longitude: null, location: null }
+          : {}),
         date: validated.date ? new Date(validated.date) : undefined,
         endDate: validated.endDate ? new Date(validated.endDate) : undefined,
         updatedAt: new Date(),

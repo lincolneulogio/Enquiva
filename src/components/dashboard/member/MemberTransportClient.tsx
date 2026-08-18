@@ -24,6 +24,7 @@ interface RouteItem {
   totalSeats: number;
   availableSeats: number;
   alreadyBooked: boolean;
+  isRoundTrip?: boolean;
   stops: RouteStop[];
 }
 
@@ -34,6 +35,7 @@ interface PaymentMethod {
   qrCodeUrl?: string | null;
   phone?: string | null;
   holderName: string;
+  culqiPublicKey?: string | null;
 }
 
 interface EventOption {
@@ -98,6 +100,13 @@ export function MemberTransportClient({ options, myBookings }: MemberTransportCl
         <p className="mt-1 text-muted-foreground">
           {t("dashboard.member.transportSubtitle")}
         </p>
+      </div>
+
+      <div className="rounded-2xl border border-sky-500/25 bg-sky-500/10 px-4 py-3.5 text-sm text-sky-950/90 dark:text-sky-50/90">
+        <div className="flex gap-3 items-start">
+                            <Lightbulb className="h-4 w-4 mt-0.5 shrink-0 text-sky-600 dark:text-sky-300" />
+          <p>{t("dashboard.member.transportAddonNotice")}</p>
+        </div>
       </div>
 
       {/* Segmented Premium Tab Controls */}
@@ -225,10 +234,15 @@ export function MemberTransportClient({ options, myBookings }: MemberTransportCl
                               pricePerSeat: String(route.pricePerSeat),
                               totalSeats: route.totalSeats,
                               availableSeats: route.availableSeats,
+                              isRoundTrip: route.isRoundTrip,
                               stops: route.stops,
                             }}
                             registrationId={eventItem.registrationId}
                             paymentMethods={eventItem.paymentMethods}
+                            culqiPublicKey={
+                              eventItem.paymentMethods.find((m) => m.type === "culqi")?.culqiPublicKey ?? null
+                            }
+                            eventTitle={eventItem.eventTitle}
                           />
                         )
                       )}

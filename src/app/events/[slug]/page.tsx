@@ -9,6 +9,7 @@ import { TicketCard } from "@/components/tickets/TicketCard";
 import { PublicHeader } from "@/components/shared/PublicHeader";
 import Link from "next/link";
 import { EventCoverFrame } from "@/components/events/EventCoverFrame";
+import { EventLocationMapDynamic } from "@/components/events/EventLocationMapDynamic";
 import { categoryColor, categoryLabel, cn, formatEventDate } from "@/lib/utils";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
@@ -88,6 +89,9 @@ type SerializedTransportStop = {
   name: string;
   latitude: string | null;
   longitude: string | null;
+  sortOrder: number;
+  estimatedArrivalTime: string | null;
+  maxSeats: number | null;
 };
 
 type SerializedTransportRoute = {
@@ -99,8 +103,10 @@ type SerializedTransportRoute = {
   returnTime: string | null;
   pricePerSeat: string;
   totalSeats: number;
+  availableSeats: number;
   description: string | null;
   isActive: boolean;
+  isRoundTrip: boolean;
   stops: SerializedTransportStop[];
 };
 
@@ -159,58 +165,80 @@ export default async function EventDetailPage({ params }: EventPageProps) {
         return acc;
       }, {});
 
-      serializedRoutes = routes.map((r) => ({
-        id: r.id,
-        eventId: r.eventId,
-        name: r.name,
-        departurePoint: r.departurePoint,
-        departureTime:
-          r.departureTime instanceof Date
-            ? r.departureTime.toISOString()
-            : String(r.departureTime),
-        returnTime:
-          r.returnTime instanceof Date
-            ? r.returnTime.toISOString()
-            : r.returnTime
-              ? String(r.returnTime)
-              : null,
-        pricePerSeat: String(r.pricePerSeat),
-        totalSeats: Number(r.totalSeats),
-        description: r.description,
-        isActive: r.isActive,
-        stops: (stopsByRoute[r.id] ?? []).map((stop) => ({
-          id: stop.id,
-          name: stop.name,
-          latitude: stop.latitude,
-          longitude: stop.longitude,
-        })),
-      }));
+      const bookedByRoute = new Map<string, number>();
+      if (routeIds.length > 0) {
+        const bookedRows = await db
+          .select({
+            routeId: transportBookings.routeId,
+            booked: sql<number>`COALESCE(SUM(${transportBookings.seats}), 0)::int`,
+          })
+          .from(transportBookings)
+          .where(
+            and(
+              inArray(transportBookings.routeId, routeIds),
+              sql`${transportBookings.status} != 'cancelled'`,
+            ),
+          )
+          .groupBy(transportBookings.routeId);
+        for (const row of bookedRows) {
+          bookedByRoute.set(row.routeId, Number(row.booked));
+        }
+      }
 
-      // Calculate total seats capacity
+      serializedRoutes = routes
+        .map((r) => {
+          const booked = bookedByRoute.get(r.id) ?? 0;
+          const availableSeats = Math.max(0, Number(r.totalSeats) - booked);
+          return {
+            id: r.id,
+            eventId: r.eventId,
+            name: r.name,
+            departurePoint: r.departurePoint,
+            departureTime:
+              r.departureTime instanceof Date
+                ? r.departureTime.toISOString()
+                : String(r.departureTime),
+            returnTime:
+              r.returnTime instanceof Date
+                ? r.returnTime.toISOString()
+                : r.returnTime
+                  ? String(r.returnTime)
+                  : null,
+            pricePerSeat: String(r.pricePerSeat),
+            totalSeats: Number(r.totalSeats),
+            availableSeats,
+            description: r.description,
+            isActive: r.isActive,
+            isRoundTrip: r.isRoundTrip ?? true,
+            stops: (stopsByRoute[r.id] ?? [])
+              .slice()
+              .sort((a, b) => a.sortOrder - b.sortOrder)
+              .map((stop) => ({
+                id: stop.id,
+                name: stop.name,
+                latitude: stop.latitude,
+                longitude: stop.longitude,
+                sortOrder: stop.sortOrder,
+                estimatedArrivalTime: stop.estimatedArrivalTime
+                  ? stop.estimatedArrivalTime instanceof Date
+                    ? stop.estimatedArrivalTime.toISOString()
+                    : String(stop.estimatedArrivalTime)
+                  : null,
+                maxSeats: stop.maxSeats,
+              })),
+          };
+        })
+        .filter((r) => r.availableSeats > 0);
+
       totalTransportSeats = routes.reduce(
         (sum, r) => sum + Number(r.totalSeats),
         0,
       );
 
-      // Fetch dynamic passenger bookings
-      if (routes.length > 0) {
-        const [bookingSum] = await db
-          .select({
-            booked: sql<number>`COALESCE(SUM(${transportBookings.seats}), 0)::int`,
-          })
-          .from(transportBookings)
-          .innerJoin(
-            transportRoutes,
-            eq(transportBookings.routeId, transportRoutes.id),
-          )
-          .where(
-            and(
-              eq(transportRoutes.eventId, event.id),
-              sql`${transportBookings.status} != 'cancelled'`,
-            ),
-          );
-        totalBookedTransportSeats = bookingSum?.booked ?? 0;
-      }
+      totalBookedTransportSeats = [...bookedByRoute.values()].reduce(
+        (sum, n) => sum + n,
+        0,
+      );
     } catch (err) {
       console.error("Failed to load transport routes or dynamic stats:", err);
     }
@@ -433,6 +461,22 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                     </div>
                   </div>
                 </div>
+
+                {!event.isVirtual &&
+                  event.latitude != null &&
+                  event.longitude != null && (
+                    <div className="mt-4 space-y-2">
+                      <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        Mapa del lugar
+                      </h4>
+                      <EventLocationMapDynamic
+                        latitude={event.latitude}
+                        longitude={event.longitude}
+                        locationLabel={event.location}
+                      />
+                    </div>
+                  )}
               </div>
 
               {/* SECTION 2: TRANSPORT & MOBILITY */}

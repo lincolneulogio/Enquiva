@@ -904,7 +904,10 @@ const translations: Record<Locale, TranslationDictionary> = {
                 noPaymentsYet: "Aún no tienes pagos registrados",
                 noTransportPayments: "Aún no tienes pagos de entradas o transportes en tu cuenta.",
                 transportTitle: "Transporte",
-                transportSubtitle: "Reserva movilidad para tus eventos registrados.",
+                transportSubtitle:
+                    "Reserva y paga asientos de bus para tus eventos. Es un pago aparte de tu entrada/QR.",
+                transportAddonNotice:
+                    "Tu entrada ya está pagada. El transporte se reserva y cobra por separado según el precio de cada ruta.",
                 noActiveEvents: "Aún no tienes eventos activos",
                 registerFirstForTransport: "Primero regístrate en un evento para ver rutas de transporte.",
                 noRoutesAvailable: "No hay rutas de transporte disponibles",
@@ -1491,6 +1494,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                     datePast: "La fecha del evento no puede ser anterior a hoy.",
                     virtualLinkRequired: "El enlace de reunión es obligatorio para eventos virtuales.",
                     locationRequired: "La dirección del lugar es obligatoria para eventos presenciales.",
+                    mapPinRequired: "Para publicar un evento presencial debes fijar el pin en el mapa.",
                     invalidUrl: "Ingresa una URL válida.",
                     capacityInvalid: "Ingresa una capacidad válida mayor a 0.",
                     capacityPlanLimit: "La capacidad no puede superar {max} asistentes según tu plan.",
@@ -2836,7 +2840,10 @@ const translations: Record<Locale, TranslationDictionary> = {
                 noPaymentsYet: "No registered payments yet",
                 noTransportPayments: "You do not have any ticket or transport payments in your account.",
                 transportTitle: "Transport",
-                transportSubtitle: "Book mobility for your registered events.",
+                transportSubtitle:
+                    "Book and pay for bus seats for your events. This is a separate payment from your entry ticket/QR.",
+                transportAddonNotice:
+                    "Your entry is already paid. Transport is booked and charged separately at each route’s price.",
                 noActiveEvents: "You do not have active events yet",
                 registerFirstForTransport: "First register for an event to view transport routes.",
                 noRoutesAvailable: "No transport routes available",
@@ -3422,6 +3429,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                     datePast: "Event date cannot be in the past.",
                     virtualLinkRequired: "Meeting link is required for virtual events.",
                     locationRequired: "Venue address is required for in-person events.",
+                    mapPinRequired: "To publish an in-person event you must set the map pin.",
                     invalidUrl: "Please enter a valid URL.",
                     capacityInvalid: "Please enter a valid capacity greater than 0.",
                     capacityPlanLimit: "Capacity cannot exceed {max} attendees on your plan.",

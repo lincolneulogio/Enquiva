@@ -11,7 +11,7 @@ import {
   tickets as ticketsTable,
   users as usersTable,
 } from "@/lib/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
@@ -55,6 +55,8 @@ export default async function MemberTicketsPage() {
       .where(inArray(transportBookings.registrationId, registrationIds));
 
     for (const item of bookingsList) {
+      if (item.booking.status === "cancelled") continue;
+      if (transportByRegistrationId.has(item.booking.registrationId)) continue;
       transportByRegistrationId.set(item.booking.registrationId, {
         booking: item.booking,
         route: item.route,
@@ -112,6 +114,41 @@ export default async function MemberTicketsPage() {
   }
   // ───────────────────────────────────────────────────────────────────────────
 
+  const eventIdsNeedingOffer = [
+    ...new Set(
+      registrations
+        .filter(
+          ({ event, registration }) =>
+            event.hasTransport && !transportByRegistrationId.has(registration.id),
+        )
+        .map(({ event }) => event.id),
+    ),
+  ];
+
+  const minPriceByEventId = new Map<string, number>();
+  if (eventIdsNeedingOffer.length > 0) {
+    const priceRows = await db
+      .select({
+        eventId: transportRoutes.eventId,
+        minPrice: sql<string>`min(${transportRoutes.pricePerSeat})`,
+        activeCount: sql<number>`count(*)::int`,
+      })
+      .from(transportRoutes)
+      .where(
+        and(
+          inArray(transportRoutes.eventId, eventIdsNeedingOffer),
+          eq(transportRoutes.isActive, true),
+        ),
+      )
+      .groupBy(transportRoutes.eventId);
+
+    for (const row of priceRows) {
+      if (Number(row.activeCount) > 0 && row.minPrice != null) {
+        minPriceByEventId.set(row.eventId, Number(row.minPrice));
+      }
+    }
+  }
+
   const unifiedTickets = registrations.map(({ event, registration, ticket }) => {
     const payment = paymentByRegistrationId.get(registration.id);
     const transport = transportByRegistrationId.get(registration.id);
@@ -134,6 +171,8 @@ export default async function MemberTicketsPage() {
       }
     }
 
+    const offerFromPrice = !transport ? minPriceByEventId.get(event.id) : undefined;
+
     return {
       ticket,
       event,
@@ -142,6 +181,8 @@ export default async function MemberTicketsPage() {
       paymentReceiptUrl: payment?.receiptUrl,
       paymentMethod: payment?.method,
       transportBooking: transport,
+      transportOfferFromPrice:
+        offerFromPrice != null && !Number.isNaN(offerFromPrice) ? offerFromPrice : null,
       guests: guestsList,
       attendeeName: userName,
     };

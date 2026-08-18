@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Pencil, Bus, Users, Check, X, MapPin, Smartphone, QrCode, Wallet, Clock, RefreshCw, CreditCard, AlertTriangle } from "lucide-react";
+import { Loader2, Plus, Trash2, Pencil, Bus, Users, Check, X, MapPin, Smartphone, QrCode, Wallet, Clock, RefreshCw, CreditCard, AlertTriangle, Info, CalendarDays } from "lucide-react";
 import {
     createRoute,
     updateRoute,
@@ -11,12 +11,16 @@ import {
     getStopsByRoute,
     createTransportStop,
     deleteTransportStop,
+    updateTransportStop,
 } from "@/actions/transport";
 import { getEventPaymentMethods } from "@/actions/payment-methods";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { getIntlLocale } from "@/lib/i18n/core";
 import { usePersistedState } from "@/hooks/useFormPersistence";
 import { formStorageKey } from "@/lib/form-persistence";
+import { StopMapPicker } from "@/components/dashboard/organizer/StopMapPicker";
+import { DateAmPmTimeField } from "@/components/ui/DateAmPmTimeField";
+import { TRANSPORT_DEFAULT_PENDING_HOLD_HOURS } from "@/lib/transport/constants";
 
 interface Route {
     id: string;
@@ -28,33 +32,101 @@ interface Route {
     pricePerSeat: string;
     totalSeats: number;
     description: string | null;
+    driverName?: string | null;
+    vehiclePlate?: string | null;
+    isRoundTrip?: boolean;
+    pendingHoldHours?: number;
     isActive: boolean;
     bookedSeats: number;
 }
 
+type StopRow = {
+    id: string;
+    name: string;
+    latitude: string | null;
+    longitude: string | null;
+    sortOrder: number;
+    estimatedArrivalTime: Date | string | null;
+    maxSeats: number | null;
+};
+
 interface TransportRoutesManagerProps {
     eventId: string;
     initialRoutes: Route[];
+    /** Datos del evento para alinear horarios y puntos de la ruta */
+    eventInfo?: {
+        title?: string | null;
+        date?: Date | string | null;
+        endDate?: Date | string | null;
+        location?: string | null;
+        isVirtual?: boolean;
+        latitude?: number | null;
+        longitude?: number | null;
+    };
 }
 
 const EMPTY_FORM = {
     name: "",
     departurePoint: "",
-    departureTime: "",
-    returnTime: "",
+    departureDate: "",
+    departureClock: "",
+    returnDate: "",
+    returnClock: "",
     pricePerSeat: "",
     totalSeats: "",
     description: "",
+    driverName: "",
+    vehiclePlate: "",
+    isRoundTrip: true,
+    pendingHoldHours: String(TRANSPORT_DEFAULT_PENDING_HOLD_HOURS),
 };
 
-function toDatetimeLocal(date: Date | null | undefined): string {
+function pad2(n: number) {
+    return String(n).padStart(2, "0");
+}
+
+function toLocalDatePart(date: Date | null | undefined): string {
     if (!date) return "";
-    return new Date(date).toISOString().slice(0, 16);
+    const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return "";
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function toLocalTimePart(date: Date | null | undefined): string {
+    if (!date) return "";
+    const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return "";
+    return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+function combineDateAndTime(datePart: string, timePart: string): string {
+    if (!datePart.trim() || !timePart.trim()) return "";
+    return `${datePart}T${timePart}`;
+}
+
+function todayDatePart(): string {
+    return toLocalDatePart(new Date());
+}
+
+function isPastCombined(datePart: string, timePart: string): boolean {
+    const combined = combineDateAndTime(datePart, timePart);
+    if (!combined) return false;
+    const parsed = new Date(combined);
+    if (Number.isNaN(parsed.getTime())) return true;
+    return parsed.getTime() < Date.now() - 60_000;
+}
+
+function isPastDatetimeLocal(value: string): boolean {
+    if (!value.trim()) return false;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return true;
+    return parsed.getTime() < Date.now() - 60_000;
 }
 
 export function TransportRoutesManager({
     eventId,
     initialRoutes,
+    eventInfo,
 }: TransportRoutesManagerProps) {
     const t = useTranslations();
     const { locale } = useLocale();
@@ -64,6 +136,14 @@ export function TransportRoutesManager({
     const [editId, setEditId] = useState<string | null>(null);
     const [form, setForm, clearForm] = usePersistedState(formStorageKey(`transport.routes.${eventId}`), EMPTY_FORM);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    const [minDate, setMinDate] = useState(todayDatePart());
+
+    useEffect(() => {
+        setMinDate(todayDatePart());
+        const id = window.setInterval(() => setMinDate(todayDatePart()), 60_000);
+        return () => window.clearInterval(id);
+    }, []);
 
     // Event payment methods states
     const [eventPaymentMethods, setEventPaymentMethods] = useState<Array<{ id: string; type: string; label: string; phone?: string | null; holderName: string }>>([]);
@@ -86,11 +166,16 @@ export function TransportRoutesManager({
 
     // Stops management states
     const [expandedRouteId, setExpandedRouteId] = useState<string | null>(null);
-    const [stopsByRoute, setStopsByRoute] = useState<Record<string, { id: string; name: string; latitude: string | null; longitude: string | null }[]>>({});
+    const [stopsByRoute, setStopsByRoute] = useState<Record<string, StopRow[]>>({});
     const [newStopName, setNewStopName] = useState("");
-    const [newStopLat, setNewStopLat] = useState("");
-    const [newStopLng, setNewStopLng] = useState("");
+    const [newStopLat, setNewStopLat] = useState<number | null>(null);
+    const [newStopLng, setNewStopLng] = useState<number | null>(null);
+    const [newStopEtaDate, setNewStopEtaDate] = useState("");
+    const [newStopEtaClock, setNewStopEtaClock] = useState("");
+    const [newStopMaxSeats, setNewStopMaxSeats] = useState("");
     const [stopPending, setStopPending] = useState(false);
+    const [departureLat, setDepartureLat] = useState<number | null>(null);
+    const [departureLng, setDepartureLng] = useState<number | null>(null);
 
     const toggleStops = async (routeId: string) => {
         const id = routeId;
@@ -119,24 +204,40 @@ export function TransportRoutesManager({
             toast.error("Por favor, ingresa un nombre para el paradero.");
             return;
         }
+        if (newStopEtaDate || newStopEtaClock) {
+            if (!newStopEtaDate || !newStopEtaClock) {
+                toast.error("Completa día y hora estimada del paradero, o déjalos vacíos.");
+                return;
+            }
+            if (isPastCombined(newStopEtaDate, newStopEtaClock)) {
+                toast.error("La hora estimada del paradero no puede ser en el pasado.");
+                return;
+            }
+        }
 
         setStopPending(true);
         try {
+            const etaCombined = combineDateAndTime(newStopEtaDate, newStopEtaClock);
             const res = await createTransportStop({
                 routeId,
                 name: newStopName,
-                latitude: newStopLat.trim() || null,
-                longitude: newStopLng.trim() || null,
+                latitude: newStopLat != null ? String(newStopLat) : null,
+                longitude: newStopLng != null ? String(newStopLng) : null,
+                estimatedArrivalTime: etaCombined || null,
+                maxSeats: newStopMaxSeats ? parseInt(newStopMaxSeats, 10) : null,
             });
 
             if (res.success && res.stop) {
                 setStopsByRoute((prev) => ({
                     ...prev,
-                    [routeId]: [...(prev[routeId] || []), res.stop!],
+                    [routeId]: [...(prev[routeId] || []), res.stop as StopRow],
                 }));
                 setNewStopName("");
-                setNewStopLat("");
-                setNewStopLng("");
+                setNewStopLat(null);
+                setNewStopLng(null);
+                setNewStopEtaDate("");
+                setNewStopEtaClock("");
+                setNewStopMaxSeats("");
                 toast.success("Paradero agregado con éxito.");
             }
         } catch (error) {
@@ -164,19 +265,29 @@ export function TransportRoutesManager({
     const openCreate = () => {
         setEditId(null);
         clearForm();
+        setDepartureLat(null);
+        setDepartureLng(null);
         setShowForm(true);
     };
 
     const openEdit = (r: Route) => {
         setEditId(r.id);
+        setDepartureLat(null);
+        setDepartureLng(null);
         setForm({
             name: r.name,
             departurePoint: r.departurePoint,
-            departureTime: toDatetimeLocal(r.departureTime),
-            returnTime: toDatetimeLocal(r.returnTime),
+            departureDate: toLocalDatePart(r.departureTime),
+            departureClock: toLocalTimePart(r.departureTime),
+            returnDate: toLocalDatePart(r.returnTime),
+            returnClock: toLocalTimePart(r.returnTime),
             pricePerSeat: r.pricePerSeat,
             totalSeats: r.totalSeats.toString(),
             description: r.description ?? "",
+            driverName: r.driverName ?? "",
+            vehiclePlate: r.vehiclePlate ?? "",
+            isRoundTrip: r.isRoundTrip ?? true,
+            pendingHoldHours: String(r.pendingHoldHours ?? TRANSPORT_DEFAULT_PENDING_HOLD_HOURS),
         });
         setShowForm(true);
     };
@@ -184,10 +295,43 @@ export function TransportRoutesManager({
     const handleSubmit = () => {
         const price = parseFloat(form.pricePerSeat);
         const seats = parseInt(form.totalSeats);
+        const departureTime = combineDateAndTime(form.departureDate, form.departureClock);
+        const returnTime =
+            form.isRoundTrip && form.returnDate && form.returnClock
+                ? combineDateAndTime(form.returnDate, form.returnClock)
+                : null;
 
-        if (!form.name.trim() || !form.departurePoint.trim() || !form.departureTime) {
+        if (!form.name.trim() || !form.departurePoint.trim() || !form.departureDate || !form.departureClock) {
             toast.error(t("transport.manager.requiredFields"));
             return;
+        }
+        if (form.departureDate < minDate) {
+            toast.error("No puedes seleccionar un día anterior al de hoy.");
+            return;
+        }
+        if (isPastCombined(form.departureDate, form.departureClock)) {
+            toast.error("La salida no puede ser en el pasado. Elige día y hora futuros.");
+            return;
+        }
+        if (form.isRoundTrip) {
+            if ((form.returnDate && !form.returnClock) || (!form.returnDate && form.returnClock)) {
+                toast.error("Completa día y hora de retorno, o déjalos vacíos.");
+                return;
+            }
+            if (returnTime) {
+                if (form.returnDate < minDate) {
+                    toast.error("El retorno no puede ser un día anterior al de hoy.");
+                    return;
+                }
+                if (isPastDatetimeLocal(returnTime)) {
+                    toast.error("El retorno no puede ser en el pasado.");
+                    return;
+                }
+                if (new Date(returnTime).getTime() < new Date(departureTime).getTime()) {
+                    toast.error("El retorno debe ser igual o posterior a la salida.");
+                    return;
+                }
+            }
         }
         if (isNaN(price) || price < 0) {
             toast.error(t("transport.manager.invalidPrice"));
@@ -198,30 +342,39 @@ export function TransportRoutesManager({
             return;
         }
 
+        const holdHours = parseInt(form.pendingHoldHours, 10);
+        if (isNaN(holdHours) || holdHours < 1) {
+            toast.error("Las horas de retención de cupo deben ser al menos 1.");
+            return;
+        }
+
         startTransition(async () => {
             try {
+                const payload = {
+                    name: form.name,
+                    departurePoint: form.departurePoint,
+                    departureTime,
+                    returnTime: form.isRoundTrip ? returnTime : null,
+                    pricePerSeat: price,
+                    totalSeats: seats,
+                    description: form.description || null,
+                    driverName: form.driverName || null,
+                    vehiclePlate: form.vehiclePlate || null,
+                    isRoundTrip: form.isRoundTrip,
+                    pendingHoldHours: holdHours,
+                };
                 if (editId) {
-                    await updateRoute(editId, {
-                        name: form.name,
-                        departurePoint: form.departurePoint,
-                        departureTime: form.departureTime,
-                        returnTime: form.returnTime || null,
-                        pricePerSeat: price,
-                        totalSeats: seats,
-                        description: form.description || null,
-                    });
+                    await updateRoute(editId, payload);
                     setRoutes((prev) =>
                         prev.map((r) =>
                             r.id === editId
                                 ? {
                                     ...r,
-                                    name: form.name,
-                                    departurePoint: form.departurePoint,
-                                    departureTime: new Date(form.departureTime),
-                                    returnTime: form.returnTime ? new Date(form.returnTime) : null,
+                                    ...payload,
+                                    departureTime: new Date(departureTime),
+                                    returnTime: returnTime ? new Date(returnTime) : null,
                                     pricePerSeat: price.toFixed(2),
                                     totalSeats: seats,
-                                    description: form.description || null,
                                 }
                                 : r
                         )
@@ -230,13 +383,7 @@ export function TransportRoutesManager({
                 } else {
                     const result = await createRoute({
                         eventId,
-                        name: form.name,
-                        departurePoint: form.departurePoint,
-                        departureTime: form.departureTime,
-                        returnTime: form.returnTime || null,
-                        pricePerSeat: price,
-                        totalSeats: seats,
-                        description: form.description || null,
+                        ...payload,
                     });
                     if (result.success && result.route) {
                         setRoutes((prev) => [
@@ -244,11 +391,21 @@ export function TransportRoutesManager({
                             { ...result.route, bookedSeats: 0 } as Route,
                         ]);
                     }
-                    toast.success(t("transport.manager.routeCreated"));
+                    if (result.transportOfferNotified && result.transportOfferNotified > 0) {
+                        toast.success(
+                            locale === "en"
+                                ? `Route created. ${result.transportOfferNotified} registrant(s) were offered paid transport.`
+                                : `Ruta creada. Se ofreció transporte de pago a ${result.transportOfferNotified} inscrito(s).`,
+                        );
+                    } else {
+                        toast.success(t("transport.manager.routeCreated"));
+                    }
                 }
                 setShowForm(false);
                 setEditId(null);
                 clearForm();
+                setDepartureLat(null);
+                setDepartureLng(null);
             } catch (e) {
                 toast.error(e instanceof Error ? e.message : t("transport.manager.saveError"));
             }
@@ -288,8 +445,114 @@ export function TransportRoutesManager({
     const inputClass =
         "w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary";
 
+    const eventDateLabel = (() => {
+        if (!eventInfo?.date) return null;
+        const d = new Date(eventInfo.date);
+        if (Number.isNaN(d.getTime())) return null;
+        return d.toLocaleString(getIntlLocale(locale), {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+    })();
+
+    const eventEndLabel = (() => {
+        if (!eventInfo?.endDate) return null;
+        const d = new Date(eventInfo.endDate);
+        if (Number.isNaN(d.getTime())) return null;
+        return d.toLocaleString(getIntlLocale(locale), {
+            day: "numeric",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+    })();
+
+    const eventPlaceLabel = eventInfo?.isVirtual
+        ? locale === "en"
+            ? "Virtual event"
+            : "Evento virtual"
+        : eventInfo?.location?.trim() || null;
+
+    const showEventContext = Boolean(eventDateLabel || eventPlaceLabel || eventInfo?.title);
+
     return (
         <div className="space-y-4">
+            {showEventContext && (
+                <div className="rounded-2xl border border-sky-500/25 bg-sky-500/10 px-4 py-3.5 dark:border-sky-400/20 dark:bg-sky-400/10">
+                    <div className="flex gap-3">
+                        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-500/15 text-sky-700 dark:text-sky-300">
+                            <Info className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 flex-1 space-y-2">
+                            <div>
+                                <p className="text-xs font-semibold uppercase tracking-wide text-sky-800/80 dark:text-sky-200/90">
+                                    {locale === "en" ? "Event reference" : "Referencia del evento"}
+                                </p>
+                                <p className="text-sm text-sky-950/80 dark:text-sky-50/90">
+                                    {locale === "en"
+                                        ? "Use this to align departure times and pickup points with the venue. Attendees who already have their entry QR can book transport later as a separate paid add-on."
+                                        : "Úsalo para alinear horarios de salida y puntos de recojo. Quienes ya tienen QR de entrada podrán reservar el bus después, como pago aparte."}
+                                </p>
+                            </div>
+                            {eventInfo?.title ? (
+                                <p className="truncate text-sm font-semibold text-foreground">
+                                    {eventInfo.title}
+                                </p>
+                            ) : null}
+                            <div className="grid gap-2 sm:grid-cols-2">
+                                {eventDateLabel && (
+                                    <div className="flex items-start gap-2 rounded-xl border border-sky-500/15 bg-background/60 px-3 py-2.5">
+                                        <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-sky-600 dark:text-sky-300" />
+                                        <div className="min-w-0">
+                                            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                                {locale === "en" ? "Event date" : "Fecha del evento"}
+                                            </p>
+                                            <p className="text-sm font-medium text-foreground capitalize">
+                                                {eventDateLabel}
+                                            </p>
+                                            {eventEndLabel ? (
+                                                <p className="mt-0.5 text-xs text-muted-foreground">
+                                                    {locale === "en" ? "Ends" : "Termina"}: {eventEndLabel}
+                                                </p>
+                                            ) : null}
+                                        </div>
+                                    </div>
+                                )}
+                                {eventPlaceLabel && (
+                                    <div className="flex items-start gap-2 rounded-xl border border-sky-500/15 bg-background/60 px-3 py-2.5">
+                                        <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-sky-600 dark:text-sky-300" />
+                                        <div className="min-w-0">
+                                            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                                {locale === "en" ? "Venue" : "Lugar"}
+                                            </p>
+                                            <p className="text-sm font-medium text-foreground break-words">
+                                                {eventPlaceLabel}
+                                            </p>
+                                            {!eventInfo?.isVirtual &&
+                                            eventInfo?.latitude != null &&
+                                            eventInfo?.longitude != null ? (
+                                                <a
+                                                    href={`https://www.google.com/maps?q=${eventInfo.latitude},${eventInfo.longitude}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="mt-1 inline-block text-xs font-medium text-sky-700 underline-offset-2 hover:underline dark:text-sky-300"
+                                                >
+                                                    {locale === "en" ? "Open in Maps" : "Abrir en Maps"}
+                                                </a>
+                                            ) : null}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Bus className="h-5 w-5 text-blue-500" />
@@ -326,7 +589,7 @@ export function TransportRoutesManager({
 
                         <div className="sm:col-span-2">
                             <label className="mb-1.5 block text-sm font-medium text-foreground">
-                                {t("transport.manager.departurePoint")}
+                                {t("transport.manager.departurePoint")} *
                             </label>
                             <input
                                 className={inputClass}
@@ -334,44 +597,99 @@ export function TransportRoutesManager({
                                 value={form.departurePoint}
                                 onChange={(e) => setForm({ ...form, departurePoint: e.target.value })}
                             />
-                        </div>
-
-                        <div>
-                            <label className="mb-1.5 block text-sm font-medium text-foreground">
-                                {t("transport.manager.departureTime")}
-                            </label>
-                            <input
-                                type="datetime-local"
-                                className={inputClass}
-                                value={form.departureTime}
-                                onChange={(e) => setForm({ ...form, departureTime: e.target.value })}
+                            <p className="mt-1.5 text-[11px] text-muted-foreground">
+                                Busca o marca el punto en el mapa; la dirección se completa sola.
+                            </p>
+                            <StopMapPicker
+                                address={form.departurePoint}
+                                latitude={departureLat}
+                                longitude={departureLng}
+                                onAddressChange={(address) =>
+                                    setForm((prev) => ({ ...prev, departurePoint: address }))
+                                }
+                                onCoordsChange={(coords) => {
+                                    setDepartureLat(coords?.lat ?? null);
+                                    setDepartureLng(coords?.lng ?? null);
+                                }}
                             />
                         </div>
 
-                        <div>
-                            <label className="mb-1.5 block text-sm font-medium text-foreground">
-                                {t("transport.manager.returnTime")}{" "}
-                                <span className="font-normal text-muted-foreground">{t("transport.booking.optional")}</span>
-                            </label>
-                            <input
-                                type="datetime-local"
-                                className={inputClass}
-                                value={form.returnTime}
-                                onChange={(e) => setForm({ ...form, returnTime: e.target.value })}
-                            />
+                        <div className="sm:col-span-2 grid gap-4 sm:grid-cols-2">
+                            <div>
+                                <p className="mb-1.5 text-sm font-medium text-foreground">
+                                    {t("transport.manager.departureTime")} *
+                                </p>
+                                <DateAmPmTimeField
+                                    dateValue={form.departureDate}
+                                    timeValue={form.departureClock}
+                                    minDate={minDate}
+                                    onDateChange={(departureDate) => {
+                                        if (departureDate && departureDate < minDate) {
+                                            toast.error("No puedes seleccionar un día anterior al de hoy.");
+                                            setForm({ ...form, departureDate: minDate });
+                                            return;
+                                        }
+                                        setForm({ ...form, departureDate });
+                                    }}
+                                    onTimeChange={(departureClock) =>
+                                        setForm({ ...form, departureClock })
+                                    }
+                                />
+                            </div>
+
+                            <div>
+                                <p className="mb-1.5 text-sm font-medium text-foreground">
+                                    {t("transport.manager.returnTime")}{" "}
+                                    <span className="font-normal text-muted-foreground">{t("transport.booking.optional")}</span>
+                                </p>
+                                <DateAmPmTimeField
+                                    dateValue={form.returnDate}
+                                    timeValue={form.returnClock}
+                                    minDate={form.departureDate || minDate}
+                                    disabled={!form.isRoundTrip}
+                                    onDateChange={(returnDate) => {
+                                        const floor = form.departureDate || minDate;
+                                        if (returnDate && returnDate < floor) {
+                                            toast.error("El retorno no puede ser un día anterior a la salida.");
+                                            setForm({ ...form, returnDate: floor });
+                                            return;
+                                        }
+                                        setForm({ ...form, returnDate });
+                                    }}
+                                    onTimeChange={(returnClock) => setForm({ ...form, returnClock })}
+                                />
+                                <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                                    <input
+                                        type="checkbox"
+                                        checked={form.isRoundTrip}
+                                        onChange={(e) =>
+                                            setForm({
+                                                ...form,
+                                                isRoundTrip: e.target.checked,
+                                                returnDate: e.target.checked ? form.returnDate : "",
+                                                returnClock: e.target.checked ? form.returnClock : "",
+                                            })
+                                        }
+                                        className="rounded border-border"
+                                    />
+                                    Ida y vuelta (desmarca para solo ida)
+                                </label>
+                            </div>
                         </div>
 
                         <div>
                             <label className="mb-1.5 block text-sm font-medium text-foreground">
                                 {t("transport.manager.seatPrice") || "Precio por asiento (S/.) *"}{" "}
-                                <span className="text-xs font-normal text-muted-foreground">({t("transport.manager.roundTrip") || "Ida y Vuelta"})</span>
+                                <span className="text-xs font-normal text-muted-foreground">
+                                    ({form.isRoundTrip ? "Ida y vuelta" : "Solo ida"})
+                                </span>
                             </label>
                             <input
                                 type="number"
                                 min={0}
                                 step="0.50"
                                 className={inputClass}
-                                placeholder={t("transport.manager.pricePlaceholderWithNote") || "Ej: 15.00 (Incluye ida y vuelta)"}
+                                placeholder={form.isRoundTrip ? "Ej: 15.00 (ida y vuelta)" : "Ej: 10.00 (solo ida)"}
                                 value={form.pricePerSeat}
                                 onChange={(e) => setForm({ ...form, pricePerSeat: e.target.value })}
                             />
@@ -389,6 +707,47 @@ export function TransportRoutesManager({
                                 value={form.totalSeats}
                                 onChange={(e) => setForm({ ...form, totalSeats: e.target.value })}
                             />
+                        </div>
+
+                        <div>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">
+                                Conductor
+                            </label>
+                            <input
+                                className={inputClass}
+                                placeholder="Nombre del chofer"
+                                value={form.driverName}
+                                onChange={(e) => setForm({ ...form, driverName: e.target.value })}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">
+                                Placa del vehículo
+                            </label>
+                            <input
+                                className={inputClass}
+                                placeholder="ABC-123"
+                                value={form.vehiclePlate}
+                                onChange={(e) => setForm({ ...form, vehiclePlate: e.target.value.toUpperCase() })}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="mb-1.5 block text-sm font-medium text-foreground">
+                                Liberar cupos sin pago (horas)
+                            </label>
+                            <input
+                                type="number"
+                                min={1}
+                                max={168}
+                                className={inputClass}
+                                value={form.pendingHoldHours}
+                                onChange={(e) => setForm({ ...form, pendingHoldHours: e.target.value })}
+                            />
+                            <p className="mt-1 text-[11px] text-muted-foreground">
+                                Reservas pendientes sin pagar se cancelan automáticamente tras este plazo.
+                            </p>
                         </div>
 
                         {/* payment methods warning or info */}
@@ -432,7 +791,7 @@ export function TransportRoutesManager({
                                     </p>
                                     <div className="flex flex-wrap gap-2 pt-1">
                                         {eventPaymentMethods.map((pm) => {
-                                            const IconMap: Record<string, React.ComponentType<{ className?: string }>> = { yape: Smartphone, plin: QrCode, cash: Wallet };
+                                            const IconMap: Record<string, React.ComponentType<{ className?: string }>> = { yape: Smartphone, plin: QrCode, cash: Wallet, culqi: CreditCard };
                                             const PmIcon = IconMap[pm.type] ?? Wallet;
                                             return (
                                                 <div
@@ -471,6 +830,8 @@ export function TransportRoutesManager({
                             onClick={() => {
                                 setShowForm(false);
                                 setEditId(null);
+                                setDepartureLat(null);
+                                setDepartureLng(null);
                             }}
                             className="rounded-xl border border-border px-4 py-2 text-sm hover:bg-secondary transition-colors"
                         >
@@ -547,8 +908,17 @@ export function TransportRoutesManager({
                                                 </span>
                                             )}
                                             <span className="font-medium text-foreground">
-                                                S/. {Number(route.pricePerSeat).toFixed(2)} / {t("transport.manager.perSeatRoundTrip") || "Asiento (Ida y Vuelta)"}
+                                                S/. {Number(route.pricePerSeat).toFixed(2)} / asiento
+                                                {" "}
+                                                ({route.isRoundTrip === false ? "Solo ida" : "Ida y vuelta"})
                                             </span>
+                                            {(route.driverName || route.vehiclePlate) && (
+                                                <span className="text-xs">
+                                                    {route.driverName ? `Chofer: ${route.driverName}` : ""}
+                                                    {route.driverName && route.vehiclePlate ? " · " : ""}
+                                                    {route.vehiclePlate ? `Placa: ${route.vehiclePlate}` : ""}
+                                                </span>
+                                            )}
                                             {Number(route.pricePerSeat) > 0 && eventPaymentMethods.length > 0 && (
                                                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-[10px] text-primary font-bold shadow-3xs" title={locale === "en" ? "Available payments" : "Métodos de pago disponibles"}>
                                                     <CreditCard className="h-3.5 w-3.5" />
@@ -598,17 +968,35 @@ export function TransportRoutesManager({
                                                 
                                                 {(!stopsByRoute[route.id] || stopsByRoute[route.id].length === 0) ? (
                                                     <p className="text-xs text-muted-foreground">
-                                                        No hay paraderos adicionales configurados para esta ruta. Los pasajeros subirán en el punto de salida general.
+                                                        No hay paraderos adicionales. Los pasajeros subirán en el punto de salida general.
                                                     </p>
                                                 ) : (
                                                     <div className="space-y-2">
-                                                        {stopsByRoute[route.id].map((stop) => (
+                                                        {[...stopsByRoute[route.id]]
+                                                            .sort((a, b) => a.sortOrder - b.sortOrder)
+                                                            .map((stop, index) => (
                                                             <div
                                                                 key={stop.id}
-                                                                className="flex items-center justify-between rounded-lg bg-background p-2.5 text-xs border border-border/60 hover:shadow-xs transition-all"
+                                                                className="flex items-center justify-between rounded-lg bg-background p-2.5 text-xs border border-border/60 hover:shadow-xs transition-all gap-2"
                                                             >
                                                                 <div className="min-w-0 flex-1 pr-2">
-                                                                    <p className="font-semibold text-foreground">{stop.name}</p>
+                                                                    <p className="font-semibold text-foreground">
+                                                                        {index + 1}. {stop.name}
+                                                                    </p>
+                                                                    {stop.estimatedArrivalTime && (
+                                                                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                                                                            ETA:{" "}
+                                                                            {new Date(stop.estimatedArrivalTime).toLocaleString(
+                                                                                getIntlLocale(locale),
+                                                                                { dateStyle: "short", timeStyle: "short" },
+                                                                            )}
+                                                                        </p>
+                                                                    )}
+                                                                    {stop.maxSeats != null && (
+                                                                        <p className="text-[10px] text-muted-foreground">
+                                                                            Cupo paradero: {stop.maxSeats}
+                                                                        </p>
+                                                                    )}
                                                                     {stop.latitude && stop.longitude && (
                                                                         <a
                                                                             href={`https://www.google.com/maps/search/?api=1&query=${stop.latitude},${stop.longitude}`}
@@ -616,57 +1004,113 @@ export function TransportRoutesManager({
                                                                             rel="noopener noreferrer"
                                                                             className="inline-block mt-0.5 text-[10px] text-primary hover:underline"
                                                                         >
-                                                                            Ver en Google Maps ({stop.latitude}, {stop.longitude})
+                                                                            Ver en Google Maps
                                                                         </a>
                                                                     )}
                                                                 </div>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleDeleteStop(route.id, stop.id)}
-                                                                    className="rounded p-1.5 text-destructive hover:bg-destructive/10 transition-colors"
-                                                                    title="Eliminar paradero"
-                                                                >
-                                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                                </button>
+                                                                <div className="flex items-center gap-1 shrink-0">
+                                                                    <button
+                                                                        type="button"
+                                                                        title="Subir"
+                                                                        disabled={index === 0}
+                                                                        onClick={async () => {
+                                                                            const ordered = [...stopsByRoute[route.id]].sort(
+                                                                                (a, b) => a.sortOrder - b.sortOrder,
+                                                                            );
+                                                                            if (index <= 0) return;
+                                                                            const prev = ordered[index - 1]!;
+                                                                            await updateTransportStop(stop.id, { sortOrder: prev.sortOrder });
+                                                                            await updateTransportStop(prev.id, { sortOrder: stop.sortOrder });
+                                                                            const refreshed = await getStopsByRoute(route.id);
+                                                                            setStopsByRoute((p) => ({ ...p, [route.id]: refreshed as StopRow[] }));
+                                                                        }}
+                                                                        className="rounded p-1 text-muted-foreground hover:bg-muted disabled:opacity-30"
+                                                                    >
+                                                                        ↑
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        title="Bajar"
+                                                                        disabled={index >= stopsByRoute[route.id].length - 1}
+                                                                        onClick={async () => {
+                                                                            const ordered = [...stopsByRoute[route.id]].sort(
+                                                                                (a, b) => a.sortOrder - b.sortOrder,
+                                                                            );
+                                                                            if (index >= ordered.length - 1) return;
+                                                                            const next = ordered[index + 1]!;
+                                                                            await updateTransportStop(stop.id, { sortOrder: next.sortOrder });
+                                                                            await updateTransportStop(next.id, { sortOrder: stop.sortOrder });
+                                                                            const refreshed = await getStopsByRoute(route.id);
+                                                                            setStopsByRoute((p) => ({ ...p, [route.id]: refreshed as StopRow[] }));
+                                                                        }}
+                                                                        className="rounded p-1 text-muted-foreground hover:bg-muted disabled:opacity-30"
+                                                                    >
+                                                                        ↓
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleDeleteStop(route.id, stop.id)}
+                                                                        className="rounded p-1.5 text-destructive hover:bg-destructive/10 transition-colors"
+                                                                        title="Eliminar paradero"
+                                                                    >
+                                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         ))}
                                                     </div>
                                                 )}
 
-                                                {/* Add Stop Form */}
                                                 <div className="border-t border-border/60 pt-3.5 space-y-3">
                                                     <span className="block text-xs font-bold text-foreground">
                                                         Agregar Paradero Intermedio
                                                     </span>
-                                                    <div className="grid gap-2 sm:grid-cols-3">
-                                                        <div className="sm:col-span-1">
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Nombre (ej: Óvalo Grau)"
-                                                                value={newStopName}
-                                                                onChange={(e) => setNewStopName(e.target.value)}
-                                                                className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Latitud (opcional)"
-                                                                value={newStopLat}
-                                                                onChange={(e) => setNewStopLat(e.target.value)}
-                                                                className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Longitud (opcional)"
-                                                                value={newStopLng}
-                                                                onChange={(e) => setNewStopLng(e.target.value)}
-                                                                className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                                                            />
-                                                        </div>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Nombre (ej: Óvalo Grau / Panadería X)"
+                                                        value={newStopName}
+                                                        onChange={(e) => setNewStopName(e.target.value)}
+                                                        className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                                    />
+                                                    <DateAmPmTimeField
+                                                        dateValue={newStopEtaDate}
+                                                        timeValue={newStopEtaClock}
+                                                        minDate={minDate}
+                                                        dateLabel="Día ETA"
+                                                        timeLabel="Hora ETA"
+                                                        onDateChange={(v) => {
+                                                            if (v && v < minDate) {
+                                                                toast.error("No puedes seleccionar un día anterior al de hoy.");
+                                                                setNewStopEtaDate(minDate);
+                                                                return;
+                                                            }
+                                                            setNewStopEtaDate(v);
+                                                        }}
+                                                        onTimeChange={setNewStopEtaClock}
+                                                    />
+                                                    <div>
+                                                        <label className="mb-1 block text-[10px] font-medium text-muted-foreground">
+                                                            Cupo máx. paradero (opcional)
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            min={1}
+                                                            placeholder="Sin límite"
+                                                            value={newStopMaxSeats}
+                                                            onChange={(e) => setNewStopMaxSeats(e.target.value)}
+                                                            className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs"
+                                                        />
                                                     </div>
+                                                    <StopMapPicker
+                                                        address={newStopName}
+                                                        latitude={newStopLat}
+                                                        longitude={newStopLng}
+                                                        onAddressChange={setNewStopName}
+                                                        onCoordsChange={(coords) => {
+                                                            setNewStopLat(coords?.lat ?? null);
+                                                            setNewStopLng(coords?.lng ?? null);
+                                                        }}
+                                                    />
                                                     <button
                                                         type="button"
                                                         onClick={() => handleAddStop(route.id)}
