@@ -899,10 +899,10 @@ export function RegisterButton({
 
               {/* Informative Alert for payment */}
               {consolidatedTotalCost > 0 && (
-                <div className="rounded-xl bg-blue-500/5 border border-blue-500/10 p-3.5 flex items-start gap-2.5">
-                  <Info className="h-4.5 w-4.5 text-blue-500 shrink-0 mt-0.5" />
-                  <div className="space-y-0.5 text-xs text-blue-800 dark:text-blue-300 text-left">
-                    <p className="font-semibold text-blue-700 dark:text-blue-400">{t("register.unifiedPaymentTitle")}</p>
+                <div className="rounded-xl bg-primary/5 border border-primary/15 p-3.5 flex items-start gap-2.5">
+                  <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <div className="space-y-0.5 text-xs text-muted-foreground text-left">
+                    <p className="font-semibold text-foreground">{t("register.unifiedPaymentTitle")}</p>
                     <p className="leading-relaxed">
                       {t("register.unifiedPaymentHelp")}
                     </p>

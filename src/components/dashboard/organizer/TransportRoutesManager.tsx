@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Pencil, Bus, Users, Check, X, MapPin, Smartphone, QrCode, Wallet, Clock, RefreshCw, CreditCard, AlertTriangle, Info, CalendarDays } from "lucide-react";
+import { Loader2, Plus, Trash2, Pencil, Bus, Users, Check, X, MapPin, Smartphone, QrCode, Wallet, Clock, RefreshCw, CreditCard, AlertTriangle, CalendarDays, Sparkles } from "lucide-react";
 import {
     createRoute,
     updateRoute,
@@ -480,88 +480,89 @@ export function TransportRoutesManager({
     const showEventContext = Boolean(eventDateLabel || eventPlaceLabel || eventInfo?.title);
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-5">
             {showEventContext && (
-                <div className="rounded-2xl border border-sky-500/25 bg-sky-500/10 px-4 py-3.5 dark:border-sky-400/20 dark:bg-sky-400/10">
-                    <div className="flex gap-3">
-                        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-500/15 text-sky-700 dark:text-sky-300">
-                            <Info className="h-4 w-4" />
-                        </div>
-                        <div className="min-w-0 flex-1 space-y-2">
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-wide text-sky-800/80 dark:text-sky-200/90">
-                                    {locale === "en" ? "Event reference" : "Referencia del evento"}
-                                </p>
-                                <p className="text-sm text-sky-950/80 dark:text-sky-50/90">
-                                    {locale === "en"
-                                        ? "Use this to align departure times and pickup points with the venue. Attendees who already have their entry QR can book transport later as a separate paid add-on."
-                                        : "Úsalo para alinear horarios de salida y puntos de recojo. Quienes ya tienen QR de entrada podrán reservar el bus después, como pago aparte."}
-                                </p>
+                <section className="overflow-hidden rounded-3xl border border-primary/20 bg-primary/5 p-5 sm:p-6">
+                    <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-background/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        {locale === "en" ? "Event reference" : "Referencia del evento"}
+                    </p>
+                    {eventInfo?.title ? (
+                        <h3 className="font-display text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+                            {eventInfo.title}
+                        </h3>
+                    ) : null}
+                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                        {locale === "en"
+                            ? "Align pickup points and departure times with the venue. Attendees who already have their entry QR can book the bus later as a separate paid add-on."
+                            : "Alinea puntos de recojo y horarios de salida con el lugar. Quienes ya tienen QR de entrada podrán reservar el bus después, como pago aparte."}
+                    </p>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        {eventDateLabel && (
+                            <div className="flex items-start gap-3 rounded-2xl border border-border/80 bg-card px-4 py-3.5 shadow-xs">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                    <CalendarDays className="h-4 w-4" />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                        {locale === "en" ? "Event date" : "Fecha del evento"}
+                                    </p>
+                                    <p className="mt-0.5 text-sm font-medium capitalize text-foreground">
+                                        {eventDateLabel}
+                                    </p>
+                                    {eventEndLabel ? (
+                                        <p className="mt-0.5 text-xs text-muted-foreground">
+                                            {locale === "en" ? "Ends" : "Termina"}: {eventEndLabel}
+                                        </p>
+                                    ) : null}
+                                </div>
                             </div>
-                            {eventInfo?.title ? (
-                                <p className="truncate text-sm font-semibold text-foreground">
-                                    {eventInfo.title}
-                                </p>
-                            ) : null}
-                            <div className="grid gap-2 sm:grid-cols-2">
-                                {eventDateLabel && (
-                                    <div className="flex items-start gap-2 rounded-xl border border-sky-500/15 bg-background/60 px-3 py-2.5">
-                                        <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-sky-600 dark:text-sky-300" />
-                                        <div className="min-w-0">
-                                            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                                                {locale === "en" ? "Event date" : "Fecha del evento"}
-                                            </p>
-                                            <p className="text-sm font-medium text-foreground capitalize">
-                                                {eventDateLabel}
-                                            </p>
-                                            {eventEndLabel ? (
-                                                <p className="mt-0.5 text-xs text-muted-foreground">
-                                                    {locale === "en" ? "Ends" : "Termina"}: {eventEndLabel}
-                                                </p>
-                                            ) : null}
-                                        </div>
-                                    </div>
-                                )}
-                                {eventPlaceLabel && (
-                                    <div className="flex items-start gap-2 rounded-xl border border-sky-500/15 bg-background/60 px-3 py-2.5">
-                                        <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-sky-600 dark:text-sky-300" />
-                                        <div className="min-w-0">
-                                            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                                                {locale === "en" ? "Venue" : "Lugar"}
-                                            </p>
-                                            <p className="text-sm font-medium text-foreground break-words">
-                                                {eventPlaceLabel}
-                                            </p>
-                                            {!eventInfo?.isVirtual &&
-                                            eventInfo?.latitude != null &&
-                                            eventInfo?.longitude != null ? (
-                                                <a
-                                                    href={`https://www.google.com/maps?q=${eventInfo.latitude},${eventInfo.longitude}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="mt-1 inline-block text-xs font-medium text-sky-700 underline-offset-2 hover:underline dark:text-sky-300"
-                                                >
-                                                    {locale === "en" ? "Open in Maps" : "Abrir en Maps"}
-                                                </a>
-                                            ) : null}
-                                        </div>
-                                    </div>
-                                )}
+                        )}
+                        {eventPlaceLabel && (
+                            <div className="flex items-start gap-3 rounded-2xl border border-border/80 bg-card px-4 py-3.5 shadow-xs">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                    <MapPin className="h-4 w-4" />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                        {locale === "en" ? "Venue" : "Lugar"}
+                                    </p>
+                                    <p className="mt-0.5 text-sm font-medium break-words text-foreground">
+                                        {eventPlaceLabel}
+                                    </p>
+                                    {!eventInfo?.isVirtual &&
+                                    eventInfo?.latitude != null &&
+                                    eventInfo?.longitude != null ? (
+                                        <a
+                                            href={`https://www.google.com/maps?q=${eventInfo.latitude},${eventInfo.longitude}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="mt-1 inline-flex text-xs font-semibold text-primary underline-offset-2 hover:underline"
+                                        >
+                                            {locale === "en" ? "Open in Maps" : "Abrir en Maps"}
+                                        </a>
+                                    ) : null}
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
-                </div>
+                </section>
             )}
 
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <Bus className="h-5 w-5 text-blue-500" />
-                    <h2 className="text-lg font-semibold text-foreground">{t("transport.manager.title")}</h2>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
+                        <Bus className="h-3.5 w-3.5" />
+                        {locale === "en" ? "Routes" : "Rutas"}
+                    </p>
+                    <h2 className="font-display text-xl font-semibold tracking-tight text-foreground">
+                        {t("transport.manager.title")}
+                    </h2>
                 </div>
                 <button
                     type="button"
                     onClick={openCreate}
-                    className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
                 >
                     <Plus className="h-4 w-4" /> {t("transport.manager.newRoute")}
                 </button>
@@ -569,10 +570,15 @@ export function TransportRoutesManager({
 
             {/* Form */}
             {showForm && (
-                <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
-                    <h3 className="font-medium text-foreground">
-                        {editId ? t("transport.manager.editRoute") : t("transport.manager.newTransportRoute")}
-                    </h3>
+                <div className="rounded-3xl border border-border bg-card p-6 space-y-5 shadow-xs">
+                    <div>
+                        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
+                            {editId ? (locale === "en" ? "Edit" : "Editar") : (locale === "en" ? "New" : "Nueva")}
+                        </p>
+                        <h3 className="font-display text-lg font-semibold text-foreground">
+                            {editId ? t("transport.manager.editRoute") : t("transport.manager.newTransportRoute")}
+                        </h3>
+                    </div>
 
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="sm:col-span-2">
@@ -852,9 +858,11 @@ export function TransportRoutesManager({
 
             {/* Routes list */}
             {routes.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-border p-10 text-center">
-                    <Bus className="mx-auto h-10 w-10 text-muted-foreground/30" />
-                    <p className="mt-3 text-sm text-muted-foreground">
+                <div className="rounded-3xl border border-dashed border-border bg-card/60 p-10 text-center">
+                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                        <Bus className="h-6 w-6" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
                         {t("transport.manager.noRoutes")}
                     </p>
                 </div>
@@ -867,7 +875,7 @@ export function TransportRoutesManager({
                         return (
                             <div
                                 key={route.id}
-                                className={`rounded-2xl border p-5 transition-opacity ${route.isActive ? "border-border bg-card" : "border-border/50 bg-secondary/40 opacity-60"
+                                className={`rounded-3xl border p-5 shadow-xs transition-opacity ${route.isActive ? "border-border bg-card" : "border-border/50 bg-muted/40 opacity-70"
                                     }`}
                             >
                                 <div className="flex items-start justify-between gap-3">

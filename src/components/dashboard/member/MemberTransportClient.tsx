@@ -96,16 +96,24 @@ export function MemberTransportClient({ options, myBookings }: MemberTransportCl
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl font-semibold text-foreground">{t("dashboard.member.transportTitle")}</h1>
-        <p className="mt-1 text-muted-foreground">
+        <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+          <Bus className="h-3.5 w-3.5" />
+          {locale === "en" ? "Trips" : "Viajes"}
+        </p>
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+          {t("dashboard.member.transportTitle")}
+        </h1>
+        <p className="mt-2 max-w-xl text-muted-foreground">
           {t("dashboard.member.transportSubtitle")}
         </p>
       </div>
 
-      <div className="rounded-2xl border border-sky-500/25 bg-sky-500/10 px-4 py-3.5 text-sm text-sky-950/90 dark:text-sky-50/90">
-        <div className="flex gap-3 items-start">
-                            <Lightbulb className="h-4 w-4 mt-0.5 shrink-0 text-sky-600 dark:text-sky-300" />
-          <p>{t("dashboard.member.transportAddonNotice")}</p>
+      <div className="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3.5 text-sm text-foreground">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Lightbulb className="h-4 w-4" />
+          </div>
+          <p className="text-muted-foreground">{t("dashboard.member.transportAddonNotice")}</p>
         </div>
       </div>
 
@@ -192,10 +200,12 @@ export function MemberTransportClient({ options, myBookings }: MemberTransportCl
             ) : (
               <div className="space-y-8">
                 {availableOptions.map((eventItem) => (
-                  <section key={eventItem.registrationId} className="space-y-4 rounded-2xl border border-border/80 bg-card p-6 shadow-3xs">
-                    <div className="flex items-center gap-2 pb-2 border-b border-border/60">
-                      <Calendar className="h-5 w-5 text-primary shrink-0" />
-                      <h2 className="font-display text-xl font-bold text-foreground">
+                  <section key={eventItem.registrationId} className="space-y-4 rounded-3xl border border-border bg-card p-6 shadow-xs">
+                    <div className="flex items-center gap-2 pb-3 border-b border-border/70">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <Calendar className="h-4 w-4" />
+                      </div>
+                      <h2 className="font-display text-xl font-semibold text-foreground">
                         {eventItem.eventTitle}
                       </h2>
                     </div>

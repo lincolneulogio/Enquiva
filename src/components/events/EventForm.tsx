@@ -1150,7 +1150,7 @@ export function EventForm({
                                         <span className="ml-2 text-sm text-muted-foreground">Cargando rutas de transporte...</span>
                                     </div>
                                 ) : (
-                                    <div className="rounded-2xl border border-border bg-card p-6">
+                                    <div className="rounded-3xl border border-border bg-card p-5 sm:p-6">
                                         <TransportRoutesManager
                                             eventId={event.id}
                                             initialRoutes={routes}
@@ -1177,13 +1177,16 @@ export function EventForm({
                                     </div>
                                 )
                             ) : (
-                                <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-6 space-y-3">
+                                <div className="rounded-3xl border border-primary/20 bg-primary/5 p-6 space-y-3">
                                     <div className="flex items-center gap-3">
-                                        <div className="rounded-xl bg-blue-500/10 p-2.5">
-                                            <Bus className="h-5 w-5 text-blue-500 animate-pulse" />
+                                        <div className="rounded-xl bg-primary/10 p-2.5 text-primary">
+                                            <Bus className="h-5 w-5 animate-pulse" />
                                         </div>
                                         <div>
-                                            <h3 className="font-semibold text-foreground">
+                                            <p className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-background/70 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                                                Transporte
+                                            </p>
+                                            <h3 className="font-display font-semibold text-foreground">
                                                 Configuración de Rutas de Transporte
                                             </h3>
                                             <p className="text-xs text-muted-foreground">
@@ -1191,8 +1194,8 @@ export function EventForm({
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="rounded-xl bg-background/50 border border-border/40 p-4 text-sm text-muted-foreground">
-                                        ✨ <strong>¡Excelente elección!</strong> Al guardar este nuevo evento, se creará su registro en la base de datos y podrás configurar y añadir todas las rutas de salida, horarios y precios inmediatamente desde la consola de transporte.
+                                    <div className="rounded-xl bg-card border border-border p-4 text-sm text-muted-foreground">
+                                        Al guardar este evento podrás añadir rutas, horarios y precios. El QR de entrada y el bus se pagan por separado.
                                     </div>
                                 </div>
                             )}
@@ -1302,7 +1305,7 @@ export function EventForm({
                         />
                         <div>
                             <div className="flex items-center gap-1.5">
-                                <Bus className="h-3.5 w-3.5 text-blue-500" />
+                                <Bus className="h-3.5 w-3.5 text-primary" />
                                 <p className="text-sm font-medium text-foreground">{t("events.form.offerTransport")}</p>
                                 {!canUseTransport && <Lock className="h-3.5 w-3.5 text-muted-foreground" />}
                             </div>

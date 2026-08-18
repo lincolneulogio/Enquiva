@@ -6,14 +6,130 @@ export type PricingFeatureLine = {
   included: boolean;
 };
 
+export type PricingLimitRow = {
+  key: string;
+  label: string;
+  value: string;
+};
+
+export type PricingModuleRow = {
+  key: string;
+  label: string;
+  included: boolean;
+};
+
+export type PricingPlanBreakdown = {
+  limits: PricingLimitRow[];
+  modules: PricingModuleRow[];
+  commission: {
+    text: string;
+    hasFee: boolean;
+  };
+};
+
 type FeatureLinesOptions = {
   /** Por defecto true en /pricing. En paneles de entidad/organizador omitir. */
   includeCommission?: boolean;
 };
 
+function formatQuota(value: number | null, unlimitedSymbol = "∞"): string {
+  if (value == null) return unlimitedSymbol;
+  return String(value);
+}
+
 /**
- * Lista completa de características de un plan (límites + módulos).
- * Las no incluidas quedan con `included: false` para tacharlas en UI.
+ * Misma información que Superadmin → Planes: límites, módulos y comisión.
+ */
+export function getPricingPlanBreakdown(
+  plan: ResolvedPlan,
+  locale: "es" | "en",
+): PricingPlanBreakdown {
+  const isEn = locale === "en";
+
+  const limits: PricingLimitRow[] = [
+    {
+      key: "events",
+      label: isEn ? "Events" : "Eventos",
+      value: formatQuota(plan.maxActiveEvents),
+    },
+    {
+      key: "attendees",
+      label: isEn ? "Attendees / event" : "Asistentes / evento",
+      value: formatQuota(plan.maxAttendeesPerEvent),
+    },
+    {
+      key: "organizers",
+      label: isEn ? "Organizers" : "Organizadores",
+      value: formatQuota(plan.maxOrganizers),
+    },
+    {
+      key: "broadcasts",
+      label: isEn ? "Broadcasts / mo" : "Broadcasts / mes",
+      value: formatQuota(plan.maxBroadcastsPerMonth),
+    },
+    {
+      key: "ai",
+      label: isEn ? "AI Copilot / mo" : "IA Copilot / mes",
+      value: formatQuota(plan.maxAiMessagesPerMonth),
+    },
+  ];
+
+  const modules: PricingModuleRow[] = [
+    {
+      key: "culqi",
+      label: isEn ? "Culqi payments" : "Pagos Culqi",
+      included: plan.features.culqi,
+    },
+    {
+      key: "transport",
+      label: isEn ? "Transport" : "Transporte",
+      included: plan.features.transport,
+    },
+    {
+      key: "ai",
+      label: isEn ? "AI Copilot" : "Copilot IA",
+      included: plan.features.ai,
+    },
+    {
+      key: "exports",
+      label: isEn ? "Exports" : "Exportaciones",
+      included: plan.features.exports,
+    },
+    {
+      key: "branding",
+      label: isEn ? "Custom branding" : "Marca personalizada",
+      included: plan.features.customBranding,
+    },
+  ];
+
+  const hasFee = plan.commissionPercent > 0 || plan.commissionPerRegistration > 0;
+  const commission = hasFee
+    ? {
+        hasFee: true,
+        text: isEn
+          ? `Platform fee: ${plan.commissionPercent}%${
+              plan.commissionPerRegistration > 0
+                ? ` + S/ ${plan.commissionPerRegistration.toFixed(2)}/attendee`
+                : ""
+            }`
+          : `Comisión por entradas: ${plan.commissionPercent}%${
+              plan.commissionPerRegistration > 0
+                ? ` + S/ ${plan.commissionPerRegistration.toFixed(2)}/inscrito`
+                : ""
+            }`,
+      }
+    : {
+        hasFee: false,
+        text: isEn
+          ? "No ticket commission"
+          : "Sin comisión por entradas",
+      };
+
+  return { limits, modules, commission };
+}
+
+/**
+ * Lista plana (límites + módulos) para cards de facturación.
  */
 export function getPricingFeatureLines(
   plan: ResolvedPlan,
@@ -21,120 +137,30 @@ export function getPricingFeatureLines(
   options: FeatureLinesOptions = {},
 ): PricingFeatureLine[] {
   const { includeCommission = true } = options;
-  const isEn = locale === "en";
+  const { limits, modules, commission } = getPricingPlanBreakdown(plan, locale);
 
-  const limit = (
-    key: string,
-    value: number | null,
-    labels: { unlimited: string; limited: (n: number) => string },
-  ): PricingFeatureLine => ({
-    key,
-    text: value == null ? labels.unlimited : labels.limited(value),
-    included: value == null || value > 0,
-  });
+  const quotaIncluded = (value: string) => value !== "0";
 
   const lines: PricingFeatureLine[] = [
-    limit("events", plan.maxActiveEvents, {
-      unlimited: isEn ? "Unlimited active events" : "Eventos activos ilimitados",
-      limited: (n) =>
-        isEn ? `${n} active events` : `${n} eventos activos`,
-    }),
-    limit("attendees", plan.maxAttendeesPerEvent, {
-      unlimited: isEn
-        ? "Unlimited attendees per event"
-        : "Asistentes ilimitados por evento",
-      limited: (n) =>
-        isEn
-          ? `Up to ${n} attendees per event`
-          : `Hasta ${n} asistentes por evento`,
-    }),
-    limit("organizers", plan.maxOrganizers, {
-      unlimited: isEn ? "Unlimited organizers" : "Organizadores ilimitados",
-      limited: (n) =>
-        isEn
-          ? `${n} organizer${n === 1 ? "" : "s"}`
-          : `${n} organizador${n === 1 ? "" : "es"}`,
-    }),
-    limit("broadcasts", plan.maxBroadcastsPerMonth, {
-      unlimited: isEn
-        ? "Unlimited broadcasts / month"
-        : "Broadcasts ilimitados / mes",
-      limited: (n) =>
-        n === 0
-          ? isEn
-            ? "Broadcasts not included"
-            : "Sin broadcasts"
-          : isEn
-            ? `${n} broadcasts / month`
-            : `${n} broadcasts / mes`,
-    }),
-    {
-      key: "ai-limit",
-      text: !plan.features.ai
-        ? isEn
-          ? "AI Copilot not included"
-          : "Sin Copilot IA"
-        : plan.maxAiMessagesPerMonth == null
-          ? isEn
-            ? "Unlimited AI Copilot messages / month"
-            : "Mensajes Copilot IA ilimitados / mes"
-          : plan.maxAiMessagesPerMonth === 0
-            ? isEn
-              ? "AI Copilot not included"
-              : "Sin Copilot IA"
-            : isEn
-              ? `${plan.maxAiMessagesPerMonth} AI Copilot messages / month`
-              : `${plan.maxAiMessagesPerMonth} mensajes Copilot IA / mes`,
-      included: plan.features.ai && (plan.maxAiMessagesPerMonth == null || plan.maxAiMessagesPerMonth > 0),
-    },
-    {
-      key: "culqi",
-      text: isEn ? "Culqi payments" : "Pagos Culqi",
-      included: plan.features.culqi,
-    },
-    {
-      key: "transport",
-      text: isEn ? "Transport" : "Transporte",
-      included: plan.features.transport,
-    },
-    {
-      key: "ai",
-      text: isEn ? "AI Copilot" : "Copilot IA",
-      included: plan.features.ai,
-    },
-    {
-      key: "exports",
-      text: isEn ? "Exports" : "Exportaciones",
-      included: plan.features.exports,
-    },
-    {
-      key: "branding",
-      text: isEn ? "Custom branding" : "Marca personalizada",
-      included: plan.features.customBranding,
-    },
+    ...limits.map((row) => ({
+      key: `limit-${row.key}`,
+      text: `${row.label}: ${row.value}`,
+      included: quotaIncluded(row.value),
+    })),
+    ...modules.map((row) => ({
+      key: `module-${row.key}`,
+      text: row.label,
+      included: row.included,
+    })),
   ];
 
-  if (
-    includeCommission &&
-    (plan.commissionPercent > 0 || plan.commissionPerRegistration > 0)
-  ) {
+  if (includeCommission) {
     lines.push({
       key: "commission",
-      text: isEn
-        ? `Platform fee: ${plan.commissionPercent}%${
-            plan.commissionPerRegistration > 0
-              ? ` + S/ ${plan.commissionPerRegistration.toFixed(2)}/attendee`
-              : ""
-          }`
-        : `Comisión plataforma: ${plan.commissionPercent}%${
-            plan.commissionPerRegistration > 0
-              ? ` + S/ ${plan.commissionPerRegistration.toFixed(2)}/inscrito`
-              : ""
-          }`,
+      text: commission.text,
       included: true,
     });
   }
 
-  // Evita duplicar IA: si ya hay línea de límite IA, no mostrar el flag booleano aparte.
-  return lines.filter((line) => line.key !== "ai");
+  return lines;
 }

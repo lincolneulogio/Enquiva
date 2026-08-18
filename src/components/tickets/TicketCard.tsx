@@ -683,10 +683,10 @@ export function TicketCard({
 
           {/* 2.5 SECCIÓN DE TRANSPORTE */}
           {transportBooking && (
-            <div className="rounded-2xl border border-blue-500/20 bg-blue-50/5 p-4 md:p-5 space-y-3.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-blue-500/10 pb-3">
+            <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 md:p-5 space-y-3.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-primary/10 pb-3">
                 <h4 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
-                  <Bus className="h-4.5 w-4.5 text-blue-500" />
+                  <Bus className="h-4 w-4 text-primary" />
                   {locale === "en" ? "Transport Service" : "Servicio de Transporte"}
                 </h4>
                 <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
@@ -746,23 +746,26 @@ export function TicketCard({
           )}
 
           {!transportBooking && hasTransport && transportOfferFromPrice != null && (
-            <div className="rounded-2xl border border-sky-500/25 bg-sky-500/10 p-4 md:p-5 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 md:p-5 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="flex items-start gap-3">
-                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-500/15 text-sky-700 dark:text-sky-300">
+                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <Bus className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1 space-y-1.5">
+                  <p className="inline-flex items-center rounded-full border border-primary/20 bg-background/70 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                    {locale === "en" ? "Add-on" : "Extra"}
+                  </p>
                   <h4 className="text-sm font-bold text-foreground">
                     {locale === "en" ? "Transport now available" : "Transporte disponible"}
                   </h4>
-                  <p className="text-xs leading-relaxed text-sky-950/80 dark:text-sky-50/90">
+                  <p className="text-xs leading-relaxed text-muted-foreground">
                     {locale === "en"
                       ? `Your entry QR is ready. Bus seats are a separate paid add-on from S/ ${transportOfferFromPrice.toFixed(2)} per seat.`
                       : `Tu QR de entrada ya está listo. El bus es un pago aparte, desde S/ ${transportOfferFromPrice.toFixed(2)} por asiento.`}
                   </p>
                   <Link
                     href="/member/transport"
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition hover:bg-sky-700 active:scale-[0.98]"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-primary-foreground shadow-sm transition hover:bg-primary/90 active:scale-[0.98]"
                   >
                     <Bus className="h-3.5 w-3.5" />
                     {locale === "en" ? "Book & pay transport" : "Reservar y pagar transporte"}

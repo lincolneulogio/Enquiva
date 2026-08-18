@@ -191,7 +191,7 @@ export function DateAmPmTimeField({
                     <div
                         role="dialog"
                         aria-label={dateLabel}
-                        className="absolute left-0 top-[calc(100%+0.5rem)] z-40 w-[17.5rem] rounded-xl border border-border bg-popover p-3 text-popover-foreground shadow-xl"
+                        className="absolute left-0 top-[calc(100%+0.5rem)] z-40 w-[17.5rem] rounded-2xl border border-border bg-popover p-3 text-popover-foreground shadow-xl"
                     >
                         <div className="mb-2 flex items-center justify-between gap-2">
                             <button
@@ -199,11 +199,11 @@ export function DateAmPmTimeField({
                                 onClick={goPrevMonth}
                                 disabled={!canGoPrevMonth}
                                 aria-label="Mes anterior"
-                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted disabled:pointer-events-none disabled:opacity-30"
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
                             >
                                 <ChevronLeft className="h-4 w-4" />
                             </button>
-                            <p className="select-none text-sm font-semibold capitalize tracking-tight">
+                            <p className="select-none font-display text-sm font-semibold capitalize tracking-tight text-foreground">
                                 {format(viewMonth, "MMMM yyyy", { locale: es })}
                             </p>
                             <button
@@ -317,7 +317,7 @@ export function DateAmPmTimeField({
                     <div
                         role="dialog"
                         aria-label={timeLabel}
-                        className="absolute right-0 top-[calc(100%+0.5rem)] z-40 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-popover p-3 text-popover-foreground shadow-xl"
+                        className="absolute right-0 top-[calc(100%+0.5rem)] z-40 w-72 max-w-[calc(100vw-2rem)] rounded-2xl border border-border bg-popover p-3 text-popover-foreground shadow-xl"
                     >
                         <div className="grid grid-cols-3 gap-2">
                             <label className="space-y-1 text-xs font-medium">

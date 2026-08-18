@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { Check, X, ArrowRight, Sparkles } from "lucide-react";
+import { Check, X, ArrowRight, Sparkles, Calendar, CreditCard, Bus } from "lucide-react";
 import { PublicHeader } from "@/components/shared/PublicHeader";
+import { PublicPageHero } from "@/components/shared/PublicPageHero";
 import { getI18n } from "@/lib/i18n/server";
 import { db } from "@/lib/db";
 import { plans } from "@/lib/db/schema";
 import { and, asc, eq } from "drizzle-orm";
-import { mapPlanRow, DEFAULT_PLAN_DEFINITIONS, filterPublicBillingPlans } from "@/lib/billing/plans";
+import { mapPlanRow, DEFAULT_PLAN_DEFINITIONS, filterPublicBillingPlans, isRecommendedBillingPlan } from "@/lib/billing/plans";
 import { getPricingFeatureLines } from "@/lib/billing/pricing-features";
 import { getPublicSession } from "@/lib/auth/public-session";
 import { getPricingCta } from "@/lib/navigation/pricing-cta";
@@ -45,7 +46,7 @@ function fallbackPlans() {
 }
 
 export default async function PricingPage() {
-  const { locale } = await getI18n();
+  const { locale, t } = await getI18n();
   const session = await getPublicSession();
   const cta = getPricingCta(session?.user?.role, locale === "en" ? "en" : "es");
 
@@ -65,87 +66,133 @@ export default async function PricingPage() {
     console.error("[pricing] plans query failed, using fallback catalog", error);
   }
 
-  const visible = filterPublicBillingPlans(rows).slice(0, 3);
+  const visible = filterPublicBillingPlans(rows);
+  const fromPrice = visible.reduce((min, row) => {
+    const value = Number(row.priceMonthly);
+    if (Number.isNaN(value)) return min;
+    return Math.min(min, value);
+  }, Number.POSITIVE_INFINITY);
+  const fromPriceLabel = Number.isFinite(fromPrice)
+    ? t("public.pricing.fromPrice", { price: fromPrice.toFixed(2) })
+    : null;
+  const planLocale = locale === "en" ? "en" : "es";
 
   return (
     <div className="min-h-screen bg-background">
       <PublicHeader />
 
-      <section className="border-b border-border bg-card px-4 py-14 sm:px-6">
-        <div className="mx-auto max-w-3xl text-center">
-          <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
-            <Sparkles className="h-3.5 w-3.5" />
-            {locale === "en" ? "Pricing" : "Planes"}
-          </p>
-          <h1 className="font-display text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-            {locale === "en" ? "Plans for teams that organize" : "Planes para quienes organizan"}
-          </h1>
-          <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            {locale === "en"
-              ? "Subscriptions for organizers and entities, with a transparent platform fee per paid attendee."
-              : "Suscripciones para organizadores y entidades, con comisión transparente por cada inscrito que paga."}
-          </p>
-        </div>
-      </section>
+      <PublicPageHero
+        align="center"
+        badge={t("public.pricing.badge")}
+        badgeIcon={Sparkles}
+        title={t("public.pricing.titleStart")}
+        titleHighlight={t("public.pricing.titleHighlight")}
+        description={t("public.pricing.subtitle")}
+        actions={
+          <>
+            <Link
+              href={cta.cardHref}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              {cta.cardLabel}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <a
+              href="#planes"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background/80 px-6 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
+            >
+              {t("public.pricing.ctaSecondary")}
+            </a>
+          </>
+        }
+        highlights={[
+          {
+            icon: Calendar,
+            title: t("public.pricing.highlightEventsTitle"),
+            description: t("public.pricing.highlightEventsDesc"),
+          },
+          {
+            icon: CreditCard,
+            title: t("public.pricing.highlightPayTitle"),
+            description: t("public.pricing.highlightPayDesc"),
+          },
+          {
+            icon: Bus,
+            title: t("public.pricing.highlightTransportTitle"),
+            description: t("public.pricing.highlightTransportDesc"),
+          },
+        ]}
+      >
+        {fromPriceLabel ? (
+          <p className="mt-6 text-sm font-semibold text-primary">{fromPriceLabel}</p>
+        ) : null}
+      </PublicPageHero>
 
-      <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-        <div className="grid gap-6 md:grid-cols-3">
+      <section id="planes" className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+        <div className={cn(
+          "grid gap-6",
+          visible.length === 1
+            ? "max-w-md mx-auto"
+            : visible.length === 2
+              ? "md:grid-cols-2 max-w-4xl mx-auto"
+              : "md:grid-cols-2 xl:grid-cols-3",
+        )}>
           {visible.map((raw) => {
             const plan = mapPlanRow(raw);
-            const isPro = plan.slug === "pro" || plan.slug.includes("pro");
-            const features = getPricingFeatureLines(plan, locale === "en" ? "en" : "es");
+            const recommended = isRecommendedBillingPlan(raw, visible);
+            const features = getPricingFeatureLines(plan, planLocale);
 
             return (
               <article
                 key={plan.id}
-                className={`relative flex flex-col rounded-3xl border p-6 shadow-sm ${
-                  isPro
+                className={cn(
+                  "relative flex flex-col rounded-3xl border p-6 shadow-sm",
+                  recommended
                     ? "border-primary/40 bg-primary/5"
-                    : "border-border bg-card"
-                }`}
+                    : "border-border bg-card",
+                )}
               >
-                {isPro ? (
+                {recommended ? (
                   <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-foreground">
-                    {locale === "en" ? "Popular" : "Popular"}
+                    {t("dashboard.admin.plansRecommendedBadge")}
                   </span>
                 ) : null}
                 <h2 className="font-display text-2xl font-semibold text-foreground">{plan.name}</h2>
-                <p className="mt-2 min-h-[3rem] text-sm text-muted-foreground">
+                <p className="mt-2 text-sm text-muted-foreground">
                   {plan.description}
                 </p>
-                <p className="mt-6 font-display text-4xl font-semibold text-foreground">
+                <p className="mt-5 font-display text-4xl font-semibold text-foreground">
                   S/ {Number(plan.priceMonthly).toFixed(2)}
                   <span className="text-base font-normal text-muted-foreground">
-                    /{locale === "en" ? "mo" : "mes"}
+                    /{planLocale === "en" ? "mo" : "mes"}
                   </span>
                 </p>
+
                 <ul className="mt-6 flex-1 space-y-2.5">
-                  {features.map((f) => (
+                  {features.map((row) => (
                     <li
-                      key={f.key}
-                      className={cn(
-                        "flex items-start gap-2 text-sm",
-                        f.included
-                          ? "text-foreground"
-                          : "text-muted-foreground/70 line-through decoration-muted-foreground/40",
-                      )}
+                      key={row.key}
+                      className="flex items-start gap-2.5 text-sm text-foreground"
                     >
-                      {f.included ? (
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      {row.included ? (
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" strokeWidth={2.5} />
                       ) : (
-                        <X className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/50" />
+                        <X className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/45" />
                       )}
-                      {f.text}
+                      <span className={cn(!row.included && "text-muted-foreground/70 line-through decoration-muted-foreground/40")}>
+                        {row.text}
+                      </span>
                     </li>
                   ))}
                 </ul>
                 <Link
                   href={cta.cardHref}
-                  className={`mt-8 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition ${
-                    isPro
+                  className={cn(
+                    "mt-8 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition",
+                    recommended
                       ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "border border-border bg-background hover:bg-muted"
-                  }`}
+                      : "border border-border bg-background hover:bg-muted",
+                  )}
                 >
                   {cta.cardLabel}
                   <ArrowRight className="h-4 w-4" />

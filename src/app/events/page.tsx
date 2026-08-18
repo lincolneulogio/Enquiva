@@ -1,10 +1,12 @@
 import { Suspense } from "react";
+import { Calendar, Bus, CreditCard } from "lucide-react";
 import { getCategories, getPublicEvents } from "@/actions/events";
 import { EventCard } from "@/components/events/EventCard";
 import { EventFilters } from "@/components/events/EventFilters";
 import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
 import { EventsPagination } from "@/components/events/EventsPagination";
 import { PublicHeader } from "@/components/shared/PublicHeader";
+import { PublicPageHero } from "@/components/shared/PublicPageHero";
 import { getI18n } from "@/lib/i18n/server";
 import { getRequestSession } from "@/lib/request-context";
 import { getViewerEventStatuses } from "@/lib/events/viewer-event-status";
@@ -15,12 +17,6 @@ interface EventsPageProps {
     search?: string;
     page?: string;
   }>;
-}
-
-interface CategoryOption {
-  slug: string;
-  label: string;
-  colorClass?: string;
 }
 
 async function EventsGrid({
@@ -87,7 +83,10 @@ async function EventsGrid({
 export default async function EventsPage({ searchParams }: EventsPageProps) {
   const { t } = await getI18n();
   const params = await searchParams;
-  const categories = await getCategories();
+  const [categories, { total: eventsTotal }] = await Promise.all([
+    getCategories(),
+    getPublicEvents({ page: 1, limit: 1 }),
+  ]);
   const categoryMap = Object.fromEntries(
     categories.map((category) => [
       category.slug,
@@ -99,26 +98,46 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
     <div className="min-h-screen bg-background">
       <PublicHeader />
 
-      {/* Header */}
-      <div className="border-b border-border bg-card px-6 py-12">
-        <div className="mx-auto max-w-7xl">
-          <h1 className="font-display text-4xl font-semibold text-foreground sm:text-5xl">
-            {t("public.events.title")}
-          </h1>
-          <p className="mt-2 text-lg text-muted-foreground">
-            {t("public.events.subtitle")}
-          </p>
+      <PublicPageHero
+        badge={t("public.events.badge")}
+        badgeIcon={Calendar}
+        title={t("public.events.titleStart")}
+        titleHighlight={t("public.events.titleHighlight")}
+        description={t("public.events.subtitle")}
+        highlights={[
+          {
+            icon: CreditCard,
+            title: t("public.events.highlightPayTitle"),
+            description: t("public.events.highlightPayDesc"),
+          },
+          {
+            icon: Calendar,
+            title: t("public.events.highlightTicketsTitle"),
+            description: t("public.events.highlightTicketsDesc"),
+          },
+          {
+            icon: Bus,
+            title: t("public.events.highlightTransportTitle"),
+            description: t("public.events.highlightTransportDesc"),
+          },
+        ]}
+      >
+        <div className="mt-7 flex flex-wrap items-center gap-2">
+          <span className="rounded-full border border-border bg-background/80 px-3 py-1 text-xs font-semibold text-foreground">
+            {t("public.events.statEvents", { count: eventsTotal })}
+          </span>
+          <span className="rounded-full border border-border bg-background/80 px-3 py-1 text-xs font-semibold text-foreground">
+            {t("public.events.statCategories", { count: categories.length })}
+          </span>
         </div>
-      </div>
+      </PublicPageHero>
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-0">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-8 lg:flex-row">
-          {/* Sidebar filters */}
-          <aside className="w-full shrink-0 lg:w-60">
+          <aside className="w-full shrink-0 lg:w-64">
             <EventFilters currentFilters={params} categories={categories} />
           </aside>
 
-          {/* Main content */}
           <main className="flex-1">
             <Suspense
               fallback={

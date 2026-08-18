@@ -46,6 +46,7 @@ const featureBadgeClass: Record<string, string> = {
   transport: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
   ai: "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300",
   exports: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  branding: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300",
 };
 
 const emptyForm = {
@@ -59,10 +60,12 @@ const emptyForm = {
   commissionPerRegistration: "0.50",
   maxBroadcastsPerMonth: "",
   maxAiMessagesPerMonth: "",
+  maxOrganizers: "",
   featureCulqi: false,
   featureTransport: false,
   featureAi: false,
   featureExports: false,
+  featureCustomBranding: false,
 };
 
 function FeatureToggle({
@@ -180,10 +183,12 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                   maxAiMessagesPerMonth: form.maxAiMessagesPerMonth
                     ? Number(form.maxAiMessagesPerMonth)
                     : null,
+                  maxOrganizers: form.maxOrganizers ? Number(form.maxOrganizers) : null,
                   featureCulqi: form.featureCulqi,
                   featureTransport: form.featureTransport,
                   featureAi: form.featureAi,
                   featureExports: form.featureExports,
+                  featureCustomBranding: form.featureCustomBranding,
                 },
           );
           if (res.plan) {
@@ -208,10 +213,12 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
             maxAiMessagesPerMonth: form.maxAiMessagesPerMonth
               ? Number(form.maxAiMessagesPerMonth)
               : null,
+            maxOrganizers: form.maxOrganizers ? Number(form.maxOrganizers) : null,
             featureCulqi: form.featureCulqi,
             featureTransport: form.featureTransport,
             featureAi: form.featureAi,
             featureExports: form.featureExports,
+            featureCustomBranding: form.featureCustomBranding,
           });
           if (res.plan) setPlans((prev) => [...prev, res.plan!].sort((a, b) => a.sortOrder - b.sortOrder));
           toast.success(t("dashboard.admin.plansCreated"));
@@ -237,10 +244,12 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
       commissionPerRegistration: String(plan.commissionPerRegistration ?? 0),
       maxBroadcastsPerMonth: plan.maxBroadcastsPerMonth != null ? String(plan.maxBroadcastsPerMonth) : "",
       maxAiMessagesPerMonth: plan.maxAiMessagesPerMonth != null ? String(plan.maxAiMessagesPerMonth) : "",
+      maxOrganizers: plan.maxOrganizers != null ? String(plan.maxOrganizers) : "",
       featureCulqi: plan.featureCulqi,
       featureTransport: plan.featureTransport,
       featureAi: plan.featureAi,
       featureExports: plan.featureExports,
+      featureCustomBranding: plan.featureCustomBranding,
     });
     setTab("editor");
   };
@@ -417,6 +426,11 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                         {plan.featureExports && (
                           <span className={cn("rounded-md px-2 py-0.5 font-medium", featureBadgeClass.exports)}>
                             {t("dashboard.admin.plansFeatureExports")}
+                          </span>
+                        )}
+                        {plan.featureCustomBranding && (
+                          <span className={cn("rounded-md px-2 py-0.5 font-medium", featureBadgeClass.branding)}>
+                            {t("dashboard.admin.plansFeatureBranding")}
                           </span>
                         )}
                       </div>
@@ -629,6 +643,22 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
               />
               <p className="text-xs text-muted-foreground">{t("dashboard.admin.plansHintUnlimited")}</p>
             </div>
+            <div className="space-y-1.5">
+              <label htmlFor="plan-max-organizers" className="text-sm font-medium text-foreground">
+                {t("dashboard.admin.plansLabelMaxOrganizers")}
+              </label>
+              <input
+                id="plan-max-organizers"
+                type="number"
+                min={0}
+                className={inputClass}
+                placeholder={t("dashboard.admin.plansPlaceholderMaxOrganizers")}
+                value={form.maxOrganizers}
+                onChange={(e) => setForm({ ...form, maxOrganizers: e.target.value })}
+                disabled={editingSpecial}
+              />
+              <p className="text-xs text-muted-foreground">{t("dashboard.admin.plansHintUnlimited")}</p>
+            </div>
           </div>
           <div className="mt-4 space-y-2">
             <p className="text-sm font-medium text-foreground">{t("dashboard.admin.plansLabelFeatures")}</p>
@@ -657,7 +687,16 @@ export function PlansManager({ initialPlans }: PlansManagerProps) {
                 onChange={(v) => setForm({ ...form, featureExports: v })}
                 disabled={editingSpecial}
               />
+              <FeatureToggle
+                label={t("dashboard.admin.plansFeatureBranding")}
+                checked={form.featureCustomBranding}
+                onChange={(v) => setForm({ ...form, featureCustomBranding: v })}
+                disabled={editingSpecial}
+              />
             </div>
+            <p className="text-xs text-muted-foreground">
+              {t("dashboard.admin.plansFeatureBrandingHint")}
+            </p>
           </div>
           <div className="mt-5 flex flex-wrap gap-2 border-t border-border/40 pt-4">
             <button

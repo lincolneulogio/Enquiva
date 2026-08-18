@@ -184,10 +184,10 @@ export function TransportBookingForm({
         "w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary";
 
     return (
-        <div className="fe-glass rounded-2xl p-5 space-y-5">
+        <div className="fe-glass rounded-3xl border border-border p-5 space-y-5">
             <div className="flex items-start justify-between gap-3">
                 <div>
-                    <h3 className="font-semibold text-foreground">{route.name}</h3>
+                    <h3 className="font-display font-semibold text-foreground">{route.name}</h3>
                     <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
                         <MapPin className="h-3.5 w-3.5" /> {route.departurePoint}
                     </p>
@@ -199,7 +199,7 @@ export function TransportBookingForm({
                         })}
                     </p>
                 </div>
-                <Bus className="h-4 w-4 text-blue-500" />
+                <Bus className="h-4 w-4 text-primary" />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -409,10 +409,10 @@ export function TransportBookingForm({
                         )}
 
                         {currentMethod?.type === "plin" && (
-                            <div className="sm:col-span-2 rounded-2xl border border-blue-200/50 bg-blue-50/40 dark:border-blue-900/30 dark:bg-blue-950/10 p-5 text-center space-y-4">
+                            <div className="sm:col-span-2 rounded-2xl border border-primary/20 bg-primary/5 p-5 text-center space-y-4">
                                 <div>
-                                    <p className="text-sm font-bold text-blue-800 dark:text-blue-400 flex items-center justify-center gap-1.5">
-                                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-white text-[10px]">✓</span>
+                                    <p className="text-sm font-bold text-foreground flex items-center justify-center gap-1.5">
+                                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px]">✓</span>
                                         Paga con Plin
                                     </p>
                                     <p className="mt-1 text-xs text-muted-foreground">
@@ -421,7 +421,7 @@ export function TransportBookingForm({
                                 </div>
 
                                 {currentMethod.phone && (
-                                    <div className="flex items-center justify-between gap-3 rounded-xl bg-background dark:bg-zinc-900/50 border border-blue-100 dark:border-blue-900/20 px-3.5 py-2">
+                                    <div className="flex items-center justify-between gap-3 rounded-xl bg-card border border-border px-3.5 py-2">
                                         <div className="text-left">
                                             <span className="block text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Teléfono Plin</span>
                                             <span className="font-mono text-sm font-bold text-foreground">{currentMethod.phone}</span>
@@ -432,7 +432,7 @@ export function TransportBookingForm({
                                                 navigator.clipboard.writeText(currentMethod.phone!);
                                                 toast.success("¡Número de Plin copiado!");
                                             }}
-                                            className="flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 active:scale-95 transition-all text-white px-3 py-1.5 text-xs font-semibold shrink-0"
+                                            className="flex items-center gap-1.5 rounded-lg bg-primary hover:bg-primary/90 active:scale-95 transition-all text-primary-foreground px-3 py-1.5 text-xs font-semibold shrink-0"
                                         >
                                             <Copy className="h-3 w-3" />
                                             Copiar
@@ -442,14 +442,14 @@ export function TransportBookingForm({
 
                                 {currentMethod.qrCodeUrl && (
                                     <div className="space-y-3">
-                                        <div className="relative mx-auto w-44 h-44 rounded-xl overflow-hidden border border-blue-100 dark:border-blue-900/30 bg-white p-2">
+                                        <div className="relative mx-auto w-44 h-44 rounded-xl overflow-hidden border border-border bg-card p-2">
                                             <Image src={currentMethod.qrCodeUrl} alt="Plin QR" width={160} height={160} className="mx-auto rounded-lg object-contain h-full w-full" />
                                         </div>
                                         
                                         <button
                                             type="button"
                                             onClick={() => downloadQr(currentMethod.qrCodeUrl!, `qr-plin-bus-${currentMethod.holderName.replace(/\s+/g, "-").toLowerCase()}.png`)}
-                                            className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 dark:text-blue-400 hover:underline active:scale-95 transition-all"
+                                            className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline active:scale-95 transition-all"
                                         >
                                             <Download className="h-3.5 w-3.5" />
                                             Guardar QR en Galería
@@ -555,7 +555,7 @@ export function TransportBookingForm({
                     type="button"
                     onClick={handleSubmit}
                     disabled={isPending || isUploading || route.availableSeats < 1}
-                    className="fe-btn-glow flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                    className="fe-btn-glow flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
                 >
                     {isPending || isUploading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
