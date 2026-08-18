@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { DashboardSidebar, DashboardTopbar } from "@/components/dashboard";
+import { DashboardSidebar } from "@/components/dashboard/navigation/DashboardSidebar";
+import { DashboardTopbar } from "@/components/dashboard/navigation/DashboardTopbar";
 import { redirectIfDashboardPathForbidden } from "@/lib/navigation/enforce-dashboard-path";
 import { getOrganizerPlanSummary, planIncludesBroadcasts, planIncludesFeature } from "@/lib/billing/enforce";
 import { getEffectivePermissionsForRole } from "@/lib/auth/effective-permissions";

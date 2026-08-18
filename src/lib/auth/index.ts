@@ -1,11 +1,15 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { twoFactor } from "better-auth/plugins";
-import { db } from "@/lib/db";
-import * as schema from "@/lib/db/schema";
 import { env } from "@/env";
-import { sendPasswordResetEmail } from "@/lib/mail";
-import { resolveSignupRole } from "@/lib/auth/platform-bootstrap";
+import { db } from "@/lib/db";
+import {
+  accounts,
+  sessions,
+  twoFactor as twoFactorTable,
+  users,
+  verifications,
+} from "@/lib/db/schema/auth";
 
 function parseTrustedOriginsEnv(): string[] {
   const raw = process.env.BETTER_AUTH_TRUSTED_ORIGINS;
@@ -40,11 +44,11 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
-      user: schema.users,
-      session: schema.sessions,
-      account: schema.accounts,
-      verification: schema.verifications,
-      twoFactor: schema.twoFactor,
+      user: users,
+      session: sessions,
+      account: accounts,
+      verification: verifications,
+      twoFactor: twoFactorTable,
     },
   }),
   secret: env.BETTER_AUTH_SECRET,
@@ -55,6 +59,7 @@ export const auth = betterAuth({
     requireEmailVerification: true,
     autoSignIn: false,
     sendResetPassword: async ({ user, url }) => {
+      const { sendPasswordResetEmail } = await import("@/lib/mail");
       await sendPasswordResetEmail({
         email: user.email,
         name: user.name,
@@ -107,6 +112,7 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (user) => {
+          const { resolveSignupRole } = await import("@/lib/auth/platform-bootstrap");
           const role = await resolveSignupRole();
 
           return { data: { ...user, role } };

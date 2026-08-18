@@ -7,11 +7,11 @@ import {
   mapAdminPathToSuperadmin,
   mapSuperadminPathToAdmin,
 } from "@/lib/navigation/dashboard-paths";
+import { loadPlatformOpsStatus } from "@/lib/settings/load-platform-ops";
 import {
   getCachedPlatformOpsStatus,
   isMaintenanceAllowedPath,
 } from "@/lib/settings/platform-ops";
-import { getPlatformOpsStatus } from "@/lib/settings";
 
 /**
  * Gate de páginas autenticadas.
@@ -131,7 +131,7 @@ export async function proxy(request: NextRequest) {
 
   // Modo mantenimiento: superadmin bypass; tickets y auth siguen disponibles.
   try {
-    const ops = await getCachedPlatformOpsStatus(() => getPlatformOpsStatus());
+    const ops = await getCachedPlatformOpsStatus(() => loadPlatformOpsStatus());
     if (ops.maintenanceMode && !isMaintenanceAllowedPath(pathname)) {
       const session = await getSessionSafe(request);
       const isSuperAdmin =

@@ -6,7 +6,7 @@ import { activityLogs } from "@/lib/db/schema";
 import { desc, or, and, eq, ilike, count, inArray } from "drizzle-orm";
 import { ShieldCheck, Search, Shield, User } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
-import { TablePagination } from "@/components/dashboard";
+import { TablePagination } from "@/components/dashboard/shared/TablePagination";
 import Link from "next/link";
 import { normalizeRole } from "@/lib/auth/rbac";
 import {

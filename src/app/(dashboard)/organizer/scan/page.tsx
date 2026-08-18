@@ -1,4 +1,4 @@
-import { QRScannerView } from "@/components/dashboard";
+import { QRScannerView } from "@/components/dashboard/scanner/QRScannerView";
 import { getI18n } from "@/lib/i18n/server";
 
 export async function generateMetadata() {

@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { ProfileEditor } from "@/components/dashboard";
+import { ProfileEditor } from "@/components/dashboard/profile/ProfileEditor";
 import { getI18n } from "@/lib/i18n/server";
 import { getSystemSettings } from "@/lib/settings";
 

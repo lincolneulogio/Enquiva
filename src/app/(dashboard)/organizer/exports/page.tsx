@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { FileSpreadsheet } from "lucide-react";
-import { ExportDataPanel } from "@/components/dashboard";
+import { ExportDataPanel } from "@/components/dashboard/admin/ExportDataPanel";
 import { getExportEventOptions } from "@/actions/exports";
 import { getCategories } from "@/actions/events";
 import { getI18n } from "@/lib/i18n/server";

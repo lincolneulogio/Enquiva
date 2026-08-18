@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { DashboardSidebar, DashboardTopbar } from "@/components/dashboard";
+import { DashboardSidebar } from "@/components/dashboard/navigation/DashboardSidebar";
+import { DashboardTopbar } from "@/components/dashboard/navigation/DashboardTopbar";
 import { getEffectivePermissionsForRole } from "@/lib/auth/effective-permissions";
 import { SessionKeepAlive } from "@/components/auth/SessionKeepAlive";
 import { redirectIfAccountDisabled } from "@/lib/auth/redirect-if-disabled";

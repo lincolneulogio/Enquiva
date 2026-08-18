@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { DashboardSidebar, DashboardTopbar } from "@/components/dashboard";
+import { DashboardSidebar } from "@/components/dashboard/navigation/DashboardSidebar";
+import { DashboardTopbar } from "@/components/dashboard/navigation/DashboardTopbar";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { getEffectivePermissionsForRole } from "@/lib/auth/effective-permissions";
 import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";

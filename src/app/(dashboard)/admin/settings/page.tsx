@@ -4,7 +4,7 @@ import { getI18n } from "@/lib/i18n/server";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { getSystemSettings } from "@/lib/settings";
 import { SettingsTabs } from "@/components/dashboard/admin/SettingsTabs";
-import { BackupDatabaseButton } from "@/components/dashboard";
+import { BackupDatabaseButton } from "@/components/dashboard/admin/BackupDatabaseButton";
 import { resolveAdminScope } from "@/lib/organizations/admin-scope";
 import { OrganizationService } from "@/lib/organizations/organization.service";
 

@@ -8,7 +8,7 @@ import Link from "next/link";
 import { Bus, Calendar, Route, Users, MapPin, CheckCircle2, AlertTriangle, ArrowRight } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { formatEventDateShort, eventStatusLabel, statusColor } from "@/lib/utils";
-import { ToggleEventTransportButton } from "@/components/dashboard";
+import { ToggleEventTransportButton } from "@/components/dashboard/organizer/ToggleEventTransportButton";
 
 export default async function OrganizerTransportOverviewPage() {
     const { t, locale } = await getI18n();

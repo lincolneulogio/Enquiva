@@ -1,5 +1,5 @@
 import { getMemberTransportOptions, getMyTransportBookings } from "@/actions/transport";
-import { MemberTransportClient } from "@/components/dashboard";
+import { MemberTransportClient } from "@/components/dashboard/member/MemberTransportClient";
 import { getEventPaymentMethods } from "@/actions/payment-methods";
 
 export default async function MemberTransportPage() {

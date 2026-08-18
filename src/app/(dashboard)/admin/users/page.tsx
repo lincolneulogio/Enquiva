@@ -9,7 +9,7 @@ import { DeleteUserButton } from "./DeleteUserButton";
 import { ToggleUserActiveButton } from "./ToggleUserActiveButton";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale, getRoleLabel } from "@/lib/i18n/core";
-import { TablePagination } from "@/components/dashboard";
+import { TablePagination } from "@/components/dashboard/shared/TablePagination";
 import { ROLE_BADGE_STYLES, normalizeRole, isEntityAssignableRole } from "@/lib/auth/rbac";
 import { resolveAdminScope, scopeUserCondition } from "@/lib/organizations/admin-scope";
 import { OrganizationService } from "@/lib/organizations/organization.service";

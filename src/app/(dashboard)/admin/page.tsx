@@ -1,8 +1,6 @@
 import Link from "next/link";
-import {
-  AdminKpiCard,
-  EntityInviteBanner,
-} from "@/components/dashboard";
+import { AdminKpiCard } from "@/components/dashboard/admin/AdminKpiCard";
+import { EntityInviteBanner } from "@/components/dashboard/admin/EntityInviteBanner";
 import { AdminStatsSectionHeader } from "@/components/dashboard/admin/AdminStatsSectionHeader";
 import { AdminAnalyticsQuickLinks } from "@/components/dashboard/admin/AdminAnalyticsQuickLinks";
 import { AdminPendingPaymentsAlert } from "@/components/dashboard/admin/AdminPendingPaymentsAlert";

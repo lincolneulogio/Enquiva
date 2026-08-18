@@ -13,7 +13,7 @@ import {
   getPluralLabel,
   getRegistrationStatusLabel,
 } from "@/lib/i18n/core";
-import { TablePagination } from "@/components/dashboard";
+import { TablePagination } from "@/components/dashboard/shared/TablePagination";
 import { getExportEventOptions } from "@/actions/exports";
 
 const PAGE_SIZE = 10;

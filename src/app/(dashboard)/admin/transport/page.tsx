@@ -9,8 +9,8 @@ import { Bus, Calendar, Route, Users, ArrowRight, ShieldAlert, CheckCircle2, Ale
 import { getI18n } from "@/lib/i18n/server";
 import { formatEventDateShort, eventStatusLabel, statusColor } from "@/lib/utils";
 import { getIntlLocale } from "@/lib/i18n/core";
-import { TablePagination } from "@/components/dashboard";
-import { ToggleEventTransportButton } from "@/components/dashboard";
+import { TablePagination } from "@/components/dashboard/shared/TablePagination";
+import { ToggleEventTransportButton } from "@/components/dashboard/organizer/ToggleEventTransportButton";
 import { resolveAdminScope, scopeEventCondition, canMutateEventRecord } from "@/lib/organizations/admin-scope";
 import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
 import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
