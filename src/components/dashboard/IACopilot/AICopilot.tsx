@@ -31,16 +31,9 @@ export function AICopilot({
     setIsOpen((open) => !open);
   };
 
-  return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-      {openedOnce ? (
-        <AICopilotPanel
-          user={user}
-          initialAiUsage={initialAiUsage}
-          isOpen={isOpen}
-          onToggle={handleToggle}
-        />
-      ) : (
+  if (!openedOnce) {
+    return (
+      <div className="fixed bottom-6 right-6 z-[80]">
         <button
           type="button"
           onClick={handleToggle}
@@ -49,7 +42,16 @@ export function AICopilot({
         >
           <Sparkles className="h-6 w-6" />
         </button>
-      )}
-    </div>
+      </div>
+    );
+  }
+
+  return (
+    <AICopilotPanel
+      user={user}
+      initialAiUsage={initialAiUsage}
+      isOpen={isOpen}
+      onToggle={handleToggle}
+    />
   );
 }

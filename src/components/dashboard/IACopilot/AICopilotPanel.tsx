@@ -1,6 +1,7 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
+import { createPortal } from "react-dom";
 import { useChatCopilot, type AiUsage, type CopilotUser } from "./use-chat-copilot";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessages } from "./ChatMessages";
@@ -41,18 +42,26 @@ export function AICopilotPanel({
 
   const showChips = messages.length <= 1 && !isLoading;
 
+  const overlay =
+    isOpen && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            role="presentation"
+            aria-hidden="true"
+            onClick={onToggle}
+            className="fixed inset-0 z-[70] h-dvh w-screen cursor-pointer bg-black/50 backdrop-blur-[2px]"
+          />,
+          document.body,
+        )
+      : null;
+
   return (
     <>
-      {isOpen && (
-        <div
-          onClick={onToggle}
-          className="fixed inset-0 w-screen h-screen z-40 bg-black/40 backdrop-blur-[1.5px] transition-all duration-300 cursor-pointer animate-fade-in"
-        />
-      )}
+      {overlay}
 
-      <div className="flex flex-col items-end">
+      <div className="fixed bottom-6 right-6 z-[80] flex flex-col items-end">
         {isOpen && (
-          <div className="mb-4 w-96 max-w-[calc(100vw-2rem)] h-[540px] max-h-[80vh] flex flex-col rounded-3xl border border-border bg-card/95 backdrop-blur-xl shadow-2xl overflow-hidden animate-fade-in transition-all duration-300">
+          <div className="relative z-[80] mb-4 flex h-[540px] max-h-[80vh] w-96 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-2xl animate-fade-in">
             <ChatHeader
               userRole={userRole}
               RoleIcon={RoleIcon}
