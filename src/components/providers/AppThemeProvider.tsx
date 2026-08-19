@@ -12,6 +12,7 @@ import {
 import {
     THEME_STORAGE_KEY,
     parseAppTheme,
+    readThemeCookie,
     writeThemeCookie,
     type AppTheme,
 } from "@/lib/theme/cookie";
@@ -49,10 +50,12 @@ export function AppThemeProvider({
     useEffect(() => {
         if (!hydratedRef.current) {
             hydratedRef.current = true;
-            const storedTheme = parseAppTheme(localStorage.getItem(THEME_STORAGE_KEY));
-            const effectiveTheme = storedTheme ?? theme;
-            applyTheme(effectiveTheme);
-            if (effectiveTheme !== theme) setThemeState(effectiveTheme);
+            const storedTheme =
+                parseAppTheme(localStorage.getItem(THEME_STORAGE_KEY)) ??
+                readThemeCookie() ??
+                theme;
+            applyTheme(storedTheme);
+            if (storedTheme !== theme) setThemeState(storedTheme);
             return;
         }
         applyTheme(theme);

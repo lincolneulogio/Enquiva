@@ -4,8 +4,7 @@ import { ArrowLeft, Bus, Users } from "lucide-react";
 import { db } from "@/lib/db";
 import { events } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { getRoutesByEvent } from "@/actions/transport";
 import { TransportRoutesManager } from "@/components/dashboard/organizer/TransportRoutesManager";
 import { PassengerManifest } from "@/components/dashboard/organizer/PassengerManifest";
@@ -21,7 +20,7 @@ interface Props {
 export default async function AdminEventTransportPage({ params }: Props) {
     const { t } = await getI18n();
   const staffBase = await getStaffBaseFromRequest();
-    const session = await auth.api.getSession({ headers: await headers() });
+    const session = await getRequestSession();
     if (!session?.user || !["admin", "super_admin"].includes(session.user.role ?? "")) {
         redirect("/login");
     }

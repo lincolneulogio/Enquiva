@@ -1,7 +1,6 @@
 import { db } from "@/lib/db";
 import { registrations, events, users, registrationStatusEnum } from "@/lib/db/schema";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { eq, desc, and, gte, lte, count } from "drizzle-orm";
 import { Users } from "lucide-react";
 import { ManualCheckInButton } from "@/components/events/ManualCheckInButton";
@@ -34,7 +33,7 @@ export default async function OrganizerAttendeesPage({
 }: PageProps) {
   const { t, locale } = await getI18n();
   const params = await searchParams;
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getRequestSession();
   const organizerId = session!.user.id;
 
   const requestedPage = Number(params.page ?? "1");

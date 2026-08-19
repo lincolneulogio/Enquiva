@@ -2,6 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getRequestSession } from "@/lib/request-context";
 import { users } from "@/lib/db/schema";
 import { updatePasswordSchema, updateProfileSchema } from "@/lib/validations";
 import { headers } from "next/headers";
@@ -17,7 +18,7 @@ function getDashboardBasePath(role?: string | null) {
 }
 
 export async function updateCurrentUserProfile(input: unknown) {
-    const session = await auth.api.getSession({ headers: await headers() });
+    const session = await getRequestSession();
     if (!session?.user) throw new Error("Unauthorized");
 
     let data;
@@ -68,7 +69,7 @@ export async function updateCurrentUserProfile(input: unknown) {
 
 export async function updateCurrentUserPassword(input: unknown) {
     const requestHeaders = await headers();
-    const session = await auth.api.getSession({ headers: requestHeaders });
+    const session = await getRequestSession();
     if (!session?.user) throw new Error("Unauthorized");
 
     const data = updatePasswordSchema.parse(input);

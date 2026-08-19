@@ -2,13 +2,15 @@ import Link from "next/link";
 import { ArrowRight, Star } from "lucide-react";
 import { EventCard } from "@/components/events/EventCard";
 import type { Event } from "@/lib/db/schema";
+import type { Locale } from "@/lib/i18n/core";
 
 interface FeaturedEventsCarouselProps {
   events: (Event & { attendeeCount?: number })[];
   t: (key: string) => string;
+  locale?: Locale;
 }
 
-export function FeaturedEventsCarousel({ events, t }: FeaturedEventsCarouselProps) {
+export function FeaturedEventsCarousel({ events, t, locale }: FeaturedEventsCarouselProps) {
   if (events.length === 0) return null;
 
   return (
@@ -43,7 +45,7 @@ export function FeaturedEventsCarousel({ events, t }: FeaturedEventsCarouselProp
               data-aos="fade-left"
               data-aos-delay={String(50 + index * 40)}
             >
-              <EventCard event={event} priority={index === 0} hideDateMeta />
+              <EventCard event={event} priority={index === 0} hideDateMeta locale={locale} />
             </div>
           ))}
         </div>

@@ -1,10 +1,9 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";
+import { getRequestSession } from "@/lib/request-context";
 
 export default async function DashboardRedirectPage() {
-    const session = await auth.api.getSession({ headers: await headers() });
+    const session = await getRequestSession();
 
     if (!session?.user) redirect("/login");
 

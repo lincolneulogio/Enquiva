@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Clock, Wrench } from "lucide-react";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { getPlatformOpsStatus, getSystemSettings } from "@/lib/settings";
 import { BrandLogo } from "@/components/shared/BrandLogo";
@@ -15,7 +14,7 @@ export default async function MaintenancePage() {
     getI18n(),
     getPlatformOpsStatus(),
     getSystemSettings(),
-    auth.api.getSession({ headers: await headers() }).catch(() => null),
+    getRequestSession().catch(() => null),
   ]);
 
   const isSuperAdmin =

@@ -8,6 +8,8 @@ import { normalizeRole } from "@/lib/auth/rbac";
 import { getDashboardHomeForRole } from "@/lib/navigation/dashboard-paths";
 import { redirectIfDashboardPathForbidden } from "@/lib/navigation/enforce-dashboard-path";
 import { getRequestPathname, getRequestSession } from "@/lib/request-context";
+import { Suspense } from "react";
+import { DashboardRouteLoading } from "@/components/dashboard/DashboardRouteLoading";
 
 export default async function ScannerLayout({
   children,
@@ -55,7 +57,9 @@ export default async function ScannerLayout({
             role: session.user.role,
           }}
         />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+          <Suspense fallback={<DashboardRouteLoading />}>{children}</Suspense>
+        </main>
       </div>
     </div>
   );

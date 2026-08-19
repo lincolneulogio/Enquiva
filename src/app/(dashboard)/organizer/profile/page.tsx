@@ -1,6 +1,5 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { db } from "@/lib/db";
+import { getRequestSession } from "@/lib/request-context";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { ProfileEditor } from "@/components/dashboard/profile/ProfileEditor";
@@ -9,7 +8,7 @@ import { getSystemSettings } from "@/lib/settings";
 
 export default async function OrganizerProfilePage() {
     const { t } = await getI18n();
-    const session = await auth.api.getSession({ headers: await headers() });
+    const session = await getRequestSession();
     const platformSettings = await getSystemSettings();
 
     const [user] = await db

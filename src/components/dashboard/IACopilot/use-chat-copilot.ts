@@ -6,12 +6,17 @@ import { usePathname } from "next/navigation";
 import { ROLE_BADGE_STYLES, normalizeRole } from "@/lib/auth/rbac";
 import { getRoleLabel, type Locale } from "@/lib/i18n/core";
 import { useLocale } from "@/components/providers/LocaleProvider";
-import { useSession } from "@/lib/auth/client";
 import { Crown, ShieldCheck, Briefcase, UserRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { formStorageKey, loadFormDraft, saveFormDraft } from "@/lib/form-persistence";
 import { getCopilotSuggestions } from "@/lib/chat/suggestions";
 import { getWelcomeCapabilityKey } from "@/lib/chat/role-scope";
+
+export type CopilotUser = {
+  name: string;
+  role?: string | null;
+  image?: string | null;
+};
 
 export type AiUsage = {
   used: number;
@@ -79,11 +84,14 @@ const THINKING_KEYS = [
   "copilot.thinkingLive",
 ] as const;
 
-export function useChatCopilot(initialAiUsage?: AiUsage | null) {
-  const { data: session } = useSession();
+export function useChatCopilot(
+  initialAiUsage: AiUsage | null | undefined,
+  user: CopilotUser,
+  isOpen: boolean,
+  setOpenOrToggle: () => void,
+) {
   const { locale, t } = useLocale();
   const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
   const [aiUsage, setAiUsage] = useState<AiUsage | null>(initialAiUsage ?? null);
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -98,8 +106,8 @@ export function useChatCopilot(initialAiUsage?: AiUsage | null) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pendingCitationsRef = useRef<string[]>([]);
 
-  const userRole = normalizeRole(session?.user.role ?? "member");
-  const userName = session?.user.name ?? getRoleLabel("member", locale);
+  const userRole = normalizeRole(user.role ?? "member");
+  const userName = user.name ?? getRoleLabel("member", locale);
   const suggestions = useMemo(() => getCopilotSuggestions(userRole), [userRole]);
 
   const pageContext = useMemo(
@@ -238,9 +246,9 @@ export function useChatCopilot(initialAiUsage?: AiUsage | null) {
 
   const handleToggle = () => {
     const opening = !isOpen;
-    setIsOpen(opening);
     setHasUnread(false);
     if (opening) refreshAiUsage();
+    setOpenOrToggle();
   };
 
   const wrappedSubmit = (event?: { preventDefault?: () => void }) => {
@@ -289,7 +297,7 @@ export function useChatCopilot(initialAiUsage?: AiUsage | null) {
   };
 
   return {
-    session,
+    session: { user },
     userRole,
     userName,
     locale,

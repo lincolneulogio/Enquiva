@@ -183,6 +183,13 @@
       "when": 1784246400000,
       "tag": "0025_transport_ops_improvements",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1784247300000,
+      "tag": "0026_hot_query_indexes",
+      "breakpoints": true
     }
   ]
 }

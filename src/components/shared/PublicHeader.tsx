@@ -1,8 +1,10 @@
+"use client";
+
 import Link from "next/link";
-import { getPublicSession } from "@/lib/auth/public-session";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { getRoleLabel } from "@/lib/i18n/core";
-import { getI18n } from "@/lib/i18n/server";
+import { useLocale } from "@/components/providers/LocaleProvider";
+import { useSession } from "@/lib/auth/client";
 import { PublicMobileMenu } from "@/components/shared/PublicMobileMenu";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { BrandLogo } from "@/components/shared/BrandLogo";
@@ -12,10 +14,14 @@ import {
   getPublicHeaderNavLinks,
 } from "@/lib/navigation/public-header-nav";
 
-export async function PublicHeader() {
-  const session = await getPublicSession();
+/**
+ * Header público en cliente: la sesión no dynamiza /, /events ni /pricing.
+ * Mientras carga, se muestra el chrome de invitado (el tráfico mayoritario).
+ */
+export function PublicHeader() {
+  const { t, locale } = useLocale();
+  const { data: session } = useSession();
   const user = session?.user;
-  const { t, locale } = await getI18n();
   const role = user?.role ?? null;
   const normalizedRole = normalizeRole(role);
   const dashboardPath = getPublicDashboardPath(role);

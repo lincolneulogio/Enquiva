@@ -1,5 +1,4 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { redirect } from "next/navigation";
 import { ROLE_BADGE_STYLES, getDefaultPermissionMatrix, normalizeRole } from "@/lib/auth/rbac";
 import { getPermissionMatrix } from "@/actions/admin";
@@ -10,7 +9,7 @@ import { getRoleLabel } from "@/lib/i18n/core";
 
 export default async function AdminPermissionsPage() {
     const { locale, t } = await getI18n();
-    const session = await auth.api.getSession({ headers: await headers() });
+    const session = await getRequestSession();
     if (session?.user?.role !== "super_admin") redirect(getStaffDashboardHome(session?.user?.role));
 
     const currentRole = normalizeRole(session.user.role);

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import type { DBTransaction } from "@/lib/db";
 import { db } from "@/lib/db";
 import { registrations } from "@/lib/db/schema";
@@ -39,6 +39,39 @@ export async function resolveGuestRegistrationIds(
   }
 
   return parseGuestRegistrationIds(parent.notes);
+}
+
+/** Un SELECT para todos los titulares; fallback a notes legacy. */
+export async function resolveGuestIdsByParent(
+  parents: Array<{ id: string; notes?: string | null }>,
+  client: Queryable = db,
+): Promise<Map<string, string[]>> {
+  const result = new Map<string, string[]>();
+  if (parents.length === 0) return result;
+
+  const parentIds = parents.map((parent) => parent.id);
+  const children = await client
+    .select({
+      id: registrations.id,
+      parentRegistrationId: registrations.parentRegistrationId,
+    })
+    .from(registrations)
+    .where(inArray(registrations.parentRegistrationId, parentIds));
+
+  for (const child of children) {
+    if (!child.parentRegistrationId) continue;
+    const list = result.get(child.parentRegistrationId) ?? [];
+    list.push(child.id);
+    result.set(child.parentRegistrationId, list);
+  }
+
+  for (const parent of parents) {
+    if (!result.has(parent.id)) {
+      result.set(parent.id, parseGuestRegistrationIds(parent.notes));
+    }
+  }
+
+  return result;
 }
 
 export function countGuestsFromNotes(notes: string | null | undefined): number {

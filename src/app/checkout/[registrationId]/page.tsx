@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ArrowLeft, Bus, Ticket, MapPin } from "lucide-react";
-import { headers } from "next/headers";
 import { getPaymentCheckoutContext } from "@/actions/payments";
 import { getEventPaymentMethods, getActivePaymentMethodsForEventOrganizer } from "@/actions/payment-methods";
 import { getI18n } from "@/lib/i18n/server";
@@ -12,8 +11,8 @@ import { isCulqiEnabledForEvent, getCulqiPublicKeyForEvent } from "@/lib/culqi/c
 import { db } from "@/lib/db";
 import { transportBookings, transportRoutes, users, registrations } from "@/lib/db/schema";
 import { eq, inArray } from "drizzle-orm";
-import { auth } from "@/lib/auth";
 import { getAttendeeDestination } from "@/lib/navigation/attendee-paths";
+import { getRequestSession } from "@/lib/request-context";
 
 interface Props {
   params: Promise<{ registrationId: string }>;
@@ -22,7 +21,7 @@ interface Props {
 export default async function PaymentCheckoutPage({ params }: Props) {
   const { t, locale } = await getI18n();
   const { registrationId } = await params;
-  const session = await auth.api.getSession({ headers: await headers() }).catch(() => null);
+  const session = await getRequestSession().catch(() => null);
   const role = session?.user?.role;
 
   let data;

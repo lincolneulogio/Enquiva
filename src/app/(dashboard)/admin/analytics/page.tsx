@@ -6,8 +6,7 @@ import { getAnalyticsOrganizationOptions } from "@/actions/admin/analytics-orgs"
 import { getAdminDashboardStats, type AdminStatsRange } from "@/lib/analytics/admin";
 import { getI18n } from "@/lib/i18n/server";
 import { resolveAdminScope, getOrganizationIdFromScope } from "@/lib/organizations/admin-scope";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { redirect } from "next/navigation";
 import { hasEffectivePermission } from "@/lib/auth/effective-permissions";
 import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
@@ -48,7 +47,7 @@ interface AdminAnalyticsPageProps {
 export default async function AdminAnalyticsPage({ searchParams }: AdminAnalyticsPageProps) {
   const { t } = await getI18n();
   const staffBase = await getStaffBaseFromRequest();
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getRequestSession();
   const role = session?.user?.role;
 
   if (role !== "super_admin" && !(await hasEffectivePermission(role, "analytics:view:org"))) {

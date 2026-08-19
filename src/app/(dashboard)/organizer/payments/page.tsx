@@ -1,8 +1,7 @@
 import { db } from "@/lib/db";
 import { payments as paymentsTable, registrations, events, users, transportBookings, transportRoutes, paymentStatusEnum } from "@/lib/db/schema";
 import { eq, desc, and, gte, lte, count } from "drizzle-orm";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { formatCurrency } from "@/lib/utils";
 import { PaymentStatusBadge } from "@/components/payments/PaymentStatusBadge";
 import Link from "next/link";
@@ -95,7 +94,7 @@ interface PageProps {
 export default async function OrganizerPaymentsPage({ searchParams }: PageProps) {
   const { locale, t } = await getI18n();
   const params = await searchParams;
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getRequestSession();
   const organizerId = session!.user.id;
   const planSummary = await getMyPlanSummary();
   const showExports = planIncludesFeature(planSummary.plan, "exports", planSummary.isUnlimited);

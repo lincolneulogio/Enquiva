@@ -48,6 +48,7 @@ export const payments = pgTable("payments", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (t) => [
   index("payments_registration_idx").on(t.registrationId),
+  index("payments_user_idx").on(t.userId),
   index("payments_status_idx").on(t.status),
   index("payments_gateway_charge_idx").on(t.gatewayChargeId),
   uniqueIndex("payments_gateway_charge_uidx")

@@ -1,15 +1,14 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
 import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
 
 export default async function AdminNewEventPage() {
     const { t } = await getI18n();
-    const session = await auth.api.getSession({ headers: await headers() });
+    const session = await getRequestSession();
     const role = normalizeRole(session?.user?.role);
     const staffBase = await getStaffBaseFromRequest();
     const eventsPath = staffDashboardPath(staffBase, "events");

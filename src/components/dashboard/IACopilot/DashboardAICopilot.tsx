@@ -3,8 +3,12 @@ import { AICopilot } from "@/components/dashboard/IACopilot/AICopilot";
 import type { AiUsage } from "@/components/dashboard/IACopilot/use-chat-copilot";
 
 type DashboardAICopilotProps = {
-  userId: string;
-  role: string | null | undefined;
+  user: {
+    id: string;
+    name: string;
+    role?: string | null;
+    image?: string | null;
+  };
 };
 
 function toInitialAiUsage(
@@ -27,15 +31,16 @@ function toInitialAiUsage(
   };
 }
 
-export async function DashboardAICopilot({ userId, role }: DashboardAICopilotProps) {
+export async function DashboardAICopilot({ user }: DashboardAICopilotProps) {
   try {
-    const summary = await getOrganizerPlanSummary(userId, role);
+    const summary = await getOrganizerPlanSummary(user.id, user.role);
     if (!summary.plansConfigured) return null;
     const enabled = planIncludesFeature(summary.plan, "ai", summary.isUnlimited);
     if (!enabled) return null;
     return (
       <AICopilot
         enabled
+        user={{ name: user.name, role: user.role, image: user.image }}
         initialAiUsage={toInitialAiUsage(
           summary.usage.aiMessagesThisMonth,
           summary.aiChatLimit,
@@ -44,7 +49,6 @@ export async function DashboardAICopilot({ userId, role }: DashboardAICopilotPro
       />
     );
   } catch {
-    // Nunca tumbar el layout por el copiloto (p. ej. planes aún no publicados).
     return null;
   }
 }

@@ -15,8 +15,7 @@ import { Suspense } from "react";
 import { resolveAdminScope, scopeEventCondition, canMutateEventRecord } from "@/lib/organizations/admin-scope";
 import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
 import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { normalizeRole } from "@/lib/auth/rbac";
 import {
     getViewerEventStatuses,
@@ -42,7 +41,7 @@ const EVENT_STATUS_VALUES = ["all", "published", "draft", "cancelled", "complete
 
 export default async function AdminEventsPage({ searchParams }: AdminEventsPageProps) {
     const { locale, t } = await getI18n();
-    const session = await auth.api.getSession({ headers: await headers() });
+    const session = await getRequestSession();
     const role = normalizeRole(session?.user?.role);
     const canCreateEvents = role === "super_admin";
     const staffBase = await getStaffBaseFromRequest();

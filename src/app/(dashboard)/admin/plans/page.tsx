@@ -1,13 +1,12 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { getAllPlans } from "@/actions/admin/plans";
 import { PlansManager } from "@/components/dashboard/admin/PlansManager";
 import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";
 import { getI18n } from "@/lib/i18n/server";
 
 export default async function AdminPlansPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getRequestSession();
   if (session?.user?.role !== "super_admin") redirect(getStaffDashboardHome(session?.user?.role));
 
   const { t } = await getI18n();

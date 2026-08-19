@@ -1,16 +1,20 @@
-import Link from "next/link";
-import { Check, X, ArrowRight, Sparkles, Calendar, CreditCard, Bus } from "lucide-react";
+import { Check, X, Sparkles, Calendar, CreditCard, Bus } from "lucide-react";
 import { PublicHeader } from "@/components/shared/PublicHeader";
 import { PublicPageHero } from "@/components/shared/PublicPageHero";
-import { getI18n } from "@/lib/i18n/server";
+import { getStaticI18n, PUBLIC_PAGE_REVALIDATE_SECONDS } from "@/lib/i18n/server";
 import { db } from "@/lib/db";
 import { plans } from "@/lib/db/schema";
 import { and, asc, eq } from "drizzle-orm";
 import { mapPlanRow, DEFAULT_PLAN_DEFINITIONS, filterPublicBillingPlans, isRecommendedBillingPlan } from "@/lib/billing/plans";
 import { getPricingFeatureLines } from "@/lib/billing/pricing-features";
-import { getPublicSession } from "@/lib/auth/public-session";
-import { getPricingCta } from "@/lib/navigation/pricing-cta";
+import {
+  PricingFooterNote,
+  PricingHeroPrimaryCta,
+  PricingPlanCta,
+} from "@/components/pricing/PricingSessionCtas";
 import { cn } from "@/lib/utils";
+
+export const revalidate = PUBLIC_PAGE_REVALIDATE_SECONDS;
 
 export const metadata = {
   title: "Planes y precios | Enquiva",
@@ -46,9 +50,7 @@ function fallbackPlans() {
 }
 
 export default async function PricingPage() {
-  const { locale, t } = await getI18n();
-  const session = await getPublicSession();
-  const cta = getPricingCta(session?.user?.role, locale === "en" ? "en" : "es");
+  const { locale, t } = await getStaticI18n();
 
   let rows = fallbackPlans() as Array<typeof plans.$inferSelect>;
 
@@ -90,13 +92,7 @@ export default async function PricingPage() {
         description={t("public.pricing.subtitle")}
         actions={
           <>
-            <Link
-              href={cta.cardHref}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              {cta.cardLabel}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+            <PricingHeroPrimaryCta />
             <a
               href="#planes"
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background/80 px-6 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
@@ -185,29 +181,13 @@ export default async function PricingPage() {
                     </li>
                   ))}
                 </ul>
-                <Link
-                  href={cta.cardHref}
-                  className={cn(
-                    "mt-8 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition",
-                    recommended
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "border border-border bg-background hover:bg-muted",
-                  )}
-                >
-                  {cta.cardLabel}
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
+                <PricingPlanCta recommended={recommended} />
               </article>
             );
           })}
         </div>
 
-        <p className="mt-10 text-center text-sm text-muted-foreground">
-          {cta.footerText}{" "}
-          <Link href={cta.linkHref} className="font-medium text-primary hover:underline">
-            {cta.linkLabel}
-          </Link>
-        </p>
+        <PricingFooterNote />
       </section>
     </div>
   );

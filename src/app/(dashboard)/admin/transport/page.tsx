@@ -3,8 +3,7 @@ import { events, users } from "@/lib/db/schema";
 import { count, desc, eq, sql, and, type SQL } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { Bus, Calendar, Route, Users, ArrowRight, ShieldAlert, CheckCircle2, AlertTriangle } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { formatEventDateShort, eventStatusLabel, statusColor } from "@/lib/utils";
@@ -27,7 +26,7 @@ const PAGE_SIZE = 10;
 export default async function AdminTransportOverviewPage({ searchParams }: AdminTransportPageProps) {
     const { locale, t } = await getI18n();
   const staffBase = await getStaffBaseFromRequest();
-    const session = await auth.api.getSession({ headers: await headers() });
+    const session = await getRequestSession();
 
     if (!session?.user || !["admin", "super_admin"].includes(session.user.role ?? "")) {
         redirect("/login");

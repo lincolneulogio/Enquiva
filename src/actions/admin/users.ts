@@ -1,7 +1,7 @@
 "use server";
 
-import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getRequestSession } from "@/lib/request-context";
 import { users, rolePermissions, roles } from "@/lib/db/schema";
 import { getFullEffectivePermissionMatrix } from "@/lib/auth/effective-permissions";
 import { logAdminAction } from "@/lib/analytics/log-admin-action";
@@ -200,7 +200,7 @@ export async function deleteUser(userId: string) {
 }
 
 export async function getPermissionMatrix() {
-    const session = await auth.api.getSession({ headers: await headers() });
+    const session = await getRequestSession();
     if (!session?.user) throw new Error("Unauthorized");
 
     const currentRole = normalizeRole(session.user.role);

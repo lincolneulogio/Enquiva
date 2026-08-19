@@ -1,112 +1,49 @@
-import { Calendar, Users, Bell, Shield, Zap } from "lucide-react";
-import { getFeaturedPublicEvents, getPublicEvents } from "@/actions/events";
+import { EventService } from "@/services/events/event.service";
 import { PublicHeader } from "@/components/shared/PublicHeader";
-import { getPublicSession } from "@/lib/auth/public-session";
-import { getI18n } from "@/lib/i18n/server";
+import {
+  getStaticI18n,
+  PUBLIC_PAGE_REVALIDATE_SECONDS,
+} from "@/lib/i18n/server";
 import { getLandingCopy } from "@/lib/navigation/landing-audience";
 import {
-  HeroSection,
   FeaturedEventsCarousel,
   EventsShowcase,
   FeaturesSection,
   Footer,
 } from "@/components/landing";
+import { SessionAwareHero } from "@/components/landing/SessionAwareHero";
+import { MarketingMotionProvider } from "@/components/providers/MarketingMotionProvider";
+
+export const revalidate = PUBLIC_PAGE_REVALIDATE_SECONDS;
 
 export default async function HomePage() {
-  const { locale, t } = await getI18n();
-  const session = await getPublicSession();
-  const role = session?.user?.role ?? null;
-  const localeKey = locale === "en" ? "en" : "es";
-  const landingCopy = getLandingCopy({ role, locale: localeKey, t });
+  const { locale, t } = await getStaticI18n();
+  const landingCopy = getLandingCopy({ role: null, locale: locale === "en" ? "en" : "es", t });
 
   const [featuredEvents, { events, totalRegistrations }] = await Promise.all([
-    getFeaturedPublicEvents(8),
-    getPublicEvents({ page: 1, limit: 6 }),
+    EventService.getFeaturedPublicEvents(8),
+    EventService.getPublicEvents({ page: 1, limit: 6 }),
   ]);
 
   const formattedRegistrations = new Intl.NumberFormat(
-    locale === "en" ? "en-US" : "es-PE"
+    locale === "en" ? "en-US" : "es-PE",
   ).format(totalRegistrations);
 
-  const features = [
-    {
-      icon: Calendar,
-      title: t("public.home.features.smartManagementTitle"),
-      desc: t("public.home.features.smartManagementDesc"),
-    },
-    {
-      icon: Users,
-      title: t("public.home.features.attendeeRegistrationTitle"),
-      desc: t("public.home.features.attendeeRegistrationDesc"),
-    },
-    {
-      icon: Bell,
-      title: t("public.home.features.realtimeNotificationsTitle"),
-      desc: t("public.home.features.realtimeNotificationsDesc"),
-    },
-    {
-      icon: Shield,
-      title: t("public.home.features.roleBasedAccessTitle"),
-      desc: t("public.home.features.roleBasedAccessDesc"),
-    },
-    {
-      icon: Zap,
-      title: t("public.home.features.lightningFastTitle"),
-      desc: t("public.home.features.lightningFastDesc"),
-    },
-  ];
-
-  const signals = [
-    { icon: Calendar, value: "24/7", label: t("common.overview") },
-    { icon: Users, value: formattedRegistrations, label: t("common.registrations") },
-    { icon: Bell, value: "Live", label: t("common.notifications") },
-    { icon: Shield, value: "RBAC", label: t("public.home.features.roleBasedAccessTitle") },
-  ];
-
   return (
-    <div id="top" className="relative min-h-screen overflow-x-clip bg-background">
-      <PublicHeader />
+    <MarketingMotionProvider>
+      <div id="top" className="relative min-h-screen overflow-x-clip bg-background">
+        <PublicHeader />
 
-      <HeroSection
-        t={t}
-        locale={locale}
-        copy={landingCopy}
-        signals={signals}
-        features={features}
-      />
+        <SessionAwareHero formattedRegistrations={formattedRegistrations} />
 
-      {/* Signals strip */}
-      <section className="px-4 py-8 sm:px-6" data-aos="fade-up" data-aos-delay="60">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-3 rounded-2xl border border-border/80 bg-card/70 p-3 backdrop-blur-sm">
-          {signals.map(({ icon: Icon, value, label }) => (
-            <div
-              key={label}
-              className="inline-flex items-center gap-2 rounded-xl border border-border/70 bg-background/80 px-3 py-2 text-sm"
-            >
-              <Icon className="h-4 w-4 text-primary" />
-              <span className="font-semibold text-foreground">{value}</span>
-              <span className="text-muted-foreground">{label}</span>
-            </div>
-          ))}
-        </div>
-      </section>
+        <FeaturedEventsCarousel events={featuredEvents} t={t} locale={locale} />
 
-      <FeaturedEventsCarousel events={featuredEvents} t={t} />
+        <EventsShowcase events={events} t={t} locale={locale} />
 
-      <EventsShowcase
-        events={events}
-        t={t}
-      />
+        <FeaturesSection t={t} copy={landingCopy} />
 
-      <FeaturesSection
-        t={t}
-        copy={landingCopy}
-      />
-
-      <Footer
-        t={t}
-        copy={landingCopy}
-      />
-    </div>
+        <Footer t={t} copy={landingCopy} />
+      </div>
+    </MarketingMotionProvider>
   );
 }

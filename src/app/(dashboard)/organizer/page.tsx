@@ -1,8 +1,7 @@
-import { getCategories, getOrganizerEvents } from "@/actions/events";
+import { getOrganizerDashboardSnapshot } from "@/actions/events";
 import { getMyPlanSummary } from "@/actions/billing";
 import { PlanUsageBanner } from "@/components/dashboard/organizer/PlanUsageBanner";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import Link from "next/link";
 import { Plus, Calendar, Users, Eye } from "lucide-react";
 import { categoryLabel, eventStatusLabel, formatEventDateShort, statusColor } from "@/lib/utils";
@@ -13,7 +12,7 @@ import { OrganizationService } from "@/lib/organizations/organization.service";
 import { LiveAttendeeCount } from "@/components/events/LiveAttendeeCount";
 
 export default async function OrganizerDashboardPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getRequestSession();
   if (!session?.user) return null;
 
   // Evita cargar datos del panel mientras el layout muestra el modal de espera.
@@ -23,18 +22,13 @@ export default async function OrganizerDashboardPage() {
   if (pending) return null;
 
   const { locale, t } = await getI18n();
-  const organizerEvents = await getOrganizerEvents();
-  const categories = await getCategories();
-  const planSummary = await getMyPlanSummary();
-  const categoryMap = Object.fromEntries(categories.map((category) => [category.slug, category.label]));
-
-  const totalAttendees = organizerEvents.reduce(
-    (sum, { attendeeCount }) => sum + (attendeeCount ?? 0),
-    0
-  );
-  const publishedCount = organizerEvents.filter(
-    ({ event }) => event.status === "published"
-  ).length;
+  const [snapshot, planSummary] = await Promise.all([
+    getOrganizerDashboardSnapshot(),
+    getMyPlanSummary(),
+  ]);
+  const organizerEvents = snapshot.recentEvents;
+  const totalAttendees = snapshot.totalAttendees;
+  const publishedCount = snapshot.publishedCount;
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -75,14 +69,14 @@ export default async function OrganizerDashboardPage() {
 
       <PlanUsageBanner summary={planSummary} showFeatures />
 
-      {organizerEvents.length === 0 ? <OrganizerGettingStarted /> : null}
+      {snapshot.totalEvents === 0 ? <OrganizerGettingStarted /> : null}
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
         {[
           {
             label: t("dashboard.organizer.totalEvents"),
-            value: organizerEvents.length,
+            value: snapshot.totalEvents,
             icon: Calendar,
             color: "text-primary",
             bg: "bg-primary/10",
@@ -128,7 +122,7 @@ export default async function OrganizerDashboardPage() {
             {t("dashboard.organizer.yourEvents")}
           </h2>
         </div>
-        {organizerEvents.length === 0 ? (
+        {snapshot.totalEvents === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Calendar className="mb-3 h-10 w-10 text-muted-foreground/40" />
             <p className="font-medium text-foreground">{t("dashboard.organizer.noEventsYet")}</p>

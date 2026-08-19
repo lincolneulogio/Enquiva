@@ -1,15 +1,15 @@
 import { Suspense } from "react";
 import { Calendar, Bus, CreditCard } from "lucide-react";
-import { getCategories, getPublicEvents } from "@/actions/events";
+import { EventService } from "@/services/events/event.service";
 import { EventCard } from "@/components/events/EventCard";
 import { EventFilters } from "@/components/events/EventFilters";
 import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
 import { EventsPagination } from "@/components/events/EventsPagination";
 import { PublicHeader } from "@/components/shared/PublicHeader";
 import { PublicPageHero } from "@/components/shared/PublicPageHero";
-import { getI18n } from "@/lib/i18n/server";
-import { getRequestSession } from "@/lib/request-context";
-import { getViewerEventStatuses } from "@/lib/events/viewer-event-status";
+import { getStaticI18n, PUBLIC_PAGE_REVALIDATE_SECONDS } from "@/lib/i18n/server";
+
+export const revalidate = PUBLIC_PAGE_REVALIDATE_SECONDS;
 
 interface EventsPageProps {
   searchParams: Promise<{
@@ -26,21 +26,14 @@ async function EventsGrid({
   searchParams: Awaited<EventsPageProps["searchParams"]>;
   categoryMap: Record<string, { label: string; colorClass?: string | null }>;
 }) {
-  const { t } = await getI18n();
+  const { t, locale } = await getStaticI18n();
   const page = parseInt(searchParams.page ?? "1");
-  const { events, total, limit } = await getPublicEvents({
+  const { events, total, limit } = await EventService.getPublicEvents({
     category: searchParams.category as never,
     search: searchParams.search,
     page,
     limit: 12,
   });
-  const session = await getRequestSession();
-  const viewerStatuses = session?.user
-    ? await getViewerEventStatuses(
-        session.user.id,
-        events.map((event) => event.id),
-      )
-    : null;
 
   if (events.length === 0) {
     return (
@@ -65,7 +58,7 @@ async function EventsGrid({
             key={event.id}
             event={event}
             categoryMap={categoryMap}
-            viewerStatus={viewerStatuses?.get(event.id) ?? "guest"}
+            locale={locale}
           />
         ))}
       </div>
@@ -81,17 +74,17 @@ async function EventsGrid({
 }
 
 export default async function EventsPage({ searchParams }: EventsPageProps) {
-  const { t } = await getI18n();
+  const { t } = await getStaticI18n();
   const params = await searchParams;
   const [categories, { total: eventsTotal }] = await Promise.all([
-    getCategories(),
-    getPublicEvents({ page: 1, limit: 1 }),
+    EventService.getCategories(null),
+    EventService.getPublicEvents({ page: 1, limit: 1 }),
   ]);
   const categoryMap = Object.fromEntries(
     categories.map((category) => [
       category.slug,
       { label: category.label, colorClass: category.colorClass },
-    ])
+    ]),
   );
 
   return (

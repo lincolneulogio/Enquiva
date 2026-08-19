@@ -1,17 +1,13 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
-import { cookies } from "next/headers";
 import { Toaster } from "sonner";
 import { LocaleProvider } from "@/components/providers/LocaleProvider";
 import { AppThemeProvider } from "@/components/providers/AppThemeProvider";
-import { AOSProvider } from "@/components/providers/AOSProvider";
-import { LenisProvider } from "@/components/providers/LenisProvider";
+import { ThemeInitScript } from "@/components/providers/ThemeInitScript";
 import { PlatformBrandProvider } from "@/components/providers/PlatformBrandProvider";
-import { getLocale } from "@/lib/i18n/server";
 import { AccentColorInitializer } from "@/components/dashboard/admin/AccentColorInitializer";
 import { PlatformAnnouncementBannerHost } from "@/components/shared/PlatformAnnouncementBannerHost";
 import { getPlatformBrand } from "@/lib/brand/platform-brand";
-import { parseAppTheme, THEME_COOKIE_NAME } from "@/lib/theme/cookie";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -65,41 +61,30 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [locale, brand, cookieStore] = await Promise.all([
-    getLocale(),
-    getPlatformBrand(),
-    cookies(),
-  ]);
-  const initialTheme =
-    parseAppTheme(cookieStore.get(THEME_COOKIE_NAME)?.value) ?? "light";
+  const brand = await getPlatformBrand();
 
   return (
-    <html
-      lang={locale}
-      suppressHydrationWarning
-      className={`${outfit.variable}${initialTheme === "dark" ? " dark" : ""}`}
-    >
+    <html lang={brand.defaultLocale} suppressHydrationWarning className={outfit.variable}>
+      <head>
+        <ThemeInitScript />
+      </head>
       <body suppressHydrationWarning className="font-sans">
         <AccentColorInitializer platformDefault={brand.defaultAccentColor} />
         <PlatformBrandProvider brand={brand}>
-          <LocaleProvider initialLocale={locale}>
-            <AppThemeProvider initialTheme={initialTheme}>
-              <LenisProvider>
-                <AOSProvider>
-                  <PlatformAnnouncementBannerHost />
-                  {children}
-                  <Toaster
-                    position="bottom-right"
-                    richColors
-                    expand
-                    toastOptions={{
-                      style: {
-                        fontFamily: "var(--font-outfit), sans-serif",
-                      },
-                    }}
-                  />
-                </AOSProvider>
-              </LenisProvider>
+          <LocaleProvider initialLocale={brand.defaultLocale}>
+            <AppThemeProvider>
+              <PlatformAnnouncementBannerHost />
+              {children}
+              <Toaster
+                position="bottom-right"
+                richColors
+                expand
+                toastOptions={{
+                  style: {
+                    fontFamily: "var(--font-outfit), sans-serif",
+                  },
+                }}
+              />
             </AppThemeProvider>
           </LocaleProvider>
         </PlatformBrandProvider>

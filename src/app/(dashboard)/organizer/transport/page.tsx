@@ -1,9 +1,8 @@
 import { db } from "@/lib/db";
 import { events } from "@/lib/db/schema";
 import { eq, desc, sql } from "drizzle-orm";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getRequestSession } from "@/lib/request-context";
 import Link from "next/link";
 import { Bus, Calendar, Route, Users, MapPin, CheckCircle2, AlertTriangle, ArrowRight } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
@@ -12,7 +11,7 @@ import { ToggleEventTransportButton } from "@/components/dashboard/organizer/Tog
 
 export default async function OrganizerTransportOverviewPage() {
     const { t, locale } = await getI18n();
-    const session = await auth.api.getSession({ headers: await headers() });
+    const session = await getRequestSession();
     if (!session?.user) redirect("/login");
 
     // Fetch organizer events with transport metrics

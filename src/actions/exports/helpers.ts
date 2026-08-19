@@ -1,5 +1,4 @@
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { getRequestSession } from "@/lib/request-context";
 import { db } from "@/lib/db";
 import { events } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -11,7 +10,7 @@ import {
 } from "@/lib/organizations/admin-scope";
 
 export async function requireUser() {
-    const session = await auth.api.getSession({ headers: await headers() });
+    const session = await getRequestSession();
     if (!session?.user) throw new Error("Unauthorized");
     return session.user as SessionUser;
 }

@@ -58,6 +58,7 @@ export const CACHE_KEYS = {
   userNotificationsCount: (userId: string) => `notifications:unread:${userId}`,
   eventAttendeesCount: (eventId: string) => `events:attendees:${eventId}`,
   adminDashboardStats: (key: string) => `admin:stats:${key}`,
+  platformSettings: "platform:settings:v1",
 } as const;
 
 export const CACHE_TTL = {
@@ -65,6 +66,7 @@ export const CACHE_TTL = {
   eventDetail: 300,
   notificationsCount: 60,
   adminDashboardStats: 300,
+  platformSettings: 120,
 } as const;
 
 export type CacheStats = {

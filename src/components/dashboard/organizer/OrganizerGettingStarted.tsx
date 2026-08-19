@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { Building2, Calendar, CreditCard, Rocket, Share2, Sparkles } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { OrganizationService } from "@/lib/organizations/organization.service";
 
 const steps: {
@@ -20,7 +19,7 @@ const steps: {
 
 export async function OrganizerGettingStarted() {
   const { t } = await getI18n();
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getRequestSession();
   const org = session?.user
     ? await OrganizationService.getOrganizationForUser(session.user.id)
     : null;

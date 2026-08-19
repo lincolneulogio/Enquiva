@@ -123,6 +123,10 @@ export const auth = betterAuth({
   session: {
     expiresIn: 60 * 60 * 8, // 8 hours — jornadas largas de eventos
     updateAge: 60 * 10, // renueva cookie si pasaron 10 min desde la última actualización
+    cookieCache: {
+      enabled: true,
+      maxAge: 60 * 5,
+    },
   },
 });
 

@@ -8,7 +8,23 @@ import {
     type Locale,
     type TranslationParams,
 } from "@/lib/i18n/core";
+import { getPlatformBrand } from "@/lib/brand/platform-brand";
 import { getRequestSystemSettings } from "@/lib/request-context";
+
+export const PUBLIC_PAGE_REVALIDATE_SECONDS = 120;
+
+/**
+ * i18n de marketing/ISR: idioma de plataforma (settings cacheados).
+ * No lee cookies(), para no forzar render dinámico en /, /events y /pricing.
+ */
+export const getStaticI18n = cache(async () => {
+    const brand = await getPlatformBrand();
+    const locale = resolveLocale(brand.defaultLocale);
+    return {
+        locale,
+        t: (key: string, params?: TranslationParams) => translate(locale, key, params),
+    };
+});
 
 /**
  * Idioma efectivo: cookie del usuario > default de plataforma (BD) > "es".

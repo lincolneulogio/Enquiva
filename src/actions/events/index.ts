@@ -1,8 +1,8 @@
 "use server";
 
-import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { getRequestSession } from "@/lib/request-context";
 import { EventService } from "@/services/events/event.service";
 import { assertCanSendBroadcast, assertEventPayloadWithinPlan } from "@/lib/billing/enforce";
 import { assertPermission, assertOwnOrAnyPermission } from "@/lib/auth/permission-guards";
@@ -32,7 +32,7 @@ import { getLocale } from "@/lib/i18n/server";
 // ─── Categories ───────────────────────────────────────────────────────────────
 
 export async function getCategories(): Promise<Pick<Category, "slug" | "label" | "colorClass">[]> {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getRequestSession();
   if (session?.user) {
     const { resolveAdminScopeForUser, getOrganizationIdForUser } = await import(
       "@/lib/organizations/admin-scope"
@@ -234,6 +234,20 @@ export async function getOrganizerEvents() {
   return EventService.getOrganizerEvents(user.id);
 }
 
+export async function getOrganizerDashboardSnapshot() {
+  await requireAuth();
+  const { user, pending } = await requireOrganizerWithApprovalState();
+  if (pending) {
+    return {
+      totalEvents: 0,
+      publishedCount: 0,
+      totalAttendees: 0,
+      recentEvents: [] as Awaited<ReturnType<typeof EventService.getOrganizerEvents>>,
+    };
+  }
+  return EventService.getOrganizerDashboardSnapshot(user.id, 8);
+}
+
 export async function getBroadcastEvents(): Promise<{ id: string; title: string }[]> {
   // Admin/superadmin usan /admin|/superadmin/broadcasts; organizer usa /organizer/broadcasts.
   // Antes exigía requireOrganizer() y rompía al admin de entidad.
@@ -243,8 +257,13 @@ export async function getBroadcastEvents(): Promise<{ id: string; title: string 
   if (role === "organizer") {
     const pending = await getOrganizerPendingApproval(user);
     if (pending) return [];
-    const rows = await EventService.getOrganizerEvents(user.id);
-    return rows.map(({ event }) => ({ id: event.id, title: event.title }));
+    const rows = await db
+      .select({ id: events.id, title: events.title })
+      .from(events)
+      .where(eq(events.organizerId, user.id))
+      .orderBy(desc(events.date))
+      .limit(200);
+    return rows;
   }
 
   const adminScope = await resolveAdminScope();

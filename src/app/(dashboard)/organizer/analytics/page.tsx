@@ -5,8 +5,7 @@ import { FunnelAnalyticsCard } from "@/components/dashboard/analytics/FunnelAnal
 import { getAdminDashboardStats, type AdminStatsRange } from "@/lib/analytics/admin";
 import { getOrganizerFunnelStats } from "@/lib/analytics/funnel";
 import { getI18n } from "@/lib/i18n/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { hasEffectivePermission } from "@/lib/auth/effective-permissions";
 
 const RANGE_OPTIONS: AdminStatsRange[] = ["30d", "90d", "12m", "all"];
@@ -25,7 +24,7 @@ interface OrganizerAnalyticsPageProps {
 export default async function OrganizerAnalyticsPage({
   searchParams,
 }: OrganizerAnalyticsPageProps) {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getRequestSession();
   if (!session?.user?.id) redirect("/login");
 
   const role = session.user.role;

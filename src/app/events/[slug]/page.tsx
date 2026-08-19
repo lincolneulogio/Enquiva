@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getCategories } from "@/actions/events";
 import { EventService } from "@/services/events/event.service";
 import { getRegistrationForEvent } from "@/actions/registrations";
-import { getUserPayments } from "@/actions/payments";
+import { getPaymentForRegistration } from "@/actions/payments";
 import { RegisterButton } from "@/components/events/RegisterButton";
 import { TicketCard } from "@/components/tickets/TicketCard";
 import { LiveAttendeeCount } from "@/components/events/LiveAttendeeCount";
@@ -277,11 +277,12 @@ export default async function EventDetailPage({ params }: EventPageProps) {
   const isAuthenticated = Boolean(session?.user);
   const registration = registrationData?.registration;
   const ticket = registrationData?.ticket;
-  const payments = session?.user ? await getUserPayments().catch(() => []) : [];
-  const paymentForRegistration = registration
-    ? payments.find(({ registration: item }) => item.id === registration.id)
-    : null;
-  const capacitySnap = await getEventCapacitySnapshot(event.id, event.capacity);
+  const [paymentForRegistration, capacitySnap] = await Promise.all([
+    registration && session?.user
+      ? getPaymentForRegistration(registration.id).catch(() => null)
+      : Promise.resolve(null),
+    getEventCapacitySnapshot(event.id, event.capacity),
+  ]);
 
   let viewerOrganizationId: string | null = null;
   const viewerRole = session?.user ? normalizeRole(session.user.role) : null;
@@ -760,9 +761,9 @@ export default async function EventDetailPage({ params }: EventPageProps) {
             ticket={ticket}
             event={event}
             registration={registration}
-            paymentStatus={paymentForRegistration?.payment.status}
-            paymentReceiptUrl={paymentForRegistration?.payment.receiptUrl}
-            paymentMethod={paymentForRegistration?.payment.method}
+            paymentStatus={paymentForRegistration?.payment?.status}
+            paymentReceiptUrl={paymentForRegistration?.payment?.receiptUrl}
+            paymentMethod={paymentForRegistration?.payment?.method}
           />
         </section>
       )}

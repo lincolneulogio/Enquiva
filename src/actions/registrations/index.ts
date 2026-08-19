@@ -102,14 +102,17 @@ export async function checkInAttendee(input: unknown) {
   return RegistrationService.checkInAttendee(user.id, validated);
 }
 
-export async function getUserRegistrations() {
+export async function getUserRegistrations(limit?: number) {
   const user = await requireAuth();
   // Staff también se inscribe como asistente: basta un permiso :own o el de inscripciones de entidad.
   await authorize({
     user,
     permissions: ["registrations:view:own", "tickets:view:own", "registrations:view:org"],
   });
-  return RegistrationService.getUserRegistrations(user.id);
+  return RegistrationService.getUserRegistrations(
+    user.id,
+    limit != null ? { limit } : undefined,
+  );
 }
 
 export async function getEventAttendees(eventId: string) {

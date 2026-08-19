@@ -1,5 +1,4 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { User, Mail, Shield, Crown, ShieldCheck, Briefcase, UserRound, Building2, QrCode } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getRoleLabel } from "@/lib/i18n/core";
@@ -19,7 +18,7 @@ const roleIcons = {
 
 export default async function OrganizerSettingsPage() {
     const { locale, t } = await getI18n();
-    const session = await auth.api.getSession({ headers: await headers() });
+    const session = await getRequestSession();
     const user = session!.user;
 
     const normalizedRole = normalizeRole(user.role);

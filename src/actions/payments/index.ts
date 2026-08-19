@@ -113,14 +113,27 @@ function paymentUserIdOrSimulated(id: string | null): string {
 /**
  * Controller Server Action: Obtiene los pagos del usuario logueado.
  */
-export async function getUserPayments() {
+export async function getUserPayments(limit?: number) {
   const { user } = await requireAuthWithHeaders();
   await authorize({
     user,
     permissions: ["payments:view:own", "payments:create:own", "payments:view:org"],
   });
 
-  return PaymentService.getUserPayments(user.id);
+  return PaymentService.getUserPayments(
+    user.id,
+    limit != null ? { limit } : undefined,
+  );
+}
+
+export async function getPaymentForRegistration(registrationId: string) {
+  const { user } = await requireAuthWithHeaders();
+  await authorize({
+    user,
+    permissions: ["payments:view:own", "payments:create:own", "payments:view:org"],
+  });
+
+  return PaymentService.getPaymentForRegistration(user.id, registrationId);
 }
 
 /**

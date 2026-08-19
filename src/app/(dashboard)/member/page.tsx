@@ -1,5 +1,3 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { getPublicEvents } from "@/actions/events";
 import { getUserRegistrations } from "@/actions/registrations";
 import { EventCard } from "@/components/events/EventCard";
@@ -8,13 +6,14 @@ import { Calendar, ArrowRight } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
 import { registrationStatusLabel } from "@/lib/utils";
+import { getRequestSession } from "@/lib/request-context";
 
 export default async function MemberDashboardPage() {
   const { locale, t } = await getI18n();
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getRequestSession();
   const [{ events: upcomingEvents }, myRegistrations] = await Promise.all([
     getPublicEvents({ limit: 3 }),
-    getUserRegistrations(),
+    getUserRegistrations(8),
   ]);
 
   const activeRegistrations = myRegistrations.filter(
@@ -111,7 +110,7 @@ export default async function MemberDashboardPage() {
         {upcomingEvents.length > 0 ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {upcomingEvents.map((event) => (
-              <EventCard key={event.id} event={event} />
+              <EventCard key={event.id} event={event} locale={locale} />
             ))}
           </div>
         ) : (

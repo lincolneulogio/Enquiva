@@ -1,6 +1,5 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getRequestSession } from "@/lib/request-context";
 import { db } from "@/lib/db";
 import { events, broadcastLogs } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
@@ -23,7 +22,7 @@ type BroadcastsPageProps = {
 
 export async function BroadcastsPageContent({ billingPath = "/organizer/billing" }: BroadcastsPageProps) {
   const { t, locale } = await getI18n();
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getRequestSession();
 
   if (!session?.user) {
     redirect("/login");

@@ -1,11 +1,9 @@
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
 import { getStaffDashboardBase, staffDashboardPath } from "@/lib/navigation/dashboard-paths";
+import { getRequestPathname, getRequestSession } from "@/lib/request-context";
 
 export async function getStaffBaseFromRequest() {
-  const requestHeaders = await headers();
-  const pathname = requestHeaders.get("x-pathname") ?? "";
-  const session = await auth.api.getSession({ headers: requestHeaders });
+  const pathname = await getRequestPathname();
+  const session = await getRequestSession();
   return getStaffDashboardBase(pathname, session?.user?.role);
 }
 

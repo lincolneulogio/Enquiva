@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { getI18n } from "@/lib/i18n/server";
 import { getPlatformRevenue } from "@/actions/admin/plans";
 import { AdminRevenuePanel } from "@/components/dashboard/admin/AdminRevenuePanel";
@@ -14,7 +13,7 @@ import Link from "next/link";
 
 export default async function AdminBillingPage() {
   const { t } = await getI18n();
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getRequestSession();
   if (session?.user?.role !== "super_admin") redirect(getStaffDashboardHome(session?.user?.role));
 
   const staffBase = await getStaffBaseFromRequest();

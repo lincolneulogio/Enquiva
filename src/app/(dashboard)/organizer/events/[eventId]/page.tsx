@@ -7,8 +7,7 @@ import { eq } from "drizzle-orm";
 import { EventForm } from "@/components/events/EventForm";
 import { getCategories } from "@/actions/events";
 import { getMyPlanSummary } from "@/actions/billing";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { getI18n } from "@/lib/i18n/server";
 
 interface OrganizerEditEventPageProps {
@@ -17,7 +16,7 @@ interface OrganizerEditEventPageProps {
 
 export default async function OrganizerEditEventPage({ params }: OrganizerEditEventPageProps) {
     const { t } = await getI18n();
-    const session = await auth.api.getSession({ headers: await headers() });
+    const session = await getRequestSession();
     if (!session?.user) redirect("/login");
 
     const { eventId } = await params;

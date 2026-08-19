@@ -58,6 +58,8 @@ export const events = pgTable(
     index("events_status_idx").on(t.status),
     index("events_date_idx").on(t.date),
     index("events_category_idx").on(t.category),
+    index("events_status_date_idx").on(t.status, t.date),
+    index("events_featured_status_date_idx").on(t.isFeatured, t.status, t.date),
   ]
 );
 

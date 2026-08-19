@@ -79,7 +79,7 @@ export function useRealtimeDashboardSync({
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
       refreshTimerRef.current = setTimeout(() => {
         if (!cancelledRef.current) routerRef.current.refresh();
-      }, 350);
+      }, 1200);
     };
 
     const pusher = getPusherClient();
@@ -125,7 +125,7 @@ export function useRealtimeDashboardSync({
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
       refreshTimerRef.current = setTimeout(() => {
         if (!cancelledRef.current) routerRef.current.refresh();
-      }, 350);
+      }, 1200);
     };
 
     const pusher = getPusherClient();

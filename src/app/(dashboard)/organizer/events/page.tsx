@@ -2,8 +2,7 @@ import { db } from "@/lib/db";
 import { events, registrations } from "@/lib/db/schema";
 import { eq, desc, and, gte, lte, count, sql, inArray } from "drizzle-orm";
 import { OCCUPYING_REGISTRATION_STATUSES } from "@/lib/registrations/constants";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import Link from "next/link";
 import { Calendar, Plus } from "lucide-react";
 import { DeleteEventButton } from "@/components/events/DeleteEventButton";
@@ -48,7 +47,7 @@ interface OrganizerEventsPageProps {
 export default async function OrganizerEventsPage({ searchParams }: OrganizerEventsPageProps) {
     const { locale, t } = await getI18n();
     const params = await searchParams;
-    const session = await auth.api.getSession({ headers: await headers() });
+    const session = await getRequestSession();
     const organizerId = session!.user.id;
 
     const requestedPage = Number(params.page ?? "1");

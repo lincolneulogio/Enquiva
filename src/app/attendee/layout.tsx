@@ -1,8 +1,7 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
 import { redirectIfAccountDisabled } from "@/lib/auth/redirect-if-disabled";
 import { PublicHeader } from "@/components/shared/PublicHeader";
+import { getRequestSession } from "@/lib/request-context";
 
 /** Historial de asistente para cualquier rol (staff incluida). */
 export default async function AttendeeLayout({
@@ -12,7 +11,7 @@ export default async function AttendeeLayout({
 }) {
   let session;
   try {
-    session = await auth.api.getSession({ headers: await headers() });
+    session = await getRequestSession();
   } catch {
     redirect("/login");
   }

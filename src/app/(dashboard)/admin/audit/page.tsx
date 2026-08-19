@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { db } from "@/lib/db";
 import { activityLogs } from "@/lib/db/schema";
 import { desc, or, and, eq, ilike, count, inArray } from "drizzle-orm";
@@ -65,7 +64,7 @@ const ACTION_LABEL_KEYS: Record<string, string> = {
 };
 
 export default async function AdminAuditPage({ searchParams }: AdminAuditPageProps) {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getRequestSession();
   const role = normalizeRole(session?.user?.role);
   const adminScope = await resolveAdminScope();
   const isSuperAdmin = role === "super_admin";

@@ -1,5 +1,5 @@
 import { pgTable, text, timestamp, boolean, integer, pgEnum, uuid, index, uniqueIndex, jsonb, type AnyPgColumn } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { users } from "./auth";
 import { events } from "./events";
 
@@ -68,6 +68,7 @@ export const registrations = pgTable(
     uniqueIndex("registrations_event_user_unique_idx").on(t.eventId, t.userId),
     index("registrations_hold_expires_idx").on(t.holdExpiresAt),
     index("registrations_parent_idx").on(t.parentRegistrationId),
+    index("registrations_event_status_idx").on(t.eventId, t.status),
   ]
 );
 
@@ -88,6 +89,9 @@ export const notifications = pgTable(
   (t) => [
     index("notifications_user_idx").on(t.userId),
     index("notifications_read_idx").on(t.read),
+    index("notifications_user_unread_idx")
+      .on(t.userId)
+      .where(sql`${t.read} = false`),
   ]
 );
 

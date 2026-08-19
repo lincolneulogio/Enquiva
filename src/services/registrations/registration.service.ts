@@ -533,29 +533,34 @@ export class RegistrationService {
   }
 
   /**
-   * Obtiene todas las inscripciones del usuario autenticado.
+   * Obtiene las inscripciones del usuario autenticado.
    */
-  static async getUserRegistrations(userId: string) {
-    return db
+  static async getUserRegistrations(userId: string, options?: { limit?: number }) {
+    const query = db
       .select({ registration: registrations, event: events, ticket: tickets })
       .from(registrations)
       .innerJoin(events, eq(registrations.eventId, events.id))
       .leftJoin(tickets, eq(tickets.registrationId, registrations.id))
       .where(eq(registrations.userId, userId))
       .orderBy(desc(registrations.registeredAt));
+
+    if (options?.limit != null) return query.limit(options.limit);
+    return query;
   }
 
   /**
-   * Obtiene todos los asistentes para un evento específico.
+   * Asistentes de un evento. Por defecto acota a 100 para no hidratar listados enormes.
    */
-  static async getEventAttendees(eventId: string) {
+  static async getEventAttendees(eventId: string, options?: { limit?: number }) {
+    const limit = options?.limit ?? 100;
     return db
       .select({ registration: registrations, user: users, ticket: tickets })
       .from(registrations)
       .innerJoin(users, eq(registrations.userId, users.id))
       .leftJoin(tickets, eq(tickets.registrationId, registrations.id))
       .where(eq(registrations.eventId, eventId))
-      .orderBy(registrations.registeredAt);
+      .orderBy(registrations.registeredAt)
+      .limit(limit);
   }
 
   /**

@@ -12,17 +12,16 @@ import {
   users as usersTable,
 } from "@/lib/db/schema";
 import { eq, inArray, and, sql } from "drizzle-orm";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 
 export default async function MemberTicketsPage() {
   const { t } = await getI18n();
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getRequestSession();
   const userName = session?.user?.name ?? null;
 
   const [registrations, payments] = await Promise.all([
-    getUserRegistrations(),
-    getUserPayments(),
+    getUserRegistrations(50),
+    getUserPayments(50),
   ]);
 
   const paymentByRegistrationId = new Map<string, (typeof payments)[number]["payment"]>();
@@ -66,14 +65,11 @@ export default async function MemberTicketsPage() {
   }
 
   // ─── LOAD GUEST TICKETS AND DETAILS ────────────────────────────────────────
-  const { resolveGuestRegistrationIds } = await import("@/lib/registrations/guests");
-  const guestRegIds: string[] = [];
-  const guestsByParentId = new Map<string, string[]>();
-  for (const r of registrations) {
-    const ids = await resolveGuestRegistrationIds(r.registration);
-    guestRegIds.push(...ids);
-    guestsByParentId.set(r.registration.id, ids);
-  }
+  const { resolveGuestIdsByParent } = await import("@/lib/registrations/guests");
+  const guestsByParentId = await resolveGuestIdsByParent(
+    registrations.map((r) => r.registration),
+  );
+  const guestRegIds = [...guestsByParentId.values()].flat();
 
   const guestDetailsMap = new Map<
     string,

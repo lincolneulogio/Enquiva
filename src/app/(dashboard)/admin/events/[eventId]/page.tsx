@@ -7,8 +7,7 @@ import { eq } from "drizzle-orm";
 import { EventForm } from "@/components/events/EventForm";
 import { getCategories } from "@/actions/events";
 import { getI18n } from "@/lib/i18n/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { assertEventInAdminScope } from "@/lib/organizations/admin-scope";
 
 interface AdminEditEventPageProps {
@@ -24,7 +23,7 @@ export default async function AdminEditEventPage({ params }: AdminEditEventPageP
     const eventsPath = staffDashboardPath(staffBase, "events");
     const { eventId } = await params;
 
-    const session = await auth.api.getSession({ headers: await headers() });
+    const session = await getRequestSession();
     if (!session?.user) redirect("/login");
 
     try {

@@ -3,8 +3,8 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sessions, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import { normalizeRole } from "@/lib/auth/rbac";
+import { getRequestHeaders, getRequestSession } from "@/lib/request-context";
 
 export type SessionUser = NonNullable<
   Awaited<ReturnType<typeof auth.api.getSession>>
@@ -26,8 +26,8 @@ export class AuthError extends Error {
 }
 
 const readSession = cache(async () => {
-  const requestHeaders = await headers();
-  const session = await auth.api.getSession({ headers: requestHeaders });
+  const requestHeaders = await getRequestHeaders();
+  const session = await getRequestSession();
   return { session, headers: requestHeaders };
 });
 

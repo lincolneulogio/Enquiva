@@ -5,6 +5,7 @@ import { AlertTriangle, Clock, Info, Megaphone, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AnnouncementSeverity } from "@/lib/settings/platform-ops";
 import { isWithinInclusiveStartWindow } from "@/lib/datetime/zoned-day";
+import { usePathname } from "next/navigation";
 import { useLocale } from "@/components/providers/LocaleProvider";
 
 export const BANNER_OFFSET_VAR = "--enquiva-banner-offset";
@@ -120,6 +121,7 @@ export function PlatformAnnouncementBanner({
   timeZone?: string;
 }) {
   const { locale } = useLocale();
+  const pathname = usePathname();
   const text = message.trim();
   const [now, setNow] = useState(() => new Date());
   const [dismissed, setDismissed] = useState(false);
@@ -130,7 +132,8 @@ export function PlatformAnnouncementBanner({
   const eventDate = useMemo(() => parseIso(eventAt), [eventAt]);
 
   const inWindow = isWithinInclusiveStartWindow(now, startDate, endDate);
-  const shouldShow = enabled && Boolean(text) && inWindow && !dismissed;
+  const shouldShow =
+    pathname !== "/maintenance" && enabled && Boolean(text) && inWindow && !dismissed;
 
   useEffect(() => {
     try {

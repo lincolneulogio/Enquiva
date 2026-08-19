@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import {
   getNotifications,
   getUnreadNotificationsCount,
@@ -28,17 +29,6 @@ interface DashboardTopbarProps {
 
 export async function DashboardTopbar({ user }: DashboardTopbarProps) {
   const role = normalizeRole(user.role);
-  const [unreadCount, initialNotifications, adminScope, memberships] = await Promise.all([
-    getUnreadNotificationsCount(),
-    getNotifications(8),
-    user.id && role === "admin"
-      ? resolveAdminScopeForUser(user.id, user.role)
-      : Promise.resolve(null),
-    user.id && role !== "super_admin"
-      ? OrganizationService.listActiveMembershipsForUser(user.id)
-      : Promise.resolve([]),
-  ]);
-  const organizationId = adminScope?.mode === "org" ? adminScope.organizationId : null;
 
   return (
     <header
@@ -59,7 +49,7 @@ export async function DashboardTopbar({ user }: DashboardTopbarProps) {
         <Link
           href="/"
           title="Ir a web"
-          className="hidden h-10 items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-3 text-sm font-medium text-primary transition-colors hover:bg-primary/20 sm:inline-flex lg:px-4"
+          className="hidden h-10 items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-3 text-sm font-medium text-primary hover:bg-primary/20 sm:inline-flex lg:px-4"
         >
           <Globe className="h-4 w-4" />
           <span className="hidden lg:inline">Ir a web</span>
@@ -69,30 +59,57 @@ export async function DashboardTopbar({ user }: DashboardTopbarProps) {
 
         <LanguageSwitcher />
 
-        {role !== "super_admin" ? (
-          <OrganizationSwitcher memberships={memberships} canJoin />
+        {role !== "super_admin" && user.id ? (
+          <Suspense fallback={<div className="h-10 w-24 animate-pulse rounded-xl bg-muted" />}>
+            <TopbarOrganizations userId={user.id} />
+          </Suspense>
         ) : null}
 
-        {/* Notificaciones */}
-        {user.id && (
-          <>
-            <RealtimeDashboardSync
-              userId={user.id}
-              role={user.role}
-              organizationId={organizationId}
-            />
-            <TopbarNotifications
-            userId={user.id}
-            role={user.role}
-            initialUnreadCount={unreadCount}
-            initialNotifications={initialNotifications}
-          />
-          </>
-        )}
+        {user.id ? (
+          <Suspense fallback={<div className="h-10 w-10 animate-pulse rounded-xl bg-muted" />}>
+            <TopbarLiveCluster user={user} />
+          </Suspense>
+        ) : null}
 
-        {/* Usuario + cerrar sesión */}
         <TopbarUserMenu user={user} />
       </div>
     </header>
+  );
+}
+
+async function TopbarOrganizations({ userId }: { userId: string }) {
+  const memberships = await OrganizationService.listActiveMembershipsForUser(userId);
+  return <OrganizationSwitcher memberships={memberships} canJoin />;
+}
+
+async function TopbarLiveCluster({
+  user,
+}: {
+  user: DashboardTopbarProps["user"];
+}) {
+  const role = normalizeRole(user.role);
+  const [unreadCount, initialNotifications, adminScope] = await Promise.all([
+    getUnreadNotificationsCount(),
+    getNotifications(8),
+    user.id && role === "admin"
+      ? resolveAdminScopeForUser(user.id, user.role)
+      : Promise.resolve(null),
+  ]);
+  const organizationId = adminScope?.mode === "org" ? adminScope.organizationId : null;
+
+  return (
+    <>
+      <RealtimeDashboardSync
+        userId={user.id!}
+        role={user.role}
+        organizationId={organizationId}
+      />
+      <TopbarNotifications
+        userId={user.id!}
+        role={user.role}
+        initialUnreadCount={unreadCount}
+        initialNotifications={initialNotifications}
+      />
+    </>
   );
 }

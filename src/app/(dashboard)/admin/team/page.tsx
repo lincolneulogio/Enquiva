@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { getMyOrganization } from "@/actions/organizations";
 import { AdminTeamPanel } from "@/components/dashboard/admin/AdminTeamPanel";
 import { getI18n } from "@/lib/i18n/server";
@@ -10,7 +9,7 @@ import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";
 
 export default async function AdminTeamPage() {
   const { t } = await getI18n();
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getRequestSession();
   if (!session?.user) redirect("/login");
 
   const role = normalizeRole(session.user.role);

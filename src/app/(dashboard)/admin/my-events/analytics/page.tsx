@@ -4,8 +4,7 @@ import { AdminAnalyticsView } from "@/components/dashboard/admin/AdminAnalyticsV
 import { AdminAnalyticsScopeNav } from "@/components/dashboard/admin/AdminAnalyticsScopeNav";
 import { getAdminDashboardStats, type AdminStatsRange } from "@/lib/analytics/admin";
 import { getI18n } from "@/lib/i18n/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { getStaffDashboardHome, staffDashboardPath } from "@/lib/navigation/dashboard-paths";
 import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
 import { resolveAdminScope } from "@/lib/organizations/admin-scope";
@@ -26,7 +25,7 @@ interface AdminMyEventsAnalyticsPageProps {
 export default async function AdminMyEventsAnalyticsPage({
   searchParams,
 }: AdminMyEventsAnalyticsPageProps) {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getRequestSession();
   const adminScope = await resolveAdminScope();
   const staffBase = await getStaffBaseFromRequest();
 

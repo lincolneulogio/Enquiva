@@ -30,6 +30,19 @@ const LocaleContext = createContext<LocaleContextValue | null>(null);
 
 const fallbackLocale: Locale = "es";
 
+function readDocumentLocale(fallback: Locale): Locale {
+    if (typeof document === "undefined") return resolveLocale(fallback);
+    const match = document.cookie.match(
+        new RegExp(`(?:^|;\\s*)${localeCookieName}=([^;]*)`)
+    );
+    if (!match?.[1]) return resolveLocale(fallback);
+    try {
+        return resolveLocale(decodeURIComponent(match[1]));
+    } catch {
+        return resolveLocale(fallback);
+    }
+}
+
 const fallbackLocaleContext: LocaleContextValue = {
     locale: fallbackLocale,
     setLocale: () => {
@@ -48,6 +61,13 @@ export function LocaleProvider({ initialLocale, children }: LocaleProviderProps)
     const router = useRouter();
     const [locale, setLocaleState] = useState<Locale>(resolveLocale(initialLocale));
     const [isPending, startTransition] = useTransition();
+
+    useEffect(() => {
+        const fromCookie = readDocumentLocale(initialLocale);
+        if (fromCookie !== locale) setLocaleState(fromCookie);
+        // Solo al montar: cookie de idioma sin forzar cookies() en el layout raíz.
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- mount sync
+    }, []);
 
     useEffect(() => {
         document.documentElement.lang = locale;

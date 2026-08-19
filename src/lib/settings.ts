@@ -17,6 +17,7 @@ import {
   type AnnouncementSeverity,
   type PlatformOpsStatus,
 } from "@/lib/settings/platform-ops";
+import { CACHE_KEYS, CACHE_TTL, getCached, invalidateCache, setCached } from "@/lib/redis";
 import {
   DEFAULT_PLATFORM_TIMEZONE,
   normalizePlatformLocale,
@@ -392,9 +393,19 @@ async function ensureSettingsRow(): Promise<SystemSettings> {
   return row ? rowToSettings(row) : initial;
 }
 
+export async function invalidateSystemSettingsCache(): Promise<void> {
+  invalidatePlatformOpsCache();
+  await invalidateCache(CACHE_KEYS.platformSettings);
+}
+
 export async function getSystemSettings(): Promise<SystemSettings> {
   try {
-    return await ensureSettingsRow();
+    const cached = await getCached<SystemSettings>(CACHE_KEYS.platformSettings);
+    if (cached) return cached;
+
+    const settings = await ensureSettingsRow();
+    await setCached(CACHE_KEYS.platformSettings, settings, CACHE_TTL.platformSettings);
+    return settings;
   } catch (error) {
     console.error("[settings] Failed to load from database, using defaults:", error);
     const legacy = await readLegacyJsonSettings();
@@ -439,7 +450,7 @@ export async function saveSystemSettings(
       },
     });
 
-  invalidatePlatformOpsCache();
+  await invalidateSystemSettingsCache();
   return updated;
 }
 
@@ -517,7 +528,7 @@ export async function saveSmtpSettings(
       },
     });
 
-  invalidatePlatformOpsCache();
+  await invalidateSystemSettingsCache();
   const { invalidateMailTransporterCache } = await import("@/lib/mail/transporter");
   invalidateMailTransporterCache();
 

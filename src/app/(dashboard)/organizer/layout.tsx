@@ -13,6 +13,8 @@ import { DashboardAICopilot } from "@/components/dashboard/IACopilot/DashboardAI
 import { OrganizationService } from "@/lib/organizations/organization.service";
 import { redirectIfAccountDisabled } from "@/lib/auth/redirect-if-disabled";
 import { getRequestPathname, getRequestSession } from "@/lib/request-context";
+import { Suspense } from "react";
+import { DashboardRouteLoading } from "@/components/dashboard/DashboardRouteLoading";
 
 const BILLING_PATH = "/organizer/billing";
 
@@ -129,10 +131,12 @@ export default async function OrganizerLayout({
           {!planSummary.plansConfigured ? (
             <PlatformPlansPendingBanner audience="organizer" />
           ) : null}
-          {children}
+          <Suspense fallback={<DashboardRouteLoading />}>{children}</Suspense>
         </main>
       </div>
-      <DashboardAICopilot userId={session.user.id} role={role} />
+      <Suspense fallback={null}>
+        <DashboardAICopilot user={session.user} />
+      </Suspense>
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { getPaymentMethodsPageContext } from "@/actions/payment-methods";
 import { PaymentMethodsManager } from "@/components/payments/PaymentMethodsManager";
 import { getI18n } from "@/lib/i18n/server";
@@ -8,7 +7,7 @@ import { getI18n } from "@/lib/i18n/server";
 import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";
 
 export default async function AdminPaymentMethodsPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getRequestSession();
   if (session?.user?.role !== "super_admin") redirect(getStaffDashboardHome(session?.user?.role));
 
   const { t } = await getI18n();

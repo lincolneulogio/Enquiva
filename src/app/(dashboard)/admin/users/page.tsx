@@ -2,8 +2,7 @@
 import { users } from "@/lib/db/schema";
 import { and, count, desc, eq, ilike, or } from "drizzle-orm";
 import { UserCog, Crown, ShieldCheck, Briefcase, UserRound, Search, X, QrCode } from "lucide-react";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { RoleSelector } from "./RoleSelector";
 import { DeleteUserButton } from "./DeleteUserButton";
 import { ToggleUserActiveButton } from "./ToggleUserActiveButton";
@@ -40,7 +39,7 @@ const roleIcons = {
 export default async function AdminUsersPage({ searchParams }: AdminUsersPageProps) {
     const { locale, t } = await getI18n();
   const staffBase = await getStaffBaseFromRequest();
-    const session = await auth.api.getSession({ headers: await headers() });
+    const session = await getRequestSession();
     const currentUserId = session!.user.id;
     const currentRole = normalizeRole(session!.user.role);
     const adminScope = await resolveAdminScope();

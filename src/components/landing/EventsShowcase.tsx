@@ -2,13 +2,15 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { EventCard } from "@/components/events/EventCard";
 import type { Event } from "@/lib/db/schema";
+import type { Locale } from "@/lib/i18n/core";
 
 interface EventsShowcaseProps {
   events: Array<Event & { attendeeCount?: number }>;
   t: (key: string) => string;
+  locale?: Locale;
 }
 
-export function EventsShowcase({ events, t }: EventsShowcaseProps) {
+export function EventsShowcase({ events, t, locale }: EventsShowcaseProps) {
   if (events.length === 0) return null;
 
   return (
@@ -39,7 +41,7 @@ export function EventsShowcase({ events, t }: EventsShowcaseProps) {
               data-aos="zoom-in-up"
               data-aos-delay={String(70 + index * 60)}
             >
-              <EventCard event={event} priority={index === 0} hideDateMeta />
+              <EventCard event={event} priority={index === 0} hideDateMeta locale={locale} />
             </div>
           ))}
         </div>

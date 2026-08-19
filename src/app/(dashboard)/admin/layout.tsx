@@ -15,6 +15,8 @@ import { getOrganizerPlanSummary } from "@/lib/billing/enforce";
 import { redirectIfAccountDisabled } from "@/lib/auth/redirect-if-disabled";
 import { redirectIfDashboardPathForbidden } from "@/lib/navigation/enforce-dashboard-path";
 import { getRequestPathname, getRequestSession } from "@/lib/request-context";
+import { Suspense } from "react";
+import { DashboardRouteLoading } from "@/components/dashboard/DashboardRouteLoading";
 
 export default async function AdminLayout({
   children,
@@ -77,10 +79,12 @@ export default async function AdminLayout({
           {!planSummary.plansConfigured ? (
             <PlatformPlansPendingBanner audience="admin" />
           ) : null}
-          {children}
+          <Suspense fallback={<DashboardRouteLoading />}>{children}</Suspense>
         </main>
       </div>
-      <DashboardAICopilot userId={session.user.id} role={role} />
+      <Suspense fallback={null}>
+        <DashboardAICopilot user={session.user} />
+      </Suspense>
     </div>
   );
 }

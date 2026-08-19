@@ -453,10 +453,13 @@ export class EventService {
   }
 
   /**
-   * Obtiene todos los eventos de un organizador específico.
+   * Obtiene eventos de un organizador (JOIN de cupos). Paginar en dashboards.
    */
-  static async getOrganizerEvents(organizerId: string) {
-    return db
+  static async getOrganizerEvents(
+    organizerId: string,
+    options?: { limit?: number; offset?: number },
+  ) {
+    const query = db
       .select({
         event: events,
         attendeeCount: sql<number>`count(${registrations.id})::int`,
@@ -472,5 +475,38 @@ export class EventService {
       .where(eq(events.organizerId, organizerId))
       .groupBy(events.id)
       .orderBy(desc(events.createdAt));
+
+    if (options?.limit != null) {
+      return query.limit(options.limit).offset(options.offset ?? 0);
+    }
+    return query;
+  }
+
+  static async getOrganizerDashboardSnapshot(organizerId: string, recentLimit = 8) {
+    const [totalRow, publishedRow, attendeeRow, recentEvents] = await Promise.all([
+      db
+        .select({ count: count() })
+        .from(events)
+        .where(eq(events.organizerId, organizerId)),
+      db
+        .select({ count: count() })
+        .from(events)
+        .where(and(eq(events.organizerId, organizerId), eq(events.status, "published"))),
+      db
+        .select({
+          attendeeCount: sql<number>`count(${registrations.id})::int`,
+        })
+        .from(registrations)
+        .innerJoin(events, eq(registrations.eventId, events.id))
+        .where(and(eq(events.organizerId, organizerId), activeOccupyingStatus)),
+      this.getOrganizerEvents(organizerId, { limit: recentLimit }),
+    ]);
+
+    return {
+      totalEvents: totalRow[0]?.count ?? 0,
+      publishedCount: publishedRow[0]?.count ?? 0,
+      totalAttendees: attendeeRow[0]?.attendeeCount ?? 0,
+      recentEvents,
+    };
   }
 }

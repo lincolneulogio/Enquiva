@@ -1,14 +1,13 @@
 import { getMySubscription, getPublicPlans, getPlatformBillingMethods, getMyPendingSubscriptionPayment, getMySubscriptionPaymentHistory } from "@/actions/billing";
 import { OrganizerBillingClient } from "@/components/dashboard/organizer/OrganizerBillingClient";
 import { env } from "@/env";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { isPlatformCulqiConfigured } from "@/lib/culqi/client";
 import { getI18n } from "@/lib/i18n/server";
 
 export default async function OrganizerBillingPage() {
   const { t } = await getI18n();
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getRequestSession();
   const [subscription, availablePlans, platformMethods, pendingPayment, paymentHistory] = await Promise.all([
     getMySubscription(),
     getPublicPlans(),

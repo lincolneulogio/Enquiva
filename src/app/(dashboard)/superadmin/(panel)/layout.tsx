@@ -8,6 +8,8 @@ import { DashboardAICopilot } from "@/components/dashboard/IACopilot/DashboardAI
 import { redirectIfAccountDisabled } from "@/lib/auth/redirect-if-disabled";
 import { redirectIfDashboardPathForbidden } from "@/lib/navigation/enforce-dashboard-path";
 import { getRequestPathname, getRequestSession } from "@/lib/request-context";
+import { Suspense } from "react";
+import { DashboardRouteLoading } from "@/components/dashboard/DashboardRouteLoading";
 
 export default async function SuperadminLayout({
   children,
@@ -53,10 +55,12 @@ export default async function SuperadminLayout({
       <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
         <DashboardTopbar user={session.user} />
         <main className="min-w-0 flex-1 overflow-x-hidden p-4 pt-[calc(env(safe-area-inset-top)+5.75rem)] sm:p-6 sm:pt-[calc(env(safe-area-inset-top)+6.25rem)] lg:p-8 lg:pt-8">
-          {children}
+          <Suspense fallback={<DashboardRouteLoading />}>{children}</Suspense>
         </main>
       </div>
-      <DashboardAICopilot userId={session.user.id} role={role} />
+      <Suspense fallback={null}>
+        <DashboardAICopilot user={session.user} />
+      </Suspense>
     </div>
   );
 }

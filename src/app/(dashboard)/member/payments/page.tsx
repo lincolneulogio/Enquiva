@@ -62,7 +62,7 @@ function getPaymentDynamicCaption(
 
 export default async function MemberPaymentsPage() {
   const { locale, t } = await getI18n();
-  const payments = await getUserPayments();
+  const payments = await getUserPayments(50);
 
   return (
     <div className="space-y-6">

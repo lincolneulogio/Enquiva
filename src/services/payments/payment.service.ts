@@ -490,10 +490,10 @@ export class PaymentService {
   }
 
   /**
-   * Obtiene todos los pagos del usuario autenticado.
+   * Pagos del usuario autenticado. `limit` evita hidratar historiales enormes.
    */
-  static async getUserPayments(userId: string) {
-    return db
+  static async getUserPayments(userId: string, options?: { limit?: number }) {
+    const query = db
       .select({
         payment: payments,
         registration: registrations,
@@ -508,6 +508,30 @@ export class PaymentService {
       .leftJoin(transportRoutes, eq(transportRoutes.id, transportBookings.routeId))
       .where(eq(payments.userId, userId))
       .orderBy(desc(payments.createdAt));
+
+    if (options?.limit != null) return query.limit(options.limit);
+    return query;
+  }
+
+  static async getPaymentForRegistration(userId: string, registrationId: string) {
+    const [row] = await db
+      .select({
+        payment: payments,
+        registration: registrations,
+        event: events,
+        transportBooking: transportBookings,
+        transportRoute: transportRoutes,
+      })
+      .from(payments)
+      .innerJoin(registrations, eq(payments.registrationId, registrations.id))
+      .innerJoin(events, eq(registrations.eventId, events.id))
+      .leftJoin(transportBookings, eq(transportBookings.id, payments.transportBookingId))
+      .leftJoin(transportRoutes, eq(transportRoutes.id, transportBookings.routeId))
+      .where(and(eq(payments.userId, userId), eq(payments.registrationId, registrationId)))
+      .orderBy(desc(payments.createdAt))
+      .limit(1);
+
+    return row ?? null;
   }
 
   /**

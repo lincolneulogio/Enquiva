@@ -29,7 +29,10 @@ export const users = pgTable("users", {
   lastSeenAt: timestamp("last_seen_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (t) => [
+  index("users_organization_idx").on(t.organizationId),
+  index("users_role_idx").on(t.role),
+]);
 
 /** Better Auth two-factor plugin storage. */
 export const twoFactor = pgTable("two_factor", {

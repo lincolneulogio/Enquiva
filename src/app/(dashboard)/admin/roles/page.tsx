@@ -4,9 +4,8 @@ import { count, eq } from "drizzle-orm";
 import { RoleEditor } from "./RoleEditor";
 import { Shield } from "lucide-react";
 import { SeedRolesButton } from "@/components/dashboard/admin/SeedRolesButton";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getRequestSession } from "@/lib/request-context";
 import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";
 import { getI18n } from "@/lib/i18n/server";
 import { ROLE_ORDER, type AppRole } from "@/lib/auth/rbac";
@@ -37,7 +36,7 @@ async function getRolesWithCounts() {
 
 export default async function AdminRolesPage() {
     const { locale, t } = await getI18n();
-    const session = await auth.api.getSession({ headers: await headers() });
+    const session = await getRequestSession();
     if (!session?.user) redirect("/login");
     if (session.user.role !== "super_admin") redirect(getStaffDashboardHome(session.user.role));
 

@@ -21,8 +21,7 @@ import {
   truncate,
 } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { getLocale } from "@/lib/i18n/server";
-import { translate } from "@/lib/i18n/core";
+import { defaultLocale, translate, type Locale } from "@/lib/i18n/core";
 import type { ViewerEventStatus } from "@/lib/events/viewer-event-status";
 
 interface EventCardProps {
@@ -33,17 +32,19 @@ interface EventCardProps {
   /** Oculta la fila de fecha en meta (ya aparece en la portada). */
   hideDateMeta?: boolean;
   viewerStatus?: ViewerEventStatus;
+  /** Idioma del caller. Default de código: no leer cookies en el catálogo público. */
+  locale?: Locale;
 }
 
-export async function EventCard({
+export function EventCard({
   event,
   className,
   categoryMap,
   priority = false,
   hideDateMeta = false,
   viewerStatus,
+  locale = defaultLocale,
 }: EventCardProps) {
-  const locale = await getLocale();
   const t = (key: string, params?: Record<string, string | number>) =>
     translate(locale, key, params);
   const isVirtual = event.isVirtual;

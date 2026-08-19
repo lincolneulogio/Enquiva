@@ -1,5 +1,4 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 import { getI18n } from "@/lib/i18n/server";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { getSystemSettings } from "@/lib/settings";
@@ -10,7 +9,7 @@ import { OrganizationService } from "@/lib/organizations/organization.service";
 
 export default async function AdminSettingsPage() {
     const { t } = await getI18n();
-    const session = await auth.api.getSession({ headers: await headers() });
+    const session = await getRequestSession();
     const user = session!.user;
 
     const adminScope = await resolveAdminScope();

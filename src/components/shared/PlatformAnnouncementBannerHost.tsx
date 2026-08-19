@@ -1,32 +1,24 @@
-import { headers } from "next/headers";
-import { getPlatformOpsStatus, getSystemSettings } from "@/lib/settings";
+import { getSystemSettings } from "@/lib/settings";
 import { PlatformAnnouncementBanner } from "@/components/shared/PlatformAnnouncementBanner";
 
 /** Server wrapper: carga el aviso global y lo muestra en toda la app. */
 export async function PlatformAnnouncementBannerHost() {
-  const pathname = (await headers()).get("x-pathname") ?? "";
-  if (pathname === "/maintenance") return null;
-
-  const [ops, settings] = await Promise.all([
-    getPlatformOpsStatus(),
-    getSystemSettings().catch(() => null),
-  ]);
-
-  // Si está habilitado, el cliente decide la ventana (para activarse sin refresh).
-  if (!ops.announcementEnabled || !ops.announcementMessage.trim()) {
+  const settings = await getSystemSettings().catch(() => null);
+  if (!settings?.announcementEnabled || !settings.announcementMessage.trim()) {
     return null;
   }
 
   return (
     <PlatformAnnouncementBanner
-      enabled={ops.announcementEnabled}
-      message={ops.announcementMessage}
-      severity={ops.announcementSeverity}
-      dismissible={ops.announcementDismissible}
-      startsAt={ops.announcementStartsAt}
-      endsAt={ops.announcementEndsAt}
-      eventAt={ops.announcementEventAt}
-      timeZone={settings?.defaultTimezone}
+      enabled={settings.announcementEnabled}
+      message={settings.announcementMessage}
+      severity={settings.announcementSeverity}
+      dismissible={settings.announcementDismissible}
+      startsAt={settings.announcementStartsAt}
+      endsAt={settings.announcementEndsAt}
+      eventAt={settings.announcementEventAt}
+      timeZone={settings.defaultTimezone}
     />
   );
 }
+

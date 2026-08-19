@@ -1,5 +1,3 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { getUserRegistrations } from "@/actions/registrations";
 import Link from "next/link";
 import { Calendar, MapPin, CheckCircle2, Clock, XCircle, ArrowRight, Sparkles } from "lucide-react";
@@ -13,11 +11,12 @@ import {
 } from "@/lib/events/viewer-event-status";
 import { ViewerEventStatusBadge } from "@/components/events/ViewerEventStatusBadge";
 import { translate, type Locale } from "@/lib/i18n/core";
+import { getRequestSession } from "@/lib/request-context";
 
 export default async function MemberEventsPage() {
     const { locale, t } = await getI18n();
-    const session = await auth.api.getSession({ headers: await headers() });
-    const registrations = await getUserRegistrations();
+    const session = await getRequestSession();
+    const registrations = await getUserRegistrations(50);
     const viewerStatuses = session?.user
         ? await getViewerEventStatuses(
             session.user.id,

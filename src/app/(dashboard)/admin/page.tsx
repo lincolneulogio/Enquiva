@@ -13,12 +13,11 @@ import { getIntlLocale } from "@/lib/i18n/core";
 import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
 import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
 import { resolveAdminScope, getOrganizationIdFromScope } from "@/lib/organizations/admin-scope";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getRequestSession } from "@/lib/request-context";
 
 export default async function AdminDashboardPage() {
   const { locale, t } = await getI18n();
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getRequestSession();
   const staffBase = await getStaffBaseFromRequest();
   const adminScope = await resolveAdminScope();
   const organizationId = getOrganizationIdFromScope(adminScope);
