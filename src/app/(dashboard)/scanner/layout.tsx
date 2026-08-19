@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { DashboardSidebar } from "@/components/dashboard/navigation/DashboardSidebar";
 import { DashboardTopbar } from "@/components/dashboard/navigation/DashboardTopbar";
+import { DashboardContent } from "@/components/dashboard/navigation/DashboardContent";
 import { getEffectivePermissionsForRole } from "@/lib/auth/effective-permissions";
 import { SessionKeepAlive } from "@/components/auth/SessionKeepAlive";
 import { redirectIfAccountDisabled } from "@/lib/auth/redirect-if-disabled";
@@ -47,7 +48,7 @@ export default async function ScannerLayout({
         }}
         allowedPermissions={allowedPermissions}
       />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <DashboardContent>
         <DashboardTopbar
           user={{
             id: session.user.id,
@@ -60,7 +61,7 @@ export default async function ScannerLayout({
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
           <Suspense fallback={<DashboardRouteLoading />}>{children}</Suspense>
         </main>
-      </div>
+      </DashboardContent>
     </div>
   );
 }

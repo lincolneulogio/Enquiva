@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { DashboardSidebar } from "@/components/dashboard/navigation/DashboardSidebar";
 import { DashboardTopbar } from "@/components/dashboard/navigation/DashboardTopbar";
+import { DashboardContent } from "@/components/dashboard/navigation/DashboardContent";
 import { redirectIfDashboardPathForbidden } from "@/lib/navigation/enforce-dashboard-path";
 import { getOrganizerPlanSummary, planIncludesBroadcasts, planIncludesFeature } from "@/lib/billing/enforce";
 import { getEffectivePermissionsForRole } from "@/lib/auth/effective-permissions";
@@ -64,7 +65,7 @@ export default async function OrganizerLayout({
               showExports: false,
             }}
           />
-          <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
+          <DashboardContent>
             <DashboardTopbar user={session.user} />
             <main className="relative min-w-0 flex-1 overflow-x-hidden p-4 pt-[calc(env(safe-area-inset-top)+5.75rem)] sm:p-6 sm:pt-[calc(env(safe-area-inset-top)+6.25rem)] lg:p-8 lg:pt-8">
               <div
@@ -88,7 +89,7 @@ export default async function OrganizerLayout({
                 entityName={pendingApproval.organization.name}
               />
             </main>
-          </div>
+          </DashboardContent>
         </div>
       );
     }
@@ -122,7 +123,7 @@ export default async function OrganizerLayout({
           showExports: planIncludesFeature(plan, "exports", isUnlimited),
         }}
       />
-      <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
+      <DashboardContent>
         <DashboardTopbar user={session.user} />
         <main className="min-w-0 flex-1 overflow-x-hidden p-4 pt-[calc(env(safe-area-inset-top)+5.75rem)] sm:p-6 sm:pt-[calc(env(safe-area-inset-top)+6.25rem)] lg:p-8 lg:pt-8">
           {subscription?.accessBlocked ? (
@@ -133,7 +134,7 @@ export default async function OrganizerLayout({
           ) : null}
           <Suspense fallback={<DashboardRouteLoading />}>{children}</Suspense>
         </main>
-      </div>
+      </DashboardContent>
       <Suspense fallback={null}>
         <DashboardAICopilot user={session.user} />
       </Suspense>

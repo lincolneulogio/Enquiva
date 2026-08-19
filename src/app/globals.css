@@ -74,6 +74,7 @@
 @layer base {
   :root {
     --enquiva-banner-offset: 0px;
+    --dashboard-sidebar-width: 16rem;
     --background: 34 44% 93%;
     --foreground: 25 60% 16%;
     --card: 0 0% 99%;

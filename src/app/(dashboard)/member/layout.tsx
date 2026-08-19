@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { DashboardSidebar } from "@/components/dashboard/navigation/DashboardSidebar";
 import { DashboardTopbar } from "@/components/dashboard/navigation/DashboardTopbar";
+import { DashboardContent } from "@/components/dashboard/navigation/DashboardContent";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { getEffectivePermissionsForRole } from "@/lib/auth/effective-permissions";
 import { getStaffDashboardHome } from "@/lib/navigation/dashboard-paths";
@@ -38,12 +39,12 @@ export default async function MemberLayout({
   return (
     <div className="flex min-h-screen bg-background">
       <DashboardSidebar role="member" user={session.user} allowedPermissions={allowedPermissions} />
-      <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
+      <DashboardContent>
         <DashboardTopbar user={session.user} />
         <main className="min-w-0 flex-1 overflow-x-hidden p-4 pt-[calc(env(safe-area-inset-top)+5.75rem)] sm:p-6 sm:pt-[calc(env(safe-area-inset-top)+6.25rem)] lg:p-8 lg:pt-8">
           <Suspense fallback={<DashboardRouteLoading />}>{children}</Suspense>
         </main>
-      </div>
+      </DashboardContent>
       <Suspense fallback={null}>
         <DashboardAICopilot user={session.user} />
       </Suspense>

@@ -294,6 +294,8 @@ const translations: Record<Locale, TranslationDictionary> = {
                 switching: "Cambiando…",
             },
             sidebar: {
+                collapse: "Minimizar menú",
+                expand: "Expandir menú",
                 groups: {
                     core: "Principal",
                     management: "Gestión",
@@ -2313,6 +2315,8 @@ const translations: Record<Locale, TranslationDictionary> = {
                 switching: "Switching…",
             },
             sidebar: {
+                collapse: "Collapse sidebar",
+                expand: "Expand sidebar",
                 groups: {
                     core: "Core",
                     management: "Management",

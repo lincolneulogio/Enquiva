@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
@@ -27,6 +26,8 @@ import {
   Crown,
   FileSpreadsheet,
   LineChart,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { signOut } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
@@ -36,11 +37,15 @@ import { normalizeRole, type Permission } from "@/lib/auth/rbac";
 import { filterNavItemsByPermissions } from "@/lib/navigation/sidebar-permissions";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import { BrandLogo } from "@/components/shared/BrandLogo";
+import { useDesktopSidebarCollapse } from "@/hooks/useDesktopSidebarCollapse";
+import { SIDEBAR_COLLAPSE_BOOT_SCRIPT } from "@/lib/navigation/sidebar-collapse";
+import { SidebarNavItem } from "@/components/dashboard/navigation/SidebarNavItem";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface NavItem {
   labelKey: string;
   href: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: ComponentType<{ className?: string }>;
   /** Si se define, el ítem solo aparece si el rol tiene al menos uno de estos permisos efectivos. */
   permissions?: readonly Permission[];
 }
@@ -493,6 +498,7 @@ export function DashboardSidebar({
   const router = useRouter();
   const t = useTranslations();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const { isCollapsed, toggleCollapsed } = useDesktopSidebarCollapse();
   const normalizedRole = normalizeRole(role);
 
   const sections = useMemo(() => {
@@ -548,6 +554,7 @@ export function DashboardSidebar({
 
   return (
     <>
+      <script dangerouslySetInnerHTML={{ __html: SIDEBAR_COLLAPSE_BOOT_SCRIPT }} />
       <div
         className={cn(
           "fixed inset-0 z-40 bg-black/40 transition-opacity lg:hidden",
@@ -589,25 +596,17 @@ export function DashboardSidebar({
                   {t(section.titleKey)}
                 </h3>
               )}
-              {section.items.map(({ labelKey, href, icon: Icon }) => {
-                const isActive = isNavItemActive(pathname, href);
-                return (
-                  <Link
-                    key={`mobile-${href}`}
+              {section.items.map(({ labelKey, href, icon }) => (
+                <div key={`mobile-${href}`} className="snap-start">
+                  <SidebarNavItem
                     href={href}
-                    onClick={() => setIsMobileOpen(false)}
-                    className={cn(
-                      "flex snap-start items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
-                      isActive
-                        ? "bg-sidebar-accent text-sidebar-primary"
-                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {t(labelKey)}
-                  </Link>
-                );
-              })}
+                    label={t(labelKey)}
+                    icon={icon}
+                    isActive={isNavItemActive(pathname, href)}
+                    onNavigate={() => setIsMobileOpen(false)}
+                  />
+                </div>
+              ))}
             </div>
           ))}
         </nav>
@@ -638,66 +637,118 @@ export function DashboardSidebar({
         </div>
       </aside>
 
-      <aside className="hidden w-64 shrink-0 flex-col bg-sidebar lg:fixed lg:bottom-0 lg:left-0 lg:z-20 lg:flex lg:overflow-hidden lg:top-[var(--enquiva-banner-offset,0px)] lg:h-[calc(100dvh-var(--enquiva-banner-offset,0px))]">
-        <div className="border-b border-sidebar-border px-6 py-5">
-          <BrandLogo href="/" size="md" textClassName="text-sidebar-foreground" />
-        </div>
+      <TooltipProvider delayDuration={200}>
+        <aside
+          className={cn(
+            "hidden shrink-0 flex-col bg-sidebar transition-[width] duration-200 ease-out lg:fixed lg:bottom-0 lg:left-0 lg:z-20 lg:flex lg:overflow-hidden lg:top-[var(--enquiva-banner-offset,0px)] lg:h-[calc(100dvh-var(--enquiva-banner-offset,0px))]",
+            "w-[var(--dashboard-sidebar-width,16rem)]",
+          )}
+        >
+          <div className={cn("border-b border-sidebar-border", isCollapsed ? "px-2 py-4" : "px-4 py-5")}>
+            <div className={cn("flex items-center", isCollapsed ? "justify-center" : "justify-between gap-2")}>
+              <BrandLogo
+                href="/"
+                size={isCollapsed ? "sm" : "md"}
+                showText={!isCollapsed}
+                textClassName="text-sidebar-foreground"
+                className="min-w-0"
+              />
+              {!isCollapsed ? (
+                <button
+                  type="button"
+                  onClick={toggleCollapsed}
+                  className="rounded-lg p-2 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                  aria-label={t("dashboard.sidebar.collapse")}
+                  aria-expanded={!isCollapsed}
+                >
+                  <PanelLeftClose className="h-4 w-4" />
+                </button>
+              ) : null}
+            </div>
+            {isCollapsed ? (
+              <button
+                type="button"
+                onClick={toggleCollapsed}
+                className="mx-auto mt-3 flex h-8 w-8 items-center justify-center rounded-lg text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                aria-label={t("dashboard.sidebar.expand")}
+                aria-expanded={!isCollapsed}
+              >
+                <PanelLeftOpen className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
 
-        <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
-          {sections.map((section, secIdx) => (
-            <div key={`desktop-sec-${section.titleKey || secIdx}`} className="space-y-1">
-              {section.titleKey && (
-                <h3 className="px-3 text-[10px] font-bold tracking-wider text-sidebar-foreground/45 uppercase select-none mb-1.5 mt-2 first:mt-0">
-                  {t(section.titleKey)}
-                </h3>
-              )}
-              {section.items.map(({ labelKey, href, icon: Icon }) => {
-                const isActive = isNavItemActive(pathname, href);
-                return (
-                  <Link
+          <nav className={cn("flex-1 space-y-4 overflow-y-auto py-4", isCollapsed ? "px-2" : "px-3")}>
+            {sections.map((section, secIdx) => (
+              <div key={`desktop-sec-${section.titleKey || secIdx}`} className="space-y-1">
+                {isCollapsed ? (
+                  secIdx > 0 ? (
+                    <div className="mx-auto my-2 h-px w-6 bg-sidebar-border" aria-hidden />
+                  ) : null
+                ) : section.titleKey ? (
+                  <h3 className="mb-1.5 mt-2 px-3 text-[10px] font-bold tracking-wider text-sidebar-foreground/45 uppercase select-none first:mt-0">
+                    {t(section.titleKey)}
+                  </h3>
+                ) : null}
+                {section.items.map(({ labelKey, href, icon }) => (
+                  <SidebarNavItem
                     key={href}
                     href={href}
-                    className={cn(
-                      "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
-                      isActive
-                        ? "bg-sidebar-accent text-sidebar-primary"
-                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {t(labelKey)}
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
-        </nav>
+                    label={t(labelKey)}
+                    icon={icon}
+                    isActive={isNavItemActive(pathname, href)}
+                    collapsed={isCollapsed}
+                  />
+                ))}
+              </div>
+            ))}
+          </nav>
 
-        <div className="shrink-0 border-t border-sidebar-border p-4">
-          <div className="mb-3 flex items-center gap-3">
-            <div className="relative h-8 w-8 overflow-hidden rounded-full bg-sidebar-accent">
-              {user.image ? (
-                <Image src={user.image} alt={user.name ?? ""} fill sizes="32px" className="object-cover" />
-              ) : (
-                <div className="flex h-full items-center justify-center text-xs font-semibold text-sidebar-foreground">
-                  {user.name?.[0]?.toUpperCase()}
+          <div className={cn("shrink-0 border-t border-sidebar-border", isCollapsed ? "p-2" : "p-4")}>
+            <div className={cn("mb-3 flex items-center", isCollapsed ? "justify-center" : "gap-3")}>
+              <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-sidebar-accent">
+                {user.image ? (
+                  <Image src={user.image} alt={user.name ?? ""} fill sizes="32px" className="object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-xs font-semibold text-sidebar-foreground">
+                    {user.name?.[0]?.toUpperCase()}
+                  </div>
+                )}
+              </div>
+              {!isCollapsed ? (
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-sidebar-foreground">{user.name}</p>
+                  <p className="truncate text-xs text-sidebar-foreground/50">{user.email}</p>
                 </div>
-              )}
+              ) : null}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="truncate text-sm font-medium text-sidebar-foreground">{user.name}</p>
-              <p className="truncate text-xs text-sidebar-foreground/50">{user.email}</p>
-            </div>
+            {isCollapsed ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    className="flex w-full items-center justify-center rounded-lg py-2 text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                    aria-label={t("common.signOut")}
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right">{t("common.signOut")}</TooltipContent>
+              </Tooltip>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+              >
+                <LogOut className="h-4 w-4" />
+                {t("common.signOut")}
+              </button>
+            )}
           </div>
-          <button
-            onClick={handleSignOut}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
-          >
-            <LogOut className="h-4 w-4" />
-            {t("common.signOut")}
-          </button>
-        </div>
-      </aside>
+        </aside>
+      </TooltipProvider>
     </>
   );
 }

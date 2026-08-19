@@ -1,6 +1,7 @@
 // ─── Navigation Components ───────────────────────────────────────────────────
 export * from "./navigation/DashboardSidebar";
 export * from "./navigation/DashboardTopbar";
+export * from "./navigation/DashboardContent";
 export * from "./navigation/SidebarMenuButton";
 export * from "./navigation/TopbarUserMenu";
 export * from "./navigation/LanguageSwitcher";
