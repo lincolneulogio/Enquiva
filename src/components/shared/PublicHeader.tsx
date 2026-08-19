@@ -7,6 +7,7 @@ import { useLocale } from "@/components/providers/LocaleProvider";
 import { useSession } from "@/lib/auth/client";
 import { PublicMobileMenu } from "@/components/shared/PublicMobileMenu";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import { AccentToggle } from "@/components/shared/AccentToggle";
 import { BrandLogo } from "@/components/shared/BrandLogo";
 import {
   getPublicDashboardPath,
@@ -62,6 +63,7 @@ export function PublicHeader() {
 
         <div className="flex items-center gap-2 md:hidden">
           <ThemeToggle />
+          <AccentToggle />
           <PublicMobileMenu
             links={navLinks}
             primaryHref={user ? dashboardPath : "/register"}
@@ -72,7 +74,10 @@ export function PublicHeader() {
         </div>
 
         <div className="hidden items-center gap-5 lg:gap-6 md:flex">
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <AccentToggle />
+          </div>
 
           {navLinks.map((link) => (
             <Link

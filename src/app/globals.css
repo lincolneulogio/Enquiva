@@ -42,6 +42,7 @@
   --color-sidebar-accent: hsl(var(--sidebar-accent));
   --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
   --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-footer: hsl(var(--sidebar-footer));
   --color-sidebar-ring: hsl(var(--sidebar-ring));
 
   --radius-lg: var(--radius);
@@ -107,6 +108,7 @@
     --sidebar-accent: 27 61% 24%;
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 27 61% 20%;
+    --sidebar-footer: 32 58% 22%;
     --sidebar-ring: 32 91% 44%;
     --font-display: var(--font-outfit);
   }
@@ -138,6 +140,7 @@
     --sidebar-accent: 25 45% 10%;
     --sidebar-accent-foreground: 34 44% 93%;
     --sidebar-border: 21 11% 14%;
+    --sidebar-footer: 32 36% 11%;
     --sidebar-ring: 32 91% 48%;
   }
 }

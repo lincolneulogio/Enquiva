@@ -22,6 +22,8 @@ type AccentModeConfig = {
   sidebarAccent: string;
   sidebarBorder: string;
   sidebarForeground: string;
+  /** Pie de perfil: variante del primary sobre el sidebar, por acento y modo. */
+  sidebarFooter: string;
 };
 
 const PRIMARY_FOREGROUND = "0 0% 100%";
@@ -53,6 +55,7 @@ export const ACCENT_COLORS: Record<
       sidebarAccent: "27 61% 24%",
       sidebarBorder: "27 61% 20%",
       sidebarForeground: "34 44% 93%",
+      sidebarFooter: "32 58% 22%",
     },
     dark: {
       primary: "32 91% 48%",
@@ -69,6 +72,7 @@ export const ACCENT_COLORS: Record<
       sidebarAccent: "25 45% 10%",
       sidebarBorder: "21 11% 14%",
       sidebarForeground: "34 44% 93%",
+      sidebarFooter: "32 36% 11%",
     },
   },
   emerald: {
@@ -89,6 +93,7 @@ export const ACCENT_COLORS: Record<
       sidebarAccent: "160 40% 18%",
       sidebarBorder: "160 40% 14%",
       sidebarForeground: "140 30% 93%",
+      sidebarFooter: "142 48% 18%",
     },
     dark: {
       primary: "142 65% 42%",
@@ -105,6 +110,7 @@ export const ACCENT_COLORS: Record<
       sidebarAccent: "160 30% 12%",
       sidebarBorder: "160 30% 10%",
       sidebarForeground: "140 30% 90%",
+      sidebarFooter: "142 32% 10%",
     },
   },
   rose: {
@@ -125,6 +131,7 @@ export const ACCENT_COLORS: Record<
       sidebarAccent: "330 40% 19%",
       sidebarBorder: "330 40% 15%",
       sidebarForeground: "330 30% 93%",
+      sidebarFooter: "330 50% 20%",
     },
     dark: {
       primary: "330 80% 60%",
@@ -141,6 +148,7 @@ export const ACCENT_COLORS: Record<
       sidebarAccent: "330 30% 12%",
       sidebarBorder: "330 30% 10%",
       sidebarForeground: "330 30% 90%",
+      sidebarFooter: "330 32% 11%",
     },
   },
   blue: {
@@ -161,6 +169,7 @@ export const ACCENT_COLORS: Record<
       sidebarAccent: "222 40% 18%",
       sidebarBorder: "222 40% 14%",
       sidebarForeground: "210 40% 93%",
+      sidebarFooter: "217 52% 18%",
     },
     dark: {
       primary: "217 91% 60%",
@@ -177,6 +186,7 @@ export const ACCENT_COLORS: Record<
       sidebarAccent: "222 30% 12%",
       sidebarBorder: "222 30% 10%",
       sidebarForeground: "210 40% 90%",
+      sidebarFooter: "217 38% 11%",
     },
   },
 };
@@ -214,6 +224,7 @@ export function getAccentCssVars(
     "--sidebar-accent": mode.sidebarAccent,
     "--sidebar-accent-foreground": sidebarAccentFg,
     "--sidebar-border": mode.sidebarBorder,
+    "--sidebar-footer": mode.sidebarFooter,
     "--sidebar-ring": mode.primary,
     "--chart-1": mode.primary,
     "--chart-2": mode.accent,

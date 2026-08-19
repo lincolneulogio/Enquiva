@@ -552,6 +552,13 @@ export function DashboardSidebar({
     await signOut({ fetchOptions: { onSuccess: () => router.push("/login") } });
   };
 
+  const footerSurfaceClass =
+    "shrink-0 border-t border-sidebar-primary/35 bg-sidebar-footer";
+  const footerAvatarClass =
+    "relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-sidebar-primary/30";
+  const footerSignOutClass =
+    "flex w-full items-center rounded-lg text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-primary/25 hover:text-sidebar-foreground";
+
   return (
     <>
       <script dangerouslySetInnerHTML={{ __html: SIDEBAR_COLLAPSE_BOOT_SCRIPT }} />
@@ -611,9 +618,9 @@ export function DashboardSidebar({
           ))}
         </nav>
 
-        <div className="shrink-0 border-t border-sidebar-border p-4">
+        <div className={cn(footerSurfaceClass, "p-4")}>
           <div className="mb-3 flex items-center gap-3">
-            <div className="relative h-8 w-8 overflow-hidden rounded-full bg-sidebar-accent">
+            <div className={footerAvatarClass}>
               {user.image ? (
                 <Image src={user.image} alt={user.name ?? ""} fill sizes="32px" className="object-cover" />
               ) : (
@@ -622,14 +629,15 @@ export function DashboardSidebar({
                 </div>
               )}
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-sidebar-foreground">{user.name}</p>
-              <p className="truncate text-xs text-sidebar-foreground/50">{user.email}</p>
+              <p className="truncate text-xs text-sidebar-foreground/60">{user.email}</p>
             </div>
           </div>
           <button
+            type="button"
             onClick={handleSignOut}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
+            className={cn(footerSignOutClass, "gap-2 px-3 py-2")}
           >
             <LogOut className="h-4 w-4" />
             {t("common.signOut")}
@@ -704,9 +712,9 @@ export function DashboardSidebar({
             ))}
           </nav>
 
-          <div className={cn("shrink-0 border-t border-sidebar-border", isCollapsed ? "p-2" : "p-4")}>
+          <div className={cn(footerSurfaceClass, isCollapsed ? "p-2" : "p-4")}>
             <div className={cn("mb-3 flex items-center", isCollapsed ? "justify-center" : "gap-3")}>
-              <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-sidebar-accent">
+              <div className={footerAvatarClass}>
                 {user.image ? (
                   <Image src={user.image} alt={user.name ?? ""} fill sizes="32px" className="object-cover" />
                 ) : (
@@ -718,7 +726,7 @@ export function DashboardSidebar({
               {!isCollapsed ? (
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-sidebar-foreground">{user.name}</p>
-                  <p className="truncate text-xs text-sidebar-foreground/50">{user.email}</p>
+                  <p className="truncate text-xs text-sidebar-foreground/60">{user.email}</p>
                 </div>
               ) : null}
             </div>
@@ -728,7 +736,7 @@ export function DashboardSidebar({
                   <button
                     type="button"
                     onClick={handleSignOut}
-                    className="flex w-full items-center justify-center rounded-lg py-2 text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                    className={cn(footerSignOutClass, "justify-center py-2")}
                     aria-label={t("common.signOut")}
                   >
                     <LogOut className="h-4 w-4" />
@@ -740,7 +748,7 @@ export function DashboardSidebar({
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                className={cn(footerSignOutClass, "gap-2 px-3 py-2")}
               >
                 <LogOut className="h-4 w-4" />
                 {t("common.signOut")}

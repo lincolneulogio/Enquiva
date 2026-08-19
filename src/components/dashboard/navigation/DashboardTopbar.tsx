@@ -9,6 +9,7 @@ import { TopbarNotifications } from "../notifications/TopbarNotifications";
 import { RealtimeDashboardSync } from "../RealtimeDashboardSync";
 import { SidebarMenuButton } from "./SidebarMenuButton";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import { AccentToggle } from "@/components/shared/AccentToggle";
 import Link from "next/link";
 import { Globe } from "lucide-react";
 import { BrandLogo } from "@/components/shared/BrandLogo";
@@ -56,6 +57,7 @@ export async function DashboardTopbar({ user }: DashboardTopbarProps) {
         </Link>
 
         <ThemeToggle />
+        <AccentToggle />
 
         <LanguageSwitcher />
 
