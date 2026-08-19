@@ -1041,7 +1041,13 @@ export class SubscriptionService {
     return filterPublicBillingPlans(all);
   }
 
-  static async getRevenueSummary() {
+  static async getRevenueSummary(options?: { page?: number; pageSize?: number }) {
+    const pageSize = options?.pageSize && options.pageSize > 0 ? Math.floor(options.pageSize) : 10;
+    const requestedPage = Number(options?.page ?? 1);
+    const page =
+      Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
+    const offset = (page - 1) * pageSize;
+
     const rows = await db
       .select({
         type: platformTransactions.type,
@@ -1050,11 +1056,15 @@ export class SubscriptionService {
       .from(platformTransactions)
       .groupBy(platformTransactions.type);
 
-    const recent = await db
-      .select()
-      .from(platformTransactions)
-      .orderBy(desc(platformTransactions.createdAt))
-      .limit(20);
+    const [recent, [recentCount]] = await Promise.all([
+      db
+        .select()
+        .from(platformTransactions)
+        .orderBy(desc(platformTransactions.createdAt))
+        .limit(pageSize)
+        .offset(offset),
+      db.select({ total: count() }).from(platformTransactions),
+    ]);
 
     const organizerActive = and(
       eq(subscriptions.status, "active"),
@@ -1092,6 +1102,9 @@ export class SubscriptionService {
     return {
       totals: rows,
       recent,
+      recentTotal: recentCount?.total ?? 0,
+      recentPage: page,
+      recentPageSize: pageSize,
       paidOrganizerSubscriptions: paidOrganizers?.total ?? 0,
       freeOrganizerSubscriptions: freeOrganizers?.total ?? 0,
       activeSubscriptions: totalOrganizers?.total ?? 0,

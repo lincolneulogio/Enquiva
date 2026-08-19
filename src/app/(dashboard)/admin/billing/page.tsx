@@ -11,14 +11,23 @@ import { getStaffDashboardHome, staffDashboardPath } from "@/lib/navigation/dash
 import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
 import Link from "next/link";
 
-export default async function AdminBillingPage() {
+interface AdminBillingPageProps {
+  searchParams: Promise<{ page?: string }>;
+}
+
+export default async function AdminBillingPage({ searchParams }: AdminBillingPageProps) {
   const { t } = await getI18n();
   const session = await getRequestSession();
   if (session?.user?.role !== "super_admin") redirect(getStaffDashboardHome(session?.user?.role));
 
+  const params = await searchParams;
+  const requestedPage = Number(params.page ?? "1");
+  const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
+
   const staffBase = await getStaffBaseFromRequest();
+  const billingPath = staffDashboardPath(staffBase, "billing");
   const [revenue, commissionSummary, invoices] = await Promise.all([
-    getPlatformRevenue(),
+    getPlatformRevenue(currentPage),
     getCommissionSettlementSummary(),
     CommissionInvoiceService.listRecent(),
   ]);
@@ -41,6 +50,10 @@ export default async function AdminBillingPage() {
         freeOrganizerSubscriptions={revenue.freeOrganizerSubscriptions}
         totals={revenue.totals}
         recent={revenue.recent}
+        recentTotal={revenue.recentTotal}
+        recentPage={revenue.recentPage}
+        recentPageSize={revenue.recentPageSize}
+        billingPath={billingPath}
       />
 
       <CommissionSettlementPanel summary={commissionSummary} invoices={invoices} />

@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { platformTransactions, users } from "@/lib/db/schema";
-import { and, desc, eq, or, sql } from "drizzle-orm";
+import { and, eq, or, sql } from "drizzle-orm";
 import { calculateNetCommission } from "@/lib/billing/commission-math";
 
 export type CommissionSettlementSummary = {
@@ -16,15 +16,6 @@ export type CommissionSettlementSummary = {
     organizerEmail: string | null;
     total: number;
     count: number;
-  }>;
-  recent: Array<{
-    id: string;
-    amount: string;
-    type: string;
-    description: string | null;
-    paymentId: string | null;
-    userId: string | null;
-    createdAt: Date;
   }>;
 };
 
@@ -88,21 +79,6 @@ export async function getCommissionSettlementSummary(): Promise<CommissionSettle
     .orderBy(sql`SUM(${platformTransactions.amount}) DESC`)
     .limit(20);
 
-  const recent = await db
-    .select({
-      id: platformTransactions.id,
-      amount: platformTransactions.amount,
-      type: platformTransactions.type,
-      description: platformTransactions.description,
-      paymentId: platformTransactions.paymentId,
-      userId: platformTransactions.userId,
-      createdAt: platformTransactions.createdAt,
-    })
-    .from(platformTransactions)
-    .where(ledgerCondition)
-    .orderBy(desc(platformTransactions.createdAt))
-    .limit(30);
-
   return {
     grossCommission: Number(totals?.gross ?? 0),
     refundReversals: Number(totals?.reversals ?? 0),
@@ -120,6 +96,5 @@ export async function getCommissionSettlementSummary(): Promise<CommissionSettle
       total: Number(r.total ?? 0),
       count: Number(r.count ?? 0),
     })),
-    recent,
   };
 }

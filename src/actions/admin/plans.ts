@@ -253,8 +253,8 @@ export async function deletePlan(id: string) {
   return { success: true };
 }
 
-export async function getPlatformRevenue() {
+export async function getPlatformRevenue(page = 1) {
   const user = await requireSuperAdmin();
   await assertPermission(user, "platform:billing:view");
-  return SubscriptionService.getRevenueSummary();
+  return SubscriptionService.getRevenueSummary({ page, pageSize: 10 });
 }

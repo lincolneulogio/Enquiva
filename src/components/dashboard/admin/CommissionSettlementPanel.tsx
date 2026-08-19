@@ -1,7 +1,7 @@
 "use client";
 
 import type { CommissionSettlementSummary } from "@/lib/billing/commission-settlement";
-import { Banknote, Building2, Receipt } from "lucide-react";
+import { Building2, Receipt } from "lucide-react";
 import {
   IssueCommissionInvoiceButton,
   MarkCommissionInvoicePaidButton,
@@ -19,6 +19,13 @@ type InvoiceRow = {
   organizerName: string | null;
   organizerEmail: string | null;
 };
+
+function invoiceStatusLabel(status: string) {
+  if (status === "paid") return "Pagada";
+  if (status === "issued") return "Emitida";
+  if (status === "cancelled") return "Anulada";
+  return status;
+}
 
 export function CommissionSettlementPanel({
   summary,
@@ -101,79 +108,41 @@ export function CommissionSettlementPanel({
         <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
           <h3 className="mb-3 flex items-center gap-2 font-semibold text-foreground">
             <Receipt className="h-4 w-4 text-primary" />
-            Movimientos recientes
+            Facturas de comisión
           </h3>
           <div className="max-h-80 space-y-2 overflow-y-auto">
-            {summary.recent.length === 0 ? (
+            {invoices.length === 0 ? (
               <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
-                Sin movimientos.
+                Aún no hay facturas emitidas. Usa Facturar en cada organizador.
               </p>
             ) : (
-              summary.recent.map((tx) => (
+              invoices.map(({ invoice, organizerName, organizerEmail }) => (
                 <div
-                  key={tx.id}
-                  className="flex items-start justify-between gap-3 rounded-xl border border-border/60 px-3 py-2.5 text-sm"
+                  key={invoice.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 px-3 py-2.5 text-sm"
                 >
                   <div className="min-w-0">
-                    <p className="line-clamp-2 text-foreground">
-                      {tx.description ?? "Comisión"}
+                    <p className="font-medium text-foreground">
+                      {organizerName ?? "Organizador"} · S/ {Number(invoice.amount).toFixed(2)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(tx.createdAt).toLocaleString("es-PE")}
-                      {tx.paymentId ? ` · pago ${tx.paymentId.slice(0, 8)}…` : ""}
+                      {organizerEmail ?? "—"} · {invoiceStatusLabel(invoice.status)}
+                      {invoice.issuedAt
+                        ? ` · emitida ${new Date(invoice.issuedAt).toLocaleDateString("es-PE")}`
+                        : ""}
                     </p>
                   </div>
-                  <p
-                    className={`inline-flex shrink-0 items-center gap-1 font-semibold ${
-                      Number(tx.amount) < 0
-                        ? "text-rose-600 dark:text-rose-400"
-                        : "text-orange-600 dark:text-orange-400"
-                    }`}
-                  >
-                    <Banknote className="h-3.5 w-3.5" />
-                    S/ {Number(tx.amount).toFixed(2)}
-                  </p>
+                  {invoice.status !== "paid" ? (
+                    <MarkCommissionInvoicePaidButton invoiceId={invoice.id} />
+                  ) : (
+                    <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                      Pagada
+                    </span>
+                  )}
                 </div>
               ))
             )}
           </div>
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-        <h3 className="mb-3 font-semibold text-foreground">Facturas de comisión</h3>
-        <div className="space-y-2">
-          {invoices.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
-              Aún no hay facturas emitidas. Usa Facturar en cada organizador.
-            </p>
-          ) : (
-            invoices.map(({ invoice, organizerName, organizerEmail }) => (
-              <div
-                key={invoice.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 px-3 py-2.5 text-sm"
-              >
-                <div className="min-w-0">
-                  <p className="font-medium text-foreground">
-                    {organizerName ?? "Organizador"} · S/ {Number(invoice.amount).toFixed(2)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {organizerEmail ?? "—"} · {invoice.status}
-                    {invoice.issuedAt
-                      ? ` · emitida ${new Date(invoice.issuedAt).toLocaleDateString("es-PE")}`
-                      : ""}
-                  </p>
-                </div>
-                {invoice.status !== "paid" ? (
-                  <MarkCommissionInvoicePaidButton invoiceId={invoice.id} />
-                ) : (
-                  <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                    Pagada
-                  </span>
-                )}
-              </div>
-            ))
-          )}
         </div>
       </div>
     </div>

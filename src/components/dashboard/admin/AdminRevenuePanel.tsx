@@ -4,12 +4,17 @@ import type { PlatformTransaction } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
 import { DollarSign, Receipt, Crown, Gift, Link2 } from "lucide-react";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
+import { TablePagination } from "@/components/dashboard/shared/TablePagination";
 
 interface AdminRevenuePanelProps {
   paidOrganizerSubscriptions: number;
   freeOrganizerSubscriptions: number;
   totals: Array<{ type: string; total: string }>;
   recent: PlatformTransaction[];
+  recentTotal: number;
+  recentPage: number;
+  recentPageSize: number;
+  billingPath: string;
 }
 
 export function AdminRevenuePanel({
@@ -17,6 +22,10 @@ export function AdminRevenuePanel({
   freeOrganizerSubscriptions,
   totals,
   recent,
+  recentTotal,
+  recentPage,
+  recentPageSize,
+  billingPath,
 }: AdminRevenuePanelProps) {
   const t = useTranslations();
   const { locale } = useLocale();
@@ -108,48 +117,57 @@ export function AdminRevenuePanel({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <h2 className="mb-4 border-b border-border/50 pb-3 text-lg font-semibold text-foreground">
-          {t("billing.revenue.movementsTitle")}
-        </h2>
-        <div className="space-y-2">
-          {recent.map((tx) => (
-            <div
-              key={tx.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/50 px-4 py-3 text-sm dark:bg-background/30"
-            >
-              <div>
-                <p className="font-medium capitalize text-foreground">{typeLabels[tx.type] ?? tx.type}</p>
-                <p className="text-muted-foreground">{tx.description ?? "—"}</p>
-                {tx.subscriptionPaymentId ? (
-                  <p className="mt-1 inline-flex items-center gap-1 text-xs text-primary">
-                    <Link2 className="h-3 w-3" />
-                    {t("billing.revenue.linkedPayment")}:{" "}
-                    <span className="font-mono">{tx.subscriptionPaymentId.slice(0, 8)}…</span>
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="p-6 pb-4">
+          <h2 className="mb-4 border-b border-border/50 pb-3 text-lg font-semibold text-foreground">
+            {t("billing.revenue.movementsTitle")}
+          </h2>
+          <div className="space-y-2">
+            {recent.map((tx) => (
+              <div
+                key={tx.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/50 px-4 py-3 text-sm dark:bg-background/30"
+              >
+                <div>
+                  <p className="font-medium capitalize text-foreground">{typeLabels[tx.type] ?? tx.type}</p>
+                  <p className="text-muted-foreground">{tx.description ?? "—"}</p>
+                  {tx.subscriptionPaymentId ? (
+                    <p className="mt-1 inline-flex items-center gap-1 text-xs text-primary">
+                      <Link2 className="h-3 w-3" />
+                      {t("billing.revenue.linkedPayment")}:{" "}
+                      <span className="font-mono">{tx.subscriptionPaymentId.slice(0, 8)}…</span>
+                    </p>
+                  ) : null}
+                  {tx.paymentId ? (
+                    <p className="mt-1 inline-flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
+                      <Link2 className="h-3 w-3" />
+                      Pago evento:{" "}
+                      <span className="font-mono">{tx.paymentId.slice(0, 8)}…</span>
+                    </p>
+                  ) : null}
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-foreground">S/ {Number(tx.amount).toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(tx.createdAt).toLocaleString(dateLocale)}
                   </p>
-                ) : null}
-                {tx.paymentId ? (
-                  <p className="mt-1 inline-flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
-                    <Link2 className="h-3 w-3" />
-                    Pago evento:{" "}
-                    <span className="font-mono">{tx.paymentId.slice(0, 8)}…</span>
-                  </p>
-                ) : null}
+                </div>
               </div>
-              <div className="text-right">
-                <p className="font-semibold text-foreground">S/ {Number(tx.amount).toFixed(2)}</p>
-                <p className="text-xs text-muted-foreground">
-                  {new Date(tx.createdAt).toLocaleString(dateLocale)}
-                </p>
-              </div>
-            </div>
-          ))}
-          {recent.length === 0 && (
-            <p className="rounded-lg border border-dashed border-border bg-muted/10 px-4 py-6 text-center text-sm text-muted-foreground">
-              {t("billing.revenue.noMovements")}
-            </p>
-          )}
+            ))}
+            {recent.length === 0 && (
+              <p className="rounded-lg border border-dashed border-border bg-muted/10 px-4 py-6 text-center text-sm text-muted-foreground">
+                {t("billing.revenue.noMovements")}
+              </p>
+            )}
+          </div>
         </div>
+        <TablePagination
+          basePath={billingPath}
+          currentPage={recentPage}
+          totalPages={Math.max(1, Math.ceil(recentTotal / recentPageSize))}
+          totalItems={recentTotal}
+          pageSize={recentPageSize}
+        />
       </div>
     </div>
   );
