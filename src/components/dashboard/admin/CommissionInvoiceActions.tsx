@@ -28,7 +28,7 @@ export function IssueCommissionInvoiceButton({ organizerId }: { organizerId: str
           }
         });
       }}
-      className="inline-flex items-center gap-1 rounded-lg border border-orange-500/30 bg-orange-500/10 px-2.5 py-1 text-xs font-medium text-orange-800 hover:bg-orange-500/20 disabled:opacity-50 dark:text-orange-200"
+      className="inline-flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/20 disabled:opacity-50"
     >
       {isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
       Facturar

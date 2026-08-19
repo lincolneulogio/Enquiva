@@ -62,16 +62,16 @@ export function AdminRevenuePanel({
           value={`S/ ${commissionTotal.toFixed(2)}`}
           subtitle="De pagos de eventos aprobados"
           icon={Receipt}
-          accent="text-orange-600 dark:text-orange-400"
-          accentBg="bg-orange-500/10 dark:bg-orange-500/15"
+          accent="text-primary"
+          accentBg="bg-primary/10"
         />
         <StatCard
           title="Suscripciones SaaS"
           value={`S/ ${subscriptionTotal.toFixed(2)}`}
           subtitle={t("billing.revenue.paidOrganizersSubtitle")}
           icon={Crown}
-          accent="text-amber-600 dark:text-amber-400"
-          accentBg="bg-amber-500/10 dark:bg-amber-500/15"
+          accent="text-primary"
+          accentBg="bg-primary/10"
         />
         <StatCard
           title={t("billing.revenue.platformRevenueTitle")}
@@ -139,7 +139,7 @@ export function AdminRevenuePanel({
                     </p>
                   ) : null}
                   {tx.paymentId ? (
-                    <p className="mt-1 inline-flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
+                    <p className="mt-1 inline-flex items-center gap-1 text-xs text-primary">
                       <Link2 className="h-3 w-3" />
                       Pago evento:{" "}
                       <span className="font-mono">{tx.paymentId.slice(0, 8)}…</span>

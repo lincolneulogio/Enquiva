@@ -23,7 +23,7 @@ export async function AdminAnalyticsQuickLinks({ staffBase = "/superadmin" }: Ad
       titleKey: "analyticsOwnLinkTitle" as const,
       descriptionKey: "analyticsOwnLinkDescription" as const,
       Icon: UserCircle2,
-      iconClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+      iconClass: "bg-primary/10 text-primary",
     },
   ];
 

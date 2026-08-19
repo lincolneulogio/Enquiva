@@ -44,8 +44,8 @@ const SCOPE_CONFIG: Record<
     descriptionKey: "statsScopeOwnEventsDescription",
     badgeKey: "statsScopeBadgeOwn",
     Icon: UserCircle2,
-    badgeClass: "bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/20",
-    iconClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    badgeClass: "bg-primary/10 text-primary border-primary/20",
+    iconClass: "bg-primary/10 text-primary",
   },
   entity: {
     titleKey: "statsScopeEntityTitle",

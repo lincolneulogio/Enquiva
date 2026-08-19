@@ -33,8 +33,8 @@ export async function AdminRevenueSplitCards({
       value: snapshot.platformRevenue,
       href: staffDashboardPath(staffBase, "billing"),
       Icon: Crown,
-      color: "text-amber-600",
-      iconBg: "bg-amber-500/10",
+      color: "text-primary",
+      iconBg: "bg-primary/10",
     },
   ];
 

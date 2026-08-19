@@ -12,8 +12,8 @@ export function FeaturesSection({ t, copy }: FeaturesSectionProps) {
   return (
     <section className="bg-secondary/45 px-4 py-20 sm:px-6" data-aos="fade-up" data-aos-delay="100">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-6 flex items-center gap-2 text-[0.95rem] font-semibold uppercase tracking-wide text-[#8a3e13]">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#f97316]" />
+        <div className="mb-6 flex items-center gap-2 text-[0.95rem] font-semibold uppercase tracking-wide text-primary">
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-primary" />
           {t("public.home.aboutEyebrow")}
         </div>
 
@@ -22,7 +22,7 @@ export function FeaturesSection({ t, copy }: FeaturesSectionProps) {
             <div className="p-7 sm:p-10 lg:p-12">
               <h2 className="max-w-lg font-display text-4xl font-semibold leading-tight text-foreground sm:text-5xl">
                 {copy.aboutTitleStart}{" "}
-                <em className="not-italic text-[#f97316]">{copy.aboutTitleHighlight}</em>
+                <em className="not-italic text-primary">{copy.aboutTitleHighlight}</em>
               </h2>
 
               <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
@@ -31,16 +31,16 @@ export function FeaturesSection({ t, copy }: FeaturesSectionProps) {
 
               <Link
                 href={copy.aboutButtonHref}
-                className="mt-8 inline-flex min-w-40 items-center justify-center rounded-xl border border-[#f39a5f] px-6 py-3 font-medium text-[#da6e27] transition-colors hover:bg-[#fff2e8]"
+                className="mt-8 inline-flex min-w-40 items-center justify-center rounded-xl border border-primary/40 bg-background/80 px-6 py-3 font-medium text-primary transition-colors hover:bg-primary/10"
               >
                 {copy.aboutButtonLabel}
               </Link>
             </div>
 
-            <div className="relative min-h-[330px] overflow-hidden bg-gradient-to-br from-amber-100 via-orange-100 to-rose-100 p-6 sm:min-h-[380px] sm:p-8">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(255,255,255,0.75),transparent_35%),radial-gradient(circle_at_80%_75%,rgba(249,115,22,0.20),transparent_40%)]" />
+            <div className="relative min-h-[330px] overflow-hidden bg-gradient-to-br from-primary/20 via-accent/15 to-muted p-6 sm:min-h-[380px] sm:p-8">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,hsl(var(--card)/0.75),transparent_35%),radial-gradient(circle_at_80%_75%,hsl(var(--primary)/0.20),transparent_40%)]" />
 
-              <div className="pointer-events-none absolute -right-8 -top-10 z-20 hidden w-[220px] rotate-6 rounded-2xl border border-white/70 bg-white/90 p-1 shadow-2xl sm:block lg:w-[260px]">
+              <div className="pointer-events-none absolute -right-8 -top-10 z-20 hidden w-[220px] rotate-6 rounded-2xl border border-border/70 bg-card/90 p-1 shadow-2xl sm:block lg:w-[260px]">
                 <Image
                   src="/images/community-card-illustration.svg"
                   alt={t("public.home.aboutImageAlt")}
@@ -50,19 +50,19 @@ export function FeaturesSection({ t, copy }: FeaturesSectionProps) {
                 />
               </div>
 
-              <div className="relative z-10 flex h-full flex-col justify-between rounded-3xl border border-white/60 bg-white/45 p-5 backdrop-blur-md sm:p-6">
-                <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/70 bg-white/80 px-3 py-1 text-xs font-medium text-[#9a4d1e]">
+              <div className="relative z-10 flex h-full flex-col justify-between rounded-3xl border border-border/60 bg-card/45 p-5 backdrop-blur-md sm:p-6">
+                <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border/70 bg-card/80 px-3 py-1 text-xs font-medium text-primary">
                   <Users className="h-3.5 w-3.5" />
                   Enquiva Comunidad
                 </div>
 
                 <div className="space-y-3">
-                  <div className="rounded-2xl border border-white/70 bg-white/80 p-3.5 text-sm text-[#7a3f18] shadow-sm sm:p-4">
-                    <div className="mb-1.5 inline-flex items-center gap-2 text-xs uppercase tracking-wide text-[#a45622]">
+                  <div className="rounded-2xl border border-border/70 bg-card/80 p-3.5 text-sm text-foreground shadow-sm sm:p-4">
+                    <div className="mb-1.5 inline-flex items-center gap-2 text-xs uppercase tracking-wide text-primary">
                       <Globe2 className="h-3.5 w-3.5" />
                       {t("public.home.aboutStatTitle")}
                     </div>
-                    <p className="font-medium text-[#713814]">{t("public.home.aboutStatDescription")}</p>
+                    <p className="font-medium text-foreground">{t("public.home.aboutStatDescription")}</p>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2.5">
@@ -73,7 +73,7 @@ export function FeaturesSection({ t, copy }: FeaturesSectionProps) {
                     ].map((chip) => (
                       <div
                         key={chip}
-                        className="rounded-xl border border-white/70 bg-white/85 px-2 py-2 text-center text-xs font-medium text-[#8b4318]"
+                        className="rounded-xl border border-border/70 bg-card/85 px-2 py-2 text-center text-xs font-medium text-primary"
                       >
                         {chip}
                       </div>

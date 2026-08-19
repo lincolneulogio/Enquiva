@@ -36,7 +36,7 @@ export function CommissionSettlementPanel({
 }) {
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-orange-500/25 bg-orange-500/5 p-5">
+      <div className="rounded-2xl border border-primary/25 bg-primary/5 p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 className="font-display text-lg font-semibold text-foreground">
@@ -50,7 +50,7 @@ export function CommissionSettlementPanel({
           </div>
           <div className="rounded-xl border border-border bg-card px-4 py-3 text-right">
             <p className="text-xs text-muted-foreground">Comisión neta</p>
-            <p className="font-display text-2xl font-semibold text-orange-600 dark:text-orange-400">
+            <p className="font-display text-2xl font-semibold text-primary">
               S/ {summary.totalCommission.toFixed(2)}
             </p>
             <p className="text-xs text-muted-foreground">

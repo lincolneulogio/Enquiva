@@ -66,7 +66,7 @@ export default async function RootLayout({
   return (
     <html lang={brand.defaultLocale} suppressHydrationWarning className={outfit.variable}>
       <head>
-        <ThemeInitScript />
+        <ThemeInitScript platformDefaultAccent={brand.defaultAccentColor} />
       </head>
       <body suppressHydrationWarning className="font-sans">
         <AccentColorInitializer platformDefault={brand.defaultAccentColor} />
