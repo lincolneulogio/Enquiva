@@ -6,7 +6,7 @@ import { AdminAnalyticsQuickLinks } from "@/components/dashboard/admin/AdminAnal
 import { AdminPendingPaymentsAlert } from "@/components/dashboard/admin/AdminPendingPaymentsAlert";
 import { AdminRevenueSplitCards } from "@/components/dashboard/admin/AdminRevenueSplitCards";
 import { Users, CalendarDays, BadgeCheck, Ticket } from "lucide-react";
-import { getAdminDashboardStats } from "@/lib/analytics/admin";
+import { getAdminDashboardStats } from "@/services/analytics/analytics.service";
 import { getDashboardRevenueSnapshot } from "@/lib/analytics/platform-revenue";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";

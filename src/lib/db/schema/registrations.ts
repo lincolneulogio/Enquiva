@@ -33,6 +33,24 @@ export const ticketStatusEnum = pgEnum("ticket_status", [
   "cancelled",
 ]);
 
+/**
+ * Perfil de invitado (no es cuenta de auth).
+ * La inscripción hija vive en `registrations` con `guestId` y `userId` null.
+ */
+export const registrationGuests = pgTable(
+  "registration_guests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    parentRegistrationId: uuid("parent_registration_id")
+      .notNull()
+      .references((): AnyPgColumn => registrations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    phone: text("phone"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("registration_guests_parent_idx").on(t.parentRegistrationId)],
+);
+
 export const registrations = pgTable(
   "registrations",
   {
@@ -40,12 +58,18 @@ export const registrations = pgTable(
     eventId: uuid("event_id")
       .notNull()
       .references(() => events.id, { onDelete: "cascade" }),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    /**
+     * Titular / offline con cuenta. Null cuando es inscripción de invitado (`guestId`).
+     */
+    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    /**
+     * Perfil de invitado (sin fila en `users`).
+     */
+    guestId: uuid("guest_id").references((): AnyPgColumn => registrationGuests.id, {
+      onDelete: "cascade",
+    }),
     status: registrationStatusEnum("status").notNull().default("registered"),
     contactPhone: text("contact_phone"),
-    qrCode: text("qr_code"),
     notes: text("notes"),
     /**
      * Inscripciones hijas (invitados) apuntan al registro del titular.
@@ -65,10 +89,16 @@ export const registrations = pgTable(
   (t) => [
     index("registrations_event_idx").on(t.eventId),
     index("registrations_user_idx").on(t.userId),
-    uniqueIndex("registrations_event_user_unique_idx").on(t.eventId, t.userId),
+    uniqueIndex("registrations_event_user_unique_idx")
+      .on(t.eventId, t.userId)
+      .where(sql`${t.userId} IS NOT NULL`),
+    uniqueIndex("registrations_event_guest_unique_idx")
+      .on(t.eventId, t.guestId)
+      .where(sql`${t.guestId} IS NOT NULL`),
     index("registrations_hold_expires_idx").on(t.holdExpiresAt),
     index("registrations_parent_idx").on(t.parentRegistrationId),
     index("registrations_event_status_idx").on(t.eventId, t.status),
+    index("registrations_guest_idx").on(t.guestId),
   ]
 );
 
@@ -101,8 +131,6 @@ export const tickets = pgTable("tickets", {
     .notNull()
     .references(() => registrations.id, { onDelete: "cascade" }),
   code: text("code").notNull().unique(),
-  /** @deprecated Legacy — QR se genera on-demand vía resolveTicketQrDataUrl */
-  qrCode: text("qr_code"),
   signature: text("signature"),
   status: ticketStatusEnum("status").notNull().default("active"),
   issuedAt: timestamp("issued_at").notNull().defaultNow(),
@@ -123,9 +151,20 @@ export const scanLogs = pgTable("ticket_scan_logs", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (t) => [index("ticket_scan_logs_ticket_idx").on(t.ticketId)]);
 
-export const registrationsRelations = relations(registrations, ({ one, many }) => ({
+export const registrationGuestsRelations = relations(registrationGuests, ({ one }) => ({
+  parentRegistration: one(registrations, {
+    fields: [registrationGuests.parentRegistrationId],
+    references: [registrations.id],
+  }),
+}));
+
+export const registrationsRelations = relations(registrations, ({ one }) => ({
   event: one(events, { fields: [registrations.eventId], references: [events.id] }),
   user: one(users, { fields: [registrations.userId], references: [users.id] }),
+  guest: one(registrationGuests, {
+    fields: [registrations.guestId],
+    references: [registrationGuests.id],
+  }),
   ticket: one(tickets, {
     fields: [registrations.id],
     references: [tickets.registrationId],
@@ -145,6 +184,8 @@ export const ticketsRelations = relations(tickets, ({ one }) => ({
 
 export type Registration = typeof registrations.$inferSelect;
 export type NewRegistration = typeof registrations.$inferInsert;
+export type RegistrationGuest = typeof registrationGuests.$inferSelect;
+export type NewRegistrationGuest = typeof registrationGuests.$inferInsert;
 export type Notification = typeof notifications.$inferSelect;
 export type NewNotification = typeof notifications.$inferInsert;
 export type Ticket = typeof tickets.$inferSelect;

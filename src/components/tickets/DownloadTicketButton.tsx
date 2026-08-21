@@ -46,7 +46,7 @@ export function DownloadTicketButton({
 
   const handleDownload = async () => {
     const resolvedQr =
-      qrCode ?? (await buildTicketQrDataUrlClient(ticketCode, ticketSignature, null));
+      qrCode ?? (await buildTicketQrDataUrlClient(ticketCode, ticketSignature));
 
     if (!resolvedQr) {
       toast.error(

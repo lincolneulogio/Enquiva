@@ -1,6 +1,6 @@
 export type PayableRegistration = {
   id: string;
-  userId: string;
+  userId: string | null;
   eventId: string;
   status: string;
   holdExpiresAt: Date | null;

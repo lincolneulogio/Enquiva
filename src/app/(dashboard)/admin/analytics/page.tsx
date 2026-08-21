@@ -3,7 +3,7 @@ import { AdminAnalyticsView } from "@/components/dashboard/admin/AdminAnalyticsV
 import { AdminAnalyticsScopeNav } from "@/components/dashboard/admin/AdminAnalyticsScopeNav";
 import { AdminAnalyticsOrgFilter } from "@/components/dashboard/admin/AdminAnalyticsOrgFilter";
 import { getAnalyticsOrganizationOptions } from "@/actions/admin/analytics-orgs";
-import { getAdminDashboardStats, type AdminStatsRange } from "@/lib/analytics/admin";
+import { getAdminDashboardStats, type AdminStatsRange } from "@/services/analytics/analytics.service";
 import { getI18n } from "@/lib/i18n/server";
 import { resolveAdminScope, getOrganizationIdFromScope } from "@/lib/organizations/admin-scope";
 import { getRequestSession } from "@/lib/request-context";

@@ -361,6 +361,7 @@ export function ManualPaymentMethodForm({
 
         <button
           type="button"
+          data-testid="manual-payment-submit"
           onClick={submit}
           disabled={isSaving || isUploading}
           className="fe-btn-glow inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"

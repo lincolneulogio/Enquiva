@@ -45,7 +45,18 @@ export async function POST(req: Request) {
     const [ticket] = await db.select().from(tickets).where(eq(tickets.registrationId, registrationId)).limit(1);
     if (!ticket) return NextResponse.json({ success: false, error: "Ticket not found" }, { status: 404 });
 
-    const [attendee] = await db.select({ email: users.email, name: users.name }).from(users).where(eq(users.id, registration.userId)).limit(1);
+    if (!registration.userId) {
+      return NextResponse.json(
+        { success: false, error: "Los tickets de invitados no se reenvían por email" },
+        { status: 400 },
+      );
+    }
+
+    const [attendee] = await db
+      .select({ email: users.email, name: users.name })
+      .from(users)
+      .where(eq(users.id, registration.userId))
+      .limit(1);
     const [eventRecord] = await db.select({ id: events.id, title: events.title }).from(events).where(eq(events.id, registration.eventId)).limit(1);
 
     try {

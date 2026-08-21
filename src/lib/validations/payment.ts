@@ -19,5 +19,16 @@ export const updatePaymentStatusSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 
+export const culqiChargeBodySchema = z.object({
+  paymentId: z.string().uuid(),
+  sourceId: z.string().min(1, "sourceId es requerido"),
+});
+
+export const culqiOrderBodySchema = z.object({
+  paymentId: z.string().uuid(),
+});
+
 export type CreatePaymentInput = z.infer<typeof createPaymentSchema>;
 export type UpdatePaymentStatusInput = z.infer<typeof updatePaymentStatusSchema>;
+export type CulqiChargeBody = z.infer<typeof culqiChargeBodySchema>;
+export type CulqiOrderBody = z.infer<typeof culqiOrderBodySchema>;

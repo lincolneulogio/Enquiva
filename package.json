@@ -13,6 +13,7 @@
     "doctor": "npx react-doctor@latest",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:services:integration": "cross-env RUN_SERVICE_INTEGRATION=1 vitest run --config vitest.integration.config.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:critical": "playwright test e2e/critical-flow.spec.ts --project=critical",

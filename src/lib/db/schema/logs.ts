@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./auth";
+import { events } from "./events";
 
 export const activityLogs = pgTable("activity_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -39,7 +40,9 @@ export const broadcastJobStatusEnum = pgEnum("broadcast_job_status", [
 export const broadcastLogs = pgTable("broadcast_logs", {
   id: uuid("id").primaryKey().defaultRandom(),
   jobId: uuid("job_id").unique(),
-  eventId: uuid("event_id").notNull(),
+  eventId: uuid("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
   senderId: text("sender_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   subject: text("subject").notNull(),
   message: text("message").notNull(),
@@ -53,7 +56,9 @@ export const broadcastJobs = pgTable(
   "broadcast_jobs",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    eventId: uuid("event_id").notNull(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
     senderId: text("sender_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),

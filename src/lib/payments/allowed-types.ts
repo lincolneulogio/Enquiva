@@ -1,5 +1,17 @@
+/**
+ * Tipos de medio de pago.
+ *
+ * Producto activo (crear): platform → culqi; organizer → cash | culqi.
+ * Yape/Plin manuales son legacy (solo lectura / migración); Yape real va vía Culqi.
+ */
 export type PaymentMethodType = "yape" | "plin" | "cash" | "culqi";
 export type PaymentMethodScope = "platform" | "organizer";
+
+/** Medios que el producto permite crear hoy. */
+export const ACTIVE_PAYMENT_METHOD_TYPES = {
+  platform: ["culqi"] as const,
+  organizer: ["cash", "culqi"] as const,
+} as const;
 
 export function isAllowedPaymentMethodType(
   scope: PaymentMethodScope,
@@ -22,6 +34,7 @@ export function assertAllowedPaymentMethodType(scope: PaymentMethodScope, type: 
   }
 }
 
+/** Yape/Plin como métodos manuales del organizador (deprecados). */
 export function isLegacyWalletType(type: string) {
   return type === "yape" || type === "plin";
 }

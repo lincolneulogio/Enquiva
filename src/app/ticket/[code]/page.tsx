@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { tickets, registrations, events, users } from "@/lib/db/schema";
+import { tickets, registrations, events, users, registrationGuests } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { formatEventDate } from "@/lib/utils";
@@ -23,11 +23,18 @@ export default async function TicketPublicPage({ params, searchParams }: TicketP
   const providedSignature = typeof query.s === "string" ? query.s.trim() : "";
 
   const [record] = await db
-    .select({ ticket: tickets, registration: registrations, event: events, user: users })
+    .select({
+      ticket: tickets,
+      registration: registrations,
+      event: events,
+      userName: users.name,
+      guestName: registrationGuests.name,
+    })
     .from(tickets)
     .innerJoin(registrations, eq(tickets.registrationId, registrations.id))
     .innerJoin(events, eq(registrations.eventId, events.id))
-    .innerJoin(users, eq(registrations.userId, users.id))
+    .leftJoin(users, eq(registrations.userId, users.id))
+    .leftJoin(registrationGuests, eq(registrations.guestId, registrationGuests.id))
     .where(eq(tickets.code, code))
     .limit(1);
 
@@ -38,6 +45,7 @@ export default async function TicketPublicPage({ params, searchParams }: TicketP
   }
 
   const qrDataUrl = await resolveTicketQrDataUrl(record.ticket);
+  const attendeeName = record.guestName ?? record.userName ?? "Asistente";
 
   const statusLabel =
     record.registration.status === "checked_in"
@@ -55,7 +63,7 @@ export default async function TicketPublicPage({ params, searchParams }: TicketP
         <div className="mt-6 space-y-2 text-sm text-muted-foreground">
           <p>
             <span className="font-medium text-foreground">{locale === "en" ? "Attendee" : "Asistente"}:</span>{" "}
-            {record.user.name}
+            {attendeeName}
           </p>
           <p>
             <span className="font-medium text-foreground">{t("public.ticket.dateLabel")}:</span>{" "}
@@ -92,7 +100,7 @@ export default async function TicketPublicPage({ params, searchParams }: TicketP
               eventDate={record.event.date}
               eventLocation={record.event.location}
               isVirtual={record.event.isVirtual}
-              attendeeName={record.user.name}
+              attendeeName={attendeeName}
               qrCode={qrDataUrl}
               registrationStatus={record.registration.status}
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.98] cursor-pointer"

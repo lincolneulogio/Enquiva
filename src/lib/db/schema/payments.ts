@@ -12,7 +12,9 @@ export const paymentStatusEnum = pgEnum("payment_status", [
 ]);
 
 export const paymentMethodTypeEnum = pgEnum("payment_method_type", [
+  /** @deprecated Legacy wallet — no crear nuevos; usar Culqi (Yape dentro del checkout). */
   "yape",
+  /** @deprecated Legacy wallet — no crear nuevos; usar Culqi. */
   "plin",
   "cash",
   "culqi",

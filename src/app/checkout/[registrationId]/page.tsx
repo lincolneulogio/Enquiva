@@ -8,9 +8,6 @@ import { CheckoutStepper } from "@/components/payments/CheckoutStepper";
 import { checkoutStepFromPaymentStatus } from "@/lib/payments/checkout-step";
 import { notFound, redirect } from "next/navigation";
 import { isCulqiEnabledForEvent, getCulqiPublicKeyForEvent } from "@/lib/culqi/capabilities";
-import { db } from "@/lib/db";
-import { transportBookings, transportRoutes, users, registrations } from "@/lib/db/schema";
-import { eq, inArray } from "drizzle-orm";
 import { getAttendeeDestination } from "@/lib/navigation/attendee-paths";
 import { getRequestSession } from "@/lib/request-context";
 
@@ -31,63 +28,13 @@ export default async function PaymentCheckoutPage({ params }: Props) {
     return notFound();
   }
 
-  const { registration, event, payment } = data;
+  const { registration, event, payment, holderName, guestsDetails, transportDetails } = data;
 
   const paymentAmount = payment ? Number(payment.amount) : Number(event.price);
   if (paymentAmount <= 0) {
     redirect(
       getAttendeeDestination(role, "tickets", { eventSlug: event.slug }),
     );
-  }
-
-  const [holderUser] = await db
-    .select({ name: users.name })
-    .from(users)
-    .where(eq(users.id, registration.userId))
-    .limit(1);
-  const holderName = holderUser?.name ?? "Titular";
-
-  let guestsDetails: Array<{ name: string; price: number }> = [];
-  {
-    const { resolveGuestRegistrationIds } = await import("@/lib/registrations/guests");
-    const guestRegIds = await resolveGuestRegistrationIds(registration);
-    if (guestRegIds.length > 0) {
-      const guestRecords = await db
-        .select({
-          name: users.name,
-        })
-        .from(registrations)
-        .innerJoin(users, eq(registrations.userId, users.id))
-        .where(inArray(registrations.id, guestRegIds));
-
-      guestsDetails = guestRecords.map((r) => ({
-        name: r.name ?? (locale === "en" ? "Guest" : "Invitado"),
-        price: Number(event.price),
-      }));
-    }
-  }
-
-  let transportDetails = null;
-  if (payment?.transportBookingId) {
-    try {
-      const [booking] = await db
-        .select({
-          seats: transportBookings.seats,
-          routeName: transportRoutes.name,
-          pricePerSeat: transportRoutes.pricePerSeat,
-          departurePoint: transportRoutes.departurePoint,
-        })
-        .from(transportBookings)
-        .innerJoin(transportRoutes, eq(transportBookings.routeId, transportRoutes.id))
-        .where(eq(transportBookings.id, payment.transportBookingId))
-        .limit(1);
-
-      if (booking) {
-        transportDetails = booking;
-      }
-    } catch (err) {
-      console.error("Failed to load transport details for checkout:", err);
-    }
   }
 
   const isAlreadyPaid = payment && payment.status === "approved";

@@ -12,6 +12,12 @@ import {
 } from "@/lib/billing/plans";
 import { logAdminAction } from "@/lib/analytics/log-admin-action";
 import { assertPermission } from "@/lib/auth/permission-guards";
+import {
+  createPlanSchema,
+  updatePlanSchema,
+  type CreatePlanInput,
+  type UpdatePlanInput,
+} from "@/lib/validations";
 
 export async function getAllPlans() {
   await requireSuperAdmin();
@@ -19,56 +25,31 @@ export async function getAllPlans() {
   return db.select().from(plans).orderBy(asc(plans.sortOrder));
 }
 
-export async function createPlan(input: {
-  slug: string;
-  name: string;
-  description?: string;
-  priceMonthly: number;
-  maxActiveEvents?: number | null;
-  maxAttendeesPerEvent?: number | null;
-  commissionPercent?: number;
-  commissionPerRegistration?: number;
-  maxBroadcastsPerMonth?: number | null;
-  maxAiMessagesPerMonth?: number | null;
-  maxOrganizers?: number | null;
-  featureCulqi?: boolean;
-  featureTransport?: boolean;
-  featureAi?: boolean;
-  featureExports?: boolean;
-  featureCustomBranding?: boolean;
-  sortOrder?: number;
-}) {
+export async function createPlan(input: CreatePlanInput) {
   const user = await requireSuperAdmin();
   await assertPermission(user, "plans:manage");
-
-  const slug = input.slug.trim().toLowerCase();
-  if (!/^[a-z0-9_-]+$/.test(slug)) {
-    throw new Error("Slug inválido");
-  }
-  if (isPlatformSpecialPlan(slug)) {
-    throw new Error("Ese identificador está reservado para el plan especial del superadmin");
-  }
+  const validated = createPlanSchema.parse(input);
 
   const [created] = await db
     .insert(plans)
     .values({
-      slug,
-      name: input.name.trim(),
-      description: input.description?.trim() ?? null,
-      priceMonthly: String(input.priceMonthly),
-      maxActiveEvents: input.maxActiveEvents ?? null,
-      maxAttendeesPerEvent: input.maxAttendeesPerEvent ?? null,
-      commissionPercent: String(input.commissionPercent ?? 0),
-      commissionPerRegistration: String(input.commissionPerRegistration ?? 0),
-      maxBroadcastsPerMonth: input.maxBroadcastsPerMonth ?? null,
-      maxAiMessagesPerMonth: input.maxAiMessagesPerMonth ?? null,
-      maxOrganizers: input.maxOrganizers ?? null,
-      featureCulqi: input.featureCulqi ?? false,
-      featureTransport: input.featureTransport ?? false,
-      featureAi: input.featureAi ?? false,
-      featureExports: input.featureExports ?? false,
-      featureCustomBranding: input.featureCustomBranding ?? false,
-      sortOrder: input.sortOrder ?? 99,
+      slug: validated.slug,
+      name: validated.name,
+      description: validated.description ?? null,
+      priceMonthly: String(validated.priceMonthly),
+      maxActiveEvents: validated.maxActiveEvents ?? null,
+      maxAttendeesPerEvent: validated.maxAttendeesPerEvent ?? null,
+      commissionPercent: String(validated.commissionPercent ?? 0),
+      commissionPerRegistration: String(validated.commissionPerRegistration ?? 0),
+      maxBroadcastsPerMonth: validated.maxBroadcastsPerMonth ?? null,
+      maxAiMessagesPerMonth: validated.maxAiMessagesPerMonth ?? null,
+      maxOrganizers: validated.maxOrganizers ?? null,
+      featureCulqi: validated.featureCulqi ?? false,
+      featureTransport: validated.featureTransport ?? false,
+      featureAi: validated.featureAi ?? false,
+      featureExports: validated.featureExports ?? false,
+      featureCustomBranding: validated.featureCustomBranding ?? false,
+      sortOrder: validated.sortOrder ?? 99,
       isActive: true,
     })
     .returning();
@@ -87,31 +68,10 @@ export async function createPlan(input: {
   return { success: true, plan: created };
 }
 
-export async function updatePlan(
-  id: string,
-  input: {
-    slug?: string;
-    name?: string;
-    description?: string;
-    priceMonthly?: number;
-    maxActiveEvents?: number | null;
-    maxAttendeesPerEvent?: number | null;
-    commissionPercent?: number;
-    commissionPerRegistration?: number;
-    maxBroadcastsPerMonth?: number | null;
-    maxAiMessagesPerMonth?: number | null;
-    maxOrganizers?: number | null;
-    featureCulqi?: boolean;
-    featureTransport?: boolean;
-    featureAi?: boolean;
-    featureExports?: boolean;
-    featureCustomBranding?: boolean;
-    isActive?: boolean;
-    sortOrder?: number;
-  },
-) {
+export async function updatePlan(id: string, input: UpdatePlanInput) {
   const user = await requireSuperAdmin();
   await assertPermission(user, "plans:manage");
+  const validated = updatePlanSchema.parse(input);
 
   const [current] = await db.select().from(plans).where(eq(plans.id, id)).limit(1);
   if (!current) throw new Error("Plan no encontrado");
@@ -121,8 +81,10 @@ export async function updatePlan(
     await db
       .update(plans)
       .set({
-        ...(input.name !== undefined && { name: input.name.trim() }),
-        ...(input.description !== undefined && { description: input.description?.trim() ?? null }),
+        ...(validated.name !== undefined && { name: validated.name }),
+        ...(validated.description !== undefined && {
+          description: validated.description ?? null,
+        }),
         slug: PLATFORM_SPECIAL_PLAN_SLUG,
         priceMonthly: "0",
         maxActiveEvents: null,
@@ -161,11 +123,8 @@ export async function updatePlan(
   let nextSlug: string | undefined;
   if (isFreePlan) {
     nextSlug = "free";
-  } else if (input.slug !== undefined) {
-    nextSlug = input.slug.trim().toLowerCase();
-    if (!/^[a-z0-9_-]+$/.test(nextSlug)) {
-      throw new Error("Slug inválido");
-    }
+  } else if (validated.slug !== undefined) {
+    nextSlug = validated.slug;
     if (isPlatformSpecialPlan(nextSlug) || nextSlug === "free") {
       throw new Error("Ese identificador está reservado");
     }
@@ -179,27 +138,47 @@ export async function updatePlan(
     .update(plans)
     .set({
       ...(nextSlug !== undefined && { slug: nextSlug }),
-      ...(input.name !== undefined && { name: input.name.trim() }),
-      ...(input.description !== undefined && { description: input.description?.trim() ?? null }),
-      ...(input.priceMonthly !== undefined && { priceMonthly: String(input.priceMonthly) }),
-      ...(input.maxActiveEvents !== undefined && { maxActiveEvents: input.maxActiveEvents }),
-      ...(input.maxAttendeesPerEvent !== undefined && { maxAttendeesPerEvent: input.maxAttendeesPerEvent }),
-      ...(input.commissionPercent !== undefined && { commissionPercent: String(input.commissionPercent) }),
-      ...(input.commissionPerRegistration !== undefined && {
-        commissionPerRegistration: String(input.commissionPerRegistration),
+      ...(validated.name !== undefined && { name: validated.name }),
+      ...(validated.description !== undefined && {
+        description: validated.description ?? null,
       }),
-      ...(input.maxBroadcastsPerMonth !== undefined && { maxBroadcastsPerMonth: input.maxBroadcastsPerMonth }),
-      ...(input.maxAiMessagesPerMonth !== undefined && { maxAiMessagesPerMonth: input.maxAiMessagesPerMonth }),
-      ...(input.maxOrganizers !== undefined && { maxOrganizers: input.maxOrganizers }),
-      ...(input.featureCulqi !== undefined && { featureCulqi: input.featureCulqi }),
-      ...(input.featureTransport !== undefined && { featureTransport: input.featureTransport }),
-      ...(input.featureAi !== undefined && { featureAi: input.featureAi }),
-      ...(input.featureExports !== undefined && { featureExports: input.featureExports }),
-      ...(input.featureCustomBranding !== undefined && {
-        featureCustomBranding: input.featureCustomBranding,
+      ...(validated.priceMonthly !== undefined && {
+        priceMonthly: String(validated.priceMonthly),
       }),
-      ...(input.isActive !== undefined && { isActive: input.isActive }),
-      ...(input.sortOrder !== undefined && { sortOrder: input.sortOrder }),
+      ...(validated.maxActiveEvents !== undefined && {
+        maxActiveEvents: validated.maxActiveEvents,
+      }),
+      ...(validated.maxAttendeesPerEvent !== undefined && {
+        maxAttendeesPerEvent: validated.maxAttendeesPerEvent,
+      }),
+      ...(validated.commissionPercent !== undefined && {
+        commissionPercent: String(validated.commissionPercent),
+      }),
+      ...(validated.commissionPerRegistration !== undefined && {
+        commissionPerRegistration: String(validated.commissionPerRegistration),
+      }),
+      ...(validated.maxBroadcastsPerMonth !== undefined && {
+        maxBroadcastsPerMonth: validated.maxBroadcastsPerMonth,
+      }),
+      ...(validated.maxAiMessagesPerMonth !== undefined && {
+        maxAiMessagesPerMonth: validated.maxAiMessagesPerMonth,
+      }),
+      ...(validated.maxOrganizers !== undefined && {
+        maxOrganizers: validated.maxOrganizers,
+      }),
+      ...(validated.featureCulqi !== undefined && { featureCulqi: validated.featureCulqi }),
+      ...(validated.featureTransport !== undefined && {
+        featureTransport: validated.featureTransport,
+      }),
+      ...(validated.featureAi !== undefined && { featureAi: validated.featureAi }),
+      ...(validated.featureExports !== undefined && {
+        featureExports: validated.featureExports,
+      }),
+      ...(validated.featureCustomBranding !== undefined && {
+        featureCustomBranding: validated.featureCustomBranding,
+      }),
+      ...(validated.isActive !== undefined && { isActive: validated.isActive }),
+      ...(validated.sortOrder !== undefined && { sortOrder: validated.sortOrder }),
       updatedAt: new Date(),
     })
     .where(eq(plans.id, id));
@@ -212,7 +191,7 @@ export async function updatePlan(
     action: "plan.update",
     entityType: "plan",
     entityId: id,
-    details: `Plan actualizado: ${input.name ?? "campos varios"}`,
+    details: `Plan actualizado: ${validated.name ?? "campos varios"}`,
   });
 
   revalidatePath("/admin/plans");

@@ -1,7 +1,11 @@
 import { db } from "@/lib/db";
 import { transportRoutes, transportBookings, events } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { z } from "zod";
+import {
+  createTransportRouteSchema,
+  type CreateTransportRouteInput,
+  type UpdateTransportRouteInput,
+} from "@/lib/validations";
 import { assertCanManageEvent } from "@/lib/organizations/admin-scope";
 import { TRANSPORT_DEFAULT_PENDING_HOLD_HOURS } from "@/lib/transport/constants";
 
@@ -32,26 +36,6 @@ function assertFutureTripTimes(input: {
     }
   }
 }
-
-const createRouteSchema = z.object({
-  eventId: z.string().uuid(),
-  name: z.string().min(3),
-  departurePoint: z.string().min(3),
-  departureTime: z.string().min(1),
-  returnTime: z.string().optional().nullable(),
-  pricePerSeat: z.number().nonnegative(),
-  totalSeats: z.number().int().positive(),
-  description: z.string().optional().nullable(),
-  driverName: z.string().max(120).optional().nullable(),
-  vehiclePlate: z.string().max(20).optional().nullable(),
-  isRoundTrip: z.boolean().optional(),
-  pendingHoldHours: z
-    .number()
-    .int()
-    .min(1)
-    .max(168)
-    .optional(),
-});
 
 export class RouteService {
   static async getRoutesByEvent(eventId: string) {
@@ -84,11 +68,11 @@ export class RouteService {
   }
 
   static async createRoute(
-    input: z.infer<typeof createRouteSchema>,
+    input: CreateTransportRouteInput,
     userId: string,
     userRole: string,
   ) {
-    const data = createRouteSchema.parse(input);
+    const data = createTransportRouteSchema.parse(input);
     assertFutureTripTimes({
       departureTime: data.departureTime,
       returnTime: data.returnTime,
@@ -132,7 +116,7 @@ export class RouteService {
 
   static async updateRoute(
     routeId: string,
-    input: Partial<z.infer<typeof createRouteSchema>>,
+    input: UpdateTransportRouteInput,
     userId: string,
     userRole: string,
   ) {

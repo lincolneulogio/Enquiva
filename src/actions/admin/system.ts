@@ -101,15 +101,17 @@ export async function backfillPendingPayments() {
 
     if (missingPayments.length > 0) {
         await db.insert(payments).values(
-            missingPayments.map((item) => ({
-                registrationId: item.registrationId,
-                userId: item.userId,
-                amount: "1.00",
-                currency: "PEN",
-                method: "Pendiente de selección",
-                status: "pending" as const,
-                notes: "Pago pendiente creado por backfill desde panel super admin",
-            }))
+            missingPayments
+                .filter((item): item is typeof item & { userId: string } => Boolean(item.userId))
+                .map((item) => ({
+                    registrationId: item.registrationId,
+                    userId: item.userId,
+                    amount: "1.00",
+                    currency: "PEN",
+                    method: "Pendiente de selección",
+                    status: "pending" as const,
+                    notes: "Pago pendiente creado por backfill desde panel super admin",
+                })),
         );
     }
 

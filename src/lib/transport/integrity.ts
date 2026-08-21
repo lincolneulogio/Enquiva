@@ -1,6 +1,6 @@
 export function routeMatchesRegistration(
   routeEventId: string,
-  registration: { eventId: string; userId: string } | null | undefined,
+  registration: { eventId: string; userId: string | null } | null | undefined,
   userId: string,
 ) {
   return Boolean(

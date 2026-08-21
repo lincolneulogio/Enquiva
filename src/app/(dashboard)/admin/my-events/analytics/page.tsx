@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { AdminAnalyticsView } from "@/components/dashboard/admin/AdminAnalyticsView";
 import { AdminAnalyticsScopeNav } from "@/components/dashboard/admin/AdminAnalyticsScopeNav";
-import { getAdminDashboardStats, type AdminStatsRange } from "@/lib/analytics/admin";
+import { getAdminDashboardStats, type AdminStatsRange } from "@/services/analytics/analytics.service";
 import { getI18n } from "@/lib/i18n/server";
 import { getRequestSession } from "@/lib/request-context";
 import { getStaffDashboardHome, staffDashboardPath } from "@/lib/navigation/dashboard-paths";

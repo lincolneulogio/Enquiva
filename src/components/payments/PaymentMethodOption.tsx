@@ -33,6 +33,7 @@ export function PaymentMethodOption({
   return (
     <button
       type="button"
+      data-testid={paymentType ? `payment-method-${paymentType}` : "payment-method-option"}
       onClick={onSelect}
       disabled={disabled}
       className={cn(

@@ -108,7 +108,7 @@ export function TicketCard({
   const { locale } = useLocale();
   const t = useTranslations();
   const brand = usePlatformBrand();
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(ticket?.qrCode ?? null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const hasTransport = Boolean(event.hasTransport);
   
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
@@ -126,7 +126,6 @@ export function TicketCard({
     const qrCode = await buildTicketQrDataUrlClient(
       guest.ticket.code,
       guest.ticket.signature,
-      guest.ticket.qrCode,
     );
     if (!qrCode) return;
     setActiveGuestQr({
@@ -167,14 +166,13 @@ export function TicketCard({
       const dataUrl = await buildTicketQrDataUrlClient(
         ticket.code,
         ticket.signature,
-        ticket.qrCode,
       );
       if (!cancelled) setQrDataUrl(dataUrl);
     })();
     return () => {
       cancelled = true;
     };
-  }, [ticket?.code, ticket?.signature, ticket?.qrCode]);
+  }, [ticket?.code, ticket?.signature]);
 
   useEffect(() => {
     const pusher = getPusherClient();
@@ -244,7 +242,7 @@ export function TicketCard({
       const ticketsToGenerate = (
         await Promise.all([
           ticket?.code
-            ? buildTicketQrDataUrlClient(ticket.code, ticket.signature, ticket.qrCode).then((qrCode) =>
+            ? buildTicketQrDataUrlClient(ticket.code, ticket.signature).then((qrCode) =>
                 qrCode
                   ? {
                       code: ticket.code,
@@ -260,7 +258,6 @@ export function TicketCard({
               ? buildTicketQrDataUrlClient(
                   g.ticket.code,
                   g.ticket.signature,
-                  g.ticket.qrCode,
                 ).then((qrCode) =>
                   qrCode
                     ? {
@@ -907,7 +904,7 @@ export function TicketCard({
               <div className="grid grid-cols-1 gap-3.5">
                 {guestsState.map((guest) => {
                   const guestHasQr = Boolean(
-                    guest.ticket?.code && (guest.ticket.signature || guest.ticket.qrCode),
+                    guest.ticket?.code && guest.ticket.signature,
                   );
                   const isCheckedIn = guest.registration.status === "checked_in";
                   

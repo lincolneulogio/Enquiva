@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
-import { registrations, events, users, registrationStatusEnum } from "@/lib/db/schema";
+import { registrations, events, users, registrationStatusEnum, registrationGuests } from "@/lib/db/schema";
 import { getRequestSession } from "@/lib/request-context";
-import { eq, desc, and, gte, lte, count } from "drizzle-orm";
+import { eq, desc, and, gte, lte, count, sql } from "drizzle-orm";
 import { Users } from "lucide-react";
 import { ManualCheckInButton } from "@/components/events/ManualCheckInButton";
 import { ManualRegistrationDialog } from "@/components/events/ManualRegistrationDialog";
@@ -81,7 +81,8 @@ export default async function OrganizerAttendeesPage({
     .select({ total: count() })
     .from(registrations)
     .innerJoin(events, eq(registrations.eventId, events.id))
-    .innerJoin(users, eq(registrations.userId, users.id))
+    .leftJoin(users, eq(registrations.userId, users.id))
+    .leftJoin(registrationGuests, eq(registrations.guestId, registrationGuests.id))
     .where(whereClause);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -98,12 +99,13 @@ export default async function OrganizerAttendeesPage({
       eventTitle: events.title,
       eventDate: events.date,
       eventSlug: events.slug,
-      userName: users.name,
+      userName: sql<string>`coalesce(${registrationGuests.name}, ${users.name}, 'Asistente')`,
       userEmail: users.email,
     })
     .from(registrations)
     .innerJoin(events, eq(registrations.eventId, events.id))
-    .innerJoin(users, eq(registrations.userId, users.id))
+    .leftJoin(users, eq(registrations.userId, users.id))
+    .leftJoin(registrationGuests, eq(registrations.guestId, registrationGuests.id))
     .where(whereClause)
     .orderBy(desc(registrations.registeredAt))
     .limit(PAGE_SIZE)

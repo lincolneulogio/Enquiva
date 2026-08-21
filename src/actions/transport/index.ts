@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { TransportService } from "@/services/transport/transport.service";
 import { bookTransportSchema } from "@/services/booking/booking.service";
 import { requirePlanFeature } from "@/lib/billing/enforce";
-import { z } from "zod";
+import {
+  createTransportRouteSchema,
+  updateTransportRouteSchema,
+  type CreateTransportRouteInput,
+  type UpdateTransportRouteInput,
+} from "@/lib/validations";
 import { assertEventInAdminScope, assertRouteInAdminScope } from "@/lib/organizations/admin-scope";
 import {
   requireAuth,
@@ -14,23 +19,7 @@ import { authorize } from "@/lib/auth/authorize";
 import { loadTransportBookingAuthResource } from "@/lib/auth/load-resource";
 import { assertAnyPermission } from "@/lib/auth/permission-guards";
 import { logAdminAction } from "@/lib/analytics/log-admin-action";
-
-// ─── Validators ───────────────────────────────────────────────────────────────
-
-const createRouteSchema = z.object({
-    eventId: z.string().uuid(),
-    name: z.string().min(3),
-    departurePoint: z.string().min(3),
-    departureTime: z.string().min(1),
-    returnTime: z.string().optional().nullable(),
-    pricePerSeat: z.number().nonnegative(),
-    totalSeats: z.number().int().positive(),
-    description: z.string().optional().nullable(),
-    driverName: z.string().max(120).optional().nullable(),
-    vehiclePlate: z.string().max(20).optional().nullable(),
-    isRoundTrip: z.boolean().optional(),
-    pendingHoldHours: z.number().int().min(1).max(168).optional(),
-});
+import { z } from "zod";
 
 // ─── Organizer: Gestión de rutas ──────────────────────────────────────────────
 
@@ -43,11 +32,12 @@ export async function getRoutesByEvent(eventId: string) {
     return TransportService.getRoutesByEvent(eventId);
 }
 
-export async function createRoute(input: z.infer<typeof createRouteSchema>) {
+export async function createRoute(input: CreateTransportRouteInput) {
     const user = await requireOrganizerOrHigher();
     await assertAnyPermission(user, ["transport:manage:org", "transport:manage:own"]);
     await requirePlanFeature(user.id, user.role, "transport");
-    const route = await TransportService.createRoute(input, user.id, user.role ?? "member");
+    const validated = createTransportRouteSchema.parse(input);
+    const route = await TransportService.createRoute(validated, user.id, user.role ?? "member");
 
     await logAdminAction({
         actorId: user.id,
@@ -55,7 +45,7 @@ export async function createRoute(input: z.infer<typeof createRouteSchema>) {
         action: "transport.route.create",
         entityType: "transport",
         entityId: route.id,
-        details: `Ruta creada: ${input.name} (evento ${input.eventId})`,
+        details: `Ruta creada: ${validated.name} (evento ${validated.eventId})`,
     });
 
     let transportOfferNotified = 0;
@@ -69,7 +59,7 @@ export async function createRoute(input: z.infer<typeof createRouteSchema>) {
             .from(transportRoutes)
             .where(
                 and(
-                    eq(transportRoutes.eventId, input.eventId),
+                    eq(transportRoutes.eventId, validated.eventId),
                     eq(transportRoutes.isActive, true),
                 ),
             );
@@ -77,14 +67,14 @@ export async function createRoute(input: z.infer<typeof createRouteSchema>) {
             const { notifyRegistrantsTransportAvailable } = await import(
                 "@/lib/notifications/transport-available-offer"
             );
-            const result = await notifyRegistrantsTransportAvailable(input.eventId);
+            const result = await notifyRegistrantsTransportAvailable(validated.eventId);
             transportOfferNotified = result.notified;
         }
     } catch (err) {
         console.error("[createRoute] transport offer notify failed", err);
     }
 
-    revalidatePath(`/organizer/events/${input.eventId}`);
+    revalidatePath(`/organizer/events/${validated.eventId}`);
     revalidatePath(`/member/transport`);
     revalidatePath(`/member/tickets`);
     return { success: true, route, transportOfferNotified };
@@ -92,11 +82,12 @@ export async function createRoute(input: z.infer<typeof createRouteSchema>) {
 
 export async function updateRoute(
     routeId: string,
-    input: Partial<z.infer<typeof createRouteSchema>>
+    input: UpdateTransportRouteInput
 ) {
     const user = await requireOrganizerOrHigher();
     await assertAnyPermission(user, ["transport:manage:org", "transport:manage:own"]);
-    const eventId = await TransportService.updateRoute(routeId, input, user.id, user.role ?? "member");
+    const validated = updateTransportRouteSchema.parse(input);
+    const eventId = await TransportService.updateRoute(routeId, validated, user.id, user.role ?? "member");
 
     await logAdminAction({
         actorId: user.id,

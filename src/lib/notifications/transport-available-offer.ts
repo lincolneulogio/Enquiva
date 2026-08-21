@@ -107,18 +107,20 @@ export async function notifyRegistrantsTransportAvailable(eventId: string): Prom
     ? `Se habilitó transporte para "${event.title}". Tu entrada/QR ya está listo; el bus se paga aparte desde ${priceLabel} por asiento. Reserva en Mis viajes.`
     : `Se habilitó transporte para "${event.title}". Tu entrada/QR ya está listo; el bus se paga aparte. Reserva en Mis viajes.`;
 
-  const payloads: NotificationPayload[] = recipients.map((r) => ({
-    userId: r.userId,
-    type: "transport_alert",
-    title,
-    message,
-    metadata: {
-      eventId: event.id,
-      eventTitle: event.title,
-      kind: "transport_offer",
-      minPricePerSeat: minPrice,
-    },
-  }));
+  const payloads: NotificationPayload[] = recipients
+    .filter((r): r is typeof r & { userId: string } => Boolean(r.userId))
+    .map((r) => ({
+      userId: r.userId,
+      type: "transport_alert",
+      title,
+      message,
+      metadata: {
+        eventId: event.id,
+        eventTitle: event.title,
+        kind: "transport_offer",
+        minPricePerSeat: minPrice,
+      },
+    }));
 
   await NotificationService.createMany(payloads);
 

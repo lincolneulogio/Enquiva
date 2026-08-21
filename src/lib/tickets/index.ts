@@ -10,13 +10,13 @@ export { TicketCheckInService } from "@/lib/tickets/check-in";
 export async function generateTicketForRegistration(
   registrationId: string,
   eventId: string,
-  userId: string,
+  ownerRef: string | null,
   tx: DBClient = db,
 ) {
   const ticketCode = generateTicketCode();
   const issuedAt = new Date();
   const signature = computeTicketSignature(ticketCode, registrationId, issuedAt);
-  const ticketMetadata = { eventId, userId };
+  const ticketMetadata = { eventId, userId: ownerRef, ownerRef };
 
   const [existingTicket] = await tx
     .select()

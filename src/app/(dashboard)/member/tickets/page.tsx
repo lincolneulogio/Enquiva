@@ -66,6 +66,7 @@ export default async function MemberTicketsPage() {
 
   // ─── LOAD GUEST TICKETS AND DETAILS ────────────────────────────────────────
   const { resolveGuestIdsByParent } = await import("@/lib/registrations/guests");
+  const { registrationGuests } = await import("@/lib/db/schema");
   const guestsByParentId = await resolveGuestIdsByParent(
     registrations.map((r) => r.registration),
   );
@@ -89,10 +90,15 @@ export default async function MemberTicketsPage() {
       .select({
         registration: registrationsTable,
         ticket: ticketsTable,
-        user: usersTable,
+        userName: usersTable.name,
+        userEmail: usersTable.email,
+        userPhone: usersTable.phone,
+        guestName: registrationGuests.name,
+        guestPhone: registrationGuests.phone,
       })
       .from(registrationsTable)
-      .innerJoin(usersTable, eq(registrationsTable.userId, usersTable.id))
+      .leftJoin(usersTable, eq(registrationsTable.userId, usersTable.id))
+      .leftJoin(registrationGuests, eq(registrationsTable.guestId, registrationGuests.id))
       .leftJoin(ticketsTable, eq(ticketsTable.registrationId, registrationsTable.id))
       .where(inArray(registrationsTable.id, guestRegIds));
 
@@ -101,9 +107,9 @@ export default async function MemberTicketsPage() {
         registration: item.registration,
         ticket: item.ticket,
         user: {
-          name: item.user.name,
-          email: item.user.email,
-          phone: item.user.phone,
+          name: item.guestName ?? item.userName ?? "Invitado",
+          email: item.userEmail ?? "",
+          phone: item.guestPhone ?? item.userPhone,
         },
       });
     }

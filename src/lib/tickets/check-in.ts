@@ -105,18 +105,21 @@ async function performCheckIn(
 
   runBackground(async () => {
     try {
+      const ownerRef =
+        registration.userId ??
+        (registration.guestId ? `guest:${registration.guestId}` : registration.id);
       await broadcastCheckIn(
         {
           registrationId: registration.id,
-          userId: registration.userId,
+          userId: ownerRef,
           checkedInAt: now.toISOString(),
         },
-        { eventId, userId: registration.userId },
+        { eventId, userId: registration.userId ?? undefined },
       );
       await broadcastTableRefresh({
         resource: ["registrations", "attendees"],
         eventId,
-        userId: registration.userId,
+        userId: registration.userId ?? undefined,
       });
     } catch (error) {
       console.error("Fallo al emitir evento Pusher para check-in", error);

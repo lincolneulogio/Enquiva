@@ -2,8 +2,11 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { AdminAnalyticsView } from "@/components/dashboard/admin/AdminAnalyticsView";
 import { FunnelAnalyticsCard } from "@/components/dashboard/analytics/FunnelAnalyticsCard";
-import { getAdminDashboardStats, type AdminStatsRange } from "@/lib/analytics/admin";
-import { getOrganizerFunnelStats } from "@/lib/analytics/funnel";
+import {
+  getAdminDashboardStats,
+  getOrganizerFunnelStats,
+  type AdminStatsRange,
+} from "@/services/analytics/analytics.service";
 import { getI18n } from "@/lib/i18n/server";
 import { getRequestSession } from "@/lib/request-context";
 import { hasEffectivePermission } from "@/lib/auth/effective-permissions";

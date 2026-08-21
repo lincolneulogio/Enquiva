@@ -85,6 +85,7 @@ export async function promoteNextWaitlisted(
     .limit(1);
 
   if (!waitlisted) return null;
+  if (!waitlisted.userId) return null;
 
   const now = new Date();
   const eventPrice = event.price ? Number(event.price) : 0;

@@ -6,6 +6,7 @@ import {
   tickets,
   payments,
   transportBookings,
+  registrationGuests,
 } from "@/lib/db/schema";
 import { eq, and, inArray, sql, desc, count } from "drizzle-orm";
 import crypto from "crypto";
@@ -199,26 +200,24 @@ export class RegistrationService {
         registration = created;
       }
 
-      // 5. Crear cuentas fantasma e inscripciones hijas vinculadas por FK
+      // 5. Crear perfiles de invitado + inscripciones hijas (sin users fantasma)
       if (status === "registered") {
         for (const guest of guests) {
-          const guestUserId = `guest_${crypto.randomUUID()}`;
-          const guestEmail = `${guestUserId}@sistemaevents.com`;
-
-          await tx.insert(users).values({
-            id: guestUserId,
-            name: guest.name.trim(),
-            email: guestEmail,
-            phone: guest.phone ?? null,
-            emailVerified: false,
-            isActive: true,
-          });
+          const [guestProfile] = await tx
+            .insert(registrationGuests)
+            .values({
+              parentRegistrationId: registration.id,
+              name: guest.name.trim(),
+              phone: guest.phone ?? null,
+            })
+            .returning();
 
           const [guestReg] = await tx
             .insert(registrations)
             .values({
               eventId,
-              userId: guestUserId,
+              userId: null,
+              guestId: guestProfile.id,
               status,
               contactPhone: guest.phone ?? null,
               registeredAt: now,
@@ -229,7 +228,7 @@ export class RegistrationService {
             .returning();
 
           guestRegIds.push(guestReg.id);
-          guestUserIdMap.set(guestReg.id, guestUserId);
+          guestUserIdMap.set(guestReg.id, `guest:${guestProfile.id}`);
         }
       }
 
@@ -554,9 +553,15 @@ export class RegistrationService {
   static async getEventAttendees(eventId: string, options?: { limit?: number }) {
     const limit = options?.limit ?? 100;
     return db
-      .select({ registration: registrations, user: users, ticket: tickets })
+      .select({
+        registration: registrations,
+        user: users,
+        guest: registrationGuests,
+        ticket: tickets,
+      })
       .from(registrations)
-      .innerJoin(users, eq(registrations.userId, users.id))
+      .leftJoin(users, eq(registrations.userId, users.id))
+      .leftJoin(registrationGuests, eq(registrations.guestId, registrationGuests.id))
       .leftJoin(tickets, eq(tickets.registrationId, registrations.id))
       .where(eq(registrations.eventId, eventId))
       .orderBy(registrations.registeredAt)

@@ -57,13 +57,15 @@ export async function cascadeEventCancellation(eventId: string, eventTitle: stri
 
     const payloads =
       activeRegs.length > 0
-        ? activeRegs.map((reg) => ({
-            userId: reg.userId,
-            type: "event_cancelled" as const,
-            title: "Evento cancelado",
-            message: `El evento "${eventTitle}" fue cancelado. Tu inscripción ya no está activa.`,
-            metadata: { eventId, eventTitle, registrationId: reg.id },
-          }))
+        ? activeRegs
+            .filter((reg): reg is typeof reg & { userId: string } => Boolean(reg.userId))
+            .map((reg) => ({
+              userId: reg.userId,
+              type: "event_cancelled" as const,
+              title: "Evento cancelado",
+              message: `El evento "${eventTitle}" fue cancelado. Tu inscripción ya no está activa.`,
+              metadata: { eventId, eventTitle, registrationId: reg.id },
+            }))
         : [];
 
     if (payloads.length > 0) {
@@ -81,7 +83,8 @@ export async function cascadeEventCancellation(eventId: string, eventTitle: stri
 }
 
 /**
- * Elimina usuarios guest_* / offline_* sin inscripciones activas.
+ * Elimina usuarios guest_* / offline_* residuales sin inscripciones activas.
+ * Los invitados nuevos ya no crean filas en `users` (usan `registration_guests`).
  */
 export async function cleanupOrphanGuestUsers() {
   const orphanUsers = await db
@@ -91,6 +94,7 @@ export async function cleanupOrphanGuestUsers() {
       or(
         sql`${users.id} LIKE 'guest\\_%'`,
         sql`${users.id} LIKE 'offline\\_%'`,
+        sql`${users.email} LIKE '%@sistemaevents.com'`,
       ),
     );
 

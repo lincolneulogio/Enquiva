@@ -56,7 +56,12 @@ export async function getPaymentCheckoutContext(registrationId: string) {
     resource: await loadRegistrationAuthResource(registrationId),
   });
 
-  return PaymentService.getPaymentCheckoutContext(user.id, registrationId);
+  const { getI18n } = await import("@/lib/i18n/server");
+  const { locale } = await getI18n();
+
+  return PaymentService.getCheckoutPresentationContext(user.id, registrationId, {
+    guestFallbackName: locale === "en" ? "Guest" : "Invitado",
+  });
 }
 
 /**

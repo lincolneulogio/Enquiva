@@ -83,17 +83,19 @@ async function expireHolds(now: Date) {
         .where(eq(registrations.id, fresh.id));
 
       eventIdsToPromote.add(fresh.eventId);
-      notifications.push({
-        userId: fresh.userId,
-        type: "payment_status_updated",
-        title: "Tu reserva expiró",
-        message: `No se completó el pago a tiempo para "${row.eventTitle}". El cupo se liberó; puedes volver a registrarte si aún hay lugar.`,
-        metadata: {
-          eventId: fresh.eventId,
-          registrationId: fresh.id,
-          reason: "hold_expired",
-        },
-      });
+      if (fresh.userId) {
+        notifications.push({
+          userId: fresh.userId,
+          type: "payment_status_updated",
+          title: "Tu reserva expiró",
+          message: `No se completó el pago a tiempo para "${row.eventTitle}". El cupo se liberó; puedes volver a registrarte si aún hay lugar.`,
+          metadata: {
+            eventId: fresh.eventId,
+            registrationId: fresh.id,
+            reason: "hold_expired",
+          },
+        });
+      }
     });
   }
 
@@ -167,6 +169,8 @@ async function sendHoldReminders(now: Date) {
       .update(registrations)
       .set({ holdReminderSentAt: now })
       .where(and(eq(registrations.id, row.id), isNull(registrations.holdReminderSentAt)));
+
+    if (!row.userId) continue;
 
     notifications.push({
       userId: row.userId,

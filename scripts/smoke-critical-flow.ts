@@ -9,16 +9,9 @@
  * Opcional Culqi (solo valida config + capabilities, no cobra):
  *   SMOKE_CULQI=1 pnpm run smoke:critical
  */
-import { and, eq, inArray } from "drizzle-orm";
-import { readFileSync, existsSync } from "node:fs";
-import path from "node:path";
+import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import {
-  payments,
-  registrations,
-  scanLogs,
-  tickets,
-} from "@/lib/db/schema";
+import { payments, registrations, tickets } from "@/lib/db/schema";
 import { RegistrationService } from "@/services/registrations/registration.service";
 import { PaymentService } from "@/services/payments/payment.service";
 import { TicketCheckInService } from "@/lib/tickets/check-in";
@@ -30,47 +23,16 @@ import { isPlatformCulqiConfigured } from "@/lib/culqi/client";
 import { parseCulqiPublicKey, parseCulqiSecretKey } from "@/lib/culqi/keys";
 import { env } from "@/env";
 import { STAGING_FIXTURES } from "./staging-constants";
+import {
+  loadStagingFixtures,
+  resetMemberOnEvent,
+  type StagingFixtures,
+} from "./lib/staging-critical";
 
-type Fixtures = {
-  organizer: { id: string; email: string };
-  member: { id: string; email: string; password?: string };
-  paidEvent: { id: string; slug: string; price: string };
-  freeEvent: { id: string; slug: string };
-};
+type Fixtures = StagingFixtures;
 
 function loadFixtures(): Fixtures {
-  const file = path.join(process.cwd(), "e2e", ".staging-fixtures.json");
-  if (!existsSync(file)) {
-    throw new Error(
-      "Falta e2e/.staging-fixtures.json. Ejecuta primero: pnpm run seed:staging",
-    );
-  }
-  return JSON.parse(readFileSync(file, "utf8")) as Fixtures;
-}
-
-async function resetMemberOnEvent(memberId: string, eventId: string) {
-  const regs = await db
-    .select({ id: registrations.id })
-    .from(registrations)
-    .where(and(eq(registrations.userId, memberId), eq(registrations.eventId, eventId)));
-
-  if (regs.length === 0) return;
-
-  const regIds = regs.map((r) => r.id);
-  const ticketRows = await db
-    .select({ id: tickets.id })
-    .from(tickets)
-    .where(inArray(tickets.registrationId, regIds));
-
-  if (ticketRows.length > 0) {
-    await db
-      .delete(scanLogs)
-      .where(inArray(scanLogs.ticketId, ticketRows.map((t) => t.id)));
-  }
-
-  await db.delete(tickets).where(inArray(tickets.registrationId, regIds));
-  await db.delete(payments).where(inArray(payments.registrationId, regIds));
-  await db.delete(registrations).where(inArray(registrations.id, regIds));
+  return loadStagingFixtures();
 }
 
 function step(ok: boolean, label: string, detail?: string) {

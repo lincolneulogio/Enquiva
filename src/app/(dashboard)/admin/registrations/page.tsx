@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { registrations, events, users, payments, transportBookings, transportRoutes, registrationStatusEnum } from "@/lib/db/schema";
+import { registrations, events, users, payments, transportBookings, transportRoutes, registrationStatusEnum, registrationGuests } from "@/lib/db/schema";
 import { eq, desc, count, and, gte, lte, sql, inArray, type SQL } from "drizzle-orm";
+import { isGuestRegistration } from "@/lib/registrations/guests";
 import { ClipboardList, Bus, CreditCard } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
@@ -86,7 +87,8 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
     .select({ total: count() })
     .from(registrations)
     .innerJoin(events, eq(registrations.eventId, events.id))
-    .innerJoin(users, eq(registrations.userId, users.id))
+    .leftJoin(users, eq(registrations.userId, users.id))
+    .leftJoin(registrationGuests, eq(registrations.guestId, registrationGuests.id))
     .where(whereClause);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -100,6 +102,8 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
       status: registrations.status,
       registeredAt: registrations.registeredAt,
       checkedInAt: registrations.checkedInAt,
+      guestId: registrations.guestId,
+      parentRegistrationId: registrations.parentRegistrationId,
       event: {
         id: events.id,
         title: events.title,
@@ -107,21 +111,28 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
         date: events.date,
       },
       attendee: {
-        id: users.id,
-        name: users.name,
+        id: sql<string>`coalesce(${users.id}, ${registrationGuests.id}::text)`,
+        name: sql<string>`coalesce(${registrationGuests.name}, ${users.name}, 'Asistente')`,
         email: users.email,
       },
     })
     .from(registrations)
     .innerJoin(events, eq(registrations.eventId, events.id))
-    .innerJoin(users, eq(registrations.userId, users.id))
+    .leftJoin(users, eq(registrations.userId, users.id))
+    .leftJoin(registrationGuests, eq(registrations.guestId, registrationGuests.id))
     .where(whereClause)
     .orderBy(desc(registrations.registeredAt))
     .limit(PAGE_SIZE)
     .offset(offset);
 
   // Fetch parent registrants / inviters for guests on the current page
-  const guestRegs = allRegistrations.filter((r) => r.attendee.email?.startsWith("guest_"));
+  const guestRegs = allRegistrations.filter((r) =>
+    isGuestRegistration({
+      guestId: r.guestId,
+      parentRegistrationId: r.parentRegistrationId,
+      email: r.attendee?.email,
+    }),
+  );
   const guestIds = guestRegs.map((r) => r.id);
   const invitersMap = new Map<string, { name: string | null; email: string }>();
   const guestToParentRegIdMap = new Map<string, string>();
@@ -328,8 +339,8 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
                     <tr key={reg.id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-4 text-muted-foreground">{rowStart + index + 1}</td>
                       <td className="px-4 py-4">
-                        <p className="font-medium text-foreground">{reg.attendee.name}</p>
-                        <p className="text-xs text-muted-foreground">{reg.attendee.email}</p>
+                        <p className="font-medium text-foreground">{reg.attendee?.name ?? "Asistente"}</p>
+                        <p className="text-xs text-muted-foreground">{reg.attendee?.email ?? "—"}</p>
                       </td>
                       <td className="px-4 py-4">
                         <Link
@@ -347,7 +358,11 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
                         </p>
                       </td>
                       <td className="px-4 py-4">
-                        {reg.attendee.email?.startsWith("guest_") ? (
+                        {isGuestRegistration({
+                          guestId: reg.guestId,
+                          parentRegistrationId: reg.parentRegistrationId,
+                          email: reg.attendee?.email,
+                        }) ? (
                           <div className="space-y-1">
                             <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400 border border-amber-500/20">
                               {locale === "en" ? "Guest" : "Invitado"}
@@ -358,7 +373,7 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
                               </p>
                             )}
                           </div>
-                        ) : reg.attendee.email?.startsWith("offline_") ? (
+                        ) : reg.attendee?.email?.startsWith("offline_") ? (
                           <span className="inline-flex items-center rounded-full bg-indigo-500/10 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 dark:text-indigo-400 border border-indigo-500/20">
                             {locale === "en" ? "Manual Reg" : "Reg. Manual"}
                           </span>

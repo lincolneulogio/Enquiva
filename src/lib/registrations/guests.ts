@@ -1,7 +1,7 @@
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import type { DBTransaction } from "@/lib/db";
 import { db } from "@/lib/db";
-import { registrations } from "@/lib/db/schema";
+import { registrations, registrationGuests, users } from "@/lib/db/schema";
 
 const GUEST_NOTES_PREFIX = "[GUESTS:";
 
@@ -21,6 +21,21 @@ export function stripGuestNotesPrefix(notes: string | null | undefined): string 
 }
 
 type Queryable = typeof db | DBTransaction;
+
+export function isGuestRegistration(reg: {
+  guestId?: string | null;
+  parentRegistrationId?: string | null;
+  userId?: string | null;
+  email?: string | null;
+}): boolean {
+  if (reg.guestId) return true;
+  if (reg.parentRegistrationId) return true;
+  if (reg.userId?.startsWith("guest_")) return true;
+  if (reg.email?.startsWith("guest_") || reg.email?.includes("@sistemaevents.com")) {
+    return true;
+  }
+  return false;
+}
 
 /**
  * Resuelve invitados: preferí FK parent_registration_id; fallback a notes legacy.
@@ -77,3 +92,39 @@ export async function resolveGuestIdsByParent(
 export function countGuestsFromNotes(notes: string | null | undefined): number {
   return parseGuestRegistrationIds(notes).length;
 }
+
+/** Nombre/email de display: usuario real o perfil de invitado. */
+export async function resolveAttendeeDisplay(
+  registrationId: string,
+  client: Queryable = db,
+): Promise<{ name: string; email: string | null; isGuest: boolean }> {
+  const [row] = await client
+    .select({
+      userName: users.name,
+      userEmail: users.email,
+      guestName: registrationGuests.name,
+      guestId: registrations.guestId,
+      parentRegistrationId: registrations.parentRegistrationId,
+      userId: registrations.userId,
+    })
+    .from(registrations)
+    .leftJoin(users, eq(registrations.userId, users.id))
+    .leftJoin(registrationGuests, eq(registrations.guestId, registrationGuests.id))
+    .where(eq(registrations.id, registrationId))
+    .limit(1);
+
+  if (!row) {
+    return { name: "Asistente", email: null, isGuest: false };
+  }
+
+  const isGuest = isGuestRegistration(row);
+  return {
+    name: row.guestName ?? row.userName ?? "Asistente",
+    email: row.userEmail ?? null,
+    isGuest,
+  };
+}
+
+/** Fragmento SQL coalesce nombre asistente (user o guest). */
+export const attendeeNameSql = sql<string>`coalesce(${registrationGuests.name}, ${users.name}, 'Asistente')`;
+export const attendeeEmailSql = sql<string | null>`${users.email}`;

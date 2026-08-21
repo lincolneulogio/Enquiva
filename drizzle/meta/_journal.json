@@ -190,6 +190,13 @@
       "when": 1784247300000,
       "tag": "0026_hot_query_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1784248200000,
+      "tag": "0027_guests_broadcast_fk_qr_cleanup",
+      "breakpoints": true
     }
   ]
 }
