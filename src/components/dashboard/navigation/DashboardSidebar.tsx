@@ -38,7 +38,6 @@ import { filterNavItemsByPermissions } from "@/lib/navigation/sidebar-permission
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import { BrandLogo } from "@/components/shared/BrandLogo";
 import { useDesktopSidebarCollapse } from "@/hooks/useDesktopSidebarCollapse";
-import { SIDEBAR_COLLAPSE_BOOT_SCRIPT } from "@/lib/navigation/sidebar-collapse";
 import { SidebarNavItem } from "@/components/dashboard/navigation/SidebarNavItem";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -561,7 +560,6 @@ export function DashboardSidebar({
 
   return (
     <>
-      <script dangerouslySetInnerHTML={{ __html: SIDEBAR_COLLAPSE_BOOT_SCRIPT }} />
       <div
         className={cn(
           "fixed inset-0 z-40 bg-black/40 transition-opacity lg:hidden",

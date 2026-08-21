@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { LocaleProvider } from "@/components/providers/LocaleProvider";
 import { AppThemeProvider } from "@/components/providers/AppThemeProvider";
 import { ThemeInitScript } from "@/components/providers/ThemeInitScript";
+import { SidebarCollapseBootScript } from "@/components/providers/SidebarCollapseBootScript";
 import { PlatformBrandProvider } from "@/components/providers/PlatformBrandProvider";
 import { AccentColorInitializer } from "@/components/dashboard/admin/AccentColorInitializer";
 import { PlatformAnnouncementBannerHost } from "@/components/shared/PlatformAnnouncementBannerHost";
@@ -67,6 +68,7 @@ export default async function RootLayout({
     <html lang={brand.defaultLocale} suppressHydrationWarning className={outfit.variable}>
       <head>
         <ThemeInitScript platformDefaultAccent={brand.defaultAccentColor} />
+        <SidebarCollapseBootScript />
       </head>
       <body suppressHydrationWarning className="font-sans">
         <AccentColorInitializer platformDefault={brand.defaultAccentColor} />

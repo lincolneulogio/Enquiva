@@ -167,11 +167,14 @@ export class RegistrationService {
             holdExpiresAt: null,
             holdReminderSentAt: null,
             parentRegistrationId: null,
+            guestId: null,
           })
           .where(eq(registrations.id, existing.id))
           .returning();
         registration = reactivated;
       } else {
+        // No usar onConflictDoUpdate: el unique (event_id, user_id) es parcial
+        // (WHERE user_id IS NOT NULL) y Postgres exige el mismo predicate en ON CONFLICT.
         const [created] = await tx
           .insert(registrations)
           .values({
@@ -183,18 +186,6 @@ export class RegistrationService {
             registeredAt: now,
             holdExpiresAt: null,
             holdReminderSentAt: null,
-          })
-          .onConflictDoUpdate({
-            target: [registrations.eventId, registrations.userId],
-            set: {
-              status,
-              contactPhone,
-              notes: finalNotes,
-              registeredAt: now,
-              holdExpiresAt: null,
-              holdReminderSentAt: null,
-              parentRegistrationId: null,
-            },
           })
           .returning();
         registration = created;
