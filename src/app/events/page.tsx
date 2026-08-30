@@ -29,12 +29,23 @@ async function EventsGrid({
 }) {
   const { t, locale } = await getStaticI18n();
   const page = parseInt(searchParams.page ?? "1");
-  const { events, total, limit } = await EventService.getPublicEvents({
-    category: searchParams.category as never,
-    search: searchParams.search,
-    page,
-    limit: 12,
-  });
+  let events: Awaited<ReturnType<typeof EventService.getPublicEvents>>["events"] = [];
+  let total = 0;
+  let limit = 12;
+
+  try {
+    const result = await EventService.getPublicEvents({
+      category: searchParams.category as never,
+      search: searchParams.search,
+      page,
+      limit: 12,
+    });
+    events = result.events;
+    total = result.total;
+    limit = result.limit;
+  } catch (error) {
+    console.error("[events] public events query failed, using empty catalog", error);
+  }
 
   if (events.length === 0) {
     return (
@@ -77,10 +88,20 @@ async function EventsGrid({
 export default async function EventsPage({ searchParams }: EventsPageProps) {
   const { t } = await getStaticI18n();
   const params = await searchParams;
-  const [categories, { total: eventsTotal }] = await Promise.all([
-    EventService.getCategories(null),
-    EventService.getPublicEvents({ page: 1, limit: 1 }),
-  ]);
+  let categories: Awaited<ReturnType<typeof EventService.getCategories>> = [];
+  let eventsTotal = 0;
+
+  try {
+    const [cats, publicResult] = await Promise.all([
+      EventService.getCategories(null),
+      EventService.getPublicEvents({ page: 1, limit: 1 }),
+    ]);
+    categories = cats;
+    eventsTotal = publicResult.total;
+  } catch (error) {
+    console.error("[events] catalog query failed, using empty catalog", error);
+  }
+
   const categoryMap = Object.fromEntries(
     categories.map((category) => [
       category.slug,

@@ -18,10 +18,21 @@ export default async function HomePage() {
   const { locale, t } = await getStaticI18n();
   const landingCopy = getLandingCopy({ role: null, locale: locale === "en" ? "en" : "es", t });
 
-  const [featuredEvents, { events, totalRegistrations }] = await Promise.all([
-    EventService.getFeaturedPublicEvents(8),
-    EventService.getPublicEvents({ page: 1, limit: 6 }),
-  ]);
+  let featuredEvents: Awaited<ReturnType<typeof EventService.getFeaturedPublicEvents>> = [];
+  let events: Awaited<ReturnType<typeof EventService.getPublicEvents>>["events"] = [];
+  let totalRegistrations = 0;
+
+  try {
+    const [featured, publicResult] = await Promise.all([
+      EventService.getFeaturedPublicEvents(8),
+      EventService.getPublicEvents({ page: 1, limit: 6 }),
+    ]);
+    featuredEvents = featured;
+    events = publicResult.events;
+    totalRegistrations = publicResult.totalRegistrations;
+  } catch (error) {
+    console.error("[home] public events query failed, using empty catalog", error);
+  }
 
   const formattedRegistrations = new Intl.NumberFormat(
     locale === "en" ? "en-US" : "es-PE",
