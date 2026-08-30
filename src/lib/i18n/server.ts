@@ -11,11 +11,12 @@ import {
 import { getPlatformBrand } from "@/lib/brand/platform-brand";
 import { getRequestSystemSettings } from "@/lib/request-context";
 
-export const PUBLIC_PAGE_REVALIDATE_SECONDS = 120;
-
 /**
  * i18n de marketing/ISR: idioma de plataforma (settings cacheados).
  * No lee cookies(), para no forzar render dinámico en /, /events y /pricing.
+ *
+ * Nota: `export const revalidate` en esas pages debe ser el literal `120`
+ * (Next.js no analiza imports en segment config).
  */
 export const getStaticI18n = cache(async () => {
     const brand = await getPlatformBrand();

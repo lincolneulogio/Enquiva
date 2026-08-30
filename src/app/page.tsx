@@ -1,9 +1,6 @@
 import { EventService } from "@/services/events/event.service";
 import { PublicHeader } from "@/components/shared/PublicHeader";
-import {
-  getStaticI18n,
-  PUBLIC_PAGE_REVALIDATE_SECONDS,
-} from "@/lib/i18n/server";
+import { getStaticI18n } from "@/lib/i18n/server";
 import { getLandingCopy } from "@/lib/navigation/landing-audience";
 import {
   FeaturedEventsCarousel,
@@ -14,7 +11,8 @@ import {
 import { SessionAwareHero } from "@/components/landing/SessionAwareHero";
 import { MarketingMotionProvider } from "@/components/providers/MarketingMotionProvider";
 
-export const revalidate = PUBLIC_PAGE_REVALIDATE_SECONDS;
+/** Debe ser literal: Next.js no analiza imports en segment config. */
+export const revalidate = 120;
 
 export default async function HomePage() {
   const { locale, t } = await getStaticI18n();

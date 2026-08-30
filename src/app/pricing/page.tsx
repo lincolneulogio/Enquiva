@@ -1,7 +1,7 @@
 import { Check, X, Sparkles, Calendar, CreditCard, Bus } from "lucide-react";
 import { PublicHeader } from "@/components/shared/PublicHeader";
 import { PublicPageHero } from "@/components/shared/PublicPageHero";
-import { getStaticI18n, PUBLIC_PAGE_REVALIDATE_SECONDS } from "@/lib/i18n/server";
+import { getStaticI18n } from "@/lib/i18n/server";
 import { db } from "@/lib/db";
 import { plans } from "@/lib/db/schema";
 import { and, asc, eq } from "drizzle-orm";
@@ -14,7 +14,8 @@ import {
 } from "@/components/pricing/PricingSessionCtas";
 import { cn } from "@/lib/utils";
 
-export const revalidate = PUBLIC_PAGE_REVALIDATE_SECONDS;
+/** Debe ser literal: Next.js no analiza imports en segment config. */
+export const revalidate = 120;
 
 export const metadata = {
   title: "Planes y precios | Enquiva",

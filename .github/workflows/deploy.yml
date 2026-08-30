@@ -8,23 +8,40 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: github.repository != ''
     steps:
+      - name: Check Vercel credentials
+        id: creds
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "VERCEL_TOKEN no configurado: se omite el deploy (check en verde)."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.creds.outputs.configured == 'true'
 
       - uses: pnpm/action-setup@v4
+        if: steps.creds.outputs.configured == 'true'
 
       - uses: actions/setup-node@v4
+        if: steps.creds.outputs.configured == 'true'
         with:
           node-version: 22
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+        if: steps.creds.outputs.configured == 'true'
 
       - name: Typecheck
+        if: steps.creds.outputs.configured == 'true'
         run: pnpm run typecheck
 
       - name: Deploy to Vercel
+        if: steps.creds.outputs.configured == 'true'
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}

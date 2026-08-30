@@ -7,9 +7,10 @@ import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
 import { EventsPagination } from "@/components/events/EventsPagination";
 import { PublicHeader } from "@/components/shared/PublicHeader";
 import { PublicPageHero } from "@/components/shared/PublicPageHero";
-import { getStaticI18n, PUBLIC_PAGE_REVALIDATE_SECONDS } from "@/lib/i18n/server";
+import { getStaticI18n } from "@/lib/i18n/server";
 
-export const revalidate = PUBLIC_PAGE_REVALIDATE_SECONDS;
+/** Debe ser literal: Next.js no analiza imports en segment config. */
+export const revalidate = 120;
 
 interface EventsPageProps {
   searchParams: Promise<{
