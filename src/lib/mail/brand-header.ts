@@ -1,56 +1,27 @@
-import { readFileSync } from "fs";
-import path from "path";
 import type { Attachment } from "nodemailer/lib/mailer";
 import { BRAND } from "@/lib/brand";
 import { env } from "@/env";
 
-export const EMAIL_BRAND_LOGO_CID = "eventia-brand-logo";
-
-/** URL absoluta para assets en correos (fallback si no hay adjunto CID). */
+/** URL absoluta para assets en correos (alojados en el dominio público). */
 export function emailAssetUrl(assetPath: string) {
   const base = env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
   return `${base}${assetPath}`;
 }
 
-let cachedLogoAttachment: Attachment | null | undefined;
-
-/** Adjunto inline del logo para clientes de correo (no depende de URL pública). */
-export function getEmailBrandLogoAttachment(): Attachment | null {
-  if (cachedLogoAttachment !== undefined) return cachedLogoAttachment;
-
-  try {
-    const relativePath = BRAND.logo.markLg.replace(/^\//, "");
-    const filePath = path.join(process.cwd(), "public", relativePath);
-    cachedLogoAttachment = {
-      filename: path.basename(filePath),
-      content: readFileSync(filePath),
-      cid: EMAIL_BRAND_LOGO_CID,
-    };
-  } catch (error) {
-    console.error("[mail] No se pudo cargar el logo para correos:", error);
-    cachedLogoAttachment = null;
-  }
-
-  return cachedLogoAttachment;
-}
-
+/**
+ * Conserva adjuntos del correo (como PDFs de tickets o códigos QR) sin adjuntar
+ * el logo de la marca como archivo descargable.
+ */
 export function appendEmailBrandLogoAttachment(
   attachments: Attachment | Attachment[] | undefined = [],
 ): Attachment[] {
-  const list = Array.isArray(attachments) ? [...attachments] : attachments ? [attachments] : [];
-  const logo = getEmailBrandLogoAttachment();
-  if (!logo) return list;
-
-  const hasLogo = list.some((attachment) => attachment.cid === EMAIL_BRAND_LOGO_CID);
-
-  return hasLogo ? list : [...list, logo];
+  return Array.isArray(attachments) ? [...attachments] : attachments ? [attachments] : [];
 }
 
-/** Encabezado de marca alineado con BrandLogo de la app (logo + nombre). */
+/** Encabezado de marca alineado con BrandLogo de la app (logo público + nombre). */
 export function renderEmailBrandHeader(orgName?: string) {
   const displayName = orgName?.trim() || BRAND.name;
-  const logoAttachment = getEmailBrandLogoAttachment();
-  const logoSrc = logoAttachment ? `cid:${EMAIL_BRAND_LOGO_CID}` : emailAssetUrl(BRAND.logo.markLg);
+  const logoSrc = emailAssetUrl(BRAND.logo.markLg);
 
   return `
     <table border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
@@ -73,3 +44,4 @@ export function renderEmailBrandHeader(orgName?: string) {
     </table>
   `;
 }
+
