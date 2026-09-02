@@ -33,9 +33,9 @@
     "staging:gate": "pnpm run seed:staging && pnpm run smoke:critical"
   },
   "dependencies": {
-    "@ai-sdk/google": "^4.0.57",
-    "@ai-sdk/openai": "^4.0.51",
-    "@ai-sdk/react": "^4.0.87",
+    "@ai-sdk/google": "^3.0.80",
+    "@ai-sdk/openai": "^3.0.66",
+    "@ai-sdk/react": "^1.1.20",
     "@hookform/resolvers": "^5.9.1",
     "@radix-ui/react-avatar": "^1.2.6",
     "@radix-ui/react-dialog": "^1.1.23",
@@ -53,7 +53,7 @@
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.3",
     "@yudiel/react-qr-scanner": "^2.6.0",
-    "ai": "^7.0.84",
+    "ai": "^6.0.192",
     "aos": "^2.3.4",
     "better-auth": "^1.7.2",
     "class-variance-authority": "^0.7.1",
