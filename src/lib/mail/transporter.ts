@@ -44,14 +44,17 @@ function createTransportFromConfig(config: ResolvedMailConfig) {
     );
   }
 
+  const port = Number(config.port) || 587;
+  const isSecure = port === 465;
+
   const options: SMTPTransport.Options = {
-    host: config.host,
-    port: config.port,
-    secure: config.port === 465,
-    requireTLS: config.port !== 465,
+    host: config.host.replace(/^https?:\/\//, "").trim(),
+    port,
+    secure: isSecure,
+    requireTLS: !isSecure,
     auth: {
-      user: config.user,
-      pass: config.pass,
+      user: config.user.trim(),
+      pass: config.pass.trim(),
     },
     tls: {
       rejectUnauthorized: false,
