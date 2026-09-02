@@ -17,7 +17,13 @@ import {
     getMailTransporter,
     getMailSender,
     getResolvedMailPublicInfo,
+    resolveMailConfig,
 } from "@/lib/mail/transporter";
+import {
+    isResendConfig,
+    verifyResendApiKey,
+    sendMailViaResendApi,
+} from "@/lib/mail/resend-sender";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -92,6 +98,27 @@ export async function testMailConnectionAction() {
 
     try {
         const start = Date.now();
+        const config = await resolveMailConfig();
+
+        if (isResendConfig(config)) {
+            const verifyRes = await verifyResendApiKey(config.pass);
+            if (!verifyRes.ok) {
+                return {
+                    success: false,
+                    error: verifyRes.error,
+                };
+            }
+            const info = await getResolvedMailPublicInfo();
+            const duration = Date.now() - start;
+            return {
+                success: true,
+                host: info.host,
+                port: info.port,
+                source: info.source,
+                latencyMs: duration,
+            };
+        }
+
         const transporter = await getMailTransporter();
         await transporter.verify();
         const info = await getResolvedMailPublicInfo();
@@ -121,6 +148,7 @@ export async function sendTestEmailAction(email: string) {
     await assertPermission(user, "settings:manage");
     const settings = await getSystemSettings();
     const mailInfo = await getResolvedMailPublicInfo();
+    const config = await resolveMailConfig();
 
     try {
         const start = Date.now();
@@ -129,14 +157,14 @@ export async function sendTestEmailAction(email: string) {
         const bodyHtml = `
             <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #475569; font-family: 'Outfit', sans-serif;">
                 Este es un correo de prueba enviado desde el panel de diagnóstico de <strong>${settings.organizationName}</strong>.
-                Si estás leyendo esto, tu servidor SMTP está correctamente configurado.
+                Si estás leyendo esto, tu servicio de correo está correctamente configurado y funcionando.
             </p>
             <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; border-radius: 16px; border: 1px solid #e2e8f0; margin-top: 8px;">
                 <tr>
                     <td style="padding: 16px;">
                         <table border="0" cellpadding="0" cellspacing="0" width="100%">
                             <tr>
-                                <td style="padding: 4px 0; font-size: 13px; color: #64748b;"><strong>Servidor SMTP:</strong></td>
+                                <td style="padding: 4px 0; font-size: 13px; color: #64748b;"><strong>Servidor / Proveedor:</strong></td>
                                 <td style="padding: 4px 0; font-size: 13px; color: #0f172a; text-align: right;"><code>${mailInfo.host}</code></td>
                             </tr>
                             <tr>
@@ -165,15 +193,27 @@ export async function sendTestEmailAction(email: string) {
             settings.organizationName,
         );
 
-        const transporter = await getMailTransporter();
-        await transporter.sendMail({
+        const mailOptions = {
             from: await getMailSender(),
             to: email,
-            subject: `Prueba de correo SMTP — ${settings.organizationName}`,
-            text: `¡Hola ${user.name}! Este es un correo de prueba SMTP exitoso de la plataforma ${settings.organizationName}. Soporte: ${settings.supportEmail}`,
+            subject: `Prueba de correo — ${settings.organizationName}`,
+            text: `¡Hola ${user.name}! Este es un correo de prueba exitoso de la plataforma ${settings.organizationName}. Soporte: ${settings.supportEmail}`,
             html,
             attachments: appendEmailBrandLogoAttachment(),
-        });
+        };
+
+        if (isResendConfig(config)) {
+            try {
+                await sendMailViaResendApi(config, mailOptions);
+            } catch (apiErr) {
+                console.warn("[Diagnostic Test] Resend API failed, trying SMTP transporter fallback:", apiErr);
+                const transporter = await getMailTransporter();
+                await transporter.sendMail(mailOptions);
+            }
+        } else {
+            const transporter = await getMailTransporter();
+            await transporter.sendMail(mailOptions);
+        }
 
         const latencyMs = Date.now() - start;
         return { success: true, latencyMs };

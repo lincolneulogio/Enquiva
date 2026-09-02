@@ -1,4 +1,5 @@
-import { getMailTransporter, getMailSender } from "./transporter";
+import { getMailTransporter, getMailSender, resolveMailConfig } from "./transporter";
+import { isResendConfig, sendMailViaResendApi } from "./resend-sender";
 import { appendEmailBrandLogoAttachment } from "./brand-header";
 import { generatePdfBuffer } from "./pdf";
 import {
@@ -24,13 +25,23 @@ type MailAttachment = Attachment;
 
 async function safeSendMail(options: SendMailOptions) {
   try {
+    const config = await resolveMailConfig();
+    if (isResendConfig(config)) {
+      try {
+        const res = await sendMailViaResendApi(config, options);
+        return res;
+      } catch (apiError) {
+        console.warn(`[Resend API Warning] Failed to send via HTTP API, trying SMTP fallback:`, apiError);
+      }
+    }
+
     const transporter = await getMailTransporter();
     return await transporter.sendMail({
       ...options,
       attachments: appendEmailBrandLogoAttachment(options.attachments ?? []),
     });
   } catch (error) {
-    console.error(`[SMTP Error] Failed to send email to ${options.to}:`, error);
+    console.error(`[Mail Error] Failed to send email to ${options.to}:`, error);
     return null;
   }
 }
