@@ -112,7 +112,7 @@ export function getVerificationCodeTemplate(
       You requested a verification code to confirm your email. Enter this 6-digit code in the app:
     </p>
     <div style="text-align: center; margin: 36px 0;">
-      <div style="font-size: 38px; letter-spacing: 8px; font-weight: 800; padding: 22px 32px; background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%); border: 2px dashed rgba(75, 26, 181, 0.2); border-radius: 20px; display: inline-block; color: #4b1ab5; font-family: monospace; box-shadow: 0 8px 20px -6px rgba(75, 26, 181, 0.15);">
+      <div style="font-size: 38px; letter-spacing: 8px; font-weight: 800; padding: 22px 32px; background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%); border: 2px dashed rgba(75, 26, 181, 0.2); border-radius: 20px; display: inline-block; color: #4b1ab5; font-family: 'Outfit', sans-serif; box-shadow: 0 8px 20px -6px rgba(75, 26, 181, 0.15);">
         ${code}
       </div>
     </div>
@@ -132,7 +132,7 @@ export function getVerificationCodeTemplate(
       Has solicitado un código de verificación para confirmar tu correo electrónico. Por favor, ingresa el siguiente código de 6 dígitos en la aplicación:
     </p>
     <div style="text-align: center; margin: 36px 0;">
-      <div style="font-size: 38px; letter-spacing: 8px; font-weight: 800; padding: 22px 32px; background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%); border: 2px dashed rgba(75, 26, 181, 0.2); border-radius: 20px; display: inline-block; color: #4b1ab5; font-family: monospace; box-shadow: 0 8px 20px -6px rgba(75, 26, 181, 0.15);">
+      <div style="font-size: 38px; letter-spacing: 8px; font-weight: 800; padding: 22px 32px; background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%); border: 2px dashed rgba(75, 26, 181, 0.2); border-radius: 20px; display: inline-block; color: #4b1ab5; font-family: 'Outfit', sans-serif; box-shadow: 0 8px 20px -6px rgba(75, 26, 181, 0.15);">
         ${code}
       </div>
     </div>
@@ -214,7 +214,7 @@ export function getPasswordResetTemplate(url: string, greeting: string, orgName?
     </div>
     <div style="background-color: #faf9ff; border: 1px solid #eef2f6; border-radius: 16px; padding: 18px; margin-top: 24px;">
       <p style="margin: 0 0 8px 0; font-size: 12px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Outfit', sans-serif;">Si el botón no funciona, copia este enlace:</p>
-      <p style="margin: 0; font-size: 13px; color: #4b1ab5; word-break: break-all; line-height: 1.5; font-family: monospace;">
+      <p style="margin: 0; font-size: 13px; color: #4b1ab5; word-break: break-all; line-height: 1.5; font-family: 'Outfit', sans-serif;">
         <a href="${url}" style="color: #4b1ab5; text-decoration: none; font-weight: 600;">${url}</a>
       </p>
     </div>
@@ -281,7 +281,7 @@ export function getTicketTemplate(opts: {
                   
                   <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 6px; font-family: 'Outfit', sans-serif;">Código del Ticket</span>
                   <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 20px; display: inline-block; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                    <span style="font-size: 20px; font-weight: 800; color: #4b1ab5; letter-spacing: 1.5px; font-family: monospace;">${opts.code}</span>
+                    <span style="font-size: 20px; font-weight: 800; color: #4b1ab5; letter-spacing: 1.5px; font-family: 'Outfit', sans-serif;">${opts.code}</span>
                   </div>
                 </td>
               </tr>

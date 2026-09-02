@@ -50,23 +50,19 @@ export function getPublicHeaderNavLinks(
     case "super_admin":
       return [
         { href: "/events", label: copy.browseEvents },
-        { href: "/pricing", label: copy.plans },
-        { href: "/superadmin/plans", label: copy.saasPlans },
         { href: "/superadmin/events", label: copy.myEvents },
+        { href: "/superadmin/plans", label: copy.saasPlans },
       ];
     case "admin":
       return [
         { href: "/events", label: copy.browseEvents },
-        { href: "/pricing", label: copy.plans },
         { href: "/admin/events", label: copy.myEvents },
         { href: "/admin/plan", label: copy.entityPlan },
       ];
     case "organizer":
       return [
         { href: "/events", label: copy.browseEvents },
-        { href: "/pricing", label: copy.plans },
         { href: "/organizer/events", label: copy.myEvents },
-        { href: "/organizer/billing", label: copy.billing },
         { href: "/organizer/scan", label: copy.scan },
       ];
     case "scanner":

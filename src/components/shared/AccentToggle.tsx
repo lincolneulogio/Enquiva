@@ -23,6 +23,7 @@ const ACCENT_LABEL_KEYS: Record<AccentColor, string> = {
 
 interface AccentToggleProps {
   className?: string;
+  showLabel?: boolean;
 }
 
 function readActiveAccent(): AccentColor {
@@ -31,7 +32,7 @@ function readActiveAccent(): AccentColor {
   return isAccentColor(fromDom) ? fromDom : DEFAULT_ACCENT_COLOR;
 }
 
-export function AccentToggle({ className }: AccentToggleProps) {
+export function AccentToggle({ className, showLabel = false }: AccentToggleProps) {
   const t = useTranslations();
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -84,7 +85,8 @@ export function AccentToggle({ className }: AccentToggleProps) {
         aria-expanded={open}
         aria-haspopup="listbox"
         className={cn(
-          "inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-border bg-secondary/50 px-2.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:px-3",
+          "inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-border bg-secondary/40 text-sm text-muted-foreground transition-all duration-200 hover:bg-secondary hover:text-foreground",
+          showLabel ? "px-2.5 sm:px-3" : "w-10 px-0",
           className,
         )}
       >
@@ -95,8 +97,12 @@ export function AccentToggle({ className }: AccentToggleProps) {
           )}
           aria-hidden
         />
-        <Palette className="hidden h-4 w-4 sm:inline" />
-        <span className="hidden lg:inline">{label}</span>
+        {showLabel ? (
+          <>
+            <Palette className="hidden h-4 w-4 sm:inline" />
+            <span className="hidden lg:inline">{label}</span>
+          </>
+        ) : null}
       </button>
 
       {open ? (

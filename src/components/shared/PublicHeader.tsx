@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { normalizeRole } from "@/lib/auth/rbac";
-import { getRoleLabel } from "@/lib/i18n/core";
 import { useLocale } from "@/components/providers/LocaleProvider";
 import { useSession } from "@/lib/auth/client";
 import { PublicMobileMenu } from "@/components/shared/PublicMobileMenu";
+import { PublicUserMenu } from "@/components/shared/PublicUserMenu";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { AccentToggle } from "@/components/shared/AccentToggle";
 import { BrandLogo } from "@/components/shared/BrandLogo";
@@ -16,8 +16,9 @@ import {
 } from "@/lib/navigation/public-header-nav";
 
 /**
- * Header público en cliente: la sesión no dynamiza /, /events ni /pricing.
- * Mientras carga, se muestra el chrome de invitado (el tráfico mayoritario).
+ * Header público:
+ * - Izquierda: Logo + Enlaces de navegación principales según rol de sesión.
+ * - Derecha: Toggles de tema/acento + Acciones de usuario (Dropdown autenticado o Iniciar sesión / Comenzar).
  */
 export function PublicHeader() {
   const { t, locale } = useLocale();
@@ -51,111 +52,72 @@ export function PublicHeader() {
     dashboard: dashboardLabel,
   });
 
-  const roleLabel = user ? getRoleLabel(normalizedRole, locale) : null;
-
   return (
     <nav
-      className="sticky z-50 border-b border-border bg-background/80 backdrop-blur-md"
+      className="sticky z-50 border-b border-border/80 bg-background/80 backdrop-blur-md"
       style={{ top: "var(--enquiva-banner-offset, 0px)" }}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
-        <BrandLogo href="/" size="md" priority className="shrink-0" />
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 py-3.5">
+        {/* Left section: Logo + Desktop Navigation Links */}
+        <div className="flex items-center gap-4 lg:gap-8 min-w-0">
+          <BrandLogo href="/" size="md" priority className="shrink-0" />
 
-        <div className="flex items-center gap-2 md:hidden">
-          <ThemeToggle />
-          <AccentToggle />
-          <PublicMobileMenu
-            links={navLinks}
-            primaryHref={user ? dashboardPath : "/register"}
-            primaryLabel={user ? dashboardLabel : t("common.getStarted")}
-            secondaryHref={user ? undefined : "/login"}
-            secondaryLabel={user ? undefined : t("common.signIn")}
-          />
+          <div className="hidden md:flex items-center gap-3 lg:gap-6 shrink-0">
+            {navLinks.map((link) => (
+              <Link
+                key={`${link.href}-${link.label}`}
+                href={link.href}
+                className="whitespace-nowrap text-xs font-medium text-muted-foreground transition-colors hover:text-foreground lg:text-sm"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
         </div>
 
-        <div className="hidden items-center gap-5 lg:gap-6 md:flex">
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <AccentToggle />
+        {/* Right section: Theme/Accent Toggles + Auth Controls */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          {/* Toggles on the right */}
+          <ThemeToggle />
+          <AccentToggle />
+
+          {/* Desktop Auth State */}
+          <div className="hidden md:flex items-center gap-1.5 sm:gap-2 pl-0.5 sm:pl-1">
+            {user ? (
+              <PublicUserMenu
+                user={user}
+                dashboardPath={dashboardPath}
+                dashboardLabel={dashboardLabel}
+              />
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-xl px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:h-10 sm:px-3.5 sm:text-sm"
+                >
+                  {t("common.signIn")}
+                </Link>
+                <Link
+                  href="/register"
+                  className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-xl bg-primary px-3 text-xs font-bold text-primary-foreground shadow-sm transition-all duration-200 hover:bg-primary/90 hover:shadow-md sm:h-10 sm:px-4 sm:text-sm"
+                >
+                  {t("common.getStarted")}
+                </Link>
+              </>
+            )}
           </div>
 
-          {navLinks.map((link) => (
-            <Link
-              key={`${link.href}-${link.label}`}
-              href={link.href}
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {link.label}
-            </Link>
-          ))}
-
-          {user ? (
-            <div className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-card/45 p-1 pl-1.5 shadow-sm transition-all duration-300 hover:border-primary/20 hover:bg-card/90 hover:shadow-md backdrop-blur-sm">
-              <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-primary/20 bg-primary/10 text-xs font-bold text-primary select-none">
-                {user.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={user.image}
-                    alt={user.name ?? ""}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span>
-                    {user.name
-                      ? user.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .slice(0, 2)
-                          .toUpperCase()
-                      : "U"}
-                  </span>
-                )}
-              </div>
-
-              <div className="hidden min-w-0 flex-col justify-center text-left sm:flex">
-                <span className="max-w-[140px] truncate text-xs font-bold leading-none text-foreground">
-                  {user.name}
-                </span>
-                <span className="mt-0.5 max-w-[140px] truncate text-[10px] leading-none text-muted-foreground">
-                  {roleLabel ?? user.email}
-                </span>
-              </div>
-
-              <Link
-                href={dashboardPath}
-                className="inline-flex h-8 shrink-0 items-center rounded-lg bg-primary px-3 text-xs font-bold text-primary-foreground shadow-sm transition-all duration-300 hover:bg-primary/95"
-              >
-                {dashboardLabel}
-              </Link>
-            </div>
-          ) : (
-            <div className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-card/45 p-1 pl-1.5 shadow-sm backdrop-blur-sm">
-              <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-secondary text-xs font-bold text-muted-foreground select-none">
-                IN
-              </div>
-              <div className="hidden min-w-0 flex-col justify-center text-left sm:flex">
-                <span className="max-w-[140px] truncate text-xs font-bold leading-none text-foreground">
-                  {locale === "en" ? "Guest" : "Invitado"}
-                </span>
-                <span className="mt-0.5 max-w-[140px] truncate text-[10px] leading-none text-muted-foreground">
-                  {locale === "en" ? "Browse without an account" : "Explora sin cuenta"}
-                </span>
-              </div>
-              <Link
-                href="/login"
-                className="inline-flex h-8 shrink-0 items-center rounded-lg border border-border bg-background px-3 text-xs font-semibold text-foreground transition-colors hover:bg-secondary"
-              >
-                {t("common.signIn")}
-              </Link>
-              <Link
-                href="/register"
-                className="inline-flex h-8 shrink-0 items-center rounded-lg bg-primary px-3 text-xs font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/95"
-              >
-                {t("common.getStarted")}
-              </Link>
-            </div>
-          )}
+          {/* Mobile Menu Trigger */}
+          <div className="md:hidden">
+            <PublicMobileMenu
+              links={navLinks}
+              primaryHref={user ? dashboardPath : "/register"}
+              primaryLabel={user ? dashboardLabel : t("common.getStarted")}
+              secondaryHref={user ? undefined : "/login"}
+              secondaryLabel={user ? undefined : t("common.signIn")}
+              user={user}
+            />
+          </div>
         </div>
       </div>
     </nav>

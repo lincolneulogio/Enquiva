@@ -4,7 +4,7 @@
 
 @theme {
   --font-sans: var(--font-outfit), sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-mono: var(--font-outfit), sans-serif;
   --font-display: var(--font-display), var(--font-outfit), sans-serif;
 
   --color-background: hsl(var(--background));
