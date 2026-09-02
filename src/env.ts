@@ -110,6 +110,11 @@ export const env = createEnv({
     NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED,
   },
   emptyStringAsUndefined: true,
+  skipValidation:
+    !!process.env.SKIP_ENV_VALIDATION ||
+    process.env.npm_lifecycle_event === "lint" ||
+    process.env.NEXT_PHASE === "phase-production-build" ||
+    (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL),
   /**
    * En producción, si Culqi está habilitado (secret key), el webhook secret es obligatorio.
    */
