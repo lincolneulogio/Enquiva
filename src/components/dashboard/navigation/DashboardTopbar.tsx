@@ -57,16 +57,16 @@ export async function DashboardTopbar({ user }: DashboardTopbarProps) {
           <span>Ir a web</span>
         </Link>
 
-        {/* Toggles de apariencia (en móvil están integrados en el menú de usuario) */}
+        {/* Toggles de apariencia (en tablet vertical y móvil están integrados en el menú de usuario) */}
         <div className="hidden sm:inline-flex">
           <ThemeToggle />
         </div>
 
-        <div className="hidden md:inline-flex">
+        <div className="hidden lg:inline-flex">
           <AccentToggle />
         </div>
 
-        <div className="hidden md:inline-flex">
+        <div className="hidden lg:inline-flex">
           <LanguageSwitcher />
         </div>
 

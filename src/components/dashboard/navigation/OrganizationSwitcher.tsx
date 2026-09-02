@@ -69,7 +69,7 @@ export function OrganizationSwitcher({ memberships, canJoin }: OrganizationSwitc
         aria-expanded={open}
         aria-haspopup="listbox"
         title={t("dashboard.organizationSwitcher.switch")}
-        className="inline-flex h-10 max-w-[7.5rem] xs:max-w-[10rem] sm:max-w-[14rem] md:max-w-[18rem] items-center gap-1.5 xs:gap-2 rounded-xl border border-border bg-secondary/50 px-2 xs:px-2.5 text-left transition-colors hover:bg-secondary disabled:opacity-60"
+        className="inline-flex h-10 max-w-[7rem] xs:max-w-[9rem] sm:max-w-[11.5rem] md:max-w-[13.5rem] lg:max-w-[16rem] xl:max-w-[18rem] items-center gap-1.5 xs:gap-2 rounded-xl border border-border bg-secondary/50 px-2 xs:px-2.5 text-left transition-colors hover:bg-secondary disabled:opacity-60"
       >
         <Building2 className="h-4 w-4 shrink-0 text-primary" />
         <span className="min-w-0 flex-1">
