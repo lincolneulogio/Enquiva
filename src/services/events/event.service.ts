@@ -33,19 +33,6 @@ const activeOccupyingStatus = and(
   or(isNull(registrations.holdExpiresAt), gt(registrations.holdExpiresAt, sql`now()`)),
 );
 
-const FALLBACK_CATEGORIES: Pick<Category, "slug" | "label" | "colorClass">[] = [
-  { slug: "worship", label: "Música y espectáculos", colorClass: "bg-purple-100 text-purple-800" },
-  { slug: "retreat", label: "Talleres y capacitación", colorClass: "bg-green-100 text-green-800" },
-  { slug: "youth", label: "Juventud", colorClass: "bg-orange-100 text-orange-800" },
-  { slug: "charity", label: "Beneficencia", colorClass: "bg-red-100 text-red-800" },
-  { slug: "conference", label: "Conferencia", colorClass: "bg-blue-100 text-blue-800" },
-  { slug: "prayer", label: "Networking", colorClass: "bg-indigo-100 text-indigo-800" },
-  { slug: "bible_study", label: "Formación", colorClass: "bg-teal-100 text-teal-800" },
-  { slug: "outreach", label: "Comunitario", colorClass: "bg-amber-100 text-amber-800" },
-  { slug: "fellowship", label: "Social", colorClass: "bg-pink-100 text-pink-800" },
-  { slug: "other", label: "Otro", colorClass: "bg-gray-100 text-gray-800" },
-];
-
 type PublicEventsResult = {
   events: (InferSelectModel<typeof events> & { attendeeCount: number })[];
   total: number;
@@ -58,7 +45,7 @@ type EventWithAttendeeCount = InferSelectModel<typeof events> & { attendeeCount:
 
 export class EventService {
   /**
-   * Obtiene la lista de categorías de eventos activas.
+   * Obtiene la lista de categorías de eventos activas de la base de datos.
    */
   static async getCategories(organizationId?: string | null): Promise<Pick<Category, "slug" | "label" | "colorClass">[]> {
     try {
@@ -68,17 +55,14 @@ export class EventService {
       } else {
         conditions.push(isNull(categories.organizationId));
       }
-      const rows = await db
+      return await db
         .select({ slug: categories.slug, label: categories.label, colorClass: categories.colorClass })
         .from(categories)
         .where(and(...conditions))
         .orderBy(asc(categories.sortOrder));
-      if (rows.length > 0) return rows;
-      if (organizationId) return [];
-      return FALLBACK_CATEGORIES;
     } catch (error) {
-      console.error("Failed to load categories. Using fallback categories.", error);
-      return FALLBACK_CATEGORIES;
+      console.error("Error al cargar categorías desde la base de datos:", error);
+      return [];
     }
   }
 

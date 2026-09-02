@@ -53,13 +53,11 @@ export async function getCategories(): Promise<Pick<Category, "slug" | "label" |
     }
 
     if (role === "super_admin") {
-      const rows = await db
+      return await db
         .select({ slug: categories.slug, label: categories.label, colorClass: categories.colorClass })
         .from(categories)
         .where(eq(categories.isActive, true))
         .orderBy(asc(categories.sortOrder));
-      if (rows.length > 0) return rows;
-      return EventService.getCategories(null);
     }
   }
   return EventService.getCategories(null);
