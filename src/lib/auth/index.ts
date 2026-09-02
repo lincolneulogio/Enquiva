@@ -51,8 +51,8 @@ export const auth = betterAuth({
       twoFactor: twoFactorTable,
     },
   }),
-  secret: env.BETTER_AUTH_SECRET,
-  baseURL: env.NEXT_PUBLIC_APP_URL,
+  secret: env.BETTER_AUTH_SECRET || "build-time-auth-secret-at-least-32-chars-long",
+  baseURL: env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   trustedOrigins: getTrustedOrigins(),
   emailAndPassword: {
     enabled: true,

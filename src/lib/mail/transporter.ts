@@ -22,12 +22,12 @@ const SETTINGS_ROW_ID = "default";
 
 function envMailConfig(): ResolvedMailConfig {
   return {
-    host: env.SMTP_HOST,
-    port: env.SMTP_PORT,
-    user: env.SMTP_USER,
-    pass: env.SMTP_PASS,
-    fromEmail: env.MAIL_FROM_EMAIL,
-    fromName: env.MAIL_FROM_NAME,
+    host: env.SMTP_HOST || "localhost",
+    port: env.SMTP_PORT || 587,
+    user: env.SMTP_USER || "",
+    pass: env.SMTP_PASS || "",
+    fromEmail: env.MAIL_FROM_EMAIL || "no-reply@enquiva.com",
+    fromName: env.MAIL_FROM_NAME || "Enquiva",
     source: "env",
   };
 }
@@ -161,22 +161,20 @@ export async function getResolvedMailPublicInfo() {
   };
 }
 
-// Validación temprana con env (arranque / build local).
-const bootCheck = validateProductionMailConfig(env.SMTP_HOST);
-if (bootCheck.warning) {
-  console.error(`[mail] ${bootCheck.warning}`);
+if (typeof window === "undefined" && process.env.NEXT_PHASE !== "phase-production-build" && env.SMTP_HOST) {
+  const bootCheck = validateProductionMailConfig(env.SMTP_HOST);
+  if (bootCheck.warning) {
+    console.error(`[mail] ${bootCheck.warning}`);
+  }
+  if (!bootCheck.ok) {
+    console.warn(
+      bootCheck.warning ??
+        "SMTP de desarrollo (Mailtrap) no está permitido en producción. Configura Resend o SendGrid.",
+    );
+  }
 }
-if (!bootCheck.ok) {
-  throw new Error(
-    bootCheck.warning ??
-      "SMTP de desarrollo (Mailtrap) no está permitido en producción. Configura Resend o SendGrid.",
-  );
-}
-
-/** @deprecated Prefer getMailTransporter() — se mantiene para arranque sync. */
-export const transporter = createTransportFromConfig(envMailConfig());
 
 /** @deprecated Prefer getMailSender() */
 export function sender() {
-  return `"${env.MAIL_FROM_NAME}" <${env.MAIL_FROM_EMAIL}>`;
+  return `"${env.MAIL_FROM_NAME || 'Enquiva'}" <${env.MAIL_FROM_EMAIL || 'no-reply@enquiva.com'}>`;
 }
