@@ -1,9 +1,9 @@
 /** Central brand constants — update here to rebrand across the app. */
 export const BRAND = {
   name: "Enquiva",
-  supportEmail: "soporte@enquiva.app",
-  contactEmail: "hola@enquiva.app",
-  domain: "enquiva.app",
+  supportEmail: "soporte@enquiva.site",
+  contactEmail: "contacto@enquiva.site",
+  domain: "enquiva.site",
   botName: "EnquivaBot",
   logo: {
     source: "/images/logo.png",

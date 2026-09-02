@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowRight, ChevronUp } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { BrandLogo } from "@/components/shared/BrandLogo";
 import { BrandText, PublicContactBlock, LegalLinks } from "@/components/shared/BrandText";
+import { ScrollToTopButton } from "@/components/shared/ScrollToTopButton";
 import type { LandingCopy } from "@/lib/navigation/landing-audience";
 
 interface FooterProps {
@@ -96,15 +97,11 @@ export function Footer({ t, copy }: FooterProps) {
               className="inline-flex flex-wrap items-center gap-x-2 gap-y-1"
             />
           </div>
-          <Link
-            href="#top"
-            className="inline-flex items-center gap-1 self-start rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-foreground transition-colors hover:bg-secondary sm:self-auto"
-          >
-            <ChevronUp className="h-3.5 w-3.5" />
-            {t("public.home.footerBackToTop")}
-          </Link>
         </div>
       </div>
+
+      {/* Floating circular Back-To-Top button */}
+      <ScrollToTopButton />
     </footer>
   );
 }

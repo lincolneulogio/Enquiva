@@ -1,6 +1,6 @@
 {
   "organizationName": "Enquiva",
-  "supportEmail": "soporte@enquiva.app",
+  "supportEmail": "soporte@enquiva.site",
   "alertNewPayments": true,
   "alertTransportCapacity": true,
   "alertDailyFinanceSummary": true

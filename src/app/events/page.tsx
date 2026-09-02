@@ -7,6 +7,7 @@ import { EventCardSkeleton } from "@/components/events/EventCardSkeleton";
 import { EventsPagination } from "@/components/events/EventsPagination";
 import { PublicHeader } from "@/components/shared/PublicHeader";
 import { PublicPageHero } from "@/components/shared/PublicPageHero";
+import { ScrollToTopButton } from "@/components/shared/ScrollToTopButton";
 import { getStaticI18n } from "@/lib/i18n/server";
 
 /** Debe ser literal: Next.js no analiza imports en segment config. */
@@ -168,6 +169,8 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
           </main>
         </div>
       </div>
+
+      <ScrollToTopButton />
     </div>
   );
 }
