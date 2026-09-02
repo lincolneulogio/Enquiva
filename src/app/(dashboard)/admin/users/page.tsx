@@ -1,7 +1,7 @@
-﻿import { db } from "@/lib/db";
+import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { and, count, desc, eq, ilike, or } from "drizzle-orm";
-import { UserCog, Crown, ShieldCheck, Briefcase, UserRound, Search, X, QrCode } from "lucide-react";
+import { UserCog, Crown, ShieldCheck, Briefcase, UserRound, Search, X, QrCode, Phone, Calendar, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 import { getRequestSession } from "@/lib/request-context";
 import { RoleSelector } from "./RoleSelector";
 import { DeleteUserButton } from "./DeleteUserButton";
@@ -289,84 +289,129 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                 <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
                     
                     {/* Mobile Cards View */}
-                    <div className="grid grid-cols-1 gap-4 p-4 md:hidden bg-muted/20">
+                    <div className="grid grid-cols-1 gap-4 p-3.5 sm:p-4 md:hidden bg-muted/20">
                         {allUsers.map((user, index) => {
                             const normalizedRole = normalizeRole(user.role);
                             const RoleIcon = roleIcons[normalizedRole];
                             const membership = getMembershipForUser(user.id);
                             const isPendingOrganizer = isPendingOrganizerUser(user);
+                            const isSelf = user.id === currentUserId;
 
                             return (
-                                <div key={user.id} className="rounded-2xl border border-border bg-card p-5 space-y-4 shadow-sm">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                                <div
+                                    key={user.id}
+                                    className="group relative rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-xs transition-all hover:border-primary/30 hover:shadow-md space-y-4"
+                                >
+                                    {/* Cabecera: Avatar, Nombre, Email e Índice */}
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                            <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 text-primary text-base font-bold shadow-xs ring-1 ring-primary/20">
                                                 {user.name?.[0]?.toUpperCase() ?? "U"}
                                             </div>
-                                            <div className="min-w-0">
-                                                <h3 className="font-bold text-foreground truncate max-w-[160px]">{user.name ?? "—"}</h3>
-                                                <p className="text-xs text-muted-foreground truncate max-w-[160px]">{user.email}</p>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className="font-bold text-foreground text-sm sm:text-base leading-snug truncate">
+                                                        {user.name ?? "—"}
+                                                    </h3>
+                                                    {isSelf && (
+                                                        <span className="shrink-0 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                                                            {locale === "en" ? "You" : "Tú"}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-muted-foreground truncate font-medium">
+                                                    {user.email}
+                                                </p>
                                             </div>
                                         </div>
-                                        <span className="text-[10px] text-muted-foreground font-mono font-semibold">
+
+                                        <span className="shrink-0 rounded-lg border border-border/60 bg-secondary/50 px-2 py-0.5 text-[11px] font-mono font-semibold text-muted-foreground">
                                             #{rowStart + index + 1}
                                         </span>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-3 text-xs border-t border-b border-border/50 py-3">
-                                        <div>
-                                            <span className="block text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{locale === "en" ? "Phone" : "Teléfono"}</span>
-                                            <span className="font-medium text-foreground">{user.phone ?? "—"}</span>
-                                        </div>
-                                        <div>
-                                            <span className="block text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t("common.role")}</span>
-                                            <span className={`inline-flex items-center gap-1 mt-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${ROLE_BADGE_STYLES[normalizedRole]}`}>
-                                                <RoleIcon className="h-3 w-3" />
-                                                {getDisplayRoleLabel(user.role ?? "member")}
+                                    {/* Barra de Badges (Rol, Estado, Verificación) */}
+                                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                                        {/* Rol */}
+                                        <span className={`inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-semibold shadow-xs ${ROLE_BADGE_STYLES[normalizedRole]}`}>
+                                            <RoleIcon className="h-3.5 w-3.5" />
+                                            {getDisplayRoleLabel(user.role ?? "member")}
+                                        </span>
+
+                                        {/* Solicitud pendiente de organizador */}
+                                        {isPendingOrganizer && (
+                                            <span className="inline-flex items-center gap-1 rounded-xl bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                                                {t("dashboard.admin.organizerPendingBadge")}
                                             </span>
-                                            {isPendingOrganizer && (
-                                                <span className="ml-1 inline-flex rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-500/20">
-                                                    {t("dashboard.admin.organizerPendingBadge")}
-                                                </span>
-                                            )}
-                                        </div>
+                                        )}
+
+                                        {/* Estado Activo / Suspendido */}
+                                        {user.isActive ? (
+                                            <span className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
+                                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                                {locale === "en" ? "Active" : "Activo"}
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1.5 rounded-xl bg-rose-500/10 px-2.5 py-1 text-xs font-semibold text-rose-700 dark:text-rose-400 border border-rose-500/25">
+                                                <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                                                {locale === "en" ? "Suspended" : "Suspendido"}
+                                            </span>
+                                        )}
+
+                                        {/* Email verificado */}
+                                        {user.emailVerified ? (
+                                            <span className="inline-flex items-center gap-1.5 rounded-xl bg-blue-500/10 px-2.5 py-1 text-xs font-semibold text-blue-700 dark:text-blue-400 border border-blue-500/25">
+                                                <CheckCircle2 className="h-3 w-3" />
+                                                {locale === "en" ? "Verified" : "Verificado"}
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1.5 rounded-xl bg-secondary/80 px-2.5 py-1 text-xs font-semibold text-muted-foreground border border-border">
+                                                <AlertCircle className="h-3 w-3" />
+                                                {locale === "en" ? "Unverified" : "Sin verificar"}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Cuadrícula de Metadatos con Iconos */}
+                                    <div className="grid grid-cols-2 gap-2.5 rounded-xl border border-border/50 bg-secondary/30 p-3 text-xs">
                                         <div>
-                                            <span className="block text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{locale === "en" ? "Verified" : "Verificado"}</span>
-                                            <span className="inline-block mt-0.5">
-                                                {user.emailVerified ? (
-                                                    <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-bold text-green-600 border border-green-500/20">Verificado</span>
-                                                ) : (
-                                                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500 border border-slate-200/50">Pendiente</span>
-                                                )}
+                                            <span className="flex items-center gap-1 text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                                                <Phone className="h-3 w-3" />
+                                                {locale === "en" ? "Phone" : "Teléfono"}
+                                            </span>
+                                            <span className="mt-0.5 block font-medium text-foreground truncate">
+                                                {user.phone ?? "—"}
                                             </span>
                                         </div>
+
                                         <div>
-                                            <span className="block text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{locale === "en" ? "Status" : "Estado"}</span>
-                                            <span className="inline-block mt-0.5">
-                                                {user.isActive ? (
-                                                    <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 border border-emerald-500/20">Activo</span>
-                                                ) : (
-                                                    <span className="rounded-full bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold text-rose-600 border border-rose-500/20">Suspendido</span>
-                                                )}
+                                            <span className="flex items-center gap-1 text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                                                <Calendar className="h-3 w-3" />
+                                                {t("common.joined")}
                                             </span>
-                                        </div>
-                                        <div>
-                                            <span className="block text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{t("common.joined")}</span>
-                                            <span className="text-muted-foreground font-medium">
+                                            <span className="mt-0.5 block font-medium text-foreground truncate">
                                                 {user.createdAt ? new Date(user.createdAt).toLocaleDateString(locale === "en" ? "en-US" : "es-PE") : "—"}
                                             </span>
                                         </div>
-                                        <div>
-                                            <span className="block text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{locale === "en" ? "Last Active" : "Última Conexión"}</span>
-                                            <span className="text-muted-foreground font-medium truncate block max-w-[120px]">
+
+                                        <div className="col-span-2 border-t border-border/40 pt-2 flex items-center justify-between">
+                                            <span className="flex items-center gap-1 text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                                                <Clock className="h-3 w-3" />
+                                                {locale === "en" ? "Last Active" : "Última Conexión"}
+                                            </span>
+                                            <span className="font-medium text-muted-foreground">
                                                 {user.lastSeenAt ? new Date(user.lastSeenAt).toLocaleDateString(locale === "en" ? "en-US" : "es-PE") : "—"}
                                             </span>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between gap-3 pt-1">
-                                        <div className="flex-1 space-y-2">
-                                            <span className="block text-[9px] uppercase font-bold text-muted-foreground tracking-wider mb-1">{roleColumnLabel}</span>
+                                    {/* Zona de Acciones */}
+                                    <div className="space-y-3 pt-1 border-t border-border/60">
+                                        {/* Selector de rol */}
+                                        <div className="space-y-1.5">
+                                            <span className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                                                {roleColumnLabel}
+                                            </span>
                                             <RoleSelector
                                                 userId={user.id}
                                                 currentRole={(user.role ?? "member") as "member" | "organizer" | "admin" | "super_admin"}
@@ -376,10 +421,14 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                                                 superAdminTaken={superAdminTaken}
                                             />
                                             {canManageRoles && isPendingOrganizer && (
-                                                <OrganizerApprovalButtons userId={user.id} />
+                                                <div className="pt-1">
+                                                    <OrganizerApprovalButtons userId={user.id} />
+                                                </div>
                                             )}
                                         </div>
-                                        <div className="flex flex-col items-end gap-1 self-end pb-0.5">
+
+                                        {/* Botones de acción */}
+                                        <div className="flex items-center justify-end gap-2 pt-1">
                                             {canManageRoles && (
                                                 <ToggleUserActiveButton
                                                     userId={user.id}

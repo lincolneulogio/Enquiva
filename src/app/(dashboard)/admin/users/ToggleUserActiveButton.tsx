@@ -4,7 +4,9 @@ import { setUserActive } from "@/actions/admin";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
+import { UserCheck, UserX } from "lucide-react";
 import { confirmDeleteAction } from "@/lib/ui/confirm";
+import { cn } from "@/lib/utils";
 
 interface ToggleUserActiveButtonProps {
   userId: string;
@@ -52,13 +54,15 @@ export function ToggleUserActiveButton({
       onClick={handleToggle}
       disabled={isPending || (isSelf && isActive)}
       title={isSelf && isActive ? "No puedes suspender tu propia cuenta" : undefined}
-      className={
+      className={cn(
+        "inline-flex h-9 items-center justify-center gap-1.5 rounded-xl px-3 text-xs font-semibold transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-50",
         isActive
-          ? "rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300"
-          : "rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-400"
-      }
+          ? "border border-amber-500/30 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 dark:text-amber-300"
+          : "border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-400",
+      )}
     >
-      {isPending ? "..." : isActive ? "Suspender" : "Activar"}
+      {isActive ? <UserX className="h-3.5 w-3.5" /> : <UserCheck className="h-3.5 w-3.5" />}
+      <span>{isPending ? "..." : isActive ? "Suspender" : "Activar"}</span>
     </button>
   );
 }

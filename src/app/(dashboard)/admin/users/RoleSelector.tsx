@@ -123,7 +123,7 @@ export function RoleSelector({
             onChange={handleChange}
             disabled={isPending || isSelf}
             title={isSelf ? t("dashboard.admin.cannotChangeOwnRole") : undefined}
-            className="rounded-lg border border-border bg-background px-2 py-1 text-xs font-medium text-foreground transition-colors hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-9 w-full sm:w-auto rounded-xl border border-border bg-background px-2.5 py-1 text-xs font-semibold text-foreground transition-all hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50"
         >
             {options.map((role) => (
                 <option key={role} value={role}>

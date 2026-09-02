@@ -4,6 +4,7 @@ import { deleteUser } from "@/actions/admin";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import { confirmDeleteAction } from "@/lib/ui/confirm";
 
@@ -46,9 +47,10 @@ export function DeleteUserButton({ userId, isSelf }: DeleteUserButtonProps) {
             onClick={handleDelete}
             disabled={isPending || isSelf}
             title={isSelf ? t("dashboard.admin.cannotDeleteOwnAccount") : undefined}
-            className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-400"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 text-xs font-semibold text-rose-700 transition-all hover:bg-rose-500/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:text-rose-400"
         >
-            {isPending ? `${t("common.delete")}...` : t("common.delete")}
+            <Trash2 className="h-3.5 w-3.5" />
+            <span>{isPending ? `${t("common.delete")}...` : t("common.delete")}</span>
         </button>
     );
 }

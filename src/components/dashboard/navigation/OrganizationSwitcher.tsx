@@ -69,7 +69,7 @@ export function OrganizationSwitcher({ memberships, canJoin }: OrganizationSwitc
         aria-expanded={open}
         aria-haspopup="listbox"
         title={t("dashboard.organizationSwitcher.switch")}
-        className="inline-flex h-10 max-w-[11rem] items-center gap-2 rounded-xl border border-border bg-secondary/50 px-2.5 text-left transition-colors hover:bg-secondary disabled:opacity-60 sm:max-w-[16rem]"
+        className="inline-flex h-10 max-w-[7.5rem] xs:max-w-[10rem] sm:max-w-[14rem] md:max-w-[18rem] items-center gap-1.5 xs:gap-2 rounded-xl border border-border bg-secondary/50 px-2 xs:px-2.5 text-left transition-colors hover:bg-secondary disabled:opacity-60"
       >
         <Building2 className="h-4 w-4 shrink-0 text-primary" />
         <span className="min-w-0 flex-1">
@@ -88,7 +88,7 @@ export function OrganizationSwitcher({ memberships, canJoin }: OrganizationSwitc
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-border bg-background p-2 shadow-xl">
+        <div className="fixed left-1/2 top-[calc(env(safe-area-inset-top)+4.25rem)] z-50 w-[calc(100vw-2rem)] max-w-[340px] -translate-x-1/2 rounded-2xl border border-border bg-popover p-2 shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-72 sm:translate-x-0">
           <p className="px-2 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             {t("dashboard.organizationSwitcher.label")}
           </p>
