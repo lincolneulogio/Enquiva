@@ -135,9 +135,11 @@ export function InviteCodeShareButtons({
   return (
     <div className={cn("space-y-2", className)}>
       {!compact && (
-        <p className="text-xs font-medium text-muted-foreground">{t("dashboard.admin.shareInviteLabel")}</p>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          {t("dashboard.admin.shareInviteLabel")}
+        </p>
       )}
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-2">
         {CHANNELS.map((channel) => (
           <a
             key={channel.id}
@@ -147,7 +149,7 @@ export function InviteCodeShareButtons({
             title={t(channel.labelKey)}
             aria-label={t(channel.labelKey)}
             className={cn(
-              "inline-flex h-9 w-9 items-center justify-center rounded-lg transition",
+              "inline-flex h-10 w-10 items-center justify-center rounded-xl shadow-xs transition-transform active:scale-95",
               channel.className,
             )}
           >
@@ -160,7 +162,7 @@ export function InviteCodeShareButtons({
             onClick={nativeShare}
             title={t("dashboard.admin.shareViaNative")}
             aria-label={t("dashboard.admin.shareViaNative")}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-background text-foreground transition hover:bg-secondary"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-background text-foreground shadow-xs transition-all hover:bg-secondary active:scale-95"
           >
             <Share2 className="h-4 w-4" />
           </button>
