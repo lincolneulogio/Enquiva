@@ -10,6 +10,7 @@ import { OrganizerGettingStarted } from "@/components/dashboard/organizer/Organi
 import { getI18n } from "@/lib/i18n/server";
 import { OrganizationService } from "@/lib/organizations/organization.service";
 import { LiveAttendeeCount } from "@/components/events/LiveAttendeeCount";
+import { getEffectiveEventCapacity } from "@/lib/billing/enforce";
 
 export default async function OrganizerDashboardPage() {
   const session = await getRequestSession();
@@ -189,7 +190,7 @@ export default async function OrganizerDashboardPage() {
                       <LiveAttendeeCount
                         eventId={event.id}
                         initialCount={attendeeCount ?? 0}
-                        capacity={event.capacity}
+                        capacity={getEffectiveEventCapacity(event.capacity, planSummary.plan)}
                         variant="table"
                       />
                     </td>

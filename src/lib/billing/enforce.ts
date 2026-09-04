@@ -118,22 +118,30 @@ export function getPlatformFee(amount: number, plan: ResolvedPlan) {
   return Math.round(amount * (plan.commissionPercent / 100) * 100) / 100;
 }
 
-export async function getOrganizerPlanForEvent(eventId: string) {
-  const [event] = await db
-    .select({ organizerId: events.organizerId })
-    .from(events)
-    .where(eq(events.id, eventId))
-    .limit(1);
+export async function getOrganizerPlanForEvent(
+  target: string | { organizerId: string },
+) {
+  let organizerId: string | null = null;
+  if (typeof target === "string") {
+    const [event] = await db
+      .select({ organizerId: events.organizerId })
+      .from(events)
+      .where(eq(events.id, target))
+      .limit(1);
 
-  if (!event) return null;
+    if (!event) return null;
+    organizerId = event.organizerId;
+  } else {
+    organizerId = target.organizerId;
+  }
 
   const { eventOrganizerUsesPlatformPayments, getEventOrganizerRole } = await import(
     "@/lib/payments/event-payment-scope"
   );
-  const role = await getEventOrganizerRole(event.organizerId);
+  const role = await getEventOrganizerRole(organizerId);
   if (eventOrganizerUsesPlatformPayments(role)) return null;
 
-  return getResolvedPlanForUser(event.organizerId, role ?? "organizer");
+  return getResolvedPlanForUser(organizerId, role ?? "organizer");
 }
 
 export function planIncludesBroadcasts(plan: ResolvedPlan, isUnlimited = false) {

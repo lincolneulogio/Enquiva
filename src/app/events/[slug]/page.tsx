@@ -281,7 +281,9 @@ export default async function EventDetailPage({ params }: EventPageProps) {
     registration && session?.user
       ? getPaymentForRegistration(registration.id).catch(() => null)
       : Promise.resolve(null),
-    getEventCapacitySnapshot(event.id, event.capacity),
+    getEventCapacitySnapshot(event.id, event.capacity, {
+      organizerId: event.organizerId,
+    }),
   ]);
 
   let viewerOrganizationId: string | null = null;

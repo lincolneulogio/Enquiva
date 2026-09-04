@@ -50,6 +50,11 @@ export function LiveAttendeeCount({
         </p>
         <p className="text-3xl font-extrabold text-foreground leading-none pt-1 tabular-nums">
           {count.toLocaleString()}
+          {capacity != null ? (
+            <span className="text-sm font-normal text-muted-foreground/85 ml-1">
+              / {capacity.toLocaleString()}
+            </span>
+          ) : null}
         </p>
         {waitlisted > 0 ? (
           <p className="text-xs text-amber-700 dark:text-amber-300">

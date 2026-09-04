@@ -15,7 +15,7 @@ import { TablePagination } from "@/components/dashboard/shared/TablePagination";
 import { LiveAttendeeCount } from "@/components/events/LiveAttendeeCount";
 import { getExportEventOptions } from "@/actions/exports";
 import { getMyPlanSummary } from "@/actions/billing";
-import { planIncludesFeature } from "@/lib/billing/enforce";
+import { planIncludesFeature, getEffectiveEventCapacity } from "@/lib/billing/enforce";
 import { PlanUsageBanner } from "@/components/dashboard/organizer/PlanUsageBanner";
 import {
     getViewerEventStatuses,
@@ -268,7 +268,7 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                                             <LiveAttendeeCount
                                                 eventId={event.id}
                                                 initialCount={attendeeCount ?? 0}
-                                                capacity={event.capacity}
+                                                capacity={getEffectiveEventCapacity(event.capacity, planSummary.plan)}
                                                 variant="table"
                                             />
                                         </td>
