@@ -13,6 +13,7 @@ export {
   updateCategory,
   deleteCategory,
   reorderCategories,
+  syncDefaultCategoriesAction,
 } from "./admin/categories";
 export { seedRoles, updateRole, backfillPendingPayments, exportFullDatabase } from "./admin/system";
 export {

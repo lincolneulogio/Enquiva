@@ -10,9 +10,10 @@ import { db } from "@/lib/db";
 import { roles } from "@/lib/db/schema";
 import { DEFAULT_ROLES } from "@/lib/auth/default-roles";
 import { SubscriptionService } from "@/lib/billing/subscription.service";
+import { ensureDefaultPlatformCategories } from "@/lib/events/category-bootstrap";
 
 async function seedBootstrap() {
-  console.log("Bootstrapping platform (roles + Free + Plan Plataforma)...");
+  console.log("Bootstrapping platform (roles + Free + Plan Plataforma + categorías)...");
 
   for (const role of DEFAULT_ROLES) {
     await db.insert(roles).values(role).onConflictDoNothing();
@@ -21,6 +22,9 @@ async function seedBootstrap() {
 
   await SubscriptionService.ensureDefaultPlans();
   console.log("  ✓ plans: Free + Plan Plataforma");
+
+  const catResult = await ensureDefaultPlatformCategories();
+  console.log(`  ✓ categories: ${catResult.total} platform categories ensured`);
 
   console.log("Done. Create users from the app. Extra SaaS plans: superadmin panel.");
   process.exit(0);

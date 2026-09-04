@@ -9,6 +9,7 @@ import { requireSuperAdmin } from "./users";
 import { assertAnyPermission } from "@/lib/auth/permission-guards";
 import { logAdminAction } from "@/lib/analytics/log-admin-action";
 import { normalizeCategorySlug } from "@/lib/utils";
+import { ensureDefaultPlatformCategories } from "@/lib/events/category-bootstrap";
 
 /**
  * Obtiene todas las categorías para administración de plataforma.
@@ -18,10 +19,31 @@ export async function getAllCategories(): Promise<Category[]> {
   const user = await requireSuperAdmin();
   await assertAnyPermission(user, ["categories:manage:platform"]);
 
+  await ensureDefaultPlatformCategories();
+
   return db
     .select()
     .from(categories)
     .orderBy(asc(categories.sortOrder));
+}
+
+/**
+ * Sincroniza e inserta las categorías por defecto que falten en la base de datos.
+ */
+export async function syncDefaultCategoriesAction() {
+  const user = await requireSuperAdmin();
+  await assertAnyPermission(user, ["categories:manage:platform"]);
+
+  const stats = await ensureDefaultPlatformCategories();
+  revalidatePath("/admin/categories");
+  revalidatePath("/superadmin/categories");
+
+  return {
+    success: true,
+    inserted: stats.inserted,
+    total: stats.total,
+    categories: await db.select().from(categories).orderBy(asc(categories.sortOrder)),
+  };
 }
 
 /**

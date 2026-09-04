@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { createCategory, deleteCategory, reorderCategories, updateCategory } from "@/actions/admin";
+import { createCategory, deleteCategory, reorderCategories, updateCategory, syncDefaultCategoriesAction } from "@/actions/admin";
 import { toast } from "sonner";
 import { confirmDeleteAction } from "@/lib/ui/confirm";
-import { GripVertical } from "lucide-react";
+import { GripVertical, RefreshCw } from "lucide-react";
 import { cn, normalizeCategorySlug } from "@/lib/utils";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 
@@ -76,6 +76,25 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                 await reorderCategories(nextItems.map((it) => it.id));
             } catch (e) {
                 toast.error(e instanceof Error ? e.message : t("dashboard.admin.failedToSaveOrder"));
+            }
+        });
+    };
+
+    const handleSyncDefaults = () => {
+        startTransition(async () => {
+            try {
+                const res = await syncDefaultCategoriesAction();
+                if (res.success) {
+                    setItems(res.categories);
+                    toast.success(
+                        locale === "en"
+                            ? `Synced: ${res.total} platform categories available`
+                            : `Sincronizado: ${res.total} categorías de plataforma disponibles`,
+                    );
+                }
+            } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : "Error";
+                toast.error(msg);
             }
         });
     };
@@ -254,15 +273,33 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
             </div>
 
             {/* Categories Table Directory */}
-            <div className="overflow-hidden rounded-2xl border border-border bg-card">
-                <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border bg-muted/10">
-                    <span className="text-xs font-semibold text-foreground flex items-center gap-2">
-                        <GripVertical className="h-4 w-4 text-primary" />
-                        {locale === "en" ? "Categories Directory" : "Directorio de Categorías"}
-                    </span>
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium flex items-center gap-1">
-                        {t("dashboard.admin.dragToReorder")} ↔ {locale === "en" ? "Scroll horizontally to view all columns" : "Desliza horizontalmente para ver todas las columnas"}
-                    </span>
+            <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border bg-muted/10">
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-foreground flex items-center gap-2">
+                            <GripVertical className="h-4 w-4 text-primary" />
+                            {locale === "en" ? "Categories Directory" : "Directorio de Categorías"}
+                        </span>
+                        <span className="rounded-full bg-primary/10 border border-primary/20 px-2 py-0.5 text-[11px] font-bold text-primary">
+                            {sorted.length}
+                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium hidden md:inline">
+                            {t("dashboard.admin.dragToReorder")}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={handleSyncDefaults}
+                            disabled={isPending}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background hover:bg-muted px-2.5 py-1 text-xs font-semibold text-foreground transition disabled:opacity-50 cursor-pointer shadow-xs"
+                            title={locale === "en" ? "Sync default platform categories" : "Sincronizar categorías por defecto"}
+                        >
+                            <RefreshCw className={cn("h-3 w-3 text-primary", isPending && "animate-spin")} />
+                            <span>{locale === "en" ? "Sync defaults" : "Sincronizar por defecto"}</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div className="overflow-x-auto">
