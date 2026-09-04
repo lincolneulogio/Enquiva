@@ -3,6 +3,7 @@ import { events } from "@/lib/db/schema";
 import { and, eq, ilike, or, desc, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { scopeEventsForChat, type ChatToolScope } from "./scope";
+import { formatDateTimeInTimezone } from "@/lib/settings/platform-locale";
 
 const LATEST_KEYWORDS = ["ultimo", "último", "reciente", "recientes", "últimos", "ultimos", "creado"];
 
@@ -114,13 +115,18 @@ export function createSearchEvents(scope: ChatToolScope) {
           title: e.title,
           description: e.description ? e.description.substring(0, 120) + "..." : "Sin descripción",
           category: e.category,
-          date: new Date(e.date).toLocaleString("es-PE"),
+          date: formatDateTimeInTimezone(e.date, {
+            timeZone: scope.timeZone,
+            locale: scope.locale,
+            dateStyle: "medium",
+            timeStyle: "short",
+          }),
           location: e.isVirtual ? "Virtual" : (e.location ?? "Por confirmar"),
           price: e.price ? `S/ ${Number(e.price).toFixed(2)}` : "Gratuito",
           capacity: e.capacity ?? "Ilimitada",
         }));
 
-        return isFallback ? { message, events: results } : results;
+        return isFallback ? { message, events: results, timeZone: scope.timeZone } : { events: results, timeZone: scope.timeZone };
       } catch (err) {
         console.error("Error in searchEvents:", err);
         return { error: "No se pudo realizar la búsqueda de eventos." };

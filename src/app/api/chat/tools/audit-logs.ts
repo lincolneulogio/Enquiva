@@ -7,6 +7,7 @@ import {
 } from "@/lib/organizations/admin-scope";
 import { canUsePlatformAuditTools, canUseScopedAuditTools, type ChatToolScope } from "./scope";
 import { logChatToolUse } from "@/lib/chat/tool-audit";
+import { formatDateTimeInTimezone } from "@/lib/settings/platform-locale";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
@@ -92,7 +93,12 @@ export function createGetAuditLogs(scope: ChatToolScope) {
           totalReturned: logs.length,
           logs: logs.map((l) => ({
             id: l.id,
-            date: new Date(l.createdAt).toLocaleString("es-PE"),
+            date: formatDateTimeInTimezone(l.createdAt, {
+              timeZone: scope.timeZone,
+              locale: scope.locale,
+              dateStyle: "medium",
+              timeStyle: "short",
+            }),
             actor: l.actorName,
             action: l.action,
             module: l.entityType,

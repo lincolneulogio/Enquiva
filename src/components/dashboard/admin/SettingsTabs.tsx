@@ -8,7 +8,7 @@ import {
     User, Mail, Shield, Globe,
     Send, Bell, Building, Save, Loader2,
     Wifi, WifiOff, RefreshCw, Users, Copy, Server, Palette,
-    Wrench, Megaphone, Clock,
+    Wrench, Megaphone, Clock, Check,
     CreditCard, Bus, Wallet, Ticket, UserPlus, CalendarDays, AlertTriangle,
 } from "lucide-react";
 import {
@@ -26,6 +26,9 @@ import {
     normalizePlatformLocale,
     normalizePlatformTimezone,
     DEFAULT_PLATFORM_TIMEZONE,
+    getTimezoneDisplayLabel,
+    getTimezoneOffsetLabel,
+    formatDateTimeInTimezone,
 } from "@/lib/settings/platform-locale";
 import type { Locale } from "@/lib/i18n/core";
 import { useRouter } from "next/navigation";
@@ -212,6 +215,27 @@ export function SettingsTabs({
             initialPlatformSettings?.defaultTimezone ?? DEFAULT_PLATFORM_TIMEZONE,
         ),
     );
+    const [previewClock, setPreviewClock] = useState<string>("");
+
+    useEffect(() => {
+        const updateClock = () => {
+            try {
+                setPreviewClock(
+                    formatDateTimeInTimezone(new Date(), {
+                        timeZone: platformTimezoneDraft,
+                        locale,
+                        dateStyle: "full",
+                        timeStyle: "medium",
+                    }),
+                );
+            } catch {
+                setPreviewClock("");
+            }
+        };
+        updateClock();
+        const intervalId = setInterval(updateClock, 1000);
+        return () => clearInterval(intervalId);
+    }, [platformTimezoneDraft, locale]);
 
     useEffect(() => {
         setPlatformAccentDraft(platformDefaultAccent);
@@ -308,6 +332,9 @@ export function SettingsTabs({
                     defaultTimezone: platformTimezoneDraft,
                 });
                 if (res.success) {
+                    if (platformLocaleDraft !== locale) {
+                        setLocale(platformLocaleDraft);
+                    }
                     toast.success(
                         locale === "en"
                             ? "Default language & timezone saved"
@@ -1390,64 +1417,97 @@ export function SettingsTabs({
                                     <div className="min-w-0 flex-1">
                                         <h2 className="text-lg font-semibold text-foreground">
                                             {locale === "en"
-                                                ? "Default language & timezone"
-                                                : "Idioma y zona horaria por defecto"}
+                                                ? "Platform language & reference timezone"
+                                                : "Idioma y zona horaria de la plataforma"}
                                         </h2>
                                         <p className="text-xs text-muted-foreground mt-0.5">
                                             {locale === "en"
-                                                ? "These are platform defaults for everyone. Your personal language is only the ES/EN control in the top bar (cookie on this browser)."
-                                                : "Estos son valores por defecto de toda la plataforma. Tu idioma personal solo se cambia con ES/EN de la barra superior (cookie de este navegador)."}
+                                                ? "Global defaults for new users, notification dispatches, event schedules, and the AI assistant."
+                                                : "Configuración global que rige para nuevos usuarios, envíos de correo, fechas de eventos y el asistente Copilot IA."}
                                         </p>
                                     </div>
                                 </div>
 
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <p className="text-xs font-semibold text-foreground">
-                                            {locale === "en" ? "Default language (for new users)" : "Idioma por defecto (nuevos usuarios)"}
-                                        </p>
-                                        <p className="text-[11px] text-muted-foreground -mt-1">
-                                            {locale === "en"
-                                                ? "Used only if the visitor has never chosen ES/EN."
-                                                : "Solo si el visitante aún no eligió ES/EN."}
-                                        </p>
-                                        <div className="flex flex-wrap gap-2">
-                                            {(
-                                                [
-                                                    { id: "es" as const, label: "Español", flag: "🇪🇸" },
-                                                    { id: "en" as const, label: "English", flag: "🇺🇸" },
-                                                ] as const
-                                            ).map((opt) => (
-                                                <button
-                                                    key={opt.id}
-                                                    type="button"
-                                                    onClick={() => setPlatformLocaleDraft(opt.id)}
-                                                    className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition ${
-                                                        platformLocaleDraft === opt.id
-                                                            ? "border-primary bg-primary/10 text-primary ring-1 ring-primary"
-                                                            : "border-border bg-background text-foreground hover:bg-muted"
-                                                    }`}
-                                                >
-                                                    <span>{opt.flag}</span>
-                                                    {opt.label}
-                                                </button>
-                                            ))}
+                                <div className="grid gap-5 sm:grid-cols-2">
+                                    <div className="space-y-2.5">
+                                        <div>
+                                            <p className="text-xs font-semibold text-foreground">
+                                                {locale === "en" ? "Default language (new accounts)" : "Idioma base de plataforma"}
+                                            </p>
+                                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                                                {locale === "en"
+                                                    ? "Initial language for visitors and newly registered accounts."
+                                                    : "Idioma inicial para nuevos visitantes y cuentas registradas."}
+                                            </p>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                            {[
+                                                {
+                                                    id: "es" as const,
+                                                    code: "ES",
+                                                    label: "Español",
+                                                    region: locale === "en" ? "LatAm & Spain" : "Latinoamérica y España",
+                                                },
+                                                {
+                                                    id: "en" as const,
+                                                    code: "EN",
+                                                    label: "English",
+                                                    region: locale === "en" ? "Global & US" : "Global e Internacional",
+                                                },
+                                            ].map((opt) => {
+                                                const isSelected = platformLocaleDraft === opt.id;
+                                                return (
+                                                    <button
+                                                        key={opt.id}
+                                                        type="button"
+                                                        onClick={() => setPlatformLocaleDraft(opt.id)}
+                                                        className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left text-xs font-medium transition ${
+                                                            isSelected
+                                                                ? "border-primary bg-primary/10 text-primary ring-1 ring-primary shadow-sm"
+                                                                : "border-border bg-background text-foreground hover:bg-muted/70"
+                                                        }`}
+                                                    >
+                                                        <span
+                                                            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md font-mono text-[11px] font-bold ${
+                                                                isSelected
+                                                                    ? "bg-primary text-primary-foreground"
+                                                                    : "bg-muted text-muted-foreground"
+                                                            }`}
+                                                        >
+                                                            {opt.code}
+                                                        </span>
+                                                        <div className="flex flex-col min-w-0">
+                                                            <span className="font-semibold text-foreground flex items-center gap-1.5 truncate">
+                                                                {opt.label}
+                                                                {isSelected && (
+                                                                    <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                                                                )}
+                                                            </span>
+                                                            <span className="text-[10px] text-muted-foreground truncate">
+                                                                {opt.region}
+                                                            </span>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <label
-                                            htmlFor="platform-timezone"
-                                            className="text-xs font-semibold text-foreground inline-flex items-center gap-1.5"
-                                        >
-                                            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                                            {locale === "en" ? "Default timezone" : "Zona horaria (no es idioma)"}
-                                        </label>
-                                        <p className="text-[11px] text-muted-foreground -mt-1">
-                                            {locale === "en"
-                                                ? "For timestamps in notes, digests and system records — not the UI language."
-                                                : "Para horas en notas, resúmenes y registros del sistema — no cambia el idioma de la interfaz."}
-                                        </p>
+                                    <div className="space-y-2.5">
+                                        <div>
+                                            <label
+                                                htmlFor="platform-timezone"
+                                                className="text-xs font-semibold text-foreground inline-flex items-center gap-1.5"
+                                            >
+                                                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                                                {locale === "en" ? "Official platform timezone" : "Zona horaria oficial"}
+                                            </label>
+                                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                                                {locale === "en"
+                                                    ? "Applied to event schedules, reports, and AI Copilot queries."
+                                                    : "Aplica al calendario de eventos, reportes y al Copilot IA."}
+                                            </p>
+                                        </div>
                                         <select
                                             id="platform-timezone"
                                             value={platformTimezoneDraft}
@@ -1460,18 +1520,33 @@ export function SettingsTabs({
                                         >
                                             {PLATFORM_TIMEZONE_OPTIONS.map((tz) => (
                                                 <option key={tz.value} value={tz.value}>
-                                                    {locale === "en" ? tz.labelEn : tz.labelEs}
+                                                    {getTimezoneDisplayLabel(tz, locale)}
                                                 </option>
                                             ))}
                                             {!PLATFORM_TIMEZONE_OPTIONS.some(
                                                 (tz) => tz.value === platformTimezoneDraft,
                                             ) ? (
                                                 <option value={platformTimezoneDraft}>
-                                                    {platformTimezoneDraft}
+                                                    {platformTimezoneDraft} ({getTimezoneOffsetLabel(platformTimezoneDraft)})
                                                 </option>
                                             ) : null}
                                         </select>
                                     </div>
+                                </div>
+
+                                <div className="rounded-lg border border-border/80 bg-muted/30 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                                    <div className="flex items-center gap-2 text-foreground min-w-0">
+                                        <Clock className="h-4 w-4 text-primary shrink-0" />
+                                        <span className="font-medium text-muted-foreground shrink-0">
+                                            {locale === "en" ? "Active time preview:" : "Hora activa en esta zona:"}
+                                        </span>
+                                        <span className="font-mono text-foreground font-semibold truncate">
+                                            {previewClock || "..."}
+                                        </span>
+                                    </div>
+                                    <span className="inline-flex items-center self-start sm:self-auto rounded-md bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                                        ● {locale === "en" ? "Copilot & platform synced" : "Copilot e informes sincronizados"}
+                                    </span>
                                 </div>
 
                                 <div className="pt-1 flex justify-end">

@@ -20,13 +20,22 @@ import { enabledChatTools, type ChatToolName } from "./chat-tool-policy";
 import { normalizeChatTool } from "./chat-tool";
 import type { AppRole } from "@/lib/auth/rbac";
 
+import { DEFAULT_PLATFORM_TIMEZONE } from "@/lib/settings/platform-locale";
+import type { Locale } from "@/lib/i18n/core";
+
 function addTool(tools: Record<string, unknown>, name: string, raw: Parameters<typeof normalizeChatTool>[0]) {
   const normalized = normalizeChatTool(raw);
   if (normalized) tools[name] = normalized;
 }
 
-export async function buildTools(userRole: AppRole, userId: string, userName: string) {
-  const scope = await resolveChatToolScope(userId, userName, userRole);
+export async function buildTools(
+  userRole: AppRole,
+  userId: string,
+  userName: string,
+  timeZone: string = DEFAULT_PLATFORM_TIMEZONE,
+  locale: Locale = "es",
+) {
+  const scope = await resolveChatToolScope(userId, userName, userRole, timeZone, locale);
   const granted = new Set(await getEffectivePermissionsForRole(userRole));
   const enabled = enabledChatTools(granted, userRole);
   const tools: Record<string, unknown> = {};
@@ -41,7 +50,7 @@ export async function buildTools(userRole: AppRole, userId: string, userName: st
   maybeAdd("getPaymentStatus", () => createGetPaymentStatus(scope));
   maybeAdd("getMyPlanBilling", () => createGetMyPlanBilling(scope));
   maybeAdd("getMyNextEvent", () => createGetMyNextEvent(scope));
-  maybeAdd("getMyTickets", () => getMyTickets(userId));
+  maybeAdd("getMyTickets", () => getMyTickets(userId, scope.timeZone, scope.locale));
   maybeAdd("getEventStats", () => createGetEventStats(scope));
   maybeAdd("getEventRoutes", () => createGetEventRoutes(scope));
   maybeAdd("getCheckInStats", () => createGetCheckInStats(scope));

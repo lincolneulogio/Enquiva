@@ -4,6 +4,7 @@ import { and, eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import { assertEventInAdminScope } from "@/lib/organizations/admin-scope";
 import { canUseStaffChatTools, type ChatToolScope } from "./scope";
+import { formatDateTimeInTimezone } from "@/lib/settings/platform-locale";
 
 export function createGetEventRoutes(scope: ChatToolScope) {
   if (!canUseStaffChatTools(scope)) {
@@ -33,7 +34,12 @@ export function createGetEventRoutes(scope: ChatToolScope) {
           id: r.id,
           name: r.name,
           departurePoint: r.departurePoint,
-          departureTime: new Date(r.departureTime).toLocaleString("es-PE"),
+          departureTime: formatDateTimeInTimezone(r.departureTime, {
+            timeZone: scope.timeZone,
+            locale: scope.locale,
+            dateStyle: "medium",
+            timeStyle: "short",
+          }),
           pricePerSeat: `S/ ${Number(r.pricePerSeat).toFixed(2)}`,
           totalSeats: r.totalSeats,
           description: r.description ?? "Sin descripción",

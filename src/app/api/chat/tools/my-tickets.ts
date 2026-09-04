@@ -2,8 +2,10 @@ import { db } from "@/lib/db";
 import { events, registrations } from "@/lib/db/schema";
 import { and, eq, desc, ne } from "drizzle-orm";
 import { z } from "zod";
+import { formatDateTimeInTimezone } from "@/lib/settings/platform-locale";
+import type { Locale } from "@/lib/i18n/core";
 
-export const getMyTickets = (userId: string) => ({
+export const getMyTickets = (userId: string, timeZone?: string, locale?: Locale) => ({
   description: "Obtiene las entradas y tickets de eventos activos registrados por el miembro conectado.",
   parameters: z.object({}),
   execute: async () => {
@@ -20,7 +22,12 @@ export const getMyTickets = (userId: string) => ({
 
       return rows.map((r) => ({
         ticketId: r.registrationId, event: r.eventTitle,
-        date: new Date(r.eventDate).toLocaleString("es-PE"),
+        date: formatDateTimeInTimezone(r.eventDate, {
+          timeZone,
+          locale,
+          dateStyle: "medium",
+          timeStyle: "short",
+        }),
         location: r.isVirtual ? "Virtual" : (r.eventLocation ?? "Por confirmar"),
         status: r.registrationStatus === "checked_in" ? "Ingresado (Asistencia confirmada)" : "Registrado (Pendiente de ingreso)",
       }));
@@ -30,3 +37,4 @@ export const getMyTickets = (userId: string) => ({
     }
   },
 });
+

@@ -16,6 +16,7 @@ import {
 } from "./scope";
 import { getResolvedPlanForUser } from "@/lib/billing/enforce";
 import { getAiChatUsage } from "@/lib/billing/ai-chat-usage";
+import { formatDateTimeInTimezone } from "@/lib/settings/platform-locale";
 
 export function createGetMyPlanBilling(scope: ChatToolScope) {
   return {
@@ -137,7 +138,12 @@ export function createGetTransportSeats(scope: ChatToolScope) {
             totalSeats: r.totalSeats,
             bookedSeats: used,
             availableSeats: Math.max(0, r.totalSeats - used),
-            departureTime: r.departureTime,
+            departureTime: formatDateTimeInTimezone(r.departureTime, {
+              timeZone: scope.timeZone,
+              locale: scope.locale,
+              dateStyle: "medium",
+              timeStyle: "short",
+            }),
             isActive: r.isActive,
           });
         }
@@ -197,7 +203,12 @@ export function createGetMyNextEvent(scope: ChatToolScope) {
             upcoming: rows.map((r) => ({
               registrationId: r.registrationId,
               event: r.title,
-              date: r.date,
+              date: formatDateTimeInTimezone(r.date, {
+                timeZone: scope.timeZone,
+                locale: scope.locale,
+                dateStyle: "medium",
+                timeStyle: "short",
+              }),
               location: r.isVirtual ? "Virtual" : r.location,
               status: r.status,
               url: `/events/${r.slug}`,
@@ -236,7 +247,12 @@ export function createGetMyNextEvent(scope: ChatToolScope) {
           upcoming: rows.map((r) => ({
             eventId: r.id,
             event: r.title,
-            date: r.date,
+            date: formatDateTimeInTimezone(r.date, {
+              timeZone: scope.timeZone,
+              locale: scope.locale,
+              dateStyle: "medium",
+              timeStyle: "short",
+            }),
             status: r.status,
             location: r.location,
             url: `/events/${r.slug}`,

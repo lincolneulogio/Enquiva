@@ -4,6 +4,7 @@ import { and, eq, ilike, or, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { canUseScopedUserList, scopeUsersForChat, type ChatToolScope } from "./scope";
 import { logChatToolUse } from "@/lib/chat/tool-audit";
+import { formatDateTimeInTimezone } from "@/lib/settings/platform-locale";
 
 export function createGetUsersList(scope: ChatToolScope) {
   if (!canUseScopedUserList(scope)) {
@@ -60,7 +61,11 @@ export function createGetUsersList(scope: ChatToolScope) {
           role: u.role,
           bio: u.bio ?? "Sin biografía",
           isActive: u.isActive ? "Activo" : "Inactivo",
-          registeredAt: new Date(u.createdAt).toLocaleDateString("es-PE"),
+          registeredAt: formatDateTimeInTimezone(u.createdAt, {
+            timeZone: scope.timeZone,
+            locale: scope.locale,
+            dateStyle: "medium",
+          }),
         }));
       } catch (err) {
         console.error("Error in getUsersList:", err);

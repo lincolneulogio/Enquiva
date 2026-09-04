@@ -11,20 +11,27 @@ import {
   scopeUserCondition,
 } from "@/lib/organizations/admin-scope";
 
+import type { Locale } from "@/lib/i18n/core";
+import { DEFAULT_PLATFORM_TIMEZONE } from "@/lib/settings/platform-locale";
+
 export type ChatToolScope = {
   userId: string;
   userName: string;
   role: AppRole;
   adminScope: AdminScope;
+  timeZone: string;
+  locale: Locale;
 };
 
 export async function resolveChatToolScope(
   userId: string,
   userName: string,
   role: AppRole,
+  timeZone: string = DEFAULT_PLATFORM_TIMEZONE,
+  locale: Locale = "es",
 ): Promise<ChatToolScope> {
   const adminScope = await resolveAdminScopeForUser(userId, role);
-  return { userId, userName, role, adminScope };
+  return { userId, userName, role, adminScope, timeZone, locale };
 }
 
 export function scopeEventsForChat(scope: ChatToolScope): SQL | undefined {

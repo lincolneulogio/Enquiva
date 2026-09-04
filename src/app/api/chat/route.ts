@@ -16,7 +16,7 @@ import {
 import { logCopilotTrace, traceFromRetrieved } from "@/lib/chat/observability";
 import { persistChatTurn } from "@/lib/chat/history";
 import { parseChatLocale } from "@/lib/chat/output-locale";
-import { getLocale } from "@/lib/i18n/server";
+import { getLocale, getPlatformTimezone } from "@/lib/i18n/server";
 
 export const maxDuration = 60;
 
@@ -32,9 +32,13 @@ export async function POST(req: Request) {
       locale?: unknown;
     };
     const { messages, pageContext, conversationId } = body;
+    const [platformTimezone, defaultLocale] = await Promise.all([
+      getPlatformTimezone(),
+      getLocale(),
+    ]);
     const locale = parseChatLocale(
       body.locale ?? req.headers.get("x-enquiva-locale"),
-      await getLocale(),
+      defaultLocale,
     );
     const userRole = normalizeRole(user.role ?? "member");
     const userName = user.name ?? (locale === "en" ? "User" : "Usuario");
@@ -57,10 +61,10 @@ export async function POST(req: Request) {
 
     await assertAiChatMessageAllowed(userId, userRole);
 
-    const basePrompt = buildSystemPrompt(userName, userRole, locale);
+    const basePrompt = buildSystemPrompt(userName, userRole, locale, platformTimezone);
     const [retrieved, tools] = await Promise.all([
       retrieveChatContext(messages, userRole, pageContext ?? null),
-      buildTools(userRole, userId, userName),
+      buildTools(userRole, userId, userName, platformTimezone, locale),
     ]);
     const systemPrompt = appendRetrievedContextToSystem(
       basePrompt,

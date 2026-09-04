@@ -7,13 +7,23 @@ import { buildRoleIsolationBlock, getRoleScopeProfile } from "@/lib/chat/role-sc
 import type { AppRole } from "@/lib/auth/rbac";
 import { chatOutputLanguageLock, chatStyleLine } from "@/lib/chat/output-locale";
 import type { Locale } from "@/lib/i18n/core";
+import {
+  DEFAULT_PLATFORM_TIMEZONE,
+  formatDateTimeInTimezone,
+} from "@/lib/settings/platform-locale";
 
 export function buildSystemPrompt(
   userName: string,
   userRole: AppRole,
   locale: Locale = "es",
+  timeZone: string = DEFAULT_PLATFORM_TIMEZONE,
 ): string {
-  const date = new Date().toLocaleString(locale === "en" ? "en-US" : "es-PE");
+  const date = formatDateTimeInTimezone(new Date(), {
+    timeZone,
+    locale,
+    dateStyle: "full",
+    timeStyle: "medium",
+  });
   const inventory = formatPlatformKnowledgeForPrompt();
   const profile = getRoleScopeProfile(userRole);
   const isolation = buildRoleIsolationBlock(userRole);
@@ -30,6 +40,11 @@ ARQUITECTURA (solo dentro de este rol):
 
 ${chatStyleLine(locale)}
 
+ZONA HORARIA Y CONTEXTO TEMPORAL OFICIAL:
+- Zona horaria activa de la plataforma: ${timeZone}
+- Fecha y hora actual en ${timeZone}: ${date}
+- REGLA OBLIGATORIA: Toda consulta temporal del usuario ("hoy", "mañana", "este fin de semana", horas de eventos, horarios de rutas o estado de pagos) DEBE interpretarse y responderse estrictamente bajo la zona horaria ${timeZone}. No uses UTC ni la hora del servidor remoto.
+
 ANTI-ALUCINACIÓN:
 1. Nunca inventes módulos, rutas ni números.
 2. Hay exactamente ${PLATFORM_MODULE_COUNT} módulos (conocimiento de producto; explícalo desde la óptica de ${roleLabel}).
@@ -43,7 +58,7 @@ ${inventory}
 
 Corpus RAG ~${getCorpusSize()} chunks.
 
-Fecha: ${date}. Usuario: ${userName}. Rol activo: ${roleLabel} (${userRole}).
+Fecha actual: ${date} (${timeZone}). Usuario: ${userName}. Rol activo: ${roleLabel} (${userRole}).
 
 ${chatOutputLanguageLock(locale)}`;
 }

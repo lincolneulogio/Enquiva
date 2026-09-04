@@ -3,6 +3,7 @@ import { registrations, users, events } from "@/lib/db/schema";
 import { and, eq, ilike, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { canUseOrgDoorChatTools, scopeRegistrationsForChat, type ChatToolScope } from "./scope";
+import { formatDateTimeInTimezone } from "@/lib/settings/platform-locale";
 
 export function createGetRegistrationsList(scope: ChatToolScope) {
   if (!canUseOrgDoorChatTools(scope)) {
@@ -65,10 +66,19 @@ export function createGetRegistrationsList(scope: ChatToolScope) {
           userName: r.user.name,
           userEmail: r.user.email,
           eventTitle: r.event.title,
-          eventDate: new Date(r.event.date).toLocaleDateString("es-PE"),
+          eventDate: formatDateTimeInTimezone(r.event.date, {
+            timeZone: scope.timeZone,
+            locale: scope.locale,
+            dateStyle: "medium",
+            timeStyle: "short",
+          }),
           status: r.status,
           phone: r.contactPhone ?? "Sin teléfono",
-          registeredAt: new Date(r.registeredAt).toLocaleDateString("es-PE"),
+          registeredAt: formatDateTimeInTimezone(r.registeredAt, {
+            timeZone: scope.timeZone,
+            locale: scope.locale,
+            dateStyle: "medium",
+          }),
         }));
       } catch (err) {
         console.error("Error in getRegistrationsList:", err);
