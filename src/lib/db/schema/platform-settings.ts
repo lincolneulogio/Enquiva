@@ -1,5 +1,6 @@
-import { pgTable, text, timestamp, boolean, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer, uuid } from "drizzle-orm/pg-core";
 import { users } from "./auth";
+import { events } from "./events";
 
 /** Configuración global de plataforma (singleton: id = "default"). */
 export const platformSettings = pgTable("platform_settings", {
@@ -34,6 +35,18 @@ export const platformSettings = pgTable("platform_settings", {
   announcementEndsAt: timestamp("announcement_ends_at"),
   /** Fecha/hora del evento anunciado (ej. inicio del mantenimiento). */
   announcementEventAt: timestamp("announcement_event_at"),
+  /** Banner Superior Dinámico de Eventos (Spotlight) */
+  eventBannerEnabled: boolean("event_banner_enabled").notNull().default(false),
+  /** auto | pinned */
+  eventBannerMode: text("event_banner_mode").notNull().default("auto"),
+  /** auto | upcoming | popular | few_tickets */
+  eventBannerCriteria: text("event_banner_criteria").notNull().default("auto"),
+  /** ID del evento fijado si mode === 'pinned' */
+  eventBannerPinnedEventId: uuid("event_banner_pinned_event_id").references(() => events.id, { onDelete: "set null" }),
+  /** Badge personalizado (opcional) */
+  eventBannerCustomBadge: text("event_banner_custom_badge").notNull().default(""),
+  /** Texto personalizado destacado (opcional) */
+  eventBannerCustomText: text("event_banner_custom_text").notNull().default(""),
   /** URLs legales (http(s) o ruta relativa tipo /terms). */
   termsUrl: text("terms_url").notNull().default(""),
   privacyUrl: text("privacy_url").notNull().default(""),

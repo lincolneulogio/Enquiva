@@ -17,7 +17,7 @@ import {
   type AnnouncementSeverity,
   type PlatformOpsStatus,
 } from "@/lib/settings/platform-ops";
-import { CACHE_KEYS, CACHE_TTL, getCached, invalidateCache, setCached } from "@/lib/redis";
+import { CACHE_KEYS, CACHE_TTL, getCached, invalidateCache, invalidateCachePattern, setCached } from "@/lib/redis";
 import {
   DEFAULT_PLATFORM_TIMEZONE,
   normalizePlatformLocale,
@@ -61,6 +61,13 @@ export interface SystemSettings {
   announcementStartsAt: string | null;
   announcementEndsAt: string | null;
   announcementEventAt: string | null;
+  /** Banner superior dinámico de eventos */
+  eventBannerEnabled: boolean;
+  eventBannerMode: "auto" | "pinned";
+  eventBannerCriteria: "auto" | "upcoming" | "popular" | "few_tickets";
+  eventBannerPinnedEventId: string | null;
+  eventBannerCustomBadge: string;
+  eventBannerCustomText: string;
   /** URL o ruta de términos de servicio. */
   termsUrl: string;
   /** URL o ruta de política de privacidad. */
@@ -119,6 +126,12 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   announcementStartsAt: null,
   announcementEndsAt: null,
   announcementEventAt: null,
+  eventBannerEnabled: false,
+  eventBannerMode: "auto",
+  eventBannerCriteria: "auto",
+  eventBannerPinnedEventId: null,
+  eventBannerCustomBadge: "",
+  eventBannerCustomText: "",
   termsUrl: "",
   privacyUrl: "",
   defaultLocale: "es",
@@ -167,6 +180,14 @@ function rowToSettings(row: typeof platformSettings.$inferSelect): SystemSetting
     announcementStartsAt: row.announcementStartsAt?.toISOString() ?? null,
     announcementEndsAt: row.announcementEndsAt?.toISOString() ?? null,
     announcementEventAt: row.announcementEventAt?.toISOString() ?? null,
+    eventBannerEnabled: Boolean(row.eventBannerEnabled),
+    eventBannerMode: row.eventBannerMode === "pinned" ? "pinned" : "auto",
+    eventBannerCriteria: ["upcoming", "popular", "few_tickets"].includes(row.eventBannerCriteria as any)
+      ? (row.eventBannerCriteria as "upcoming" | "popular" | "few_tickets")
+      : "auto",
+    eventBannerPinnedEventId: row.eventBannerPinnedEventId ?? null,
+    eventBannerCustomBadge: row.eventBannerCustomBadge ?? "",
+    eventBannerCustomText: row.eventBannerCustomText ?? "",
     termsUrl: row.termsUrl ?? "",
     privacyUrl: row.privacyUrl ?? "",
     defaultLocale: normalizePlatformLocale(row.defaultLocale),
@@ -264,6 +285,29 @@ function sanitizeSettingsPatch(settings: Partial<SystemSettings>): Partial<Syste
   if (typeof next.privacyUrl === "string") {
     next.privacyUrl = normalizeLegalUrl(next.privacyUrl);
   }
+  if (typeof next.eventBannerEnabled === "boolean") {
+    next.eventBannerEnabled = next.eventBannerEnabled;
+  }
+  if (next.eventBannerMode === "auto" || next.eventBannerMode === "pinned") {
+    next.eventBannerMode = next.eventBannerMode;
+  }
+  if (
+    next.eventBannerCriteria === "auto" ||
+    next.eventBannerCriteria === "upcoming" ||
+    next.eventBannerCriteria === "popular" ||
+    next.eventBannerCriteria === "few_tickets"
+  ) {
+    next.eventBannerCriteria = next.eventBannerCriteria;
+  }
+  if (typeof next.eventBannerPinnedEventId === "string" || next.eventBannerPinnedEventId === null) {
+    next.eventBannerPinnedEventId = next.eventBannerPinnedEventId || null;
+  }
+  if (typeof next.eventBannerCustomBadge === "string") {
+    next.eventBannerCustomBadge = next.eventBannerCustomBadge.trim().slice(0, 50);
+  }
+  if (typeof next.eventBannerCustomText === "string") {
+    next.eventBannerCustomText = next.eventBannerCustomText.trim().slice(0, 200);
+  }
   if (typeof next.defaultLocale === "string") {
     next.defaultLocale = normalizePlatformLocale(next.defaultLocale);
   }
@@ -322,6 +366,12 @@ function toDbRow(
     announcementEventAt: settings.announcementEventAt
       ? new Date(settings.announcementEventAt)
       : null,
+    eventBannerEnabled: settings.eventBannerEnabled,
+    eventBannerMode: settings.eventBannerMode,
+    eventBannerCriteria: settings.eventBannerCriteria,
+    eventBannerPinnedEventId: settings.eventBannerPinnedEventId,
+    eventBannerCustomBadge: settings.eventBannerCustomBadge,
+    eventBannerCustomText: settings.eventBannerCustomText,
     termsUrl: settings.termsUrl,
     privacyUrl: settings.privacyUrl,
     defaultLocale: settings.defaultLocale,
@@ -396,6 +446,7 @@ async function ensureSettingsRow(): Promise<SystemSettings> {
 export async function invalidateSystemSettingsCache(): Promise<void> {
   invalidatePlatformOpsCache();
   await invalidateCache(CACHE_KEYS.platformSettings);
+  await invalidateCachePattern("events:spotlight*").catch(() => {});
 }
 
 export async function getSystemSettings(): Promise<SystemSettings> {
