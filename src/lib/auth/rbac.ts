@@ -240,7 +240,6 @@ export const PERMISSIONS_BY_ROLE: Record<AppRole, Permission[]> = {
     "broadcasts:send:org",
     "transport:manage:org",
     "transport:book:own",
-    "categories:manage:org",
     "analytics:view:org",
     "data:export:org",
     "permissions:view",

@@ -421,13 +421,39 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400">
                       <Calendar className="h-5 w-5" />
                     </div>
-                    <div className="space-y-1">
-                      <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
-                        Fecha y Hora
-                      </span>
-                      <span className="font-semibold text-foreground text-sm leading-tight block">
-                        {formatEventDate(event.date)}
-                      </span>
+                    <div className="space-y-1.5 flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                          {event.schedules && event.schedules.length > 1 ? "Horarios Disponibles" : "Fecha y Hora"}
+                        </span>
+                        {event.schedules && event.schedules.length > 1 && (
+                          <span className="inline-flex items-center rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-bold text-violet-700 dark:text-violet-300">
+                            {event.schedules.length} turnos
+                          </span>
+                        )}
+                      </div>
+                      {event.schedules && event.schedules.length > 1 ? (
+                        <div className="space-y-1.5 pt-1">
+                          {event.schedules.map((slot, sIdx) => (
+                            <div
+                              key={slot.id || sIdx}
+                              className="rounded-lg border border-border/60 bg-card/60 px-2.5 py-1.5 text-xs text-foreground flex items-center justify-between gap-2"
+                            >
+                              <span className="font-semibold text-primary truncate">
+                                {slot.label || `Horario ${sIdx + 1}`}
+                              </span>
+                              <span className="text-muted-foreground font-mono text-[11px] shrink-0">
+                                {slot.date ? formatEventDate(slot.date) : "—"}
+                                {slot.endDate ? ` - ${formatEventDate(slot.endDate).split("•")[1] ?? formatEventDate(slot.endDate)}` : ""}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="font-semibold text-foreground text-sm leading-tight block">
+                          {formatEventDate(event.date)}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -630,6 +656,16 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                 eventPrice={event.price ? Number(event.price) : 0}
                 paymentStatus={paymentForRegistration?.payment?.status}
                 eventSlug={event.slug}
+                schedules={
+                  event.schedules
+                    ? event.schedules.map((s) => ({
+                        id: s.id,
+                        label: s.label ?? null,
+                        date: String(s.date),
+                        endDate: s.endDate ? String(s.endDate) : null,
+                      }))
+                    : null
+                }
               />
 
               {/* ASISTENTES */}

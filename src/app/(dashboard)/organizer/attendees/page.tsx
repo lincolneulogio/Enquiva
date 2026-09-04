@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { registrations, events, users, registrationStatusEnum, registrationGuests } from "@/lib/db/schema";
 import { getRequestSession } from "@/lib/request-context";
 import { eq, desc, and, gte, lte, count, sql } from "drizzle-orm";
-import { Users } from "lucide-react";
+import { Users, Clock } from "lucide-react";
 import { ManualCheckInButton } from "@/components/events/ManualCheckInButton";
 import { ManualRegistrationDialog } from "@/components/events/ManualRegistrationDialog";
 import { ExpressCheckInConsole } from "@/components/events/ExpressCheckInConsole";
@@ -96,6 +96,7 @@ export default async function OrganizerAttendeesPage({
       status: registrations.status,
       registeredAt: registrations.registeredAt,
       checkedInAt: registrations.checkedInAt,
+      selectedScheduleLabel: registrations.selectedScheduleLabel,
       eventTitle: events.title,
       eventDate: events.date,
       eventSlug: events.slug,
@@ -204,7 +205,13 @@ export default async function OrganizerAttendeesPage({
                       {row.userEmail}
                     </td>
                     <td className="px-4 py-3 text-foreground">
-                      {row.eventTitle}
+                      <div className="font-medium">{row.eventTitle}</div>
+                      {row.selectedScheduleLabel && (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary mt-0.5 border border-primary/20">
+                          <Clock className="h-3 w-3 shrink-0" />
+                          <span>{row.selectedScheduleLabel}</span>
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {new Date(row.eventDate).toLocaleDateString(

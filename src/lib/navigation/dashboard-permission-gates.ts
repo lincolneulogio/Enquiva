@@ -69,7 +69,7 @@ export function permissionsForDashboardPath(pathname: string): readonly Permissi
     return ["users:manage:org", "users:manage:platform"];
   }
   if (/\/(admin|superadmin)\/categories/.test(pathname)) {
-    return ["categories:manage:org", "categories:manage:platform"];
+    return ["categories:manage:platform"];
   }
   if (/\/(admin|superadmin)\/analytics/.test(pathname)) {
     return ["analytics:view:org", "analytics:view:own"];

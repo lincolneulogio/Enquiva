@@ -6,10 +6,6 @@ import { eq, and, sql as sqlExpr, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireApprovedEventManager } from "@/lib/auth/guards";
 import { normalizeRole } from "@/lib/auth/rbac";
-import {
-  getOrganizationIdForUser,
-  resolveAdminScopeForUser,
-} from "@/lib/organizations/admin-scope";
 import { normalizeCategorySlug } from "@/lib/utils";
 
 /**
@@ -22,6 +18,10 @@ export async function createOrgCategoryQuick(input: {
 }) {
   const user = await requireApprovedEventManager();
   const role = normalizeRole(user.role);
+  if (role !== "super_admin") {
+    throw new Error("Solo el superadministrador tiene permiso para crear categorías");
+  }
+
   const label = input.label.trim();
   if (!label) throw new Error("El nombre de la categoría es obligatorio");
 
@@ -30,20 +30,7 @@ export async function createOrgCategoryQuick(input: {
     throw new Error("No se pudo generar un slug válido a partir del nombre");
   }
 
-  let organizationId: string | null = null;
-  if (role === "organizer") {
-    organizationId = await getOrganizationIdForUser(user.id);
-    if (!organizationId) {
-      throw new Error("Debes pertenecer a una entidad para crear categorías");
-    }
-  } else if (role === "admin") {
-    const scope = await resolveAdminScopeForUser(user.id, user.role);
-    if (scope.mode !== "org") {
-      throw new Error("Debes pertenecer a una entidad para crear categorías");
-    }
-    organizationId = scope.organizationId;
-  }
-  // super_admin → organizationId null (plataforma)
+  const organizationId: string | null = null;
 
   const [existing] = await db
     .select({

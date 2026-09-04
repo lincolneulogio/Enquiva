@@ -9,6 +9,7 @@ import { PublicHeader } from "@/components/shared/PublicHeader";
 import { PublicPageHero } from "@/components/shared/PublicPageHero";
 import { ScrollToTopButton } from "@/components/shared/ScrollToTopButton";
 import { getStaticI18n } from "@/lib/i18n/server";
+import type { EventModality, EventDateFilter, EventPriceFilter, EventAccessFilter, EventStatusFilter } from "@/lib/events/taxonomy";
 
 /** Debe ser literal: Next.js no analiza imports en segment config. */
 export const revalidate = 120;
@@ -16,7 +17,14 @@ export const revalidate = 120;
 interface EventsPageProps {
   searchParams: Promise<{
     category?: string;
+    type?: string;
+    modality?: EventModality;
+    date?: EventDateFilter;
+    price?: EventPriceFilter;
+    accessType?: EventAccessFilter;
+    eventStatus?: EventStatusFilter;
     search?: string;
+    location?: string;
     page?: string;
   }>;
 }
@@ -36,8 +44,15 @@ async function EventsGrid({
 
   try {
     const result = await EventService.getPublicEvents({
-      category: searchParams.category as never,
+      category: searchParams.category,
+      type: searchParams.type,
+      modality: searchParams.modality,
+      date: searchParams.date,
+      price: searchParams.price,
+      accessType: searchParams.accessType,
+      eventStatus: searchParams.eventStatus,
       search: searchParams.search,
+      location: searchParams.location,
       page,
       limit: 12,
     });
@@ -50,10 +65,12 @@ async function EventsGrid({
 
   if (events.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-center">
+      <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border/80 bg-muted/20 py-24 text-center">
         <div className="mb-4 text-6xl opacity-20">✦</div>
-        <h3 className="font-display text-2xl font-semibold text-foreground">{t("public.events.noEventsFound")}</h3>
-        <p className="mt-2 text-muted-foreground">
+        <h3 className="font-display text-2xl font-semibold text-foreground">
+          {t("public.events.noEventsFound")}
+        </h3>
+        <p className="mt-2 text-sm text-muted-foreground">
           {t("public.events.adjustFilters")}
         </p>
       </div>
@@ -62,10 +79,12 @@ async function EventsGrid({
 
   return (
     <>
-      <p className="mb-6 text-sm text-muted-foreground">
-        {t("public.events.showingEvents", { count: events.length, total })}
-      </p>
-      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+      <div className="mb-6 flex items-center justify-between">
+        <p className="text-sm font-medium text-muted-foreground">
+          {t("public.events.showingEvents", { count: events.length, total })}
+        </p>
+      </div>
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
         {events.map((event) => (
           <EventCard
             key={event.id}
@@ -81,6 +100,7 @@ async function EventsGrid({
         limit={limit}
         category={searchParams.category}
         search={searchParams.search}
+        filters={searchParams}
       />
     </>
   );
@@ -95,7 +115,19 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
   try {
     const [cats, publicResult] = await Promise.all([
       EventService.getCategories(null),
-      EventService.getPublicEvents({ page: 1, limit: 1 }),
+      EventService.getPublicEvents({
+        category: params.category,
+        type: params.type,
+        modality: params.modality,
+        date: params.date,
+        price: params.price,
+        accessType: params.accessType,
+        eventStatus: params.eventStatus,
+        search: params.search,
+        location: params.location,
+        page: 1,
+        limit: 1,
+      }),
     ]);
     categories = cats;
     eventsTotal = publicResult.total;
@@ -150,14 +182,20 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-8 lg:flex-row">
-          <aside className="w-full shrink-0 lg:w-64">
-            <EventFilters currentFilters={params} categories={categories} />
-          </aside>
+          {/* Aside de filtros desktop */}
+          <div className="w-full shrink-0 lg:w-72">
+            <EventFilters
+              currentFilters={params}
+              categories={categories}
+              totalEvents={eventsTotal}
+            />
+          </div>
 
-          <main className="flex-1">
+          {/* Grid principal de eventos */}
+          <main className="flex-1 min-w-0">
             <Suspense
               fallback={
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <EventCardSkeleton key={i} />
                   ))}

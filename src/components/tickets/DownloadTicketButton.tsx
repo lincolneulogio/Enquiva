@@ -24,6 +24,7 @@ interface DownloadTicketButtonProps {
   qrCode?: string | null;
   ticketSignature?: string | null;
   registrationStatus?: string | null;
+  scheduleLabel?: string | null;
   className?: string;
 }
 
@@ -37,6 +38,7 @@ export function DownloadTicketButton({
   qrCode,
   ticketSignature,
   registrationStatus,
+  scheduleLabel,
   className,
 }: DownloadTicketButtonProps) {
   const [loading, setLoading] = useState(false);
@@ -81,11 +83,16 @@ export function DownloadTicketButton({
             ? "Active / Registered"
             : "Activo / Registrado";
 
+      const baseDateLabel = formatEventDate(eventDate, locale);
+      const eventDateLabel = scheduleLabel
+        ? `${baseDateLabel} · ${scheduleLabel}`
+        : baseDateLabel;
+
       drawOfficialTicketPage(
         doc,
         {
           eventTitle,
-          eventDateLabel: formatEventDate(eventDate, locale),
+          eventDateLabel,
           locationLabel: locationText,
           attendeeName,
           statusLabel: statusStr,

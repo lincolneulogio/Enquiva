@@ -33,7 +33,8 @@ import {
   AlertTriangle,
   Download,
   MessageSquare,
-  Share2
+  Share2,
+  Clock
 } from "lucide-react";
 import { DownloadTicketButton } from "./DownloadTicketButton";
 import { CalendarSyncButtons } from "./CalendarSyncButtons";
@@ -249,6 +250,7 @@ export function TicketCard({
                       attendeeName: attendeeName || "",
                       qrCode,
                       status: primaryStatus,
+                      scheduleLabel: registration.selectedScheduleLabel,
                     }
                   : null,
               )
@@ -265,6 +267,7 @@ export function TicketCard({
                         attendeeName: g.user.name,
                         qrCode,
                         status: g.registration.status,
+                        scheduleLabel: g.registration.selectedScheduleLabel,
                       }
                     : null,
                 )
@@ -306,11 +309,15 @@ export function TicketCard({
               ? "Active / Registered"
               : "Activo / Registrado";
 
+        const dateWithSchedule = tInfo.scheduleLabel
+          ? `${formattedDate} · ${tInfo.scheduleLabel}`
+          : formattedDate;
+
         drawOfficialTicketPage(
           doc,
           {
             eventTitle: event.title,
-            eventDateLabel: formattedDate,
+            eventDateLabel: dateWithSchedule,
             locationLabel: locationText,
             attendeeName: tInfo.attendeeName,
             statusLabel: statusStr,
@@ -410,6 +417,12 @@ export function TicketCard({
                   <span className="truncate">{event.location}</span>
                 </span>
               )}
+              {registration.selectedScheduleLabel && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary border border-primary/20">
+                  <Clock className="h-3 w-3 shrink-0" />
+                  <span>{registration.selectedScheduleLabel}</span>
+                </span>
+              )}
             </div>
             <EventPresenceIndicator
               eventId={event.id}
@@ -475,6 +488,14 @@ export function TicketCard({
                   <p>
                     <strong className="text-foreground">{locale === "en" ? "Date & Time:" : "Fecha y Hora:"}</strong> {formatEventDate(event.date, locale)}
                   </p>
+                  {registration.selectedScheduleLabel && (
+                    <p>
+                      <strong className="text-foreground">{locale === "en" ? "Shift / Schedule:" : "Turno / Horario:"}</strong>{" "}
+                      <span className="font-semibold text-primary">
+                        {registration.selectedScheduleLabel}
+                      </span>
+                    </p>
+                  )}
                   <p>
                     <strong className="text-foreground">{t("ticket.registrationStatus")}:</strong>{" "}
                     <span className="font-semibold text-foreground">
@@ -838,7 +859,9 @@ export function TicketCard({
                     isVirtual={event.isVirtual}
                     attendeeName={attendeeName || null}
                     qrCode={qrDataUrl}
+                    ticketSignature={ticket.signature}
                     registrationStatus={registration.status}
+                    scheduleLabel={registration.selectedScheduleLabel}
                     className="rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground hover:bg-secondary transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 select-none"
                   />
                 )}
@@ -936,6 +959,12 @@ export function TicketCard({
                           }`}>
                             {registrationStatusLabel(guest.registration.status, locale)}
                           </span>
+                          {guest.registration.selectedScheduleLabel && (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary border border-primary/20">
+                              <Clock className="h-2.5 w-2.5 shrink-0" />
+                              <span>{guest.registration.selectedScheduleLabel}</span>
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -975,6 +1004,7 @@ export function TicketCard({
                               attendeeName={guest.user.name}
                               ticketSignature={guest.ticket?.signature}
                               registrationStatus={guest.registration.status}
+                              scheduleLabel={guest.registration.selectedScheduleLabel}
                               className="rounded-xl border border-border bg-background hover:bg-secondary text-foreground px-3.5 py-2 text-xs font-bold flex items-center justify-center gap-1.5 shadow-3xs transition duration-200 cursor-pointer select-none"
                             />
                           </>
@@ -1012,6 +1042,7 @@ export function TicketCard({
                               attendeeName={guest.user.name}
                               ticketSignature={guest.ticket?.signature}
                               registrationStatus={guest.registration.status}
+                              scheduleLabel={guest.registration.selectedScheduleLabel}
                               className="rounded-xl border border-border bg-background hover:bg-secondary text-foreground px-3.5 py-2 text-xs font-bold flex items-center justify-center gap-1.5 shadow-3xs transition duration-200 cursor-pointer select-none"
                             />
                           </>

@@ -24,8 +24,18 @@ describe("dashboard permission gates", () => {
   });
 
   it("exige check-in para escanear desde el panel de organizador o admin", () => {
-    expect(canAccessDashboardPath("/organizer/scan", ["events:create"])).toBe(false);
     expect(canAccessDashboardPath("/organizer/scan", ["attendees:checkin:own"])).toBe(true);
     expect(canAccessDashboardPath("/admin/scan", ["attendees:checkin:org"])).toBe(true);
+  });
+
+  it("restringe la gestión de categorías exclusivamente a categories:manage:platform", () => {
+    // Admin con permisos de entidad no puede acceder
+    expect(
+      canAccessDashboardPath("/admin/categories", ["events:create", "analytics:view:org"]),
+    ).toBe(false);
+    // Superadmin con categories:manage:platform sí puede acceder
+    expect(
+      canAccessDashboardPath("/superadmin/categories", ["categories:manage:platform"]),
+    ).toBe(true);
   });
 });

@@ -1,16 +1,34 @@
 import { z } from "zod";
 
 export const eventCategories = [
+  // 18 categorías estándar de Enquiva
+  "conferences",
+  "education",
+  "business",
+  "music",
+  "sports",
+  "religion",
+  "arts",
+  "community",
+  "government",
+  "charity",
+  "tradeshows",
+  "technology",
+  "celebrations",
+  "travel",
+  "health",
+  "corporate",
+  "family",
+  "other",
+  // Slugs legados para retrocompatibilidad
   "worship",
   "retreat",
   "youth",
-  "charity",
   "conference",
   "prayer",
   "bible_study",
   "outreach",
   "fellowship",
-  "other",
 ] as const;
 
 export const eventStatusValues = [
@@ -20,7 +38,31 @@ export const eventStatusValues = [
   "completed",
 ] as const;
 
+export const eventModalityValues = [
+  "in_person",
+  "online",
+  "hybrid",
+] as const;
+
 const isValidDateInput = (value: string) => !Number.isNaN(new Date(value).getTime());
+
+export const eventScheduleSlotSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().max(60).optional().nullable(),
+  date: z
+    .string()
+    .min(1, "Date is required")
+    .refine(isValidDateInput, { message: "Invalid date format" }),
+  endDate: z
+    .string()
+    .optional()
+    .nullable()
+    .refine((value) => !value || isValidDateInput(value), {
+      message: "Invalid end date format",
+    }),
+});
+
+export type EventScheduleSlot = z.infer<typeof eventScheduleSlotSchema>;
 
 const optionalUrl = z
   .string()
@@ -29,10 +71,19 @@ const optionalUrl = z
   .transform((val) => (val == null || val.trim() === "" ? null : val))
   .pipe(z.string().url("Ingresa una URL válida").nullable());
 
-const baseEventSchema = z.object({
+export const baseEventSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(200),
   description: z.string().min(20, "Description must be at least 20 characters"),
   category: z.string().min(1, "Category is required"),
+  eventType: z.string().max(100).optional().nullable(),
+  modality: z.enum(eventModalityValues).optional().nullable(),
+  tags: z.array(z.string()).optional().default([]),
+  schedules: z
+    .array(eventScheduleSlotSchema)
+    .min(1, "At least one schedule is required")
+    .max(3, "Maximum 3 schedules allowed")
+    .optional()
+    .nullable(),
   date: z
     .string()
     .min(1, "Date is required")
@@ -152,10 +203,19 @@ export const updateEventSchema = baseEventSchema
 
 export const eventFilterSchema = z.object({
   category: z.string().optional(),
+  type: z.string().optional(),
+  modality: z.enum(["all", "in_person", "online", "hybrid"]).optional(),
+  date: z
+    .enum(["all", "today", "tomorrow", "this_week", "this_month", "upcoming", "past"])
+    .optional(),
+  price: z.enum(["all", "free", "paid"]).optional(),
+  accessType: z.enum(["all", "free", "paid", "registration", "invitation"]).optional(),
+  eventStatus: z.enum(["all", "upcoming", "ongoing", "completed"]).optional(),
   status: z.enum(eventStatusValues).optional(),
   search: z.string().optional(),
-  page: z.number().int().positive().default(1),
-  limit: z.number().int().positive().max(50).default(12),
+  location: z.string().optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(50).default(12),
 });
 
 export type CreateEventInput = z.input<typeof createEventSchema>;

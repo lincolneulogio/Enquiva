@@ -10,6 +10,8 @@ import {
   UserRoundCheck,
   Users,
   XCircle,
+  Video,
+  Globe,
 } from "lucide-react";
 import { EventCoverFrame, EventCoverPlaceholder } from "@/components/events/EventCoverFrame";
 import { LiveAttendeeCount } from "@/components/events/LiveAttendeeCount";
@@ -23,6 +25,8 @@ import {
 import { cn } from "@/lib/utils";
 import { defaultLocale, translate, type Locale } from "@/lib/i18n/core";
 import type { ViewerEventStatus } from "@/lib/events/viewer-event-status";
+import { getCategoryDefinition } from "@/lib/events/taxonomy";
+import { CategoryIcon } from "@/components/events/CategoryIcon";
 
 interface EventCardProps {
   event: Event & { attendeeCount?: number };
@@ -151,15 +155,30 @@ export function EventCard({
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-14 bg-gradient-to-t from-black/30 to-transparent" />
 
-        {/* Category badge */}
-        <div className="absolute left-3 top-3 z-30">
+        {/* Category & Modality badges */}
+        <div className="absolute left-3 top-3 z-30 flex flex-wrap items-center gap-1.5">
           <span
             className={cn(
-              "rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm border border-white/10 backdrop-blur-md",
+              "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm border border-white/10 backdrop-blur-md",
               categoryMeta?.colorClass || categoryColor(event.category),
             )}
           >
-            {categoryLabel(event.category, locale)}
+            <CategoryIcon slug={event.category} className="h-3.5 w-3.5 shrink-0" />
+            <span>{categoryMeta?.label || categoryLabel(event.category, locale)}</span>
+          </span>
+
+          <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white shadow-xs backdrop-blur-md">
+            {isVirtual ? (
+              <>
+                <Video className="h-3 w-3 text-cyan-400" />
+                <span>Online</span>
+              </>
+            ) : (
+              <>
+                <MapPin className="h-3 w-3 text-emerald-400" />
+                <span>Presencial</span>
+              </>
+            )}
           </span>
         </div>
 
@@ -186,11 +205,29 @@ export function EventCard({
           </div>
         )}
 
-        <div className="absolute bottom-3 left-3 z-30">
+        <div className="absolute bottom-3 left-3 z-30 flex items-center gap-1.5">
           <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/45 px-2.5 py-1 text-[11px] font-medium text-white shadow-sm backdrop-blur-md">
             <Calendar className="h-3 w-3" />
             {formatEventDateShort(event.date, locale)}
           </span>
+          {event.schedules && event.schedules.length > 1 && (
+            <span className="inline-flex items-center rounded-full border border-white/20 bg-black/55 px-2 py-0.5 text-[10px] font-bold text-amber-300 shadow-sm backdrop-blur-md">
+              {event.schedules.length} turnos
+            </span>
+          )}
+        </div>
+
+        {/* Price badge */}
+        <div className="absolute bottom-3 right-3 z-30">
+          {event.price != null && Number(event.price) > 0 ? (
+            <span className="inline-flex items-center rounded-full border border-white/20 bg-black/70 px-2.5 py-0.5 text-[11px] font-bold text-white shadow-xs backdrop-blur-md">
+              S/ {Number(event.price).toFixed(2)}
+            </span>
+          ) : (
+            <span className="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-950/80 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300 shadow-xs backdrop-blur-md">
+              Gratis
+            </span>
+          )}
         </div>
 
         {isEventExpired && (

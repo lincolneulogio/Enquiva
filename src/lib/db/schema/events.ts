@@ -1,7 +1,8 @@
-import { pgTable, text, timestamp, boolean, integer, numeric, doublePrecision, pgEnum, uuid, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer, numeric, doublePrecision, pgEnum, uuid, index, uniqueIndex, jsonb } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { users } from "./auth";
 import { organizations } from "./organizations";
+import type { EventScheduleSlot } from "@/lib/validations/event";
 
 export const eventStatusEnum = pgEnum("event_status", [
   "draft",
@@ -25,6 +26,7 @@ export const events = pgTable(
     description: text("description").notNull(),
     coverImage: text("cover_image"),
     category: text("category").notNull().default("other"),
+    schedules: jsonb("schedules").$type<EventScheduleSlot[]>(),
     date: timestamp("date").notNull(),
     endDate: timestamp("end_date"),
     location: text("location"),

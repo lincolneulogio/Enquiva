@@ -67,6 +67,12 @@ interface RegisterButtonProps {
   eventPrice?: number;
   paymentStatus?: "pending" | "approved" | "rejected" | null;
   eventSlug?: string;
+  schedules?: Array<{
+    id: string;
+    label?: string | null;
+    date: string;
+    endDate?: string | null;
+  }> | null;
 }
 
 export function RegisterButton({
@@ -82,6 +88,7 @@ export function RegisterButton({
   eventPrice = 0,
   paymentStatus = null,
   eventSlug,
+  schedules = [],
 }: RegisterButtonProps) {
   const router = useRouter();
   const t = useTranslations();
@@ -95,11 +102,17 @@ export function RegisterButton({
     setMounted(true);
   }, []);
   
+  const hasMultipleSchedules = Array.isArray(schedules) && schedules.length > 1;
+  const isTransportAvailable = Boolean(hasTransport && transportRoutes && transportRoutes.length > 0);
+  const hasTransportEnabledWithoutRoutes = Boolean(hasTransport && (!transportRoutes || transportRoutes.length === 0));
+  const shouldOpenModal = Boolean(hasMultipleSchedules || hasTransport);
+
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { values: registrationDraft, setValue: setRegistrationValue, setValues: setRegistrationValues, clear: clearRegistrationDraft } = usePersistedFormFields(
     formStorageKey(`event.register.${eventId}`),
     {
+      selectedScheduleId: schedules && schedules.length > 0 ? schedules[0].id : "",
       wantsTransport: false,
       selectedRouteId: "",
       selectedStopId: "",
@@ -108,8 +121,25 @@ export function RegisterButton({
       guests: [] as Array<{ name: string; phone: string }>,
     },
   );
-  const { wantsTransport, selectedRouteId, selectedStopId, seatsCount, contactPhone, guests } = registrationDraft;
+  const { selectedScheduleId, wantsTransport, selectedRouteId, selectedStopId, seatsCount, contactPhone, guests } = registrationDraft;
   const [visualHeight, setVisualHeight] = useState("90vh");
+
+  // Si hay horarios disponibles y el guardado en draft es inválido o vacío, sincronizar con el primero
+  useEffect(() => {
+    if (schedules && schedules.length > 0) {
+      const exists = schedules.some((s) => s.id === selectedScheduleId);
+      if (!exists) {
+        setRegistrationValue("selectedScheduleId", schedules[0].id);
+      }
+    }
+  }, [schedules, selectedScheduleId, setRegistrationValue]);
+
+  // Si no hay transporte disponible para este evento pero el draft guardó wantsTransport, desactivarlo
+  useEffect(() => {
+    if (!isTransportAvailable && wantsTransport) {
+      setRegistrationValue("wantsTransport", false);
+    }
+  }, [isTransportAvailable, wantsTransport, setRegistrationValue]);
 
   // Sincronizar automáticamente la cantidad de asientos de bus con el titular + invitados
   useEffect(() => {
@@ -194,14 +224,52 @@ export function RegisterButton({
     );
   };
 
-  const activeRoute = transportRoutes.find((r) => r.id === selectedRouteId);
+  const effectiveScheduleId = selectedScheduleId || (schedules && schedules[0]?.id) || "";
+  const selectedSlot = schedules?.find((s) => s.id === effectiveScheduleId);
+
+  const formatSlotDateTime = (dateStr: string, endDateStr?: string | null) => {
+    try {
+      const date = new Date(dateStr);
+      const formattedDate = date.toLocaleDateString("es-PE", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+      });
+      const formattedStart = date.toLocaleTimeString("es-PE", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+      const formattedEnd = endDateStr
+        ? new Date(endDateStr).toLocaleTimeString("es-PE", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          })
+        : null;
+      return {
+        dateLabel: formattedDate,
+        timeLabel: formattedEnd ? `${formattedStart} - ${formattedEnd}` : formattedStart,
+      };
+    } catch {
+      return { dateLabel: dateStr, timeLabel: "" };
+    }
+  };
+
+  const activeRoute = isTransportAvailable ? transportRoutes.find((r) => r.id === selectedRouteId) : undefined;
   const transportPricePerSeat = activeRoute ? Number(activeRoute.pricePerSeat) : 0;
-  const transportTotalCost = wantsTransport ? transportPricePerSeat * seatsCount : 0;
+  const effectiveWantsTransport = Boolean(isTransportAvailable && wantsTransport);
+  const transportTotalCost = effectiveWantsTransport ? transportPricePerSeat * seatsCount : 0;
   const consolidatedTotalCost = (eventPrice * (1 + guests.length)) + transportTotalCost;
 
   const handleRegisterSubmit = () => {
+    if (hasMultipleSchedules && !effectiveScheduleId) {
+      toast.error(t("register.selectedScheduleRequired"));
+      return;
+    }
+
     // Basic phone validation if transport selected
-    if (wantsTransport) {
+    if (effectiveWantsTransport) {
       if (contactPhone.trim() === "") {
         toast.error(t("register.phoneRequiredForTransport"));
         return;
@@ -239,10 +307,11 @@ export function RegisterButton({
       try {
         const payload = {
           eventId,
-          contactPhone: wantsTransport && contactPhone ? `+51${contactPhone.replace(/\D/g, "")}` : undefined,
-          routeId: wantsTransport ? selectedRouteId : null,
-          stopId: wantsTransport && selectedStopId ? selectedStopId : null,
-          seats: wantsTransport ? seatsCount : null,
+          scheduleId: effectiveScheduleId || null,
+          contactPhone: effectiveWantsTransport && contactPhone ? `+51${contactPhone.replace(/\D/g, "")}` : undefined,
+          routeId: effectiveWantsTransport ? selectedRouteId : null,
+          stopId: effectiveWantsTransport && selectedStopId ? selectedStopId : null,
+          seats: effectiveWantsTransport ? seatsCount : null,
           guests: guests.map((g) => ({
             name: g.name.trim(),
             phone: g.phone ? `+51${g.phone.replace(/\D/g, "")}` : null,
@@ -252,7 +321,7 @@ export function RegisterButton({
         const result = await registerForEvent(payload);
         if (result.success) {
           setOptimisticStatus(result.status);
-          toastRegistrationSuccess(result, { withTransport: wantsTransport });
+          toastRegistrationSuccess(result, { withTransport: effectiveWantsTransport });
           setIsModalOpen(false);
           clearRegistrationDraft();
 
@@ -262,7 +331,7 @@ export function RegisterButton({
             router.push(paymentCheckoutPath(result.registrationId));
           } else {
             router.push(
-              getAttendeeDestination(role, wantsTransport ? "transport" : "tickets", {
+              getAttendeeDestination(role, effectiveWantsTransport ? "transport" : "tickets", {
                 eventSlug,
               }),
             );
@@ -410,9 +479,16 @@ export function RegisterButton({
         <button
           type="button"
           onClick={() => {
+            if (shouldOpenModal) {
+              setIsModalOpen(true);
+              return;
+            }
             startTransition(async () => {
               try {
-                const result = await registerForEvent({ eventId });
+                const result = await registerForEvent({ 
+                  eventId,
+                  scheduleId: effectiveScheduleId || null,
+                });
                 if (result.success) {
                   setOptimisticStatus(result.status);
                   toastRegistrationSuccess(result);
@@ -423,19 +499,18 @@ export function RegisterButton({
                       getAttendeeDestination(role, "tickets", { eventSlug }),
                     );
                   }
-                  router.refresh();
                 }
               } catch (error) {
                 toast.error(
                   error instanceof Error
                     ? mapRegistrationError(error.message)
-                    : t("register.registrationFailed"),
+                    : t("register.registrationFailed")
                 );
               }
             });
           }}
           disabled={isPending}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground"
+          className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("register.registerAgain")}
         </button>
@@ -489,7 +564,10 @@ export function RegisterButton({
           if (waitlistAvailable) {
             startTransition(async () => {
               try {
-                const result = await registerForEvent({ eventId });
+                const result = await registerForEvent({ 
+                  eventId,
+                  scheduleId: effectiveScheduleId || null,
+                });
                 if (result.success) {
                   setOptimisticStatus(result.status);
                   toast.success(t("register.addedToWaitlist"));
@@ -506,13 +584,16 @@ export function RegisterButton({
             return;
           }
 
-          if (hasTransport && transportRoutes.length > 0) {
+          if (shouldOpenModal) {
             setIsModalOpen(true);
           } else {
             // Register directly
             startTransition(async () => {
               try {
-                const result = await registerForEvent({ eventId });
+                const result = await registerForEvent({ 
+                  eventId,
+                  scheduleId: effectiveScheduleId || null,
+                });
                 if (result.success) {
                   setOptimisticStatus(result.status);
                   toastRegistrationSuccess(result);
@@ -579,52 +660,164 @@ export function RegisterButton({
             {/* Scrollable Content */}
             <div className="p-6 overflow-y-auto space-y-6 text-sm flex-1" data-lenis-prevent>
               
-              {/* Transport Optional Question */}
-              <div className="space-y-3">
-                <label className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                  <Bus className="h-4 w-4 text-primary" />
-                  {t("register.transportQuestion")}
-                </label>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {t("register.transportHelp")}
-                </p>
-                
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setRegistrationValue("wantsTransport", true)}
-                    className={`flex items-center justify-center gap-2 rounded-xl py-3 border font-medium transition-all ${
-                      wantsTransport
-                        ? "border-primary bg-primary/5 text-primary ring-1 ring-primary"
-                        : "border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {wantsTransport && <Check className="h-4 w-4" />}
-                    {t("register.transportYes")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setRegistrationValues((prev) => ({
-                        ...prev,
-                        wantsTransport: false,
-                        seatsCount: 1,
-                      }));
-                    }}
-                    className={`flex items-center justify-center gap-2 rounded-xl py-3 border font-medium transition-all ${
-                      !wantsTransport
-                        ? "border-primary bg-primary/5 text-primary ring-1 ring-primary"
-                        : "border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {!wantsTransport && <Check className="h-4 w-4" />}
-                    {t("register.transportNo")}
-                  </button>
+              {/* Schedule / Shift Selection (Opción 1: Elección de Turno / Horario) */}
+              {hasMultipleSchedules && schedules && schedules.length > 0 && (
+                <div className="space-y-3">
+                  <div className="space-y-1 text-left">
+                    <label className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                      <Clock className="h-4 w-4 text-primary" />
+                      {t("register.scheduleSelectionTitle")}
+                    </label>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {t("register.scheduleSelectionHelp")}
+                    </p>
+                  </div>
+
+                  <div className="grid gap-2.5 pt-1">
+                    {schedules.map((slot, index) => {
+                      const isSelected = effectiveScheduleId === slot.id;
+                      const { dateLabel, timeLabel } = formatSlotDateTime(slot.date, slot.endDate);
+
+                      return (
+                        <div
+                          key={slot.id}
+                          onClick={() => setRegistrationValue("selectedScheduleId", slot.id)}
+                          className={`group cursor-pointer rounded-2xl border p-4 transition-all duration-200 text-left flex items-center justify-between gap-3 ${
+                            isSelected
+                              ? "border-primary bg-primary/10 dark:bg-primary/20 ring-2 ring-primary shadow-sm"
+                              : "border-border bg-card hover:border-primary/40 hover:bg-muted/40"
+                          }`}
+                        >
+                          <div className="space-y-1 min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-foreground">
+                                {slot.label || `Turno ${index + 1}`}
+                              </span>
+                              {isSelected && (
+                                <span className="rounded-full bg-primary/15 text-primary text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider border border-primary/20">
+                                  Seleccionado
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2.5 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1 font-medium capitalize">
+                                <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
+                                {dateLabel}
+                              </span>
+                              <span>•</span>
+                              <span className="flex items-center gap-1 font-semibold text-foreground/90">
+                                <Clock className="h-3.5 w-3.5 text-primary shrink-0" />
+                                {timeLabel}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="shrink-0">
+                            <div
+                              className={`h-5 w-5 rounded-full border flex items-center justify-center transition-colors ${
+                                isSelected
+                                  ? "border-primary bg-primary text-primary-foreground"
+                                  : "border-muted-foreground/40 group-hover:border-primary/60"
+                              }`}
+                            >
+                              {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Transport Availability & Options Section */}
+              {isTransportAvailable ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <label className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                      <Bus className="h-4 w-4 text-primary" />
+                      {t("register.transportQuestion")}
+                    </label>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-2.5 py-0.5 text-[11px] font-semibold border border-emerald-500/20">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      {t("register.transportAvailableBadge")} ({transportRoutes.length} {transportRoutes.length === 1 ? "ruta" : "rutas"})
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {t("register.transportHelp")}
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setRegistrationValue("wantsTransport", true)}
+                      className={`flex items-center justify-center gap-2 rounded-xl py-3 border font-medium transition-all ${
+                        wantsTransport
+                          ? "border-primary bg-primary/5 text-primary ring-1 ring-primary"
+                          : "border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {wantsTransport && <Check className="h-4 w-4" />}
+                      {t("register.transportYes")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRegistrationValues((prev) => ({
+                          ...prev,
+                          wantsTransport: false,
+                          seatsCount: 1,
+                        }));
+                      }}
+                      className={`flex items-center justify-center gap-2 rounded-xl py-3 border font-medium transition-all ${
+                        !wantsTransport
+                          ? "border-primary bg-primary/5 text-primary ring-1 ring-primary"
+                          : "border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {!wantsTransport && <Check className="h-4 w-4" />}
+                      {t("register.transportNo")}
+                    </button>
+                  </div>
+                </div>
+              ) : hasTransportEnabledWithoutRoutes ? (
+                /* Transporte habilitado por el organizador pero sin rutas activas */
+                <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 space-y-2 text-left animate-fadeIn">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <Bus className="h-4 w-4 text-amber-500" />
+                      <span>{t("register.transportStatusTitle")}</span>
+                    </div>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 px-2.5 py-0.5 text-[11px] font-semibold border border-amber-500/25">
+                      <Clock className="h-3 w-3" />
+                      {t("register.transportPendingRoutesBadge")}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {t("register.transportPendingRoutesHelp")}
+                  </p>
+                </div>
+              ) : (
+                /* No cuenta con servicio de transporte oficial */
+                <div className="rounded-2xl border border-border/80 bg-muted/30 p-4 space-y-2 text-left animate-fadeIn">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <Bus className="h-4 w-4 text-muted-foreground" />
+                      <span>{t("register.transportStatusTitle")}</span>
+                    </div>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-muted text-muted-foreground px-2.5 py-0.5 text-[11px] font-semibold border border-border">
+                      <X className="h-3 w-3" />
+                      {t("register.transportUnavailableBadge")}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {t("register.transportNotAvailableHelp")}
+                  </p>
+                </div>
+              )}
 
               {/* Dynamic Interactive Transport Section */}
-              {wantsTransport && (
+              {effectiveWantsTransport && (
                 <div className="space-y-5 p-4 rounded-2xl bg-muted/40 border border-border/80 animate-slideDown">
                   
                   {/* Route Selection */}
@@ -917,6 +1110,15 @@ export function RegisterButton({
                 </span>
                 
                 <div className="space-y-1.5 text-xs text-muted-foreground">
+                  {hasMultipleSchedules && selectedSlot && (
+                    <div className="flex justify-between items-center animate-fadeIn">
+                      <span>{t("register.scheduleSlotBadge")}</span>
+                      <span className="font-semibold text-primary">
+                        {selectedSlot.label || "Turno Seleccionado"}
+                      </span>
+                    </div>
+                  )}
+
                   <div className="flex justify-between">
                     <span>
                       {t("register.ticketCostLabel", {
@@ -931,7 +1133,7 @@ export function RegisterButton({
                     </span>
                   </div>
 
-                  {wantsTransport && (
+                  {effectiveWantsTransport && (
                     <div className="flex justify-between animate-fadeIn">
                       <span>
                         {t("register.transportSeatsLabel", {

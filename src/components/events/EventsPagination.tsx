@@ -7,16 +7,28 @@ type EventsPaginationProps = {
   limit: number;
   category?: string;
   search?: string;
+  filters?: Record<string, string | undefined>;
 };
 
 function buildHref(
   page: number,
   category?: string,
   search?: string,
+  filters?: Record<string, string | undefined>,
 ): string {
   const params = new URLSearchParams();
-  if (category) params.set("category", category);
-  if (search) params.set("search", search);
+
+  if (filters) {
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v && v !== "all" && k !== "page") {
+        params.set(k, v);
+      }
+    });
+  } else {
+    if (category) params.set("category", category);
+    if (search) params.set("search", search);
+  }
+
   if (page > 1) params.set("page", String(page));
   const qs = params.toString();
   return qs ? `/events?${qs}` : "/events";
@@ -28,6 +40,7 @@ export function EventsPagination({
   limit,
   category,
   search,
+  filters,
 }: EventsPaginationProps) {
   const totalPages = Math.max(1, Math.ceil(total / limit));
   if (totalPages <= 1) return null;
@@ -46,7 +59,7 @@ export function EventsPagination({
       <div className="flex items-center gap-2">
         {prev ? (
           <Link
-            href={buildHref(prev, category, search)}
+            href={buildHref(prev, category, search, filters)}
             className="inline-flex items-center gap-1 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -60,7 +73,7 @@ export function EventsPagination({
         )}
         {next ? (
           <Link
-            href={buildHref(next, category, search)}
+            href={buildHref(next, category, search, filters)}
             className="inline-flex items-center gap-1 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
           >
             Siguiente

@@ -277,12 +277,6 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
           icon: Ticket,
         },
         {
-          labelKey: "dashboard.sidebar.admin.categories",
-          href: p("/categories"),
-          icon: ClipboardList,
-          permissions: ["categories:manage:org", "categories:manage:platform"],
-        },
-        {
           labelKey: "dashboard.sidebar.admin.users",
           href: p("/users"),
           icon: UserCog,
@@ -300,6 +294,12 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
           : []),
         ...(isSuperAdmin
           ? [
+              {
+                labelKey: "dashboard.sidebar.admin.categories",
+                href: "/superadmin/categories",
+                icon: ClipboardList,
+                permissions: ["categories:manage:platform"] as const,
+              },
               {
                 labelKey: "dashboard.sidebar.admin.roles",
                 href: p("/roles"),

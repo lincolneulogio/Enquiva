@@ -39,6 +39,7 @@ export interface RegisterEventInput {
   stopId?: string | null;
   notes?: string | null;
   guests?: Array<{ name: string; phone?: string | null }> | null;
+  scheduleId?: string | null;
 }
 
 export interface CheckInInput {
@@ -148,7 +149,21 @@ export class RegistrationService {
         throw registrationError(RegistrationErrorCode.WAITLIST_NO_EXTRAS);
       }
 
-      // 4. Crear o reactivar el registro principal (sin embeber invitados en notes)
+      // 4. Determinar horario / turno seleccionado (Opción 1: El asistente elige 1 horario/turno)
+      const availableSlots = Array.isArray(event.schedules) ? event.schedules : [];
+      let selectedSlot: { id: string; label?: string | null; date: string; endDate?: string | null } | null = null;
+      if (availableSlots.length > 0) {
+        if (input.scheduleId) {
+          selectedSlot = availableSlots.find((s) => s.id === input.scheduleId) ?? null;
+        }
+        if (!selectedSlot) {
+          selectedSlot = availableSlots[0] ?? null;
+        }
+      }
+      const selectedScheduleId = selectedSlot?.id ?? null;
+      const selectedScheduleLabel = selectedSlot?.label ?? null;
+
+      // Crear o reactivar el registro principal (sin embeber invitados en notes)
       const finalNotes = input.notes ?? null;
       const guestRegIds: string[] = [];
       const guestUserIdMap = new Map<string, string>();
@@ -168,6 +183,8 @@ export class RegistrationService {
             holdReminderSentAt: null,
             parentRegistrationId: null,
             guestId: null,
+            selectedScheduleId,
+            selectedScheduleLabel,
           })
           .where(eq(registrations.id, existing.id))
           .returning();
@@ -186,6 +203,8 @@ export class RegistrationService {
             registeredAt: now,
             holdExpiresAt: null,
             holdReminderSentAt: null,
+            selectedScheduleId,
+            selectedScheduleLabel,
           })
           .returning();
         registration = created;
@@ -215,6 +234,8 @@ export class RegistrationService {
               holdExpiresAt: null,
               holdReminderSentAt: null,
               parentRegistrationId: registration.id,
+              selectedScheduleId,
+              selectedScheduleLabel,
             })
             .returning();
 
@@ -328,8 +349,8 @@ export class RegistrationService {
           currency: "PEN",
           status: "pending",
           notes: transportBooking
-            ? `Inscripción consolidada con servicio de transporte (${input.seats} asiento${input.seats && input.seats > 1 ? "s" : ""}) para el titular y ${guests.length} invitado(s)`
-            : `Inscripción al evento para el titular y ${guests.length} invitado(s)`,
+            ? `Inscripción consolidada con servicio de transporte (${input.seats} asiento${input.seats && input.seats > 1 ? "s" : ""}) para el titular y ${guests.length} invitado(s)${selectedScheduleLabel ? ` - Turno: ${selectedScheduleLabel}` : ""}`
+            : `Inscripción al evento para el titular y ${guests.length} invitado(s)${selectedScheduleLabel ? ` - Turno: ${selectedScheduleLabel}` : ""}`,
         });
       } else {
         // Si es gratuito, generamos el ticket inmediatamente de forma consistente para todos

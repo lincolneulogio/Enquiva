@@ -96,42 +96,37 @@ export function categoryColor(category: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 
-  const keyMap: Record<string, string> = {
-    estudio_biblico: "bible_study",
-    bible_study: "bible_study",
-    adoracion: "worship",
-    worship: "worship",
-    retiro: "retreat",
-    retreat: "retreat",
-    juventud: "youth",
-    youth: "youth",
-    caridad: "charity",
-    charity: "charity",
-    conferencia: "conference",
-    conference: "conference",
-    oracion: "prayer",
-    prayer: "prayer",
-    alcance_comunitario: "outreach",
-    outreach: "outreach",
-    comunidad: "fellowship",
-    fellowship: "fellowship",
-  };
-
-  const canonicalKey = keyMap[normalized] || normalized;
-
   const colors: Record<string, string> = {
+    conferences: "bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200 dark:border-blue-900/60",
+    education: "bg-indigo-100 text-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300 border-indigo-200 dark:border-indigo-900/60",
+    business: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200 dark:border-amber-900/60",
+    music: "bg-pink-100 text-pink-800 dark:bg-pink-950/40 dark:text-pink-300 border-pink-200 dark:border-pink-900/60",
+    sports: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/60",
+    religion: "bg-violet-100 text-violet-800 dark:bg-violet-950/40 dark:text-violet-300 border-violet-200 dark:border-violet-900/60",
+    arts: "bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300 border-purple-200 dark:border-purple-900/60",
+    community: "bg-teal-100 text-teal-800 dark:bg-teal-950/40 dark:text-teal-300 border-teal-200 dark:border-teal-900/60",
+    government: "bg-slate-100 text-slate-800 dark:bg-slate-800/60 dark:text-slate-200 border-slate-200 dark:border-slate-700",
+    charity: "bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200 dark:border-rose-900/60",
+    tradeshows: "bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-300 border-orange-200 dark:border-orange-900/60",
+    technology: "bg-cyan-100 text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-300 border-cyan-200 dark:border-cyan-900/60",
+    celebrations: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200 dark:border-amber-900/60",
+    travel: "bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-300 border-sky-200 dark:border-sky-900/60",
+    health: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/60",
+    corporate: "bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300 border-blue-200 dark:border-blue-900/60",
+    family: "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-300 border-yellow-200 dark:border-yellow-900/60",
+    other: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300",
+    // Slugs legados
     worship: "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300",
     retreat: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
     youth: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
-    charity: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300",
     conference: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
     prayer: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
     bible_study: "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300",
     outreach: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
     fellowship: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300",
-    other: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300",
   };
-  return colors[canonicalKey] ?? colors.other;
+
+  return colors[normalized] ?? colors.other;
 }
 
 export function statusColor(status: string): string {

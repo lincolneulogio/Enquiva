@@ -4,14 +4,13 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { createEventSchema, type CreateEventInput } from "@/lib/validations";
+import { createEventSchema, type CreateEventInput, type EventScheduleSlot } from "@/lib/validations";
 import { createEvent, updateEvent } from "@/actions/events";
 import { getPaymentMethodsForEventForm, setEventPaymentMethods } from "@/actions/payment-methods";
 import { UploadDropzone } from "@/lib/uploadthing/components";
 import { toast } from "sonner";
-import { Loader2, ImageIcon, Video, Star, Bus, Smartphone, QrCode, Wallet, CreditCard, Plus, CalendarDays, Clock3 } from "lucide-react";
+import { Loader2, ImageIcon, Video, Star, Bus, Smartphone, QrCode, Wallet, CreditCard, Plus, CalendarDays, Clock3, Trash2, Copy } from "lucide-react";
 import { EventCoverFrame } from "@/components/events/EventCoverFrame";
-import { CreateCategoryModal } from "@/components/events/CreateCategoryModal";
 import type { Event } from "@/lib/db/schema";
 import type { FieldErrors } from "react-hook-form";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
@@ -29,7 +28,10 @@ import { formStorageKey, loadFormDraft, saveFormDraft } from "@/lib/form-persist
 import type { LatLng } from "@/lib/geo";
 import type { PlaceSuggestion } from "@/lib/geo/nominatim";
 
+import { EVENT_CATEGORIES, getTypesForCategory } from "@/lib/events/taxonomy";
+
 type PlanSummary = Awaited<ReturnType<typeof getOrganizerPlanSummary>>;
+type TransportRouteList = Awaited<ReturnType<typeof getRoutesByEvent>>;
 
 interface CategoryOption {
     slug: string;
@@ -128,15 +130,31 @@ export function EventForm({
     const [selectedPaymentMethodIds, setSelectedPaymentMethodIds] = useState<string[]>([]);
     const [highlightedField, setHighlightedField] = useState<keyof CreateEventInput | null>(null);
     const highlightTimeoutRef = useRef<number | null>(null);
-    const [routes, setRoutes] = useState<any[]>([]);
+    const [routes, setRoutes] = useState<TransportRouteList>([]);
     const [loadingRoutes, setLoadingRoutes] = useState(false);
-    const [categoryOptions, setCategoryOptions] = useState(categories);
-    const [createCategoryOpen, setCreateCategoryOpen] = useState(false);
-    const pendingCategorySelectionRef = useRef<string | null>(null);
+
+    const buildCategoryOptions = (customCats: CategoryOption[]): CategoryOption[] => {
+        const standardOptions: CategoryOption[] = EVENT_CATEGORIES.map((cat) => ({
+            slug: cat.slug,
+            label: locale === "en" ? cat.labelEn : cat.labelEs,
+            colorClass: cat.colorClass,
+        }));
+        const combined = [...standardOptions];
+        customCats.forEach((cat) => {
+            if (!combined.some((c) => c.slug === cat.slug)) {
+                combined.push(cat);
+            }
+        });
+        return combined;
+    };
+
+    const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>(() =>
+        buildCategoryOptions(categories),
+    );
     const [minimumEventDate, setMinimumEventDate] = useState("");
 
     useEffect(() => {
-        setCategoryOptions(categories);
+        setCategoryOptions(buildCategoryOptions(categories));
     }, [categories]);
 
     useEffect(() => {
@@ -164,6 +182,8 @@ export function EventForm({
                 description: event.description,
                 category: event.category,
                 date: toLocalDateTimeInputValue(event.date),
+                endDate: event.endDate ? toLocalDateTimeInputValue(event.endDate) : undefined,
+                schedules: event.schedules ?? undefined,
                 location: event.location ?? undefined,
                 latitude: event.latitude ?? null,
                 longitude: event.longitude ?? null,
@@ -205,45 +225,93 @@ export function EventForm({
         reset,
         formState: { errors },
     } = form;
-    const initialDateTime = form.getValues("date") ?? "";
-    const [eventDatePart, setEventDatePart] = useState(initialDateTime.slice(0, 10));
-    const [eventTimePart, setEventTimePart] = useState(initialDateTime.slice(11, 16));
-    const [timePickerOpen, setTimePickerOpen] = useState(false);
-    const eventDateInputRef = useRef<HTMLInputElement>(null);
-    const eventTimeInputRef = useRef<HTMLInputElement>(null);
-    const timePickerRef = useRef<HTMLDivElement>(null);
+
+    const buildInitialSlots = (): Array<{
+        id: string;
+        label: string;
+        datePart: string;
+        startTimePart: string;
+        endTimePart: string;
+    }> => {
+        if (event?.schedules && event.schedules.length > 0) {
+            return event.schedules.slice(0, 3).map((s, idx) => {
+                const sDate = s.date ? toLocalDateTimeInputValue(s.date) : "";
+                const sEndDate = s.endDate ? toLocalDateTimeInputValue(s.endDate) : "";
+                return {
+                    id: s.id || `slot-${idx + 1}`,
+                    label: s.label || (idx === 0 ? "Horario Principal" : `Horario ${idx + 1}`),
+                    datePart: sDate.slice(0, 10),
+                    startTimePart: sDate.slice(11, 16),
+                    endTimePart: sEndDate ? sEndDate.slice(11, 16) : "",
+                };
+            });
+        }
+        const initialDateStr = event?.date ? toLocalDateTimeInputValue(event.date) : "";
+        const initialEndDateStr = event?.endDate ? toLocalDateTimeInputValue(event.endDate) : "";
+        return [
+            {
+                id: "slot-1",
+                label: "Horario Principal",
+                datePart: initialDateStr.slice(0, 10),
+                startTimePart: initialDateStr.slice(11, 16),
+                endTimePart: initialEndDateStr ? initialEndDateStr.slice(11, 16) : "",
+            },
+        ];
+    };
+
+    const [scheduleSlots, setScheduleSlots] = useState(buildInitialSlots);
     const datePartsUpdateRef = useRef(false);
     const watchedDateTime = useWatch({ control, name: "date" });
-    const selectedHour24 = Number(eventTimePart.slice(0, 2) || 0);
-    const selectedHour12 = eventTimePart
-        ? String(selectedHour24 % 12 || 12).padStart(2, "0")
-        : "";
-    const selectedPeriod: "AM" | "PM" = selectedHour24 >= 12 ? "PM" : "AM";
+    const watchedCategory = useWatch({ control, name: "category" });
+    const suggestedTypes = watchedCategory ? getTypesForCategory(watchedCategory) : [];
 
     useEffect(() => {
         if (datePartsUpdateRef.current) {
             datePartsUpdateRef.current = false;
             return;
         }
-        setEventDatePart(watchedDateTime?.slice(0, 10) ?? "");
-        setEventTimePart(watchedDateTime?.slice(11, 16) ?? "");
-    }, [watchedDateTime]);
-
-    const updateEventDateTime = (nextDate: string, nextTime: string) => {
-        setEventDatePart(nextDate);
-        setEventTimePart(nextTime);
-
-        const combined = nextDate && nextTime ? `${nextDate}T${nextTime}` : "";
-        if (combined !== watchedDateTime) {
-            datePartsUpdateRef.current = true;
-            setValue("date", combined, {
-                shouldDirty: true,
-                shouldTouch: true,
-                shouldValidate: Boolean(combined),
-            });
+        if (watchedDateTime && scheduleSlots.length > 0) {
+            const nextDate = watchedDateTime.slice(0, 10);
+            const nextTime = watchedDateTime.slice(11, 16);
+            if (scheduleSlots[0].datePart !== nextDate || scheduleSlots[0].startTimePart !== nextTime) {
+                setScheduleSlots((prev) =>
+                    prev.map((item, idx) =>
+                        idx === 0 ? { ...item, datePart: nextDate, startTimePart: nextTime } : item
+                    )
+                );
+            }
         }
+    }, [watchedDateTime, scheduleSlots]);
 
-        if (combined) {
+    const syncSlotsToForm = (slots: typeof scheduleSlots) => {
+        const slot1 = slots[0];
+        const combinedPrimaryDate = slot1 && slot1.datePart && slot1.startTimePart ? `${slot1.datePart}T${slot1.startTimePart}` : "";
+        const combinedPrimaryEndDate = slot1 && slot1.datePart && slot1.endTimePart ? `${slot1.datePart}T${slot1.endTimePart}` : null;
+
+        datePartsUpdateRef.current = true;
+        setValue("date", combinedPrimaryDate, {
+            shouldDirty: true,
+            shouldTouch: true,
+            shouldValidate: Boolean(combinedPrimaryDate),
+        });
+        setValue("endDate", combinedPrimaryEndDate ?? undefined, {
+            shouldDirty: true,
+        });
+
+        const schedulesPayload: EventScheduleSlot[] = slots.map((s, idx) => {
+            const sDate = s.datePart && s.startTimePart ? `${s.datePart}T${s.startTimePart}` : "";
+            const sEndDate = s.datePart && s.endTimePart ? `${s.datePart}T${s.endTimePart}` : null;
+            return {
+                id: s.id,
+                label: s.label.trim() || (idx === 0 ? "Horario Principal" : `Horario ${idx + 1}`),
+                date: sDate,
+                endDate: sEndDate,
+            };
+        });
+
+        setValue("schedules", schedulesPayload, { shouldDirty: true });
+
+        if (combinedPrimaryDate) {
             void trigger("date").then((valid) => {
                 if (!valid) return;
                 clearErrors("date");
@@ -253,37 +321,52 @@ export function EventForm({
         }
     };
 
-    useEffect(() => {
-        if (!timePickerOpen) return;
-
-        const closeOnOutsideClick = (event: MouseEvent) => {
-            if (!timePickerRef.current?.contains(event.target as Node)) {
-                setTimePickerOpen(false);
-            }
-        };
-        const closeOnEscape = (event: KeyboardEvent) => {
-            if (event.key === "Escape") setTimePickerOpen(false);
-        };
-
-        document.addEventListener("mousedown", closeOnOutsideClick);
-        document.addEventListener("keydown", closeOnEscape);
-        return () => {
-            document.removeEventListener("mousedown", closeOnOutsideClick);
-            document.removeEventListener("keydown", closeOnEscape);
-        };
-    }, [timePickerOpen]);
-
-    useEffect(() => {
-        const slug = pendingCategorySelectionRef.current;
-        if (!slug || !categoryOptions.some((category) => category.slug === slug)) return;
-
-        setValue("category", slug, {
-            shouldValidate: true,
-            shouldDirty: true,
-            shouldTouch: true,
+    const handleSlotFieldChange = (
+        index: number,
+        field: "label" | "datePart" | "startTimePart" | "endTimePart",
+        value: string
+    ) => {
+        setScheduleSlots((prev) => {
+            const updated = prev.map((item, idx) => idx === index ? { ...item, [field]: value } : item);
+            syncSlotsToForm(updated);
+            return updated;
         });
-        pendingCategorySelectionRef.current = null;
-    }, [categoryOptions, setValue]);
+    };
+
+    const handleAddScheduleSlot = () => {
+        if (scheduleSlots.length >= 3) return;
+        setScheduleSlots((prev) => {
+            const nextIndex = prev.length + 1;
+            const defaultDate = prev[0]?.datePart || "";
+            const newSlot = {
+                id: `slot-${Date.now()}`,
+                label: nextIndex === 2 ? "Turno Tarde" : "Turno Noche",
+                datePart: defaultDate,
+                startTimePart: "",
+                endTimePart: "",
+            };
+            const updated = [...prev, newSlot];
+            syncSlotsToForm(updated);
+            toast.info(locale === "en" ? `Schedule ${nextIndex} added` : `Horario ${nextIndex} agregado`);
+            return updated;
+        });
+    };
+
+    const handleRemoveScheduleSlot = (index: number) => {
+        if (index === 0) return;
+        setScheduleSlots((prev) => {
+            const updated = prev.filter((_, idx) => idx !== index);
+            syncSlotsToForm(updated);
+            toast.info(locale === "en" ? "Schedule removed" : "Horario eliminado");
+            return updated;
+        });
+    };
+
+    const handleCopyDateFromPrimary = (index: number) => {
+        const primaryDate = scheduleSlots[0]?.datePart;
+        if (!primaryDate) return;
+        handleSlotFieldChange(index, "datePart", primaryDate);
+    };
 
     const eventDraftKey = event
         ? formStorageKey(`event.edit.${event.id}`)
@@ -488,6 +571,20 @@ export function EventForm({
             return;
         }
 
+        for (let i = 1; i < scheduleSlots.length; i++) {
+            const slot = scheduleSlots[i];
+            if (!slot.datePart || !slot.startTimePart) {
+                toast.error(
+                    locale === "en"
+                        ? `Please complete date and start time for ${slot.label || `Schedule ${i + 1}`}`
+                        : `Por favor completa la fecha y hora de inicio para el ${slot.label || `Horario ${i + 1}`}`
+                );
+                const missingId = !slot.datePart ? `event-slot-${slot.id}-date` : `event-slot-${slot.id}-start`;
+                document.getElementById(missingId)?.focus();
+                return;
+            }
+        }
+
         startTransition(async () => {
             try {
                 const payload = {
@@ -536,7 +633,10 @@ export function EventForm({
 
         if (firstFieldWithError) {
             if (firstFieldWithError === "date") {
-                const dateInputId = eventDatePart ? "event-time-part" : "event-date-part";
+                const primarySlot = scheduleSlots[0];
+                const dateInputId = primarySlot?.datePart
+                    ? `event-slot-${primarySlot.id}-start`
+                    : `event-slot-${primarySlot?.id ?? "slot-1"}-date`;
                 document.getElementById(dateInputId)?.focus();
             } else {
                 setFocus(firstFieldWithError);
@@ -551,7 +651,7 @@ export function EventForm({
 
             const fieldElement =
                 firstFieldWithError === "date"
-                    ? document.getElementById(eventDatePart ? "event-time-part" : "event-date-part")
+                    ? document.getElementById(`event-slot-${scheduleSlots[0]?.id ?? "slot-1"}-date`)
                     : document.querySelector<HTMLElement>(`[name="${firstFieldWithError}"]`);
             fieldElement?.scrollIntoView({ behavior: "smooth", block: "center" });
         }
@@ -639,215 +739,270 @@ export function EventForm({
                         )}
                     </div>
 
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                            <div className="mb-1.5 flex items-center justify-between gap-2">
-                                <label htmlFor="event-category" className="block text-sm font-medium text-foreground">{t("events.form.category")}</label>
+                    <div>
+                        <label htmlFor="event-category" className="mb-1.5 block text-sm font-medium text-foreground">{t("events.form.category")}</label>
+                        <select
+                            id="event-category"
+                            {...register("category")}
+                            aria-invalid={Boolean(errors.category)}
+                            aria-describedby={errors.category ? "event-category-error" : undefined}
+                            className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("category")}`}
+                        >
+                            <option value="">{t("events.form.selectCategory")}</option>
+                            {categoryOptions.map((cat) => (
+                                <option key={cat.slug} value={cat.slug}>
+                                    {cat.label || categoryLabel(cat.slug, locale)}
+                                </option>
+                            ))}
+                        </select>
+                        {suggestedTypes.length > 0 && (
+                            <div className="mt-2.5">
+                                <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+                                    {locale === "en" ? "Suggested formats for this category:" : "Formatos sugeridos para esta categoría:"}
+                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {suggestedTypes.map((typeOption) => (
+                                        <button
+                                            key={typeOption.slug}
+                                            type="button"
+                                            onClick={() => {
+                                                const currentDesc = form.getValues("description") || "";
+                                                if (!currentDesc.toLowerCase().includes(typeOption.label.toLowerCase())) {
+                                                    const prefix = currentDesc.trim() ? `${currentDesc}\n\n` : "";
+                                                    setValue("description", `${prefix}Tipo de evento: ${typeOption.label}`, {
+                                                        shouldDirty: true,
+                                                        shouldValidate: true,
+                                                    });
+                                                    toast.success(`${typeOption.label} agregado a la descripción`);
+                                                }
+                                            }}
+                                            className="rounded-full border border-border/80 bg-muted/40 hover:bg-primary/10 hover:border-primary/40 px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                            title={locale === "en" ? `Click to mention ${typeOption.label} in description` : `Haz clic para incluir ${typeOption.label} en la descripción`}
+                                        >
+                                            + {typeOption.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {errors.category && (
+                            <p id="event-category-error" role="alert" className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.category.message)}</p>
+                        )}
+                    </div>
+
+                    {/* Horarios del Evento (1 a 3 horarios) */}
+                    <div className="rounded-2xl border border-border/70 bg-card/40 p-4 sm:p-5 shadow-xs space-y-4">
+                        <input type="hidden" {...register("date")} />
+                        <input type="hidden" {...register("endDate")} />
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3.5">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                        <CalendarDays className="h-4 w-4" />
+                                    </div>
+                                    <h4 className="text-sm font-bold text-foreground">
+                                        {locale === "en" ? "Event Schedules & Shifts" : "Horarios y Turnos del Evento"}
+                                    </h4>
+                                    <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                                        {scheduleSlots.length} / 3 {scheduleSlots.length === 1 ? (locale === "en" ? "schedule" : "horario") : (locale === "en" ? "schedules" : "horarios")}
+                                    </span>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    {locale === "en"
+                                        ? "Configure 1, 2, or up to 3 schedules/shifts for this event (e.g. morning, afternoon, evening)."
+                                        : "Configura de 1 a 3 horarios o turnos para tu evento (ej. mañana, tarde o noche)."}
+                                </p>
+                            </div>
+
+                            {scheduleSlots.length < 3 && (
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        toast.dismiss("event-form-validation");
-                                        setCreateCategoryOpen(true);
-                                    }}
-                                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                                    onClick={handleAddScheduleSlot}
+                                    className="inline-flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-3.5 py-2 text-xs font-semibold text-primary hover:bg-primary/20 transition-all active:scale-95 shrink-0 self-start sm:self-auto"
                                 >
                                     <Plus className="h-3.5 w-3.5" />
-                                    {t("events.form.createCategoryAction")}
+                                    {locale === "en"
+                                        ? `+ Add Schedule ${scheduleSlots.length + 1}`
+                                        : `+ Agregar Horario ${scheduleSlots.length + 1}`}
                                 </button>
-                            </div>
-                            <select
-                                id="event-category"
-                                {...register("category")}
-                                aria-invalid={Boolean(errors.category)}
-                                aria-describedby={errors.category ? "event-category-error" : undefined}
-                                className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("category")}`}
-                            >
-                                <option value="">{t("events.form.selectCategory")}</option>
-                                {categoryOptions.map((cat) => (
-                                    <option key={cat.slug} value={cat.slug}>
-                                        {cat.label || categoryLabel(cat.slug, locale)}
-                                    </option>
-                                ))}
-                            </select>
-                            {errors.category && (
-                                <p id="event-category-error" role="alert" className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.category.message)}</p>
                             )}
-                            <CreateCategoryModal
-                                open={createCategoryOpen}
-                                onOpenChange={setCreateCategoryOpen}
-                                onCreated={(cat) => {
-                                    pendingCategorySelectionRef.current = cat.slug;
-                                    setCategoryOptions((prev) =>
-                                        prev.some((c) => c.slug === cat.slug) ? prev : [...prev, cat],
-                                    );
-                                    // Si ya estaba en las opciones no habrá un nuevo render; selección inmediata.
-                                    if (categoryOptions.some((c) => c.slug === cat.slug)) {
-                                        setValue("category", cat.slug, {
-                                            shouldValidate: true,
-                                            shouldDirty: true,
-                                            shouldTouch: true,
-                                        });
-                                        pendingCategorySelectionRef.current = null;
-                                    }
-                                    clearErrors("category");
-                                    setHighlightedField((current) =>
-                                        current === "category" ? null : current,
-                                    );
-                                    toast.dismiss("event-form-validation");
-                                }}
-                            />
                         </div>
 
-                        <div>
-                            <p className="mb-1.5 text-sm font-medium text-foreground">{t("events.form.dateTime")}</p>
-                            <input type="hidden" {...register("date")} />
-                            <div className="grid grid-cols-[minmax(0,1fr)_minmax(8rem,0.72fr)] gap-2">
-                                <div className="relative">
-                                    <label htmlFor="event-date-part" className="sr-only">{t("events.form.date")}</label>
-                                    <button
-                                        type="button"
-                                        onClick={() => openNativePicker(eventDateInputRef.current)}
-                                        aria-label={t("events.form.chooseDate")}
-                                        title={t("events.form.chooseDate")}
-                                        className="absolute left-1.5 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                                    >
-                                        <CalendarDays aria-hidden="true" className="h-4 w-4" />
-                                    </button>
-                                    <input
-                                        ref={eventDateInputRef}
-                                        id="event-date-part"
-                                        type="date"
-                                        min={minimumEventDate || undefined}
-                                        value={eventDatePart}
-                                        onChange={(e) => updateEventDateTime(e.target.value, eventTimePart)}
-                                        aria-invalid={Boolean(errors.date)}
-                                        aria-describedby={errors.date ? "event-date-error" : undefined}
-                                        className={`w-full rounded-xl border border-border bg-background py-2.5 pl-9 pr-3 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("date")}`}
-                                    />
-                                    <span
-                                        aria-hidden="true"
-                                        className="pointer-events-none absolute bottom-px right-px top-px z-[5] w-10 rounded-r-[11px] bg-background"
-                                    />
-                                </div>
-                                <div ref={timePickerRef} className="relative">
-                                    <label htmlFor="event-time-part" className="sr-only">{t("events.form.time")}</label>
-                                    <button
-                                        type="button"
-                                        onClick={() => setTimePickerOpen((open) => !open)}
-                                        aria-label={t("events.form.chooseTime")}
-                                        title={t("events.form.chooseTime")}
-                                        aria-expanded={timePickerOpen}
-                                        aria-controls="event-time-picker"
-                                        className="absolute left-1.5 top-1/2 z-10 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                                    >
-                                        <Clock3 aria-hidden="true" className="h-4 w-4" />
-                                    </button>
-                                    <input
-                                        ref={eventTimeInputRef}
-                                        id="event-time-part"
-                                        type="time"
-                                        value={eventTimePart}
-                                        onChange={(e) => updateEventDateTime(eventDatePart, e.target.value)}
-                                        aria-invalid={Boolean(errors.date)}
-                                        aria-describedby={errors.date ? "event-date-error" : undefined}
-                                        className={`w-full rounded-xl border border-border bg-background py-2.5 pl-9 pr-3 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("date")}`}
-                                    />
-                                    {timePickerOpen && (
-                                        <div
-                                            id="event-time-picker"
-                                            role="dialog"
-                                            aria-label={t("events.form.chooseTime")}
-                                            className="absolute right-0 top-[calc(100%+0.5rem)] z-40 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-popover p-3 text-popover-foreground shadow-xl"
-                                        >
-                                            <div className="grid grid-cols-3 gap-2">
-                                                <label className="space-y-1 text-xs font-medium">
-                                                    <span>{t("events.form.hour")}</span>
-                                                    <select
-                                                        value={selectedHour12}
-                                                        onChange={(e) =>
-                                                            updateEventDateTime(
-                                                                eventDatePart,
-                                                                to24HourTime(
-                                                                    e.target.value,
-                                                                    eventTimePart.slice(3, 5) || "00",
-                                                                    selectedPeriod,
-                                                                ),
-                                                            )
-                                                        }
-                                                        className="w-full rounded-lg border border-border bg-background px-2 py-2 text-sm focus:border-primary focus:outline-none"
-                                                        autoFocus
-                                                    >
-                                                        <option value="">--</option>
-                                                        {EVENT_HOUR_OPTIONS.map((hour) => (
-                                                            <option key={hour} value={hour}>{hour}</option>
-                                                        ))}
-                                                    </select>
-                                                </label>
-                                                <label className="space-y-1 text-xs font-medium">
-                                                    <span>{t("events.form.minute")}</span>
-                                                    <select
-                                                        value={eventTimePart.slice(3, 5)}
-                                                        onChange={(e) =>
-                                                            updateEventDateTime(
-                                                                eventDatePart,
-                                                                to24HourTime(
-                                                                    selectedHour12 || "12",
-                                                                    e.target.value,
-                                                                    selectedPeriod,
-                                                                ),
-                                                            )
-                                                        }
-                                                        className="w-full rounded-lg border border-border bg-background px-2 py-2 text-sm focus:border-primary focus:outline-none"
-                                                    >
-                                                        <option value="">--</option>
-                                                        {EVENT_MINUTE_OPTIONS.map((minute) => (
-                                                            <option key={minute} value={minute}>{minute}</option>
-                                                        ))}
-                                                    </select>
-                                                </label>
-                                                <label className="space-y-1 text-xs font-medium">
-                                                    <span>{t("events.form.period")}</span>
-                                                    <select
-                                                        value={selectedPeriod}
-                                                        onChange={(e) =>
-                                                            updateEventDateTime(
-                                                                eventDatePart,
-                                                                to24HourTime(
-                                                                    selectedHour12 || "12",
-                                                                    eventTimePart.slice(3, 5) || "00",
-                                                                    e.target.value as "AM" | "PM",
-                                                                ),
-                                                            )
-                                                        }
-                                                        className="w-full rounded-lg border border-border bg-background px-2 py-2 text-sm focus:border-primary focus:outline-none"
-                                                    >
-                                                        <option value="AM">AM</option>
-                                                        <option value="PM">PM</option>
-                                                    </select>
-                                                </label>
-                                            </div>
-                                            <p className="mt-2 text-[11px] leading-4 text-muted-foreground">
-                                                {t("events.form.timeFormatHelp")}
-                                            </p>
-                                            <button
-                                                type="button"
-                                                onClick={() => setTimePickerOpen(false)}
-                                                className="mt-3 w-full rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
-                                            >
-                                                {t("events.form.timePickerDone")}
-                                            </button>
-                                        </div>
+                        {/* List of schedule slots */}
+                        <div className="space-y-3.5">
+                            {scheduleSlots.map((slot, index) => (
+                                <div
+                                    key={slot.id}
+                                    className={cn(
+                                        "rounded-xl border p-3.5 sm:p-4 transition-all space-y-3",
+                                        index === 0
+                                            ? "border-primary/40 bg-primary/[0.02]"
+                                            : "border-border/80 bg-background/50 hover:border-border"
                                     )}
+                                >
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <span
+                                                className={cn(
+                                                    "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-bold",
+                                                    index === 0
+                                                        ? "bg-primary text-primary-foreground"
+                                                        : index === 1
+                                                        ? "bg-blue-600 text-white"
+                                                        : "bg-emerald-600 text-white"
+                                                )}
+                                            >
+                                                {index === 0
+                                                    ? (locale === "en" ? "Schedule 1 (Primary)" : "Horario 1 (Principal)")
+                                                    : (locale === "en" ? `Schedule ${index + 1}` : `Horario ${index + 1}`)}
+                                            </span>
+                                            {slot.label && (
+                                                <span className="text-xs font-semibold text-muted-foreground truncate max-w-[200px]">
+                                                    • {slot.label}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center gap-1.5">
+                                            {index > 0 && scheduleSlots[0]?.datePart && slot.datePart !== scheduleSlots[0].datePart && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleCopyDateFromPrimary(index)}
+                                                    className="inline-flex items-center gap-1 rounded-lg border border-border/80 bg-background px-2 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                                                    title={locale === "en" ? "Copy date from Schedule 1" : "Copiar fecha del Horario 1"}
+                                                >
+                                                    <Copy className="h-3 w-3" />
+                                                    <span className="hidden sm:inline">
+                                                        {locale === "en" ? "Same date as Slot 1" : "Misma fecha que Horario 1"}
+                                                    </span>
+                                                </button>
+                                            )}
+                                            {index > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveScheduleSlot(index)}
+                                                    className="inline-flex items-center gap-1 rounded-lg p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                                    title={locale === "en" ? "Remove schedule" : "Eliminar horario"}
+                                                    aria-label={locale === "en" ? `Remove schedule ${index + 1}` : `Eliminar horario ${index + 1}`}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Quick chips for preset labels */}
+                                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                                        <span className="text-[11px] font-medium text-muted-foreground mr-1">
+                                            {locale === "en" ? "Label:" : "Etiqueta:"}
+                                        </span>
+                                        <input
+                                            type="text"
+                                            value={slot.label}
+                                            onChange={(e) => handleSlotFieldChange(index, "label", e.target.value)}
+                                            placeholder={
+                                                index === 0
+                                                    ? (locale === "en" ? "e.g. Morning Shift" : "ej. Turno Mañana")
+                                                    : index === 1
+                                                    ? (locale === "en" ? "e.g. Afternoon Shift" : "ej. Turno Tarde")
+                                                    : (locale === "en" ? "e.g. Evening Shift" : "ej. Turno Noche")
+                                            }
+                                            className="min-w-[140px] max-w-[220px] rounded-lg border border-border bg-background px-2.5 py-1 text-xs focus:border-primary focus:outline-none"
+                                        />
+                                        {(locale === "en"
+                                            ? ["Morning", "Afternoon", "Night", "Shift 1", "Shift 2", "Shift 3"]
+                                            : ["Turno Mañana", "Turno Tarde", "Turno Noche", "1er Turno", "2do Turno", "3er Turno"]
+                                        ).map((preset) => (
+                                            <button
+                                                key={preset}
+                                                type="button"
+                                                onClick={() => handleSlotFieldChange(index, "label", preset)}
+                                                className={cn(
+                                                    "rounded-md border px-2 py-0.5 text-[11px] transition-colors",
+                                                    slot.label === preset
+                                                        ? "border-primary bg-primary/10 text-primary font-semibold"
+                                                        : "border-border/60 bg-muted/30 text-muted-foreground hover:bg-muted hover:text-foreground"
+                                                )}
+                                            >
+                                                {preset}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* Date, Start Time, End Time inputs */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                                        <div>
+                                            <label
+                                                htmlFor={`event-slot-${slot.id}-date`}
+                                                className="mb-1 block text-xs font-medium text-muted-foreground"
+                                            >
+                                                {locale === "en" ? "Date" : "Fecha"} <span className="text-destructive">*</span>
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    id={`event-slot-${slot.id}-date`}
+                                                    type="date"
+                                                    min={minimumEventDate || undefined}
+                                                    value={slot.datePart}
+                                                    onChange={(e) => handleSlotFieldChange(index, "datePart", e.target.value)}
+                                                    className={cn(
+                                                        "w-full rounded-xl border border-border bg-background py-2 px-3 text-xs focus:border-primary focus:outline-none",
+                                                        index === 0 && getFieldHighlightClass("date")
+                                                    )}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label
+                                                htmlFor={`event-slot-${slot.id}-start`}
+                                                className="mb-1 block text-xs font-medium text-muted-foreground"
+                                            >
+                                                {locale === "en" ? "Start Time" : "Hora de Inicio"} <span className="text-destructive">*</span>
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    id={`event-slot-${slot.id}-start`}
+                                                    type="time"
+                                                    value={slot.startTimePart}
+                                                    onChange={(e) => handleSlotFieldChange(index, "startTimePart", e.target.value)}
+                                                    className={cn(
+                                                        "w-full rounded-xl border border-border bg-background py-2 px-3 text-xs focus:border-primary focus:outline-none",
+                                                        index === 0 && getFieldHighlightClass("date")
+                                                    )}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label
+                                                htmlFor={`event-slot-${slot.id}-end`}
+                                                className="mb-1 block text-xs font-medium text-muted-foreground"
+                                            >
+                                                {locale === "en" ? "End Time (optional)" : "Hora de Fin (opcional)"}
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    id={`event-slot-${slot.id}-end`}
+                                                    type="time"
+                                                    value={slot.endTimePart}
+                                                    onChange={(e) => handleSlotFieldChange(index, "endTimePart", e.target.value)}
+                                                    className="w-full rounded-xl border border-border bg-background py-2 px-3 text-xs focus:border-primary focus:outline-none"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                            {errors.date && (
-                                <p id="event-date-error" role="alert" className="mt-1 text-xs text-destructive">
-                                    {eventDatePart && !eventTimePart
-                                        ? t("events.form.validation.timeRequired")
-                                        : getLocalizedValidationMessage(errors.date.message)}
-                                </p>
-                            )}
+                            ))}
                         </div>
+
+                        {errors.date && (
+                            <p id="event-date-error" role="alert" className="mt-1 text-xs text-destructive">
+                                {scheduleSlots[0]?.datePart && !scheduleSlots[0]?.startTimePart
+                                    ? (locale === "en" ? "Start time is required for primary schedule" : "La hora de inicio es requerida para el horario principal")
+                                    : getLocalizedValidationMessage(errors.date.message)}
+                            </p>
+                        )}
                     </div>
 
                     <div>

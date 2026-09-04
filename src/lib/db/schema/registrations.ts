@@ -85,6 +85,9 @@ export const registrations = pgTable(
     holdExpiresAt: timestamp("hold_expires_at"),
     /** Evita reenviar el recordatorio a mitad del plazo de pago. */
     holdReminderSentAt: timestamp("hold_reminder_sent_at"),
+    /** Horario o turno específico seleccionado por el asistente (Opción A / Multi-horario) */
+    selectedScheduleId: text("selected_schedule_id"),
+    selectedScheduleLabel: text("selected_schedule_label"),
   },
   (t) => [
     index("registrations_event_idx").on(t.eventId),
@@ -99,6 +102,7 @@ export const registrations = pgTable(
     index("registrations_parent_idx").on(t.parentRegistrationId),
     index("registrations_event_status_idx").on(t.eventId, t.status),
     index("registrations_guest_idx").on(t.guestId),
+    index("registrations_selected_schedule_idx").on(t.eventId, t.selectedScheduleId),
   ]
 );
 
