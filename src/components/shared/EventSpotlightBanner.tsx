@@ -176,7 +176,7 @@ export function EventSpotlightBanner({
               }
             }
           }}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-3.5 py-1 text-xs font-bold text-[#FF5500] shadow-xs transition-all hover:bg-white/90 hover:shadow-md cursor-pointer"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-3.5 py-1 text-xs font-bold text-primary shadow-xs transition-all hover:bg-white/90 hover:shadow-md cursor-pointer"
         >
           <span>Reservar cupo</span>
           <ArrowRight className="h-3 w-3" />
@@ -203,7 +203,7 @@ export function EventSpotlightBanner({
 
   if (isPreview) {
     return (
-      <div className="w-full overflow-hidden rounded-xl bg-[#FF5500] text-white shadow-xs">
+      <div className="w-full overflow-hidden rounded-xl bg-primary text-primary-foreground shadow-xs">
         {content}
       </div>
     );
@@ -214,7 +214,7 @@ export function EventSpotlightBanner({
       ref={barRef}
       role="banner"
       aria-label="Evento destacado"
-      className="fixed inset-x-0 top-0 z-[45] w-full overflow-hidden bg-[#FF5500] text-white shadow-xs"
+      className="fixed inset-x-0 top-0 z-[45] w-full overflow-hidden bg-primary text-primary-foreground shadow-xs"
     >
       {content}
     </header>

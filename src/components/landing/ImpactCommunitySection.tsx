@@ -20,7 +20,7 @@ export function ImpactCommunitySection() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         {/* Encabezado centrado */}
         <div className="mx-auto max-w-3xl text-center" data-aos="fade-up">
-          <div className="mb-4 inline-flex items-center rounded-full border border-orange-500/30 bg-orange-500/10 px-4 py-1 text-[11px] font-bold tracking-widest text-[#FF6B00]">
+          <div className="mb-4 inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-4 py-1 text-[11px] font-bold tracking-widest text-primary">
             IMPACTO COMPROBADO
           </div>
 

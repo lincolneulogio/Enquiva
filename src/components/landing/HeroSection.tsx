@@ -16,7 +16,7 @@ export function HeroSection({ t, locale, copy }: HeroSectionProps) {
       {/* Luces de fondo sutiles */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-1/2 top-0 h-[450px] w-[650px] -translate-x-1/2 -translate-y-1/3 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute right-10 top-10 h-[280px] w-[280px] rounded-full bg-amber-500/10 blur-3xl" />
+        <div className="absolute right-10 top-10 h-[280px] w-[280px] rounded-full bg-primary/10 blur-3xl" />
       </div>
 
       <div className="relative mx-auto max-w-4xl text-center">

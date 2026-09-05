@@ -169,7 +169,7 @@ export function PremierExperiencesSection() {
               </div>
 
               <div className="mb-3 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/20 to-primary/20 text-primary">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15 text-primary">
                   <Building2 className="h-6 w-6" />
                 </div>
                 <div>

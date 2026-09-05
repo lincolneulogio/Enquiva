@@ -65,14 +65,14 @@ export function EventDetailMetrics({
         <div>
           <div className="flex items-center justify-between gap-2 mb-2">
             <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
                 <Users className="h-4 w-4" />
               </div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 CAPACIDAD
               </span>
             </div>
-            <span className="inline-flex items-center rounded-full bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 border border-emerald-200/50">
+            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary border border-primary/25">
               {available} disponibles
             </span>
           </div>
@@ -86,18 +86,16 @@ export function EventDetailMetrics({
             </span>
           </div>
 
-          {/* Barra de progreso */}
-          <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-border/60">
+          {/* Barra de progreso de cupos */}
+          <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-primary/15 dark:bg-primary/20">
             <div
               className={cn(
                 "h-full rounded-full transition-all duration-500",
-                percentage >= 90
-                  ? "bg-rose-500"
-                  : percentage >= 70
-                  ? "bg-amber-500"
-                  : "bg-emerald-500"
+                percentage >= 100
+                  ? "bg-destructive"
+                  : "bg-primary shadow-2xs shadow-primary/30"
               )}
-              style={{ width: `${percentage}%` }}
+              style={{ width: `${Math.min(100, Math.max(6, percentage))}%` }}
             />
           </div>
         </div>
@@ -121,7 +119,7 @@ export function EventDetailMetrics({
           </div>
 
           <div className="flex items-baseline gap-1.5 mt-1">
-            <span className="text-xl sm:text-2xl font-black text-[#FF5500]">
+            <span className="text-xl sm:text-2xl font-black text-primary">
               {formattedPrice}
             </span>
             <span className="text-xs font-bold uppercase text-muted-foreground">

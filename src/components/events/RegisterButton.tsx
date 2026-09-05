@@ -626,7 +626,7 @@ export function RegisterButton({
         disabled={isPending}
         className={
           buttonClassName ||
-          "flex w-full items-center justify-center gap-2 rounded-xl bg-[#FF5500] py-3.5 text-base font-bold text-white transition-all hover:bg-[#E04B00] shadow-md hover:shadow-lg active:scale-98 cursor-pointer"
+          "flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground transition-all hover:bg-primary/90 shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/35 active:scale-98 cursor-pointer"
         }
       >
         {isPending ? (

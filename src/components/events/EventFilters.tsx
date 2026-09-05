@@ -123,10 +123,10 @@ export function EventFilters({
           onClick={() => setMobileDrawerOpen(true)}
           className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-border bg-card px-4 text-sm font-semibold text-foreground shadow-2xs transition hover:bg-muted"
         >
-          <SlidersHorizontal className="h-4 w-4 text-[#FF5500]" />
+          <SlidersHorizontal className="h-4 w-4 text-primary" />
           <span>Filtros avanzados</span>
           {activeFiltersCount > 0 && (
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#FF5500] text-[11px] font-bold text-white">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
               {activeFiltersCount}
             </span>
           )}
@@ -136,7 +136,7 @@ export function EventFilters({
           <button
             type="button"
             onClick={clearSidebarFilters}
-            className="text-xs font-semibold text-[#FF5500] hover:underline"
+            className="text-xs font-semibold text-primary hover:underline"
           >
             Limpiar filtros
           </button>
@@ -148,7 +148,7 @@ export function EventFilters({
         {/* Cabecera con Limpiar */}
         <div className="mb-5 flex items-center justify-between border-b border-border/70 pb-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500/10 text-[#FF5500]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Filter className="h-4 w-4" />
             </div>
             <div>
@@ -164,7 +164,7 @@ export function EventFilters({
           <button
             type="button"
             onClick={clearSidebarFilters}
-            className="text-xs font-semibold text-[#FF5500] transition hover:underline cursor-pointer"
+            className="text-xs font-semibold text-primary transition hover:underline cursor-pointer"
           >
             Limpiar
           </button>
@@ -174,7 +174,7 @@ export function EventFilters({
           {/* 1. FECHA */}
           <div>
             <h3 className="mb-2.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              <Calendar className="h-3.5 w-3.5 text-[#FF5500]" />
+              <Calendar className="h-3.5 w-3.5 text-primary" />
               <span>FECHA</span>
             </h3>
             <div className="flex flex-wrap gap-1.5">
@@ -188,7 +188,7 @@ export function EventFilters({
                     className={cn(
                       "rounded-xl px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer",
                       isSelected
-                        ? "bg-[#FF5500] text-white font-semibold shadow-2xs"
+                        ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
                         : "border border-border/70 bg-card text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                     )}
                   >
@@ -202,7 +202,7 @@ export function EventFilters({
           {/* 2. MODALIDAD */}
           <div>
             <h3 className="mb-2.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              <SlidersHorizontal className="h-3.5 w-3.5 text-[#FF5500]" />
+              <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
               <span>MODALIDAD</span>
             </h3>
             <div className="grid grid-cols-2 gap-1.5">
@@ -216,7 +216,7 @@ export function EventFilters({
                     className={cn(
                       "flex items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-colors cursor-pointer",
                       isSelected
-                        ? "bg-[#FF5500] text-white font-semibold shadow-2xs"
+                        ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
                         : "border border-border/70 bg-card text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                     )}
                   >
@@ -233,7 +233,7 @@ export function EventFilters({
           {/* 3. PRECIO */}
           <div>
             <h3 className="mb-2.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              <CreditCard className="h-3.5 w-3.5 text-[#FF5500]" />
+              <CreditCard className="h-3.5 w-3.5 text-primary" />
               <span>PRECIO</span>
             </h3>
             <div className="grid grid-cols-3 gap-1.5">
@@ -247,7 +247,7 @@ export function EventFilters({
                     className={cn(
                       "rounded-xl px-2 py-1.5 text-center text-xs font-medium transition-colors cursor-pointer",
                       isSelected
-                        ? "bg-[#FF5500] text-white font-semibold shadow-2xs"
+                        ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
                         : "border border-border/70 bg-card text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                     )}
                   >
@@ -261,7 +261,7 @@ export function EventFilters({
           {/* 4. TIPO DE ACCESO */}
           <div>
             <h3 className="mb-2.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              <Ticket className="h-3.5 w-3.5 text-[#FF5500]" />
+              <Ticket className="h-3.5 w-3.5 text-primary" />
               <span>TIPO DE ACCESO</span>
             </h3>
             <div className="space-y-1">
@@ -275,7 +275,7 @@ export function EventFilters({
                     className={cn(
                       "flex w-full items-center justify-between rounded-xl px-3 py-1.5 text-left text-xs font-medium transition-colors cursor-pointer",
                       isSelected
-                        ? "bg-[#FF5500] text-white font-semibold shadow-2xs"
+                        ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
                         : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                     )}
                   >
@@ -290,7 +290,7 @@ export function EventFilters({
           {/* 5. ESTADO */}
           <div>
             <h3 className="mb-2.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              <Clock3 className="h-3.5 w-3.5 text-[#FF5500]" />
+              <Clock3 className="h-3.5 w-3.5 text-primary" />
               <span>ESTADO</span>
             </h3>
             <div className="grid grid-cols-2 gap-1.5">
@@ -304,7 +304,7 @@ export function EventFilters({
                     className={cn(
                       "rounded-xl px-2.5 py-1.5 text-left text-xs font-medium transition-colors cursor-pointer",
                       isSelected
-                        ? "bg-[#FF5500] text-white font-semibold shadow-2xs"
+                        ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
                         : "border border-border/70 bg-card text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                     )}
                   >
@@ -318,7 +318,7 @@ export function EventFilters({
           {/* 6. UBICACIÓN / CIUDAD */}
           <div>
             <h3 className="mb-2.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              <MapPin className="h-3.5 w-3.5 text-[#FF5500]" />
+              <MapPin className="h-3.5 w-3.5 text-primary" />
               <span>UBICACIÓN / CIUDAD</span>
             </h3>
             <form onSubmit={handleLocationSubmit} className="relative">
@@ -342,7 +342,7 @@ export function EventFilters({
           <div className="relative ml-auto flex h-full w-full max-w-xs flex-col bg-background p-6 shadow-2xl overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-border">
               <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-[#FF5500]" />
+                <Filter className="h-4 w-4 text-primary" />
                 <h3 className="text-base font-bold text-foreground">Filtros</h3>
               </div>
               <button
@@ -358,7 +358,7 @@ export function EventFilters({
               {/* FECHA */}
               <div>
                 <h4 className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase text-muted-foreground">
-                  <Calendar className="h-3.5 w-3.5 text-[#FF5500]" />
+                  <Calendar className="h-3.5 w-3.5 text-primary" />
                   <span>Fecha</span>
                 </h4>
                 <div className="flex flex-wrap gap-1.5">
@@ -375,7 +375,7 @@ export function EventFilters({
                         className={cn(
                           "rounded-xl px-2.5 py-1.5 text-xs font-medium cursor-pointer",
                           isSelected
-                            ? "bg-[#FF5500] text-white font-semibold"
+                            ? "bg-primary text-primary-foreground font-semibold"
                             : "border border-border/70 bg-card text-muted-foreground"
                         )}
                       >
@@ -389,7 +389,7 @@ export function EventFilters({
               {/* MODALIDAD */}
               <div>
                 <h4 className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase text-muted-foreground">
-                  <SlidersHorizontal className="h-3.5 w-3.5 text-[#FF5500]" />
+                  <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
                   <span>Modalidad</span>
                 </h4>
                 <div className="grid grid-cols-2 gap-1.5">
@@ -406,7 +406,7 @@ export function EventFilters({
                         className={cn(
                           "flex items-center justify-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-medium text-center cursor-pointer",
                           isSelected
-                            ? "bg-[#FF5500] text-white font-semibold"
+                            ? "bg-primary text-primary-foreground font-semibold"
                             : "border border-border/70 bg-card text-muted-foreground"
                         )}
                       >
@@ -423,7 +423,7 @@ export function EventFilters({
               {/* PRECIO */}
               <div>
                 <h4 className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase text-muted-foreground">
-                  <CreditCard className="h-3.5 w-3.5 text-[#FF5500]" />
+                  <CreditCard className="h-3.5 w-3.5 text-primary" />
                   <span>Precio</span>
                 </h4>
                 <div className="grid grid-cols-3 gap-1.5">
@@ -440,7 +440,7 @@ export function EventFilters({
                         className={cn(
                           "rounded-xl px-2 py-1.5 text-xs font-medium text-center cursor-pointer",
                           isSelected
-                            ? "bg-[#FF5500] text-white font-semibold"
+                            ? "bg-primary text-primary-foreground font-semibold"
                             : "border border-border/70 bg-card text-muted-foreground"
                         )}
                       >
@@ -454,7 +454,7 @@ export function EventFilters({
               {/* ESTADO */}
               <div>
                 <h4 className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase text-muted-foreground">
-                  <Clock3 className="h-3.5 w-3.5 text-[#FF5500]" />
+                  <Clock3 className="h-3.5 w-3.5 text-primary" />
                   <span>Estado</span>
                 </h4>
                 <div className="grid grid-cols-2 gap-1.5">
@@ -471,7 +471,7 @@ export function EventFilters({
                         className={cn(
                           "rounded-xl px-2.5 py-1.5 text-xs font-medium text-center cursor-pointer",
                           isSelected
-                            ? "bg-[#FF5500] text-white font-semibold"
+                            ? "bg-primary text-primary-foreground font-semibold"
                             : "border border-border/70 bg-card text-muted-foreground"
                         )}
                       >
@@ -485,7 +485,7 @@ export function EventFilters({
               {/* UBICACIÓN */}
               <div>
                 <h4 className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase text-muted-foreground">
-                  <MapPin className="h-3.5 w-3.5 text-[#FF5500]" />
+                  <MapPin className="h-3.5 w-3.5 text-primary" />
                   <span>Ubicación</span>
                 </h4>
                 <form

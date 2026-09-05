@@ -172,17 +172,17 @@ async function EventsGrid({
       {/* Barra de cabecera de resultados */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs font-semibold text-foreground sm:text-sm">
-          Mostrando <span className="font-bold text-[#FF5500]">{displayEvents.length}</span> de{" "}
+          Mostrando <span className="font-bold text-primary">{displayEvents.length}</span> de{" "}
           <span className="font-bold">{Math.max(displayEvents.length, total)}</span> eventos
         </p>
 
         {(searchParams.search || searchParams.category) && (
-          <div className="inline-flex items-center gap-1.5 rounded-xl border border-[#F3E3C5] bg-[#FFF6E5] px-3.5 py-1 text-xs font-semibold text-[#9E6500] shadow-2xs dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
-            <SlidersHorizontal className="h-3.5 w-3.5 text-[#9E6500] dark:text-amber-300" />
+          <div className="inline-flex items-center gap-1.5 rounded-xl border border-primary/25 bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary shadow-2xs">
+            <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
             <span>
               Filtros activos: {searchParams.search ? `"${searchParams.search}"` : activeCategoryLabel}
             </span>
-            <Link href="/events" className="ml-1 text-[#9E6500]/70 hover:text-[#9E6500] dark:text-amber-400/70 dark:hover:text-amber-300" aria-label="Limpiar filtro">
+            <Link href="/events" className="ml-1 text-primary/70 hover:text-primary" aria-label="Limpiar filtro">
               <X className="h-3 w-3" />
             </Link>
           </div>

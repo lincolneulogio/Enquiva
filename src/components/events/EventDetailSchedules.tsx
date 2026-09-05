@@ -88,7 +88,7 @@ export function EventDetailSchedules({
         <button
           type="button"
           onClick={handleAddToCalendar}
-          className="inline-flex items-center gap-1 text-xs font-semibold text-[#FF5500] hover:text-[#E04B00] transition-colors cursor-pointer self-start sm:self-center"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary/90 transition-colors cursor-pointer self-start sm:self-center"
         >
           <span>Añadir a mi calendario</span>
           <ChevronRight className="h-3.5 w-3.5" />
@@ -107,7 +107,7 @@ export function EventDetailSchedules({
               className={cn(
                 "relative rounded-xl border p-3 sm:p-3.5 transition-all cursor-pointer flex flex-col justify-between gap-2.5",
                 isSelected
-                  ? "border-[#FF5500] bg-white dark:bg-card shadow-xs ring-1 ring-[#FF5500]/20"
+                  ? "border-primary bg-white dark:bg-card shadow-xs ring-1 ring-primary/20"
                   : "border-border/80 bg-white/70 hover:bg-white dark:bg-card/40 dark:hover:bg-card hover:border-border"
               )}
             >
@@ -118,12 +118,12 @@ export function EventDetailSchedules({
                     className={cn(
                       "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors",
                       isSelected
-                        ? "border-[#FF5500] bg-white"
+                        ? "border-primary bg-white"
                         : "border-muted-foreground/40 bg-transparent"
                     )}
                   >
                     {isSelected && (
-                      <div className="h-2 w-2 rounded-full bg-[#FF5500]" />
+                      <div className="h-2 w-2 rounded-full bg-primary" />
                     )}
                   </div>
                 </div>
@@ -133,7 +133,7 @@ export function EventDetailSchedules({
                   className={cn(
                     "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold tracking-tight",
                     isSelected
-                      ? "bg-[#FF5500] text-white"
+                      ? "bg-primary text-primary-foreground"
                       : schedule.badgeVariant === "available"
                       ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/50"
                       : "bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200/50"

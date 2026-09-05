@@ -59,13 +59,13 @@ export function EventsPagination({
       {prev ? (
         <Link
           href={buildHref(prev, category, search, filters)}
-          className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-card px-4 py-2 text-xs font-semibold text-foreground shadow-2xs transition hover:bg-muted"
+          className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card px-4 py-2 text-xs font-semibold text-foreground shadow-2xs transition-all duration-200 hover:border-primary/40 hover:bg-primary/10 hover:text-primary cursor-pointer active:scale-98"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
           <span>Anterior</span>
         </Link>
       ) : (
-        <span className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-muted/20 px-4 py-2 text-xs font-semibold text-muted-foreground opacity-50 cursor-not-allowed">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-muted/20 px-4 py-2 text-xs font-medium text-muted-foreground/50 cursor-not-allowed select-none">
           <ChevronLeft className="h-3.5 w-3.5" />
           <span>Anterior</span>
         </span>
@@ -81,10 +81,10 @@ export function EventsPagination({
               key={pageNum}
               href={buildHref(pageNum, category, search, filters)}
               className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all",
+                "flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all duration-200",
                 isCurrent
-                  ? "bg-[#FF5500] text-white shadow-xs"
-                  : "border border-border/80 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                  ? "bg-primary text-primary-foreground shadow-xs shadow-primary/30 scale-105"
+                  : "border border-border/80 bg-card text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
               )}
             >
               {pageNum}
@@ -97,13 +97,13 @@ export function EventsPagination({
       {next ? (
         <Link
           href={buildHref(next, category, search, filters)}
-          className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-card px-4 py-2 text-xs font-semibold text-foreground shadow-2xs transition hover:bg-muted"
+          className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-xs font-bold text-primary shadow-2xs transition-all duration-200 hover:border-primary hover:bg-primary hover:text-primary-foreground hover:shadow-xs hover:shadow-primary/25 cursor-pointer active:scale-98"
         >
           <span>Siguiente</span>
           <ChevronRight className="h-3.5 w-3.5" />
         </Link>
       ) : (
-        <span className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-muted/20 px-4 py-2 text-xs font-semibold text-muted-foreground opacity-50 cursor-not-allowed">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-muted/20 px-4 py-2 text-xs font-medium text-muted-foreground/50 cursor-not-allowed select-none">
           <span>Siguiente</span>
           <ChevronRight className="h-3.5 w-3.5" />
         </span>

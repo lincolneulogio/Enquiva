@@ -233,7 +233,7 @@ export function EventLocationMap({
     <div className={cn("space-y-3", className)}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-orange-500/10 text-[#FF5500]">
+          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <MapPin className="h-3.5 w-3.5" />
           </span>
           <h4 className="text-sm font-bold text-foreground">
@@ -246,7 +246,7 @@ export function EventLocationMap({
             <button
               type="button"
               onClick={() => startTracking()}
-              className="inline-flex items-center gap-1.5 rounded-full bg-[#FF5500] px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-[#E04B00] transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-2xs hover:bg-primary/90 transition-colors cursor-pointer"
             >
               <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
               Mi ubicación en vivo
@@ -257,7 +257,7 @@ export function EventLocationMap({
               onClick={stopTracking}
               className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted cursor-pointer"
             >
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-[#FF5500]" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
               Detener
             </button>
           )}
@@ -274,7 +274,7 @@ export function EventLocationMap({
             className={cn(
               "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer",
               followMe
-                ? "border-[#FF5500] bg-[#FF5500]/10 text-[#FF5500]"
+                ? "border-primary bg-primary/10 text-primary"
                 : "border-border/80 bg-white dark:bg-card text-foreground/80 hover:bg-muted",
             )}
           >
@@ -367,7 +367,7 @@ export function EventLocationMap({
 
         {locationLabel && (
           <div className="absolute bottom-2.5 left-2.5 z-10 flex items-center gap-1.5 rounded-xl border border-border/80 bg-white/95 dark:bg-card/95 px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm backdrop-blur-xs">
-            <span className="h-2 w-2 rounded-full bg-[#FF5500]" />
+            <span className="h-2 w-2 rounded-full bg-primary" />
             <span className="truncate max-w-[280px] sm:max-w-md">{locationLabel}</span>
           </div>
         )}

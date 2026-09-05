@@ -130,7 +130,7 @@ export function EventsTopFilterBar({ categories = [] }: EventsTopFilterBarProps)
         <button
           type="submit"
           disabled={isPending}
-          className="inline-flex items-center gap-2 rounded-xl bg-[#FF5500] px-6 py-2.5 text-sm font-bold text-white shadow-xs transition-all hover:bg-[#E04B00] active:scale-98 disabled:opacity-50 cursor-pointer"
+          className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground shadow-xs transition-all hover:bg-primary/90 active:scale-98 disabled:opacity-50 cursor-pointer"
         >
           <Search className="h-4 w-4" />
           <span>Buscar</span>
@@ -166,14 +166,14 @@ export function EventsTopFilterBar({ categories = [] }: EventsTopFilterBarProps)
             className={cn(
               "inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold transition-all cursor-pointer",
               !activeCategorySlug
-                ? "bg-[#FF5500] text-white shadow-xs font-bold"
+                ? "bg-primary text-primary-foreground shadow-xs font-bold"
                 : "border border-border/80 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
             )}
           >
             <Folder
               className={cn(
                 "h-4 w-4 shrink-0 transition-transform",
-                !activeCategorySlug ? "text-white" : "text-[#FF5500]"
+                !activeCategorySlug ? "text-primary-foreground" : "text-primary"
               )}
             />
             <span>Todas las categorías</span>
@@ -190,7 +190,7 @@ export function EventsTopFilterBar({ categories = [] }: EventsTopFilterBarProps)
                 className={cn(
                   "inline-flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2 text-xs font-medium transition-all cursor-pointer",
                   isSelected
-                    ? "bg-[#FF5500] text-white font-bold shadow-xs"
+                    ? "bg-primary text-primary-foreground font-bold shadow-xs"
                     : "border border-border/80 bg-card text-neutral-800 dark:text-neutral-200 hover:border-primary/40 hover:text-foreground"
                 )}
               >
@@ -198,7 +198,7 @@ export function EventsTopFilterBar({ categories = [] }: EventsTopFilterBarProps)
                   slug={cat.slug}
                   className={cn(
                     "h-4 w-4 shrink-0 transition-transform",
-                    isSelected ? "text-white" : "text-[#FF5500]"
+                    isSelected ? "text-primary-foreground" : "text-primary"
                   )}
                 />
                 <span>{cat.label}</span>

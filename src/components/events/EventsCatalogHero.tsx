@@ -10,17 +10,17 @@ export function EventsCatalogHero({
   categoryLabel,
 }: EventsCatalogHeroProps) {
   return (
-    <section className="relative w-full border-b border-border/60 bg-gradient-to-b from-[#FFF5EC]/90 via-[#FAF3EA]/40 to-background/50 px-4 pb-10 pt-10 dark:from-[#181310] dark:via-background/50 dark:to-background sm:px-6 lg:px-8">
+    <section className="relative w-full border-b border-border/60 bg-gradient-to-b from-primary/[0.04] via-background to-background px-4 pb-10 pt-10 dark:from-primary/[0.06] dark:via-background/50 dark:to-background sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         {/* Badge superior */}
-        <div className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-orange-500/30 bg-orange-500/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-[#FF6B00]">
+        <div className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-primary">
           <Calendar className="h-3.5 w-3.5" />
           <span>EVENTOS</span>
         </div>
 
         {/* Titular y subtítulo */}
         <h1 className="font-display text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-          Eventos <span className="text-[#FF6B00]">disponibles</span>
+          Eventos <span className="text-primary">disponibles</span>
         </h1>
 
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
@@ -35,7 +35,7 @@ export function EventsCatalogHero({
           </div>
 
           <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/90 px-3.5 py-1.5 text-xs font-semibold text-foreground shadow-2xs">
-            <Folder className="h-3.5 w-3.5 text-[#FF6B00]" />
+            <Folder className="h-3.5 w-3.5 text-primary" />
             <span>{categoryLabel ? `Categoría: ${categoryLabel}` : "Explorando todas las categorías"}</span>
           </div>
         </div>
@@ -44,7 +44,7 @@ export function EventsCatalogHero({
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {/* Tarjeta 1 */}
           <div className="flex flex-col justify-between rounded-2xl border border-border/80 bg-card/80 p-5 shadow-2xs backdrop-blur-xs transition-all hover:border-primary/40 hover:shadow-xs">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10 text-[#FF6B00]">
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <CreditCard className="h-5 w-5" />
             </div>
             <div>
@@ -59,7 +59,7 @@ export function EventsCatalogHero({
 
           {/* Tarjeta 2 */}
           <div className="flex flex-col justify-between rounded-2xl border border-border/80 bg-card/80 p-5 shadow-2xs backdrop-blur-xs transition-all hover:border-primary/40 hover:shadow-xs">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10 text-[#FF6B00]">
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <QrCode className="h-5 w-5" />
             </div>
             <div>
@@ -74,7 +74,7 @@ export function EventsCatalogHero({
 
           {/* Tarjeta 3 */}
           <div className="flex flex-col justify-between rounded-2xl border border-border/80 bg-card/80 p-5 shadow-2xs backdrop-blur-xs transition-all hover:border-primary/40 hover:shadow-xs">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10 text-[#FF6B00]">
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Bus className="h-5 w-5" />
             </div>
             <div>

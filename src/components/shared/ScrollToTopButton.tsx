@@ -45,12 +45,12 @@ export function ScrollToTopButton({
       aria-label={label}
       title={label}
       className={cn(
-        "fixed bottom-6 right-6 z-40 flex h-11 w-11 items-center justify-center rounded-full border border-border/80 bg-card/90 text-foreground shadow-xl backdrop-blur-md transition-all duration-300 sm:bottom-8 sm:right-8 sm:h-12 sm:w-12",
-        "hover:-translate-y-1 hover:border-primary hover:bg-primary hover:text-primary-foreground hover:shadow-2xl hover:shadow-primary/25 active:translate-y-0",
+        "group fixed bottom-6 right-6 z-40 flex h-11 w-11 items-center justify-center rounded-full border border-primary/25 bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-all duration-300 sm:bottom-8 sm:right-8 sm:h-12 sm:w-12",
+        "hover:-translate-y-1 hover:bg-primary/95 hover:shadow-xl hover:shadow-primary/45 hover:scale-105 active:scale-95 active:translate-y-0 cursor-pointer",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
         isVisible
-          ? "translate-y-0 opacity-100 pointer-events-auto"
-          : "translate-y-4 opacity-0 pointer-events-none",
+          ? "translate-y-0 opacity-100 pointer-events-auto scale-100"
+          : "translate-y-4 opacity-0 pointer-events-none scale-90",
         className,
       )}
     >

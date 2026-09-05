@@ -10,6 +10,7 @@ import { LiveAttendeeCount } from "@/components/events/LiveAttendeeCount";
 import { EventPresenceIndicator } from "@/components/events/EventPresenceIndicator";
 import { PublicHeader } from "@/components/shared/PublicHeader";
 import { EventsFooter } from "@/components/events/EventsFooter";
+import { ScrollToTopButton } from "@/components/shared/ScrollToTopButton";
 import { EventDetailSchedules } from "@/components/events/EventDetailSchedules";
 import { EventDetailMetrics } from "@/components/events/EventDetailMetrics";
 import { EventDetailSidebar } from "@/components/events/EventDetailSidebar";
@@ -445,7 +446,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
             {/* Píldora de Categoría & Titular Grande */}
             <div className="space-y-3">
               <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-white/90 px-3.5 py-1 text-xs font-bold tracking-wide text-foreground/80 uppercase shadow-2xs dark:bg-card/90">
-                <span className="h-2 w-2 rounded-full bg-[#FF5500]" />
+                <span className="h-2 w-2 rounded-full bg-primary" />
                 <span>{categoryUpper}</span>
               </div>
 
@@ -493,7 +494,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
               {/* Cabecera */}
               <div className="flex items-center justify-between border-b border-border/60 pb-4">
                 <div className="flex items-center gap-2.5">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-500/15 text-[#FF5500]">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/15 text-primary">
                     <Clock className="h-4 w-4" />
                   </span>
                   <h3 className="font-display text-lg font-bold text-foreground sm:text-xl">
@@ -692,6 +693,9 @@ export default async function EventDetailPage({ params }: EventPageProps) {
 
       {/* 4. Footer institucional con las columnas idénticas a la imagen */}
       <EventsFooter />
+
+      {/* 5. Botón flotante para volver arriba reactivo a los acentos */}
+      <ScrollToTopButton />
     </div>
   );
 }

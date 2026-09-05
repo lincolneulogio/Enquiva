@@ -59,7 +59,7 @@ export function TopPromoAnnouncement({
   return (
     <aside
       aria-label="Anuncio destacado"
-      className="w-full bg-[#FF5500] px-4 py-2 text-white shadow-xs"
+      className="w-full bg-primary px-4 py-2 text-primary-foreground shadow-xs"
     >
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 text-xs sm:text-sm">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 font-medium">
@@ -94,7 +94,7 @@ export function TopPromoAnnouncement({
               }
             }
           }}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-3.5 py-1 text-xs font-bold text-[#FF5500] shadow-xs transition-all hover:bg-white/90 hover:shadow-md cursor-pointer"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-3.5 py-1 text-xs font-bold text-primary shadow-xs transition-all hover:bg-white/90 hover:shadow-md cursor-pointer"
         >
           <span>Reservar cupo</span>
           <ArrowRight className="h-3 w-3" />

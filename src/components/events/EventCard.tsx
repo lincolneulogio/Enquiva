@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  ArrowRight,
   ArrowUpRight,
   BadgeCheck,
   Calendar,
@@ -157,17 +158,17 @@ export function EventCard({
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-14 bg-gradient-to-t from-black/30 to-transparent" />
 
-        {/* Category badge top-left */}
-        <div className="absolute left-3 top-3 z-30 flex items-center gap-1.5">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/65 px-2.5 py-1 text-[11px] font-bold text-white shadow-xs backdrop-blur-md">
-            <CategoryIcon slug={event.category} className="h-3.5 w-3.5 shrink-0 text-[#FF6B00]" />
-            <span>{categoryMeta?.label || categoryLabel(event.category, locale)}</span>
+        {/* Category badge bottom-left (inferior izquierdo) */}
+        <div className="absolute bottom-3 left-3 z-30 flex items-center gap-1.5 max-w-[58%]">
+          <span className="inline-flex items-center gap-1.5 truncate rounded-full border border-white/20 bg-black/70 px-2.5 py-1 text-[11px] font-bold text-white shadow-xs backdrop-blur-md">
+            <CategoryIcon slug={event.category} className="h-3.5 w-3.5 shrink-0 text-primary" />
+            <span className="truncate">{categoryMeta?.label || categoryLabel(event.category, locale)}</span>
           </span>
         </div>
 
-        {/* Modality badge top-right */}
-        <div className="absolute right-3 top-3 z-30 flex items-center gap-1.5">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/65 px-2.5 py-1 text-[11px] font-medium text-white shadow-xs backdrop-blur-md">
+        {/* Modality badge bottom-right (inferior derecho) */}
+        <div className="absolute bottom-3 right-3 z-30 flex items-center gap-1.5 shrink-0">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/70 px-2.5 py-1 text-[11px] font-semibold text-white shadow-xs backdrop-blur-md">
             {isVirtual ? (
               <>
                 <span className="h-2 w-2 rounded-full bg-cyan-400" />
@@ -187,27 +188,6 @@ export function EventCard({
           </span>
         </div>
 
-        {/* Date badge bottom-left */}
-        <div className="absolute bottom-3 left-3 z-30 flex items-center gap-1.5">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/75 px-2.5 py-1 text-[11px] font-medium text-white shadow-xs backdrop-blur-md">
-            <Calendar className="h-3 w-3 text-white/90" />
-            <span>{formatEventDateShort(event.date, locale)}</span>
-          </span>
-        </div>
-
-        {/* Price badge bottom-right */}
-        <div className="absolute bottom-3 right-3 z-30">
-          {event.price != null && Number(event.price) > 0 ? (
-            <span className="inline-flex items-center rounded-full border border-white/20 bg-black/90 px-3 py-1 text-xs font-black text-[#FF6B00] shadow-xs backdrop-blur-md">
-              S/ {Number(event.price).toFixed(2)}
-            </span>
-          ) : (
-            <span className="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-950/90 px-3 py-1 text-xs font-bold text-emerald-300 shadow-xs backdrop-blur-md">
-              Gratis
-            </span>
-          )}
-        </div>
-
         {isEventExpired && (
           <div className="absolute inset-0 flex items-end p-3 z-30 bg-black/40 backdrop-blur-[1px]">
             <span className="inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/90 px-2.5 py-1 text-xs font-semibold text-destructive-foreground shadow-sm">
@@ -220,22 +200,41 @@ export function EventCard({
 
       {/* Content */}
       <div className="flex flex-1 flex-col p-4 sm:p-5">
-        {/* Registration status badge if applicable */}
-        {hasRegistration ? (
-          <div className="mb-2">
+        {/* Fila superior: Estado de inscripción a la izquierda + Precio destacado a la derecha */}
+        <div className="mb-2.5 flex items-center justify-between gap-2">
+          {hasRegistration ? (
             <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
               <BadgeCheck className="h-3 w-3" />
               <span>Te has registrado</span>
             </span>
-          </div>
-        ) : !isEventExpired && !isFull ? (
-          <div className="mb-2">
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          ) : !isEventExpired && !((event.attendeeCount ?? 0) >= (event.capacity ?? 100)) ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span>Inscripciones abiertas</span>
             </span>
+          ) : (event.attendeeCount ?? 0) >= (event.capacity ?? 100) ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-destructive/20 bg-destructive/10 px-2.5 py-0.5 text-[11px] font-bold text-destructive">
+              <span>Cupos agotados</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+              <span>Finalizado</span>
+            </span>
+          )}
+
+          {/* Precio destacado en tamaño más grande */}
+          <div className="shrink-0 text-right">
+            {event.price != null && Number(event.price) > 0 ? (
+              <span className="text-base sm:text-lg font-black tracking-tight text-primary">
+                S/ {Number(event.price).toFixed(2)}
+              </span>
+            ) : (
+              <span className="inline-flex items-center rounded-full border border-primary/25 bg-primary/10 px-2.5 py-0.5 text-xs font-black text-primary">
+                Gratis
+              </span>
+            )}
           </div>
-        ) : null}
+        </div>
 
         <h3
           className={cn(
@@ -255,7 +254,7 @@ export function EventCard({
           {/* Fila 1: Fecha y Hora */}
           <div className="flex items-center justify-between font-medium">
             <span className="flex items-center gap-1.5 text-foreground/90">
-              <Calendar className="h-3.5 w-3.5 text-[#FF5500]" />
+              <Calendar className="h-3.5 w-3.5 text-primary" />
               <span>{formatEventDateShort(event.date, locale)}</span>
             </span>
             <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
@@ -292,8 +291,8 @@ export function EventCard({
                 (event.attendeeCount ?? 0) >= (event.capacity ?? 100)
                   ? "text-destructive"
                   : (event.capacity && (event.capacity - (event.attendeeCount ?? 0)) <= 10)
-                    ? "text-[#FF5500]"
-                    : "text-emerald-600 dark:text-emerald-400"
+                    ? "text-primary font-bold"
+                    : "text-primary/90"
               )}>
                 {(event.attendeeCount ?? 0) >= (event.capacity ?? 100)
                   ? "Agotado"
@@ -303,19 +302,17 @@ export function EventCard({
               </span>
             </div>
 
-            {/* Barra de progreso */}
-            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-border/60">
+            {/* Barra de progreso de cupos */}
+            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-primary/15 dark:bg-primary/20">
               <div
                 className={cn(
                   "h-full rounded-full transition-all duration-500",
                   (event.attendeeCount ?? 0) >= (event.capacity ?? 100)
                     ? "bg-destructive"
-                    : (event.capacity && (event.capacity - (event.attendeeCount ?? 0)) <= 10)
-                      ? "bg-[#FF5500]"
-                      : "bg-emerald-500"
+                    : "bg-primary shadow-2xs shadow-primary/30"
                 )}
                 style={{
-                  width: `${Math.min(100, Math.round(((event.attendeeCount ?? 0) / (event.capacity ?? 100)) * 100))}%`,
+                  width: `${Math.min(100, Math.max(6, Math.round(((event.attendeeCount ?? 0) / (event.capacity ?? 100)) * 100)))}%`,
                 }}
               />
             </div>
@@ -325,14 +322,14 @@ export function EventCard({
         {/* Botón de acción al pie de la tarjeta */}
         <div className="mt-4 pt-1">
           {hasRegistration ? (
-            <div className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#FF5500] py-2.5 text-center text-xs font-bold text-white shadow-xs transition-all hover:bg-[#E04B00]">
+            <div className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-2.5 text-center text-xs font-bold text-primary-foreground shadow-xs shadow-primary/25 transition-all hover:bg-primary/90">
               <QrCode className="h-4 w-4" />
               <span>VER MI PASE CON QR</span>
             </div>
           ) : !isEventExpired ? (
-            <div className="flex w-full items-center justify-center gap-1.5 rounded-2xl border border-border/80 bg-[#FAF4ED] py-2.5 text-center text-xs font-bold text-[#A06132] shadow-2xs transition-all hover:bg-[#F3ECE2] dark:bg-card dark:text-foreground dark:hover:bg-muted">
+            <div className="flex w-full items-center justify-center gap-1.5 rounded-2xl border border-primary/30 bg-primary/10 py-2.5 text-center text-xs font-bold text-primary shadow-2xs transition-all duration-200 group-hover:border-primary group-hover:bg-primary group-hover:text-primary-foreground group-hover:shadow-md group-hover:shadow-primary/25">
               <span>VER DETALLES</span>
-              <span className="transition-transform group-hover:translate-x-0.5">➔</span>
+              <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-1" />
             </div>
           ) : (
             <div className="flex w-full items-center justify-center rounded-2xl border border-destructive/20 bg-destructive/10 py-2.5 text-center text-xs font-bold text-destructive">

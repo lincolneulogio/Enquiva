@@ -23,7 +23,10 @@ export function Footer({ copy }: FooterProps = {}) {
   };
 
   return (
-    <footer className="border-t border-border/80 bg-[#F8F5EE] px-4 pb-12 pt-16 text-foreground transition-colors dark:bg-[#0C0C0F] sm:px-6 lg:px-8">
+    <footer className="relative border-t border-border/70 bg-secondary/35 px-4 pb-12 pt-16 text-foreground transition-colors dark:bg-card/25 sm:px-6 lg:px-8">
+      {/* Línea luminosa superior con el tono de acento activo */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+
       <div className="mx-auto max-w-7xl">
         {/* Cuadrícula superior de 5 columnas */}
         <div className="grid grid-cols-1 gap-10 pb-12 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
@@ -34,7 +37,7 @@ export function Footer({ copy }: FooterProps = {}) {
               Plataforma integral de gestión, venta de tickets y descubrimiento de experiencias inolvidables en Latinoamérica.
             </p>
 
-            <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-border/80 bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm">
+            <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-card/90 px-3 py-1.5 text-xs font-semibold text-foreground shadow-2xs">
               <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
               <span>4.9 / 5.0 en satisfacción</span>
             </div>
@@ -152,7 +155,7 @@ export function Footer({ copy }: FooterProps = {}) {
             </p>
 
             {isSubscribed ? (
-              <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+              <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 p-3 text-xs font-semibold text-primary">
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
                 <span>¡Gracias por suscribirte!</span>
               </div>

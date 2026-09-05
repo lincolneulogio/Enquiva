@@ -21,7 +21,7 @@ const LAUNCH_ITEMS: LaunchItem[] = [
     id: "launch-1",
     slug: "enquiva-marketing-summit-2026",
     badge: "EARLY BIRD TICKET",
-    badgeColor: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
+    badgeColor: "bg-primary/15 text-primary border-primary/30",
     title: "Enquiva Marketing Summit 2026 - Conectando Creadores & Marcas",
     locationAndDate: "Auditorio Javier Pérez de Cuéllar • 24 de Octubre",
     priceNote: "Desde S/ 120",
@@ -138,7 +138,7 @@ export function UpcomingLaunchesSection() {
                 <div className="text-left sm:text-right">
                   <p className="text-sm font-bold text-foreground">{item.priceNote}</p>
                   {item.remainingSlots && (
-                    <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                    <p className="text-[11px] font-medium text-primary">
                       {item.remainingSlots}
                     </p>
                   )}
