@@ -9,14 +9,16 @@ import {
   CheckCircle2,
   XCircle,
   Search,
-  Filter,
   Loader2,
   Users,
   UserCheck,
   UserX,
-  AlertCircle,
   Sparkles,
+  ImagePlus,
+  X as XIcon,
 } from "lucide-react";
+import Image from "next/image";
+import { UploadButton } from "@/lib/uploadthing/components";
 import type { NewsletterSubscriber } from "@/lib/db/schema/marketing";
 import {
   toggleSubscriberStatusAction,
@@ -25,6 +27,7 @@ import {
   sendNewsletterBroadcastAction,
   type NewsletterStats,
 } from "@/actions/admin/newsletter";
+import { deleteOrphanUploadAction } from "@/actions/admin/upload-cleanup";
 import { toast } from "sonner";
 
 interface NewsletterManagerProps {
@@ -43,6 +46,7 @@ export function NewsletterManager({
   const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
   const [broadcastSubject, setBroadcastSubject] = useState("");
   const [broadcastMessage, setBroadcastMessage] = useState("");
+  const [broadcastImageUrl, setBroadcastImageUrl] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const [isPending, startTransition] = useTransition();
@@ -132,6 +136,19 @@ export function NewsletterManager({
     });
   };
 
+  const closeBroadcastModal = () => {
+    // Si hay una imagen subida que NO se llegó a enviar, la eliminamos de UploadThing
+    if (broadcastImageUrl) {
+      deleteOrphanUploadAction(broadcastImageUrl).catch(() => {
+        // Silencioso: no bloqueamos el cierre del modal por esto
+      });
+    }
+    setIsBroadcastModalOpen(false);
+    setBroadcastSubject("");
+    setBroadcastMessage("");
+    setBroadcastImageUrl(null);
+  };
+
   const handleSendBroadcast = (e: React.FormEvent) => {
     e.preventDefault();
     if (!broadcastSubject.trim() || !broadcastMessage.trim()) {
@@ -144,13 +161,12 @@ export function NewsletterManager({
         const res = await sendNewsletterBroadcastAction({
           subject: broadcastSubject,
           message: broadcastMessage,
+          imageUrl: broadcastImageUrl ?? undefined,
         });
 
         if (res.success) {
           toast.success(`Comunicado enviado a ${res.recipientCount} suscriptores activos.`);
-          setIsBroadcastModalOpen(false);
-          setBroadcastSubject("");
-          setBroadcastMessage("");
+          closeBroadcastModal();
         } else {
           toast.error(res.error ?? "No se pudo enviar el comunicado.");
         }
@@ -390,79 +406,142 @@ export function NewsletterManager({
       {/* Modal Redactar Comunicado a Suscriptores */}
       {isBroadcastModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-xl rounded-2xl border border-border bg-card p-6 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-border pb-4">
+          <div className="w-full max-w-xl rounded-2xl border border-border bg-card shadow-2xl flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-border px-6 py-4 shrink-0">
               <h3 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
                 <Send className="h-5 w-5 text-primary" />
                 Comunicado a Suscriptores del Boletín
               </h3>
               <button
                 type="button"
-                onClick={() => setIsBroadcastModalOpen(false)}
-                className="text-muted-foreground hover:text-foreground text-sm font-medium"
+                onClick={closeBroadcastModal}
+                className="rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               >
-                ✕
+                <XIcon className="h-4 w-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSendBroadcast} className="mt-5 space-y-4">
-              <div className="rounded-xl border border-primary/30 bg-primary/5 p-3.5 flex items-center gap-3">
-                <Sparkles className="h-5 w-5 text-primary shrink-0" />
-                <p className="text-xs text-foreground">
-                  Este mensaje se enviará directamente por correo a los <strong>{stats.active} suscriptores activos</strong> registrados a través de la portada.
-                </p>
-              </div>
+            {/* Scrollable body */}
+            <div className="overflow-y-auto px-6 py-5">
+              <form id="broadcast-form" onSubmit={handleSendBroadcast} className="space-y-4">
+                {/* Info banner */}
+                <div className="rounded-xl border border-primary/30 bg-primary/5 p-3.5 flex items-center gap-3">
+                  <Sparkles className="h-5 w-5 text-primary shrink-0" />
+                  <p className="text-xs text-foreground">
+                    Este mensaje se enviará directamente por correo a los <strong>{stats.active} suscriptores activos</strong> registrados a través de la portada.
+                  </p>
+                </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">
-                  Asunto del Correo *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={broadcastSubject}
-                  onChange={(e) => setBroadcastSubject(e.target.value)}
-                  placeholder="Ej. Nuevos eventos disponibles en Enquiva este mes"
-                  className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
+                {/* Subject */}
+                <div>
+                  <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">
+                    Asunto del Correo *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={broadcastSubject}
+                    onChange={(e) => setBroadcastSubject(e.target.value)}
+                    placeholder="Ej. Nuevos eventos disponibles en Enquiva este mes"
+                    className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">
-                  Contenido del Mensaje *
-                </label>
-                <textarea
-                  required
-                  rows={6}
-                  value={broadcastMessage}
-                  onChange={(e) => setBroadcastMessage(e.target.value)}
-                  placeholder="Escribe el mensaje o anuncio para los miembros de la comunidad..."
-                  className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
-                />
-              </div>
+                {/* Message */}
+                <div>
+                  <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">
+                    Contenido del Mensaje *
+                  </label>
+                  <textarea
+                    required
+                    rows={5}
+                    value={broadcastMessage}
+                    onChange={(e) => setBroadcastMessage(e.target.value)}
+                    placeholder="Escribe el mensaje o anuncio para los miembros de la comunidad..."
+                    className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed resize-none"
+                  />
+                </div>
 
-              <div className="flex items-center justify-end gap-3 border-t border-border pt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsBroadcastModalOpen(false)}
-                  className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
-                >
-                  {isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                {/* Image upload */}
+                <div>
+                  <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">
+                    Imagen del Comunicado <span className="normal-case text-muted-foreground font-normal">(opcional)</span>
+                  </label>
+
+                  {broadcastImageUrl ? (
+                    <div className="relative rounded-xl overflow-hidden border border-border bg-muted/20">
+                      <div className="relative w-full aspect-video">
+                        <Image
+                          src={broadcastImageUrl}
+                          alt="Vista previa de imagen"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setBroadcastImageUrl(null)}
+                        className="absolute top-2 right-2 rounded-full bg-black/60 p-1.5 text-white hover:bg-black/80 transition-colors"
+                        title="Quitar imagen"
+                      >
+                        <XIcon className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   ) : (
-                    <Send className="h-4 w-4" />
+                    <div className="flex items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/10 px-4 py-5 hover:border-primary/50 transition-colors">
+                      <div className="flex flex-col items-center gap-2 text-center">
+                        <ImagePlus className="h-7 w-7 text-muted-foreground/50" />
+                        <p className="text-xs text-muted-foreground">
+                          Sube una imagen para acompañar el mensaje <br />
+                          <span className="text-[11px]">JPG, PNG, WEBP &mdash; Máx. 4 MB</span>
+                        </p>
+                        <UploadButton
+                          endpoint="newsletterImage"
+                          appearance={{
+                            button:
+                              "ut-ready:bg-primary ut-ready:text-primary-foreground ut-uploading:bg-primary/70 text-xs font-medium px-3 py-1.5 rounded-lg h-auto after:bg-primary/80",
+                            allowedContent: "hidden",
+                          }}
+                          content={{ button: "Seleccionar imagen" }}
+                          onClientUploadComplete={(res: { url: string }[]) => {
+                            const url = res[0]?.url;
+                            if (url) setBroadcastImageUrl(url);
+                          }}
+                          onUploadError={(err: Error) => {
+                            toast.error(`Error al subir imagen: ${err.message}`);
+                          }}
+                        />
+                      </div>
+                    </div>
                   )}
-                  Enviar a {stats.active} suscriptores
-                </button>
-              </div>
-            </form>
+                </div>
+              </form>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 border-t border-border px-6 py-4 shrink-0">
+              <button
+                type="button"
+                onClick={closeBroadcastModal}
+                className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                form="broadcast-form"
+                disabled={isPending}
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                {isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                Enviar a {stats.active} suscriptores
+              </button>
+            </div>
           </div>
         </div>
       )}

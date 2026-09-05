@@ -146,34 +146,41 @@ function buildNewsletterHtml(
   subject: string,
   recipientFirstName: string,
   sanitizedMessage: string,
+  imageUrl?: string,
 ): string {
-  const greeting = `¡Hola, <strong>${recipientFirstName}</strong>! 👋`;
+  const greeting = `Hola, <strong>${recipientFirstName}</strong>:`;
+
+  const imageBlock = imageUrl
+    ? `
+    <!-- Featured image -->
+    <div style="margin-bottom: 24px; border-radius: 14px; overflow: hidden; line-height: 0;">
+      <img src="${imageUrl}" alt="Imagen del comunicado" width="100%" style="display: block; width: 100%; max-width: 600px; height: auto; border-radius: 14px;" />
+    </div>
+`
+    : "";
 
   const body = `
     <!-- Announcement badge -->
-    <div style="text-align: center; margin-bottom: 28px;">
+    <div style="text-align: center; margin-bottom: 20px;">
       <span style="display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border: 1px solid rgba(109,40,217,0.15); border-radius: 100px; padding: 6px 16px; font-size: 11px; font-weight: 700; color: #5b21b6; text-transform: uppercase; letter-spacing: 1px; font-family: 'Outfit', sans-serif;">
-        📢 &nbsp;Comunicado Oficial
+        Comunicado Oficial
       </span>
     </div>
 
     <!-- Decorative divider -->
-    <div style="height: 3px; background: linear-gradient(90deg, #4b1ab5 0%, #7c3aed 50%, #a78bfa 100%); border-radius: 4px; margin-bottom: 32px; opacity: 0.7;"></div>
-
+    <div style="height: 3px; background: linear-gradient(90deg, #4b1ab5 0%, #7c3aed 50%, #a78bfa 100%); border-radius: 4px; margin-bottom: 20px; opacity: 0.7;"></div>
+${imageBlock}
     <!-- Message body -->
-    <div style="font-size: 15px; color: #334155; line-height: 1.85; font-family: 'Outfit', sans-serif; white-space: pre-wrap; margin-bottom: 32px; word-break: break-word;">
-${sanitizedMessage}
-    </div>
+    <div style="font-size: 15px; color: #334155; line-height: 1.75; font-family: 'Outfit', sans-serif; white-space: pre-wrap; margin-bottom: 20px; word-break: break-word;">${sanitizedMessage}</div>
 
     <!-- Subtle bottom divider -->
-    <div style="height: 1px; background: linear-gradient(90deg, transparent, #e2e8f0, transparent); margin-bottom: 28px;"></div>
+    <div style="height: 1px; background: linear-gradient(90deg, transparent, #e2e8f0, transparent); margin-bottom: 20px;"></div>
 
     <!-- Community callout -->
-    <div style="background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%); border: 1px solid rgba(109,40,217,0.12); border-radius: 18px; padding: 18px 20px; margin-bottom: 8px;">
+    <div style="background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%); border: 1px solid rgba(109,40,217,0.12); border-radius: 18px; padding: 16px 18px;">
       <table border="0" cellpadding="0" cellspacing="0" width="100%">
         <tr>
-          <td style="vertical-align: top; width: 28px; font-size: 18px; padding-top: 1px;">✨</td>
-          <td style="padding-left: 10px; font-size: 13px; color: #5b21b6; line-height: 1.6; font-weight: 500; font-family: 'Outfit', sans-serif;">
+          <td style="font-size: 13px; color: #5b21b6; line-height: 1.6; font-weight: 500; font-family: 'Outfit', sans-serif;">
             Mantente al tanto de todos los próximos eventos, novedades y ofertas exclusivas de <strong>Enquiva</strong>. ¡Gracias por ser parte de nuestra comunidad!
           </td>
         </tr>
@@ -195,6 +202,7 @@ ${sanitizedMessage}
 export async function sendNewsletterBroadcastAction(input: {
   subject: string;
   message: string;
+  imageUrl?: string;
 }): Promise<{ success: boolean; recipientCount: number; error?: string }> {
   await requireSuperAdmin();
 
@@ -237,7 +245,7 @@ export async function sendNewsletterBroadcastAction(input: {
     // 4. Función de envío individual con nombre personalizado
     const sendOne = async (email: string): Promise<void> => {
       const firstName = extractFirstName(nameByEmail.get(email) ?? null, email);
-      const html = buildNewsletterHtml(input.subject, firstName, sanitizedMessage);
+      const html = buildNewsletterHtml(input.subject, firstName, sanitizedMessage, input.imageUrl);
 
       const mailOptions = {
         from: sender,

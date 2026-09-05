@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner";
 import Image from "next/image";
 import { UploadButton } from "@/lib/uploadthing/components";
+import { deleteOrphanUploadAction } from "@/actions/admin/upload-cleanup";
 
 interface TestimonialsManagerProps {
   initialTestimonials: Testimonial[];
@@ -41,6 +42,7 @@ export function TestimonialsManager({ initialTestimonials }: TestimonialsManager
   const [company, setCompany] = useState("");
   const [quote, setQuote] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [originalAvatarUrl, setOriginalAvatarUrl] = useState(""); // avatar guardado en BD (para detectar huérfanos al editar)
   const [rating, setRating] = useState(5);
   const [isFeatured, setIsFeatured] = useState(true);
   const [sortOrder, setSortOrder] = useState(0);
@@ -60,6 +62,7 @@ export function TestimonialsManager({ initialTestimonials }: TestimonialsManager
     setCompany("");
     setQuote("");
     setAvatarUrl("");
+    setOriginalAvatarUrl("");
     setRating(5);
     setIsFeatured(true);
     setSortOrder(items.length);
@@ -73,10 +76,32 @@ export function TestimonialsManager({ initialTestimonials }: TestimonialsManager
     setCompany(item.company);
     setQuote(item.quote);
     setAvatarUrl(item.avatarUrl ?? "");
+    setOriginalAvatarUrl(item.avatarUrl ?? ""); // guardar el original para comparar
     setRating(item.rating);
     setIsFeatured(item.isFeatured);
     setSortOrder(item.sortOrder);
     setIsModalOpen(true);
+  };
+
+  /** Cierra el modal y limpia imágenes huérfanas en UploadThing */
+  const closeModal = () => {
+    const urlToCheck = avatarUrl;
+    const isOrphan =
+      // En creación: cualquier imagen subida que no se guardó
+      (!editingId && !!urlToCheck) ||
+      // En edición: la imagen cambió pero no se guardó (es nueva, diferente a la original)
+      (!!editingId && !!urlToCheck && urlToCheck !== originalAvatarUrl);
+
+    if (isOrphan) {
+      deleteOrphanUploadAction(urlToCheck).catch(() => {
+        // Silencioso: no bloqueamos el cierre
+      });
+    }
+
+    setIsModalOpen(false);
+    setEditingId(null);
+    setAvatarUrl("");
+    setOriginalAvatarUrl("");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -396,7 +421,7 @@ export function TestimonialsManager({ initialTestimonials }: TestimonialsManager
               </h3>
               <button
                 type="button"
-                onClick={() => setIsModalOpen(false)}
+                onClick={closeModal}
                 className="text-muted-foreground hover:text-foreground text-sm font-medium"
               >
                 ✕
@@ -614,7 +639,7 @@ export function TestimonialsManager({ initialTestimonials }: TestimonialsManager
               <div className="flex items-center justify-end gap-3 border-t border-border pt-4">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={closeModal}
                   className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
                 >
                   Cancelar
