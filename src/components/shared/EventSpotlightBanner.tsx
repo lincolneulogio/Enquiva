@@ -49,7 +49,7 @@ export function EventSpotlightBanner({
   const shouldShow =
     event &&
     (isPreview ||
-      (pathname !== "/maintenance" && !dismissed));
+      (pathname !== "/maintenance" && !isCurrentEventPage && !dismissed));
 
   useEffect(() => {
     if (isPreview || !event) return;

@@ -46,6 +46,8 @@ export async function registerForEvent(input: unknown) {
     ticketCode: result.ticketCode,
     requiresPayment: result.requiresPayment,
     registrationId: result.registrationId,
+    holdExpiresAt: result.holdExpiresAt,
+    holdMinutes: result.holdMinutes,
   };
 }
 

@@ -596,6 +596,45 @@ export class RegistrationService {
       )
       .limit(1);
 
+    if (
+      record?.registration &&
+      record.registration.status === "registered" &&
+      record.registration.holdExpiresAt &&
+      record.registration.holdExpiresAt.getTime() <= Date.now()
+    ) {
+      const [pay] = await db
+        .select({ status: payments.status })
+        .from(payments)
+        .where(eq(payments.registrationId, record.registration.id))
+        .limit(1);
+
+      if (pay?.status === "approved") {
+        await db
+          .update(registrations)
+          .set({ holdExpiresAt: null, holdReminderSentAt: null })
+          .where(eq(registrations.id, record.registration.id));
+        record.registration.holdExpiresAt = null;
+      } else {
+        const now = new Date();
+        await db.transaction(async (tx) => {
+          await releaseRegistrationResources(tx, record.registration);
+          await tx
+            .update(registrations)
+            .set({
+              status: "cancelled",
+              holdExpiresAt: null,
+              holdReminderSentAt: null,
+              notes: record.registration.notes
+                ? `${record.registration.notes}\n[HOLD_EXPIRED:${now.toISOString()}]`
+                : `[HOLD_EXPIRED:${now.toISOString()}]`,
+            })
+            .where(eq(registrations.id, record.registration.id));
+        });
+        record.registration.status = "cancelled";
+        record.registration.holdExpiresAt = null;
+      }
+    }
+
     return record ?? null;
   }
 

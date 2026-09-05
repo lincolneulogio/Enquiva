@@ -28,6 +28,11 @@ export interface EventSpotlightData {
   capacity: number | null;
 }
 
+const confirmedAttendeeStatus = and(
+  inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES]),
+  isNull(registrations.holdExpiresAt),
+);
+
 const activeOccupyingStatus = and(
   inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES]),
   or(isNull(registrations.holdExpiresAt), gt(registrations.holdExpiresAt, sql`now()`)),
@@ -268,7 +273,7 @@ export class EventSpotlightService {
     const [row] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(registrations)
-      .where(and(eq(registrations.eventId, eventId), activeOccupyingStatus));
+      .where(and(eq(registrations.eventId, eventId), confirmedAttendeeStatus));
 
     return row?.count ?? 0;
   }

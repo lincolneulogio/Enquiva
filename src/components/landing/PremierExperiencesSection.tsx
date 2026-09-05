@@ -122,7 +122,7 @@ export function PremierExperiencesSection({
                 <Link
                   key={item.id}
                   href={item.link}
-                  className="group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10"
+                  className="group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-all  hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10"
                   data-aos="fade-up"
                   data-aos-delay={String(60 + idx * 50)}
                 >

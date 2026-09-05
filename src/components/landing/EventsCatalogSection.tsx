@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, MapPin, Calendar, Sparkles } from "lucide-react";
+import { ArrowRight, MapPin, Calendar, Sparkles, Users } from "lucide-react";
 import type { Event, Category } from "@/lib/db/schema";
 import type { Locale } from "@/lib/i18n/core";
 
@@ -21,6 +21,7 @@ export interface DisplayEvent {
   badge?: string;
   actionLabel: string;
   actionVariant: "primary" | "dark";
+  attendeeCount: number;
 }
 
 export interface EventsCatalogSectionProps {
@@ -32,18 +33,23 @@ export interface EventsCatalogSectionProps {
 export function EventsCatalogSection({
   dbEvents = [],
   categories = [],
+  locale = "es",
 }: EventsCatalogSectionProps) {
   const [activeTab, setActiveTab] = useState<string>("featured");
 
   // Transformar eventos 100% reales de la base de datos
   const transformedDbEvents: DisplayEvent[] = dbEvents.map((e, idx) => {
     const isFree = !e.price || Number(e.price) === 0;
-    const priceFormatted = isFree ? "Entrada libre" : `S/ ${Number(e.price).toFixed(2)}`;
+    const priceFormatted = isFree
+      ? "Entrada libre"
+      : `S/ ${Number(e.price).toFixed(2)}`;
     const eventDate = e.date ? new Date(e.date) : new Date();
-    const dateFormatted = eventDate.toLocaleDateString("es-PE", {
-      day: "2-digit",
-      month: "short",
-    }).toUpperCase();
+    const dateFormatted = eventDate
+      .toLocaleDateString("es-PE", {
+        day: "2-digit",
+        month: "short",
+      })
+      .toUpperCase();
     const timeFormatted = eventDate.toLocaleTimeString("es-PE", {
       hour: "2-digit",
       minute: "2-digit",
@@ -56,7 +62,8 @@ export function EventsCatalogSection({
       title: e.title,
       category: e.category?.toLowerCase() || "general",
       categoryLabel: e.category ? e.category.replace(/_/g, " ") : "Evento",
-      description: e.description || "Descubre todos los detalles e inscríbete hoy.",
+      description:
+        e.description || "Descubre todos los detalles e inscríbete hoy.",
       dateStr: `${dateFormatted} • ${timeFormatted}`,
       locationStr: e.location || (e.isVirtual ? "Online" : "Lima, PE"),
       priceStr: priceFormatted,
@@ -66,6 +73,7 @@ export function EventsCatalogSection({
       badge: e.isFeatured ? "Destacado" : e.isVirtual ? "Online" : "Presencial",
       actionLabel: "Ver evento",
       actionVariant: idx % 2 === 0 ? "primary" : "dark",
+      attendeeCount: e.attendeeCount ?? 0,
     };
   });
 
@@ -118,7 +126,7 @@ export function EventsCatalogSection({
             {displayList.map((event, idx) => (
               <div
                 key={event.id}
-                className="group flex flex-col overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10"
+                className="group flex flex-col overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm  hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10"
                 data-aos="fade-up"
                 data-aos-delay={String(60 + idx * 50)}
               >
@@ -151,9 +159,15 @@ export function EventsCatalogSection({
 
                 {/* Contenido de la tarjeta */}
                 <div className="flex flex-1 flex-col p-5">
-                  <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-primary">
-                    {event.categoryLabel}
-                  </p>
+                  <div className="flex justify-between items-center">
+                    <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-primary">
+                      {event.categoryLabel}
+                    </p>
+
+                    <span className="font-semibold text-primary text-xl mb-4">
+                      {event.priceStr}
+                    </span>
+                  </div>
 
                   <h3 className="mb-2 line-clamp-2 font-display text-base font-bold text-foreground transition-colors group-hover:text-primary sm:text-lg">
                     <Link href={`/events/${event.slug}`}>{event.title}</Link>
@@ -164,24 +178,45 @@ export function EventsCatalogSection({
                   </p>
 
                   {/* Pie de tarjeta con precio/ubicación y botón */}
-                  <div className="mt-auto flex items-center justify-between border-t border-border/70 pt-3">
-                    <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
-                      <MapPin className="h-3.5 w-3.5 text-primary" />
-                      <span>{event.locationStr}</span>
-                      <span className="text-muted-foreground">•</span>
-                      <span className="font-semibold text-primary">{event.priceStr}</span>
+                  <div className="mt-auto border-t border-border/70 pt-3">
+                    {/* Ubicación */}
+                    <div className="flex w-full items-start gap-1.5 text-xs font-medium text-foreground">
+                      <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+
+                      <span className="min-w-0 flex-1 whitespace-normal break-words leading-relaxed">
+                        {event.locationStr}
+                      </span>
                     </div>
 
-                    <Link
-                      href={`/events/${event.slug}`}
-                      className={`inline-flex items-center rounded-full px-4 py-1.5 text-xs font-bold transition-all duration-200 active:scale-95 ${
-                        event.actionVariant === "primary"
-                          ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25 hover:bg-primary/95 hover:shadow-md hover:shadow-primary/35 hover:brightness-105"
-                          : "bg-foreground text-background hover:bg-foreground/90"
-                      }`}
-                    >
-                      {event.actionLabel}
-                    </Link>
+                    {/* Inscritos + Botón */}
+                    <div className="mt-3 flex items-center justify-between">
+                      {/* Cantidad de inscritos */}
+                      <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                        <Users className="h-3.5 w-3.5" />
+                        <span>
+                          {event.attendeeCount}{" "}
+                          {locale === "en"
+                            ? event.attendeeCount === 1
+                              ? "attendee"
+                              : "attendees"
+                            : event.attendeeCount === 1
+                              ? "inscrito"
+                              : "inscritos"}
+                        </span>
+                      </div>
+
+                      {/* Botón */}
+                      <Link
+                        href={`/events/${event.slug}`}
+                        className={`inline-flex items-center rounded-full px-4 py-1.5 text-xs font-bold transition-all duration-200 active:scale-95 ${
+                          event.actionVariant === "primary"
+                            ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25 hover:bg-primary/95 hover:shadow-md hover:shadow-primary/35 hover:brightness-105"
+                            : "bg-foreground text-background hover:bg-foreground/90"
+                        }`}
+                      >
+                        {event.actionLabel}
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -196,7 +231,8 @@ export function EventsCatalogSection({
               No hay eventos en esta categoría en este momento
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Explora otras categorías o regresa a ver los destacados de la semana.
+              Explora otras categorías o regresa a ver los destacados de la
+              semana.
             </p>
             <button
               type="button"
@@ -214,9 +250,9 @@ export function EventsCatalogSection({
             href="/events"
             className="inline-flex items-center gap-2 text-sm font-semibold text-foreground transition-colors hover:text-primary"
           >
-            <span>Explora todos los eventos y encuentra tu próxima experiencia.</span>
-            <span className="inline-flex items-center text-primary underline underline-offset-4">
-              Ver catálogo completo <ArrowRight className="ml-1 h-3.5 w-3.5" />
+            <span className="flex items-center">
+              Explora todos los eventos y encuentra tu próxima experiencia.
+              <ArrowRight className="ml-4 h-4 w-4" />
             </span>
           </Link>
         </div>

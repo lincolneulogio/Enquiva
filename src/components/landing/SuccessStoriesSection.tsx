@@ -36,7 +36,7 @@ export function SuccessStoriesSection({ testimonials = [] }: SuccessStoriesSecti
           {testimonials.map((item, idx) => (
             <div
               key={item.id}
-              className="flex flex-col justify-between rounded-3xl border border-border/80 bg-card p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 sm:p-8"
+              className="flex flex-col justify-between rounded-3xl border border-border/80 bg-card p-6 shadow-sm transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 sm:p-8"
               data-aos="fade-up"
               data-aos-delay={String(80 + idx * 60)}
             >

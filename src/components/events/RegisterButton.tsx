@@ -19,10 +19,12 @@ import {
   MapPin, 
   Info,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  CreditCard
 } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 import { translateRegistrationError } from "@/lib/errors/registration";
 import { confirmDeleteAction } from "@/lib/ui/confirm";
 import { usePersistedFormFields } from "@/hooks/useFormPersistence";
@@ -67,6 +69,7 @@ interface RegisterButtonProps {
   }>;
   eventPrice?: number;
   paymentStatus?: "pending" | "approved" | "rejected" | null;
+  holdExpiresAt?: string | Date | null;
   eventSlug?: string;
   schedules?: Array<{
     id: string;
@@ -90,6 +93,7 @@ export function RegisterButton({
   transportRoutes = [],
   eventPrice = 0,
   paymentStatus = null,
+  holdExpiresAt = null,
   eventSlug,
   schedules = null,
   buttonText,
@@ -101,11 +105,76 @@ export function RegisterButton({
   const role = session?.user?.role;
   const [isPending, startTransition] = useTransition();
   const [optimisticStatus, setOptimisticStatus] = useState(currentStatus);
+  const [optimisticPaymentStatus, setOptimisticPaymentStatus] = useState(paymentStatus);
+  const [currentHoldExpiresAt, setCurrentHoldExpiresAt] = useState<string | null>(
+    holdExpiresAt
+      ? holdExpiresAt instanceof Date
+        ? holdExpiresAt.toISOString()
+        : String(holdExpiresAt)
+      : null,
+  );
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    setOptimisticStatus(currentStatus);
+  }, [currentStatus]);
+
+  useEffect(() => {
+    setOptimisticPaymentStatus(paymentStatus);
+  }, [paymentStatus]);
+
+  useEffect(() => {
+    setCurrentHoldExpiresAt(
+      holdExpiresAt
+        ? holdExpiresAt instanceof Date
+          ? holdExpiresAt.toISOString()
+          : String(holdExpiresAt)
+        : null,
+    );
+  }, [holdExpiresAt]);
+
+  const [secondsRemaining, setSecondsRemaining] = useState<number | null>(() => {
+    if (!currentHoldExpiresAt) return null;
+    const diff = Math.floor((new Date(currentHoldExpiresAt).getTime() - Date.now()) / 1000);
+    return diff > 0 ? diff : 0;
+  });
+
+  useEffect(() => {
+    if (
+      !currentHoldExpiresAt ||
+      optimisticPaymentStatus === "approved" ||
+      (optimisticStatus !== "registered" && optimisticStatus !== null)
+    ) {
+      setSecondsRemaining(null);
+      return;
+    }
+
+    const calcRemaining = () => {
+      const diff = Math.floor((new Date(currentHoldExpiresAt).getTime() - Date.now()) / 1000);
+      return diff > 0 ? diff : 0;
+    };
+
+    const initial = calcRemaining();
+    setSecondsRemaining(initial);
+
+    if (initial <= 0) return;
+
+    const interval = setInterval(() => {
+      const remaining = calcRemaining();
+      setSecondsRemaining(remaining);
+      if (remaining <= 0) {
+        clearInterval(interval);
+        toast.error(t("register.holdExpiredToast") || "Tu reserva temporal ha expirado y el cupo fue liberado.");
+        router.refresh();
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [currentHoldExpiresAt, optimisticPaymentStatus, optimisticStatus, router, t]);
   
   const hasMultipleSchedules = Array.isArray(schedules) && schedules.length > 1;
   const isTransportAvailable = Boolean(hasTransport && transportRoutes && transportRoutes.length > 0);
@@ -326,6 +395,12 @@ export function RegisterButton({
         const result = await registerForEvent(payload);
         if (result.success) {
           setOptimisticStatus(result.status);
+          if (result.holdExpiresAt) {
+            setCurrentHoldExpiresAt(result.holdExpiresAt);
+          }
+          if (result.requiresPayment) {
+            setOptimisticPaymentStatus("pending");
+          }
           toastRegistrationSuccess(result, { withTransport: effectiveWantsTransport });
           setIsModalOpen(false);
           clearRegistrationDraft();
@@ -415,6 +490,7 @@ export function RegisterButton({
     // 3. Process cancellation in transition with the server action
     startTransition(async () => {
       setOptimisticStatus("cancelled");
+      setCurrentHoldExpiresAt(null);
       try {
         const result = await cancelRegistration(registrationId!, password);
         if (result.success) {
@@ -448,28 +524,189 @@ export function RegisterButton({
     });
   };
 
+  const handleRegisterAgain = () => {
+    if (shouldOpenModal) {
+      setIsModalOpen(true);
+      return;
+    }
+    startTransition(async () => {
+      try {
+        const result = await registerForEvent({ 
+          eventId,
+          scheduleId: effectiveScheduleId || null,
+        });
+        if (result.success) {
+          setOptimisticStatus(result.status);
+          if (result.holdExpiresAt) {
+            setCurrentHoldExpiresAt(result.holdExpiresAt);
+          }
+          if (result.requiresPayment) {
+            setOptimisticPaymentStatus("pending");
+          }
+          toastRegistrationSuccess(result);
+          if (result.requiresPayment && result.registrationId) {
+            router.push(paymentCheckoutPath(result.registrationId));
+          } else if (result.status === "registered") {
+            router.push(
+              getAttendeeDestination(role, "tickets", { eventSlug }),
+            );
+          }
+        }
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? mapRegistrationError(error.message)
+            : t("register.registrationFailed")
+        );
+      }
+    });
+  };
+
   if (optimisticStatus === "registered" || optimisticStatus === "checked_in") {
-    return (
-      <div className="space-y-2">
-        <div className="flex items-center justify-center gap-2 rounded-xl bg-green-50 py-3 text-sm font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400">
-          <CheckCircle className="h-4 w-4" />
-          {optimisticStatus === "checked_in" ? t("register.checkedIn") : t("register.youreRegistered")}
+    if (optimisticStatus === "checked_in") {
+      return (
+        <div className="space-y-2">
+          <div className="flex items-center justify-center gap-2 rounded-xl bg-green-50 py-3 text-sm font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400">
+            <CheckCircle className="h-4 w-4" />
+            {t("register.checkedIn")}
+          </div>
         </div>
-        {optimisticStatus === "registered" && registrationId && (
-          paymentStatus === "approved" ? (
+      );
+    }
+
+    // 1. Si el pago ya fue aprobado
+    if (optimisticPaymentStatus === "approved") {
+      return (
+        <div className="space-y-2">
+          <div className="flex items-center justify-center gap-2 rounded-xl bg-green-50 py-3 text-sm font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400">
+            <CheckCircle className="h-4 w-4" />
+            {t("register.youreRegistered")}
+          </div>
+          {registrationId && (
             <div className="rounded-xl bg-muted/60 p-3 border border-border/80 text-center text-xs text-muted-foreground leading-relaxed">
               <span className="font-semibold text-foreground">{t("register.paidConfirmedTitle")}</span>
               <p className="mt-0.5 text-[11px]">{t("register.paidConfirmedHelp")}</p>
             </div>
+          )}
+        </div>
+      );
+    }
+
+    // 2. Si requiere pago o tiene reserva temporal (hold) y el hold ya expiró (secondsRemaining === 0)
+    if (currentHoldExpiresAt && secondsRemaining === 0) {
+      return (
+        <div className="space-y-3">
+          <div className="rounded-2xl border border-destructive/25 bg-destructive/5 dark:bg-destructive/10 p-4 text-center space-y-1.5 shadow-xs">
+            <div className="flex items-center justify-center gap-2 text-destructive font-bold text-sm">
+              <AlertTriangle className="h-4 w-4" />
+              <span>{t("register.holdExpiredTitle") || "Tu reserva temporal expiró"}</span>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {t("register.holdExpiredText") || "El tiempo límite para pagar finalizó y tu cupo fue liberado. Puedes volver a inscribirte si aún hay cupos disponibles."}
+            </p>
+          </div>
+
+          {isRegistrationClosed ? (
+            <div className="rounded-xl bg-muted/60 p-3 border border-border text-center text-xs text-muted-foreground">
+              {closedReason || t("register.errors.eventExpired")}
+            </div>
           ) : (
             <button
+              type="button"
+              onClick={handleRegisterAgain}
+              disabled={isPending}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground py-3.5 px-6 text-sm font-bold shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/35 active:scale-98 transition-all cursor-pointer disabled:opacity-50"
+            >
+              {isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  <span>{waitlistAvailable ? t("register.joinWaitlist") : (t("register.reserveAgain") || t("register.registerAgain"))}</span>
+                </>
+              )}
+            </button>
+          )}
+          {renderRegistrationModal()}
+        </div>
+      );
+    }
+
+    // 3. Si requiere pago o tiene reserva temporal (hold) y el hold SIGUE ACTIVO (secondsRemaining > 0)
+    if (currentHoldExpiresAt && secondsRemaining !== null && secondsRemaining > 0) {
+      const minutes = Math.floor(secondsRemaining / 60);
+      const seconds = secondsRemaining % 60;
+      const formattedTime = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+      const isUrgent = secondsRemaining < 300;
+
+      return (
+        <div className="space-y-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 dark:bg-amber-950/20 p-4 shadow-xs">
+          <div className="flex items-center justify-between gap-2 border-b border-amber-500/20 pb-2.5">
+            <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-bold text-xs uppercase tracking-wider">
+              <Clock className="h-4 w-4 animate-pulse text-amber-600 dark:text-amber-400 shrink-0" />
+              <span className="truncate">{t("register.holdPendingTitle") || "Cupo reservado · Pago pendiente"}</span>
+            </div>
+            <div
+              className={cn(
+                "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold tracking-tight shadow-xs shrink-0",
+                isUrgent
+                  ? "bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 animate-pulse"
+                  : "bg-amber-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/30",
+              )}
+            >
+              <span className="text-[11px] opacity-80">⏱️</span>
+              <span>{formattedTime}</span>
+            </div>
+          </div>
+
+          <p className="text-xs text-amber-900/90 dark:text-amber-200/90 leading-relaxed">
+            {t("register.holdNotice") || "Completa tu pago antes de que expire el tiempo o tu cupo se liberará automáticamente."}
+          </p>
+
+          {registrationId && (
+            <Link
+              href={paymentCheckoutPath(registrationId)}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground py-3 px-4 text-sm font-bold shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 active:scale-98 transition-all cursor-pointer"
+            >
+              <CreditCard className="h-4 w-4" />
+              <span>{t("register.completePayment") || "Completar pago ahora"}</span>
+              <ArrowRight className="h-4 w-4 ml-auto opacity-80" />
+            </Link>
+          )}
+
+          {registrationId && (
+            <button
+              type="button"
               onClick={handleCancelClick}
               disabled={isPending}
-              className="block w-full rounded-xl border border-border py-2 text-center text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition-colors disabled:opacity-50"
+              className="block w-full text-center text-xs text-muted-foreground hover:text-destructive transition-colors py-1 disabled:opacity-50"
             >
-              {isPending ? <Loader2 className="mx-auto h-3 w-3 animate-spin" /> : t("register.cancelRegistration")}
+              {isPending ? (
+                <Loader2 className="mx-auto h-3 w-3 animate-spin" />
+              ) : (
+                t("register.cancelHold") || t("register.cancelRegistration")
+              )}
             </button>
-          )
+          )}
+        </div>
+      );
+    }
+
+    // 4. Si es evento gratuito (sin hold ni pago pendiente)
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-center gap-2 rounded-xl bg-green-50 py-3 text-sm font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400">
+          <CheckCircle className="h-4 w-4" />
+          {t("register.youreRegistered")}
+        </div>
+        {registrationId && (
+          <button
+            onClick={handleCancelClick}
+            disabled={isPending}
+            className="block w-full rounded-xl border border-border py-2 text-center text-xs text-muted-foreground hover:border-destructive hover:text-destructive transition-colors disabled:opacity-50"
+          >
+            {isPending ? <Loader2 className="mx-auto h-3 w-3 animate-spin" /> : t("register.cancelRegistration")}
+          </button>
         )}
       </div>
     );
@@ -483,42 +720,13 @@ export function RegisterButton({
         </div>
         <button
           type="button"
-          onClick={() => {
-            if (shouldOpenModal) {
-              setIsModalOpen(true);
-              return;
-            }
-            startTransition(async () => {
-              try {
-                const result = await registerForEvent({ 
-                  eventId,
-                  scheduleId: effectiveScheduleId || null,
-                });
-                if (result.success) {
-                  setOptimisticStatus(result.status);
-                  toastRegistrationSuccess(result);
-                  if (result.requiresPayment && result.registrationId) {
-                    router.push(paymentCheckoutPath(result.registrationId));
-                  } else if (result.status === "registered") {
-                    router.push(
-                      getAttendeeDestination(role, "tickets", { eventSlug }),
-                    );
-                  }
-                }
-              } catch (error) {
-                toast.error(
-                  error instanceof Error
-                    ? mapRegistrationError(error.message)
-                    : t("register.registrationFailed")
-                );
-              }
-            });
-          }}
+          onClick={handleRegisterAgain}
           disabled={isPending}
           className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("register.registerAgain")}
         </button>
+        {renderRegistrationModal()}
       </div>
     );
   }
@@ -647,12 +855,21 @@ export function RegisterButton({
       </button>
 
       {/* Unified Registration & Transport Selection Modal */}
-      {isModalOpen && mounted && typeof document !== "undefined" && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-300 animate-fadeIn">
-          <div 
-            style={{ maxHeight: visualHeight }}
-            className="relative w-full max-w-lg bg-card border border-border rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-scaleUp transition-[max-height] duration-200"
-          >
+      {renderRegistrationModal()}
+    </div>
+  );
+
+  function renderRegistrationModal() {
+    if (!isModalOpen || !mounted || typeof document === "undefined") {
+      return null;
+    }
+
+    return createPortal(
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-300 animate-fadeIn">
+        <div 
+          style={{ maxHeight: visualHeight }}
+          className="relative w-full max-w-lg bg-card border border-border rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-scaleUp transition-[max-height] duration-200"
+        >
             
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b border-border bg-muted/40">
@@ -1207,7 +1424,6 @@ export function RegisterButton({
           </div>
         </div>,
         document.body
-      )}
-    </div>
-  );
+      );
+  }
 }

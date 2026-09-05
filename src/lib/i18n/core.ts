@@ -1127,6 +1127,16 @@ const translations: Record<Locale, TranslationDictionary> = {
             addedToWaitlist: "¡Añadido a la lista de espera!",
             registrationSuccess: "¡Registro completado! 🎉",
             registrationHoldSuccess: "Cupo reservado. Tienes {minutes} min para pagar o se libera tu lugar.",
+            holdPendingTitle: "Cupo reservado · Pago pendiente",
+            holdTimeRemaining: "Tiempo restante para pagar",
+            holdTimeRemainingShort: "{minutes}:{seconds} restantes",
+            holdNotice: "Completa tu pago antes de que expire el tiempo o tu cupo se liberará automáticamente.",
+            completePayment: "Completar pago ahora",
+            cancelHold: "Cancelar reserva (liberar cupo)",
+            holdExpiredTitle: "Tu reserva temporal expiró",
+            holdExpiredText: "El tiempo límite para pagar finalizó y tu cupo fue liberado. Puedes volver a inscribirte si aún hay cupos disponibles.",
+            holdExpiredToast: "Tu reserva temporal ha expirado y el cupo fue liberado.",
+            reserveAgain: "Volver a reservar cupo",
             registrationFailed: "No se pudo completar el registro",
             errors: {
                 unavailable: "Este evento no está disponible para nuevas inscripciones.",
@@ -3222,6 +3232,16 @@ const translations: Record<Locale, TranslationDictionary> = {
             addedToWaitlist: "Added to waitlist!",
             registrationSuccess: "Successfully registered! 🎉",
             registrationHoldSuccess: "Seat reserved. You have {minutes} min to pay or your spot is released.",
+            holdPendingTitle: "Spot reserved · Payment pending",
+            holdTimeRemaining: "Time remaining to pay",
+            holdTimeRemainingShort: "{minutes}:{seconds} remaining",
+            holdNotice: "Complete your payment before time expires or your spot will be automatically released.",
+            completePayment: "Complete payment now",
+            cancelHold: "Cancel reservation (release spot)",
+            holdExpiredTitle: "Your temporary reservation expired",
+            holdExpiredText: "The payment time window ended and your spot was released. You can register again if spots are still available.",
+            holdExpiredToast: "Your temporary reservation has expired and the spot was released.",
+            reserveAgain: "Reserve spot again",
             registrationFailed: "Registration failed",
             errors: {
                 unavailable: "This event is not available for new registrations.",
@@ -4263,7 +4283,8 @@ export function getPermissionGroupLabel(groupId: string, locale: Locale): string
 }
 
 export function getCategoryLabel(category: string, locale: Locale): string {
-    let clean = category.toLowerCase().trim();
+    if (!category) return "";
+    let clean = category.toLowerCase().trim().replace(/[_-]+/g, " ");
     
     // Mapeo de términos alternativos en español/inglés a la clave canónica
     const keyMap: Record<string, string> = {

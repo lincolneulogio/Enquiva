@@ -353,11 +353,11 @@ export default async function EventDetailPage({ params }: EventPageProps) {
   const locationAddress =
     restParts.length > 0 ? restParts.join(",").trim() : "Huánuco, Perú";
 
-  // Categoría en mayúsculas con punto naranja
+  // Categoría formateada en mayúsculas con punto naranja
+  const rawCategory =
+    categoryMeta?.label || categoryLabel(event.category, locale);
   const categoryUpper = (
-    categoryMeta?.label ||
-    event.category ||
-    "Negocios y Emprendimiento"
+    rawCategory ? rawCategory.replace(/_/g, " ") : "Negocios y Emprendimiento"
   ).toUpperCase();
 
   // Fecha completa formateada en español
@@ -659,6 +659,13 @@ export default async function EventDetailPage({ params }: EventPageProps) {
               registrationId={registration?.id}
               transportRoutes={serializedRoutes}
               paymentStatus={paymentForRegistration?.payment?.status}
+              holdExpiresAt={
+                registration?.holdExpiresAt
+                  ? registration.holdExpiresAt instanceof Date
+                    ? registration.holdExpiresAt.toISOString()
+                    : String(registration.holdExpiresAt)
+                  : null
+              }
               schedules={
                 event.schedules
                   ? event.schedules.map((s) => ({

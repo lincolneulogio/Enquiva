@@ -34,7 +34,8 @@ import {
   Download,
   MessageSquare,
   Share2,
-  Clock
+  Clock,
+  XCircle
 } from "lucide-react";
 import { DownloadTicketButton } from "./DownloadTicketButton";
 import { CalendarSyncButtons } from "./CalendarSyncButtons";
@@ -467,7 +468,7 @@ export function TicketCard({
               </h4>
 
               <div className="grid gap-4 rounded-2xl border border-dashed border-border bg-background/50 p-4">
-                {qrDataUrl ? (
+                {qrDataUrl && primaryStatus !== "cancelled" ? (
                   <div className="mx-auto w-36 relative group transition duration-300">
                     <Image
                       src={qrDataUrl}
@@ -477,6 +478,36 @@ export function TicketCard({
                       className="mx-auto rounded-xl shadow-sm bg-white p-1"
                       unoptimized
                     />
+                  </div>
+                ) : primaryStatus === "cancelled" ? (
+                  <div className="flex flex-col h-36 items-center justify-center rounded-xl bg-destructive/10 border border-destructive/20 text-xs text-destructive font-semibold p-3 text-center space-y-1">
+                    <XCircle className="h-6 w-6 text-destructive mb-0.5" />
+                    <span className="uppercase tracking-wider">
+                      {locale === "en" ? "Ticket Cancelled" : "Entrada Cancelada"}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-normal leading-tight">
+                      {locale === "en" ? "Registration was cancelled" : "La inscripción fue cancelada"}
+                    </span>
+                  </div>
+                ) : paymentStatus === "rejected" ? (
+                  <div className="flex flex-col h-36 items-center justify-center rounded-xl bg-destructive/10 border border-destructive/20 text-xs text-destructive font-semibold p-3 text-center space-y-1">
+                    <AlertTriangle className="h-6 w-6 text-destructive mb-0.5" />
+                    <span className="uppercase tracking-wider">
+                      {locale === "en" ? "Payment Rejected" : "Pago Rechazado"}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-normal leading-tight">
+                      {locale === "en" ? "QR will be issued upon payment approval" : "No se emite QR hasta aprobar el pago"}
+                    </span>
+                  </div>
+                ) : paymentStatus === "pending" ? (
+                  <div className="flex flex-col h-36 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300 font-semibold p-3 text-center space-y-1">
+                    <Clock className="h-6 w-6 text-amber-600 dark:text-amber-400 mb-0.5" />
+                    <span className="uppercase tracking-wider">
+                      {locale === "en" ? "QR Pending Payment" : "QR Pendiente de Pago"}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-normal leading-tight">
+                      {locale === "en" ? "Will be issued upon payment approval" : "Se emitirá al confirmarse el pago"}
+                    </span>
                   </div>
                 ) : (
                   <div className="flex h-36 items-center justify-center rounded-xl bg-secondary text-xs uppercase text-muted-foreground font-semibold">
@@ -505,7 +536,15 @@ export function TicketCard({
                   <p>
                     <strong className="text-foreground">{t("ticket.ticketCode")}:</strong>{" "}
                     <span className="font-mono font-semibold text-foreground">
-                      {ticket?.code ?? t("ticket.generating")}
+                      {ticket?.code ?? (
+                        primaryStatus === "cancelled"
+                          ? (locale === "en" ? "Cancelled (Not issued)" : "Cancelado (No emitido)")
+                          : paymentStatus === "rejected"
+                            ? (locale === "en" ? "Payment rejected (Not issued)" : "Pago rechazado (No emitido)")
+                            : paymentStatus === "pending"
+                              ? (locale === "en" ? "Pending payment" : "Pendiente de pago")
+                              : t("ticket.generating")
+                      )}
                     </span>
                   </p>
                 </div>
@@ -1046,6 +1085,14 @@ export function TicketCard({
                               className="rounded-xl border border-border bg-background hover:bg-secondary text-foreground px-3.5 py-2 text-xs font-bold flex items-center justify-center gap-1.5 shadow-3xs transition duration-200 cursor-pointer select-none"
                             />
                           </>
+                        ) : guest.registration.status === "cancelled" || primaryStatus === "cancelled" ? (
+                          <span className="text-xs text-destructive font-medium">
+                            {locale === "en" ? "Cancelled" : "Cancelado"}
+                          </span>
+                        ) : paymentStatus === "rejected" ? (
+                          <span className="text-xs text-destructive font-medium">
+                            {locale === "en" ? "Payment rejected" : "Pago rechazado"}
+                          </span>
                         ) : (
                           <span className="text-xs text-muted-foreground/60 italic">
                             {locale === "en" ? "QR pending payment" : "QR pendiente de pago"}

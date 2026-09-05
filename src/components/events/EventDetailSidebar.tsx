@@ -18,6 +18,7 @@ interface EventDetailSidebarProps {
   registrationId?: string;
   transportRoutes?: any[];
   paymentStatus?: "pending" | "approved" | "rejected" | null;
+  holdExpiresAt?: string | Date | null;
   schedules?: any[] | null;
   organizerName?: string;
   organizerDescription?: string;
@@ -39,6 +40,7 @@ export function EventDetailSidebar({
   registrationId,
   transportRoutes = [],
   paymentStatus,
+  holdExpiresAt,
   schedules,
   organizerName = "Operaciones Enquiva",
   organizerDescription = "Nos encargamos de la logística, pagos y soporte.",
@@ -60,6 +62,7 @@ export function EventDetailSidebar({
         registrationId={registrationId}
         transportRoutes={transportRoutes}
         paymentStatus={paymentStatus}
+        holdExpiresAt={holdExpiresAt}
         schedules={schedules}
         buttonText="Registrarme ahora"
         buttonClassName="w-full flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground py-3.5 px-6 text-base font-bold shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/35 active:scale-98 transition-all cursor-pointer"

@@ -28,7 +28,16 @@ import { cascadeEventCancellation } from "@/lib/events/lifecycle";
 import { runBackground } from "@/lib/background";
 import { NotificationService } from "@/lib/notifications/notification.service";
 
-/** registered/checked_in con hold vigente (o sin hold). */
+/**
+ * Asistentes confirmados: registered/checked_in que ya pagaron (ticket QR emitido)
+ * o eventos gratuitos sin hold pendiente. Excluye reservas temporales pendientes de pago.
+ */
+const confirmedAttendeeStatus = and(
+  inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES]),
+  isNull(registrations.holdExpiresAt),
+);
+
+/** registered/checked_in con hold vigente (o sin hold) para aforo y reserva de cupos. */
 const activeOccupyingStatus = and(
   inArray(registrations.status, [...OCCUPYING_REGISTRATION_STATUSES]),
   or(isNull(registrations.holdExpiresAt), gt(registrations.holdExpiresAt, sql`now()`)),
@@ -462,7 +471,7 @@ export class EventService {
           registrations,
           and(
             eq(registrations.eventId, events.id),
-            activeOccupyingStatus,
+            confirmedAttendeeStatus,
           ),
         )
         .where(and(...conditions))
@@ -481,7 +490,7 @@ export class EventService {
         .where(
           and(
             ...conditions,
-            activeOccupyingStatus
+            confirmedAttendeeStatus
           )
         ),
     ]);
@@ -523,7 +532,7 @@ export class EventService {
           registrations,
           and(
             eq(registrations.eventId, events.id),
-            activeOccupyingStatus,
+            confirmedAttendeeStatus,
           ),
         )
         .where(and(...baseConditions, eq(events.isFeatured, true)))
@@ -544,7 +553,7 @@ export class EventService {
           registrations,
           and(
             eq(registrations.eventId, events.id),
-            activeOccupyingStatus,
+            confirmedAttendeeStatus,
           ),
         )
         .where(and(...baseConditions))
@@ -584,7 +593,7 @@ export class EventService {
       .where(
         and(
           eq(registrations.eventId, event.id),
-          activeOccupyingStatus
+          confirmedAttendeeStatus
         )
       );
 
@@ -610,7 +619,7 @@ export class EventService {
         registrations,
         and(
           eq(registrations.eventId, events.id),
-          activeOccupyingStatus,
+          confirmedAttendeeStatus,
         ),
       )
       .where(eq(events.organizerId, organizerId))
@@ -639,7 +648,7 @@ export class EventService {
         })
         .from(registrations)
         .innerJoin(events, eq(registrations.eventId, events.id))
-        .where(and(eq(events.organizerId, organizerId), activeOccupyingStatus)),
+        .where(and(eq(events.organizerId, organizerId), confirmedAttendeeStatus)),
       this.getOrganizerEvents(organizerId, { limit: recentLimit }),
     ]);
 
@@ -706,7 +715,7 @@ export class EventService {
         .where(
           and(
             inArray(registrations.eventId, eventIds),
-            activeOccupyingStatus
+            confirmedAttendeeStatus
           )
         )
         .groupBy(registrations.eventId);
