@@ -23,6 +23,8 @@ import {
   QrCode,
   Wallet,
   Megaphone,
+  Mail,
+  MessageSquareQuote,
   Crown,
   FileSpreadsheet,
   LineChart,
@@ -314,18 +316,49 @@ const adminSections = (options: AdminNavOptions): NavSection[] => {
           icon: ClipboardList,
           permissions: ["registrations:view:org", "registrations:view:own"],
         },
-        ...(isEntityAdmin || isSuperAdmin
-          ? [
+      ],
+    },
+    ...(isSuperAdmin
+      ? [
+          {
+            titleKey: "dashboard.sidebar.groups.marketing",
+            items: [
+              {
+                labelKey: "dashboard.sidebar.admin.newsletter",
+                href: "/superadmin/newsletter",
+                icon: Mail,
+                permissions: ["settings:manage"] as const,
+              },
+              {
+                labelKey: "dashboard.sidebar.admin.testimonials",
+                href: "/superadmin/testimonials",
+                icon: MessageSquareQuote,
+                permissions: ["settings:manage"] as const,
+              },
               {
                 labelKey: "dashboard.sidebar.admin.broadcasts",
                 href: p("/broadcasts"),
                 icon: Megaphone,
                 permissions: ["broadcasts:send:org", "broadcasts:send:own"] as const,
               },
-            ]
-          : []),
-      ],
-    },
+            ],
+          },
+        ]
+      : isEntityAdmin
+        ? [
+            {
+              titleKey: "dashboard.sidebar.groups.marketing",
+              items: [
+                {
+                  labelKey: "dashboard.sidebar.admin.broadcasts",
+                  href: p("/broadcasts"),
+                  icon: Megaphone,
+                  permissions: ["broadcasts:send:org", "broadcasts:send:own"] as const,
+                },
+              ],
+            },
+          ]
+        : []),
     {
       titleKey: "dashboard.sidebar.groups.finances",
       items: [
@@ -628,8 +661,8 @@ export function DashboardSidebar({
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-sidebar-foreground">{user.name}</p>
-              <p className="truncate text-xs text-sidebar-foreground/60">{user.email}</p>
+              <p className="text-sm font-semibold text-sidebar-foreground leading-tight break-words">{user.name}</p>
+              <p className="text-xs text-sidebar-foreground/60 mt-0.5 break-all leading-tight">{user.email}</p>
             </div>
           </div>
           <button
@@ -723,8 +756,8 @@ export function DashboardSidebar({
               </div>
               {!isCollapsed ? (
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-sidebar-foreground">{user.name}</p>
-                  <p className="truncate text-xs text-sidebar-foreground/60">{user.email}</p>
+                  <p className="text-sm font-semibold text-sidebar-foreground leading-tight break-words">{user.name}</p>
+                  <p className="text-xs text-sidebar-foreground/60 mt-0.5 break-all leading-tight">{user.email}</p>
                 </div>
               ) : null}
             </div>

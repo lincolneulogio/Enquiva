@@ -1,14 +1,63 @@
-import { Calendar, CreditCard, QrCode, Bus, Folder } from "lucide-react";
+import { Calendar, CreditCard, QrCode, Bus, Folder, ShieldCheck } from "lucide-react";
 
-interface EventsCatalogHeroProps {
+export interface EventsCatalogHeroProps {
   totalEvents: number;
   categoryLabel?: string;
+  hasCulqi?: boolean;
+  hasTransport?: boolean;
+  hasQrTickets?: boolean;
 }
 
 export function EventsCatalogHero({
   totalEvents,
   categoryLabel,
+  hasCulqi = false,
+  hasTransport = true,
+  hasQrTickets = true,
 }: EventsCatalogHeroProps) {
+  // Construir tarjetas de beneficios dinámicamente según la configuración de la plataforma
+  const benefitCards = [
+    {
+      id: "payment",
+      icon: CreditCard,
+      title: "Pago seguro",
+      description: hasCulqi
+        ? "Checkout online con Culqi, tarjetas bancarias, Yape y billeteras digitales."
+        : "Múltiples métodos de pago directo: Yape, Plin, transferencia o efectivo.",
+      badge: hasCulqi ? "Culqi Activo" : "Medios Locales",
+      badgeColor: "bg-primary/10 text-primary border-primary/20",
+    },
+    {
+      id: "qr",
+      icon: QrCode,
+      title: "Entrada con QR",
+      description: hasQrTickets
+        ? "Acceso digital inmediato con código QR dinámico antifraude al confirmar tu inscripción."
+        : "Validación digital de ticket para ingreso ágil en puerta.",
+      badge: "Garantizado",
+      badgeColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    },
+    hasTransport
+      ? {
+          id: "transport",
+          icon: Bus,
+          title: "Transporte opcional",
+          description:
+            "Reserva asientos de bus o movilidad coordinada para los eventos que lo ofrezcan.",
+          badge: "Rutas Activas",
+          badgeColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+        }
+      : {
+          id: "guarantee",
+          icon: ShieldCheck,
+          title: "Garantía y Soporte",
+          description:
+            "Atención personalizada al asistente y soporte en tiempo real ante cualquier duda.",
+          badge: "Soporte 24/7",
+          badgeColor: "bg-primary/10 text-primary border-primary/20",
+        },
+  ];
+
   return (
     <section className="relative w-full border-b border-border/60 bg-gradient-to-b from-primary/[0.04] via-background to-background px-4 pb-10 pt-10 dark:from-primary/[0.06] dark:via-background/50 dark:to-background sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
@@ -40,52 +89,37 @@ export function EventsCatalogHero({
           </div>
         </div>
 
-        {/* 3 Tarjetas de Beneficios */}
+        {/* Tarjetas dinámicas de Beneficios */}
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {/* Tarjeta 1 */}
-          <div className="flex flex-col justify-between rounded-2xl border border-border/80 bg-card/80 p-5 shadow-2xs backdrop-blur-xs transition-all hover:border-primary/40 hover:shadow-xs">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <CreditCard className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-foreground sm:text-base">
-                Pago seguro
-              </h3>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                Culqi, Yape, Plin u otros medios directos del organizador.
-              </p>
-            </div>
-          </div>
+          {benefitCards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <div
+                key={card.id}
+                className="flex flex-col justify-between rounded-2xl border border-border/80 bg-card/80 p-5 shadow-2xs backdrop-blur-xs transition-all hover:border-primary/40 hover:shadow-xs"
+              >
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <span
+                    className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${card.badgeColor}`}
+                  >
+                    {card.badge}
+                  </span>
+                </div>
 
-          {/* Tarjeta 2 */}
-          <div className="flex flex-col justify-between rounded-2xl border border-border/80 bg-card/80 p-5 shadow-2xs backdrop-blur-xs transition-all hover:border-primary/40 hover:shadow-xs">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <QrCode className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-foreground sm:text-base">
-                Entrada con QR
-              </h3>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                Acceso digital inmediato al confirmar tu inscripción o pago.
-              </p>
-            </div>
-          </div>
-
-          {/* Tarjeta 3 */}
-          <div className="flex flex-col justify-between rounded-2xl border border-border/80 bg-card/80 p-5 shadow-2xs backdrop-blur-xs transition-all hover:border-primary/40 hover:shadow-xs">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Bus className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-foreground sm:text-base">
-                Transporte opcional
-              </h3>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                Reserva asientos de bus o transporte cuando el evento lo ofrezca.
-              </p>
-            </div>
-          </div>
+                <div>
+                  <h3 className="text-sm font-bold text-foreground sm:text-base">
+                    {card.title}
+                  </h3>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                    {card.description}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

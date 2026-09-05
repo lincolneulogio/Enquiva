@@ -10,7 +10,7 @@ interface HeroSectionProps {
   formattedRegistrations?: string;
 }
 
-export function HeroSection({ t, locale, copy }: HeroSectionProps) {
+export function HeroSection({ t, locale, copy, formattedRegistrations }: HeroSectionProps) {
   return (
     <section className="relative overflow-hidden px-4 pb-10 pt-12 sm:px-6 lg:pb-14 lg:pt-16">
       {/* Luces de fondo sutiles */}
@@ -55,7 +55,9 @@ export function HeroSection({ t, locale, copy }: HeroSectionProps) {
           </div>
 
           <span className="text-xs text-muted-foreground">
-            • Más de 50,000 usuarios ya confían en Enquiva
+            {formattedRegistrations && formattedRegistrations !== "0"
+              ? `• ${formattedRegistrations} inscripciones procesadas`
+              : "• Experiencias y eventos verificados"}
           </span>
         </div>
 

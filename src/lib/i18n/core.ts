@@ -322,6 +322,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                 groups: {
                     core: "Principal",
                     management: "Gestión",
+                    marketing: "Marketing & Portada",
                     finances: "Finanzas y Servicios",
                     tools: "Herramientas",
                     account: "Mi Cuenta",
@@ -352,6 +353,8 @@ const translations: Record<Locale, TranslationDictionary> = {
                     users: "Usuarios",
                     registrations: "Inscripciones",
                     notifications: "Notificaciones",
+                    newsletter: "Suscriptores",
+                    testimonials: "Testimonios",
                     permissions: "Permisos",
                     analytics: "Analítica",
                     analyticsGlobal: "Analítica global",
@@ -2414,6 +2417,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                 groups: {
                     core: "Core",
                     management: "Management",
+                    marketing: "Marketing & Landing",
                     finances: "Finances & Services",
                     tools: "Tools",
                     account: "My Account",
@@ -2444,6 +2448,8 @@ const translations: Record<Locale, TranslationDictionary> = {
                     users: "Users",
                     registrations: "Registrations",
                     notifications: "Notifications",
+                    newsletter: "Subscribers",
+                    testimonials: "Testimonials",
                     permissions: "Permissions",
                     analytics: "Analytics",
                     analyticsGlobal: "Global analytics",

@@ -2,8 +2,9 @@ import { db } from "@/lib/db";
 import { events, users, registrations, eventStatusEnum } from "@/lib/db/schema";
 import { count, desc, eq, and, gte, lte, inArray, type SQL } from "drizzle-orm";
 import Link from "next/link";
-import { Calendar, Plus, ClipboardList } from "lucide-react";
+import { Calendar, Plus, ClipboardList, Star } from "lucide-react";
 import { DeleteEventButton } from "@/components/events/DeleteEventButton";
+import { ToggleEventFeaturedButton } from "@/components/dashboard/admin/ToggleEventFeaturedButton";
 import { getI18n } from "@/lib/i18n/server";
 import { categoryLabel, eventStatusLabel, formatCurrency } from "@/lib/utils";
 import { getIntlLocale } from "@/lib/i18n/core";
@@ -91,11 +92,17 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const [{ total }] = await db
-        .select({ total: count() })
-        .from(events)
-        .innerJoin(users, eq(events.organizerId, users.id))
-        .where(whereClause);
+    const [[{ total }], [{ featuredTotal }]] = await Promise.all([
+        db
+            .select({ total: count() })
+            .from(events)
+            .innerJoin(users, eq(events.organizerId, users.id))
+            .where(whereClause),
+        db
+            .select({ featuredTotal: count() })
+            .from(events)
+            .where(eq(events.isFeatured, true)),
+    ]);
 
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
     const safePage = Math.min(currentPage, totalPages);
@@ -112,6 +119,7 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
             date: events.date,
             price: events.price,
             capacity: events.capacity,
+            isFeatured: events.isFeatured,
             organizerId: events.organizerId,
             organizationId: events.organizationId,
             organizerName: users.name,
@@ -158,14 +166,22 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="font-display text-3xl font-semibold text-foreground">{t("dashboard.admin.allEvents")}</h1>
-                    <p className="mt-1 text-muted-foreground">
-                        {t("dashboard.admin.eventsOnPlatform", {
-                            count: total,
-                            label: total === 1 ? "evento" : "eventos",
-                        })}
+                    <p className="mt-1 text-muted-foreground flex flex-wrap items-center gap-2">
+                        <span>
+                            {t("dashboard.admin.eventsOnPlatform", {
+                                count: total,
+                                label: total === 1 ? "evento" : "eventos",
+                            })}
+                        </span>
                         {isFiltered && (
-                            <span className="ml-2 text-xs text-primary font-medium">({locale === "en" ? "filtered" : "filtrado"})</span>
+                            <span className="text-xs text-primary font-medium">({locale === "en" ? "filtered" : "filtrado"})</span>
                         )}
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+                            <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                            {locale === "en"
+                                ? `${featuredTotal} featured on landing`
+                                : `${featuredTotal} destacados en portada`}
+                        </span>
                     </p>
                 </div>
                 <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
@@ -232,14 +248,15 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                             <thead>
                                 <tr className="border-b border-border bg-muted/50">
                                     <th className="w-[4%] px-2 py-3 text-left font-medium text-muted-foreground">N°</th>
-                                    <th className="w-[16%] px-2 py-3 text-left font-medium text-muted-foreground">{t("dashboard.admin.title")}</th>
-                                    <th className="w-[12%] px-2 py-3 text-left font-medium text-muted-foreground">{t("common.organizer")}</th>
+                                    <th className="w-[15%] px-2 py-3 text-left font-medium text-muted-foreground">{t("dashboard.admin.title")}</th>
+                                    <th className="w-[11%] px-2 py-3 text-left font-medium text-muted-foreground">{t("common.organizer")}</th>
                                     <th className="w-[8%] px-2 py-3 text-left font-medium text-muted-foreground">{t("common.category")}</th>
-                                    <th className="w-[9%] px-2 py-3 text-right font-medium text-muted-foreground">{locale === "en" ? "Price" : "Precio"}</th>
-                                    <th className="w-[9%] px-2 py-3 text-left font-medium text-muted-foreground">{locale === "en" ? "Capacity / Registrants" : "Aforo / Inscritos"}</th>
-                                    <th className="w-[9%] px-2 py-3 text-left font-medium text-muted-foreground">{locale === "en" ? "Event Date" : "Fecha de Evento"}</th>
-                                    <th className="w-[9%] px-2 py-3 text-left font-medium text-muted-foreground">{t("public.events.viewerStatus.eventStatusLabel")}</th>
-                                    <th className="w-[14%] px-2 py-3 text-left font-medium text-muted-foreground">{t("public.events.viewerStatus.label")}</th>
+                                    <th className="w-[8%] px-2 py-3 text-right font-medium text-muted-foreground">{locale === "en" ? "Price" : "Precio"}</th>
+                                    <th className="w-[8%] px-2 py-3 text-left font-medium text-muted-foreground">{locale === "en" ? "Capacity / Registrants" : "Aforo / Inscritos"}</th>
+                                    <th className="w-[8%] px-2 py-3 text-left font-medium text-muted-foreground">{locale === "en" ? "Event Date" : "Fecha de Evento"}</th>
+                                    <th className="w-[8%] px-2 py-3 text-center font-medium text-muted-foreground">{locale === "en" ? "Landing" : "Portada"}</th>
+                                    <th className="w-[8%] px-2 py-3 text-left font-medium text-muted-foreground">{t("public.events.viewerStatus.eventStatusLabel")}</th>
+                                    <th className="w-[12%] px-2 py-3 text-left font-medium text-muted-foreground">{t("public.events.viewerStatus.label")}</th>
                                     <th className="w-[10%] px-2 py-3 text-right font-medium text-muted-foreground">{t("common.actions")}</th>
                                 </tr>
                             </thead>
@@ -291,6 +308,13 @@ export default async function AdminEventsPage({ searchParams }: AdminEventsPageP
                                                     day: "numeric",
                                                     year: "numeric",
                                                 })}
+                                            </td>
+                                            <td className="px-2 py-3 text-center">
+                                                <ToggleEventFeaturedButton
+                                                    eventId={event.id}
+                                                    isFeatured={Boolean(event.isFeatured)}
+                                                    canMutate={role === "super_admin"}
+                                                />
                                             </td>
                                             <td className="overflow-hidden px-2 py-3">
                                                 <span className={`inline-flex max-w-full items-center truncate rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColor[event.status] ?? ""}`}>

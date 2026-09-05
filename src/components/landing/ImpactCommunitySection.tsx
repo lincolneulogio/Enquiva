@@ -1,20 +1,35 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { CommunityMetrics } from "@/actions/marketing";
 
-interface StatItem {
-  value: string;
-  label: string;
-  isOrange?: boolean;
+interface ImpactCommunitySectionProps {
+  metrics?: CommunityMetrics;
 }
 
-const STATS: StatItem[] = [
-  { value: "+50,000", label: "Asistentes registrados", isOrange: true },
-  { value: "+1,200", label: "Eventos ejecutados", isOrange: false },
-  { value: "99.4%", label: "Satisfacción de organizadores", isOrange: true },
-  { value: "12 Países", label: "Ciudades conectadas", isOrange: false },
-];
+export function ImpactCommunitySection({ metrics }: ImpactCommunitySectionProps) {
+  const stats = [
+    {
+      value: metrics?.registeredAttendees ?? "0",
+      label: "Asistentes registrados",
+      isOrange: true,
+    },
+    {
+      value: metrics?.executedEvents ?? "0",
+      label: "Eventos ejecutados",
+      isOrange: false,
+    },
+    {
+      value: metrics?.satisfactionRate ?? "99.8%",
+      label: "Satisfacción de organizadores",
+      isOrange: true,
+    },
+    {
+      value: metrics?.connectedCities ?? "0 Organizaciones",
+      label: "Organizaciones activas",
+      isOrange: false,
+    },
+  ];
 
-export function ImpactCommunitySection() {
   return (
     <section className="relative w-full bg-[#121214] py-20 text-white lg:py-28">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
@@ -84,13 +99,13 @@ export function ImpactCommunitySection() {
           </div>
         </div>
 
-        {/* 4 Tarjetas individuales de estadísticas */}
+        {/* 4 Tarjetas individuales de estadísticas dinámicas */}
         <div
           className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4"
           data-aos="fade-up"
           data-aos-delay="150"
         >
-          {STATS.map((stat) => (
+          {stats.map((stat) => (
             <div
               key={stat.label}
               className="flex flex-col items-center justify-center rounded-2xl border border-zinc-800/80 bg-zinc-900/50 px-4 py-6 text-center shadow-sm sm:py-7"

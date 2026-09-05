@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { X, SlidersHorizontal } from "lucide-react";
+import { X, SlidersHorizontal, Calendar } from "lucide-react";
 import { EventService } from "@/services/events/event.service";
 import { EventCard } from "@/components/events/EventCard";
 import { EventFilters } from "@/components/events/EventFilters";
@@ -32,93 +32,6 @@ interface EventsPageProps {
     page?: string;
   }>;
 }
-
-const CURATED_FALLBACK_EVENTS: (Event & { attendeeCount: number })[] = [
-  {
-    id: "curated-tech-summit-2026",
-    organizationId: "org-curated",
-    title: "Enquiva Tech Summit: IA & Startups LATAM",
-    slug: "enquiva-tech-summit-ia-startups-latam",
-    description: "Conferencia insignia con más de 12 speakers internacionales sobre inteligencia artificial aplicada y financiamiento de startups.",
-    date: new Date("2026-11-12T16:00:00Z"),
-    endDate: new Date("2026-11-12T20:00:00Z"),
-    location: "Auditorio Principal & Zoom Live",
-    category: "technology",
-    type: "conference",
-    modality: "hybrid",
-    capacity: 200,
-    price: "45.00",
-    coverImage: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&auto=format&fit=crop&q=80",
-    isPublished: true,
-    isFeatured: true,
-    isVirtual: false,
-    accessType: "paid",
-    eventStatus: "upcoming",
-    attendeeCount: 145,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    createdById: "system",
-    schedules: null,
-    registrationFields: null,
-    isPrivate: false,
-  } as unknown as Event & { attendeeCount: number },
-  {
-    id: "curated-ai-workshop-2026",
-    organizationId: "org-curated",
-    title: "Workshop Internacional de Inteligencia Artificial Aplicada",
-    slug: "workshop-internacional-ia-aplicada",
-    description: "Aprende metodologías prácticas de LLMs, automatización y desarrollo con expertos líderes de la industria tecnológica.",
-    date: new Date("2026-11-18T10:00:00Z"),
-    endDate: new Date("2026-11-18T14:00:00Z"),
-    location: "Centro de Convenciones Huánuco / Lima",
-    category: "education",
-    type: "workshop",
-    modality: "in_person",
-    capacity: 100,
-    price: "35.00",
-    coverImage: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=800&auto=format&fit=crop&q=80",
-    isPublished: true,
-    isFeatured: false,
-    isVirtual: false,
-    accessType: "paid",
-    eventStatus: "upcoming",
-    attendeeCount: 85,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    createdById: "system",
-    schedules: null,
-    registrationFields: null,
-    isPrivate: false,
-  } as unknown as Event & { attendeeCount: number },
-  {
-    id: "curated-design-ux-2026",
-    organizationId: "org-curated",
-    title: "Encuentro Nacional de Diseño de Producto & UX 2026",
-    slug: "encuentro-nacional-diseno-producto-ux-2026",
-    description: "Espacio de conferencias, networking y casos de estudio sobre diseño de interfaces, sistemas de diseño y producto digital.",
-    date: new Date("2026-12-05T15:00:00Z"),
-    endDate: new Date("2026-12-05T19:00:00Z"),
-    location: "Campus Tecnológico & Streaming Live",
-    category: "art",
-    type: "meetup",
-    modality: "hybrid",
-    capacity: 150,
-    price: "25.00",
-    coverImage: "https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=800&auto=format&fit=crop&q=80",
-    isPublished: true,
-    isFeatured: false,
-    isVirtual: false,
-    accessType: "paid",
-    eventStatus: "upcoming",
-    attendeeCount: 120,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    createdById: "system",
-    schedules: null,
-    registrationFields: null,
-    isPrivate: false,
-  } as unknown as Event & { attendeeCount: number },
-];
 
 async function EventsGrid({
   searchParams,
@@ -154,26 +67,39 @@ async function EventsGrid({
     console.error("[events] public events query failed, using empty catalog", error);
   }
 
-  // Si hay pocos eventos en la base de datos, autocompletamos con los curados de la imagen
-  const displayEvents = [...events];
-  for (const fallback of CURATED_FALLBACK_EVENTS) {
-    if (displayEvents.length >= 4) break;
-    if (!displayEvents.some((e) => e.id === fallback.id || e.slug === fallback.slug)) {
-      displayEvents.push(fallback);
-    }
-  }
-
   const activeCategoryLabel = searchParams.category
     ? categoryMap[searchParams.category]?.label || searchParams.category
     : undefined;
+
+  if (events.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-border/80 bg-card/40 p-12 text-center">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <Calendar className="h-7 w-7" />
+        </div>
+        <h3 className="font-display text-lg font-bold text-foreground sm:text-xl">
+          No se encontraron eventos
+        </h3>
+        <p className="mt-1 max-w-md text-xs text-muted-foreground sm:text-sm">
+          No hay eventos que coincidan con los filtros seleccionados. Intenta ajustar tu búsqueda o explorar otras categorías.
+        </p>
+        <Link
+          href="/events"
+          className="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-xs font-bold text-primary-foreground shadow-md shadow-primary/25 transition-all hover:bg-primary/95"
+        >
+          Ver todos los eventos
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <>
       {/* Barra de cabecera de resultados */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs font-semibold text-foreground sm:text-sm">
-          Mostrando <span className="font-bold text-primary">{displayEvents.length}</span> de{" "}
-          <span className="font-bold">{Math.max(displayEvents.length, total)}</span> eventos
+          Mostrando <span className="font-bold text-primary">{events.length}</span> de{" "}
+          <span className="font-bold">{total}</span> eventos
         </p>
 
         {(searchParams.search || searchParams.category) && (
@@ -189,24 +115,22 @@ async function EventsGrid({
         )}
       </div>
 
-
-      {/* Cuadrícula de 2 columnas de EventCards */}
+      {/* Cuadrícula de EventCards reales de la base de datos */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {displayEvents.map((event) => (
+        {events.map((event) => (
           <EventCard
             key={event.id}
             event={event}
             categoryMap={categoryMap}
             locale={locale}
-            viewerStatus={event.slug === "enquiva-tech-summit-ia-startups-latam" ? "registered" : undefined}
           />
         ))}
       </div>
 
-      {/* Paginación numerada idéntica a la captura */}
+      {/* Paginación numerada real */}
       <EventsPagination
         page={page}
-        total={Math.max(total, 12)}
+        total={total}
         limit={limit}
         category={searchParams.category}
         search={searchParams.search}
@@ -220,9 +144,10 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
   const params = await searchParams;
   let categories: Awaited<ReturnType<typeof EventService.getCategories>> = [];
   let eventsTotal = 0;
+  let heroFeatures = { hasCulqi: false, hasTransport: true, hasQrTickets: true };
 
   try {
-    const [cats, publicResult] = await Promise.all([
+    const [cats, publicResult, features] = await Promise.all([
       EventService.getCategories(null),
       EventService.getPublicEvents({
         category: params.category,
@@ -237,9 +162,11 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
         page: 1,
         limit: 1,
       }),
+      EventService.getCatalogHeroFeatures(),
     ]);
     categories = cats;
-    eventsTotal = Math.max(publicResult.total, 3);
+    eventsTotal = publicResult.total;
+    heroFeatures = features;
   } catch (error) {
     console.error("[events] catalog query failed, using empty catalog", error);
   }
@@ -260,10 +187,13 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
       {/* 1. Header público de navegación */}
       <PublicHeader />
 
-      {/* 2. Hero con badge, titular cálido, píldoras y 3 tarjetas de beneficios */}
+      {/* 2. Hero con badge, titular cálido, píldoras y 3 tarjetas de beneficios dinámicas */}
       <EventsCatalogHero
         totalEvents={eventsTotal}
         categoryLabel={activeCategoryName}
+        hasCulqi={heroFeatures.hasCulqi}
+        hasTransport={heroFeatures.hasTransport}
+        hasQrTickets={heroFeatures.hasQrTickets}
       />
 
       {/* 3. Contenedor principal con Buscador superior + 2 Columnas (Filtros Sidebar + Cuadrícula de 2 columnas) */}

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowRight, Star, Mail, CheckCircle2, Globe2 } from "lucide-react";
+import { Star, Mail, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { BrandLogo } from "@/components/shared/BrandLogo";
 import type { LandingCopy } from "@/lib/navigation/landing-audience";
+import { subscribeToNewsletterAction } from "@/actions/marketing";
 
 interface FooterProps {
   copy?: LandingCopy;
@@ -12,14 +13,37 @@ interface FooterProps {
 
 export function Footer({ copy }: FooterProps = {}) {
   const [email, setEmail] = useState("");
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [status, setStatus] = useState<{
+    submitted: boolean;
+    success: boolean;
+    message: string;
+  } | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (email) {
-      setIsSubscribed(true);
-      setEmail("");
-    }
+    if (!email.trim()) return;
+
+    const formData = new FormData(e.currentTarget);
+    startTransition(async () => {
+      try {
+        const res = await subscribeToNewsletterAction(null, formData);
+        setStatus({
+          submitted: true,
+          success: res.success,
+          message: res.message,
+        });
+        if (res.success) {
+          setEmail("");
+        }
+      } catch {
+        setStatus({
+          submitted: true,
+          success: false,
+          message: "Ocurrió un error inesperado. Intenta de nuevo.",
+        });
+      }
+    });
   };
 
   return (
@@ -145,7 +169,7 @@ export function Footer({ copy }: FooterProps = {}) {
             </ul>
           </div>
 
-          {/* Columna 5: Suscripción a Boletín */}
+          {/* Columna 5: Suscripción a Boletín Dinámico */}
           <div>
             <h4 className="mb-4 text-xs font-bold uppercase tracking-wider text-foreground">
               Boletín de Novedades
@@ -154,29 +178,48 @@ export function Footer({ copy }: FooterProps = {}) {
               Recibe invitaciones exclusivas, preventas tempranas y novedades cada semana.
             </p>
 
-            {isSubscribed ? (
-              <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 p-3 text-xs font-semibold text-primary">
+            {status?.success ? (
+              <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 p-3 text-xs font-semibold text-primary animate-in fade-in">
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
-                <span>¡Gracias por suscribirte!</span>
+                <span>{status.message}</span>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-2">
+                <input type="hidden" name="source" value="home_footer" />
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="email"
+                    name="email"
                     required
+                    disabled={isPending}
                     placeholder="tu@correo.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-xl border border-border/90 bg-card py-2 pl-9 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full rounded-xl border border-border/90 bg-card py-2 pl-9 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
                   />
                 </div>
+
+                {status?.submitted && !status.success && (
+                  <div className="flex items-center gap-1.5 text-[11px] text-rose-600 dark:text-rose-400">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    <span>{status.message}</span>
+                  </div>
+                )}
+
                 <button
                   type="submit"
-                  className="w-full rounded-xl bg-primary py-2.5 text-xs font-bold text-primary-foreground shadow-md shadow-primary/25 transition-all duration-200 active:scale-98 hover:bg-primary/95 hover:shadow-lg hover:shadow-primary/35 hover:brightness-105 cursor-pointer"
+                  disabled={isPending}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-xs font-bold text-primary-foreground shadow-md shadow-primary/25 transition-all duration-200 active:scale-98 hover:bg-primary/95 hover:shadow-lg hover:shadow-primary/35 hover:brightness-105 cursor-pointer disabled:opacity-50"
                 >
-                  Suscribirme
+                  {isPending ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span>Suscribiendo...</span>
+                    </>
+                  ) : (
+                    <span>Suscribirme</span>
+                  )}
                 </button>
               </form>
             )}

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Calendar, MapPin, Sparkles, Ticket } from "lucide-react";
+import { ArrowRight, MapPin, Ticket } from "lucide-react";
+import type { Event } from "@/lib/db/schema";
 
 interface LaunchItem {
   id: string;
@@ -16,52 +17,62 @@ interface LaunchItem {
   actionVariant: "primary" | "dark";
 }
 
-const LAUNCH_ITEMS: LaunchItem[] = [
-  {
-    id: "launch-1",
-    slug: "enquiva-marketing-summit-2026",
-    badge: "EARLY BIRD TICKET",
-    badgeColor: "bg-primary/15 text-primary border-primary/30",
-    title: "Enquiva Marketing Summit 2026 - Conectando Creadores & Marcas",
-    locationAndDate: "Auditorio Javier Pérez de Cuéllar • 24 de Octubre",
-    priceNote: "Desde S/ 120",
-    remainingSlots: "Quedan 15 cupos",
-    imageUrl:
-      "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&auto=format&fit=crop&q=80",
-    actionLabel: "Ver tickets",
-    actionVariant: "dark",
-  },
-  {
-    id: "launch-2",
-    slug: "ai-revolution-week-deep-learning",
-    badge: "ÚLTIMOS CUPOS",
-    badgeColor: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30",
-    title: "AI Revolution Week: Deep Learning & Generative Models en Producción",
-    locationAndDate: "Campus Tecnológico San Isidro • 12 de Noviembre",
-    priceNote: "Entrada Libre",
-    remainingSlots: "Registro previo requerido",
-    imageUrl:
-      "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=400&auto=format&fit=crop&q=80",
-    actionLabel: "Inscribirme",
-    actionVariant: "dark",
-  },
-  {
-    id: "launch-3",
-    slug: "business-tech-meetup-networking",
-    badge: "DESTACADO",
-    badgeColor: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-    title: "Enquiva Business Tech Meetup & Founders Networking Day",
-    locationAndDate: "Centro Empresarial Real • 05 de Diciembre",
-    priceNote: "Preventa: S/ 85",
-    remainingSlots: "Acceso con cóctel",
-    imageUrl:
-      "https://images.unsplash.com/photo-1511578314322-379afb476865?w=400&auto=format&fit=crop&q=80",
-    actionLabel: "Ver tickets",
-    actionVariant: "primary",
-  },
-];
+interface UpcomingLaunchesSectionProps {
+  dbEvents?: Array<Event & { attendeeCount?: number }>;
+}
 
-export function UpcomingLaunchesSection() {
+export function UpcomingLaunchesSection({ dbEvents = [] }: UpcomingLaunchesSectionProps) {
+  if (dbEvents.length === 0) {
+    return null;
+  }
+
+  // Mapear eventos 100% reales de la base de datos
+  const displayItems: LaunchItem[] = dbEvents.map((e, idx) => {
+    const isFree = !e.price || Number(e.price) === 0;
+    const priceFormatted = isFree ? "Entrada Libre" : `Desde S/ ${Number(e.price).toFixed(2)}`;
+
+    const eventDate = e.date ? new Date(e.date) : new Date();
+    const dateFormatted = eventDate.toLocaleDateString("es-PE", {
+      day: "2-digit",
+      month: "long",
+    });
+    const locationName = e.location || (e.isVirtual ? "Evento Virtual" : "Lima, PE");
+
+    const remaining =
+      e.capacity != null ? Math.max(0, e.capacity - (e.attendeeCount ?? 0)) : null;
+
+    let badge = "PRÓXIMO LANZAMIENTO";
+    let badgeColor = "bg-primary/15 text-primary border-primary/30";
+
+    if (e.isFeatured) {
+      badge = "DESTACADO";
+      badgeColor = "bg-primary/15 text-primary border-primary/30";
+    } else if (remaining != null && remaining <= 20) {
+      badge = "ÚLTIMOS CUPOS";
+      badgeColor = "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30";
+    } else if (isFree) {
+      badge = "ENTRADA LIBRE";
+      badgeColor = "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30";
+    }
+
+    return {
+      id: e.id,
+      slug: e.slug,
+      badge,
+      badgeColor,
+      title: e.title,
+      locationAndDate: `${locationName} • ${dateFormatted}`,
+      priceNote: priceFormatted,
+      remainingSlots:
+        remaining != null ? `Quedan ${remaining} cupos` : isFree ? "Registro libre" : undefined,
+      imageUrl:
+        e.coverImage ||
+        "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&auto=format&fit=crop&q=80",
+      actionLabel: isFree ? "Inscribirme" : "Ver tickets",
+      actionVariant: idx === 0 || e.isFeatured ? "primary" : "dark",
+    };
+  });
+
   return (
     <section className="px-4 py-14 sm:px-6 lg:py-18">
       <div className="mx-auto max-w-7xl">
@@ -94,7 +105,7 @@ export function UpcomingLaunchesSection() {
 
         {/* Lista vertical de tiras horizontales */}
         <div className="space-y-4">
-          {LAUNCH_ITEMS.map((item, idx) => (
+          {displayItems.map((item, idx) => (
             <div
               key={item.id}
               className="group flex flex-col items-start justify-between gap-4 rounded-2xl border border-border/80 bg-card p-4 shadow-sm transition-all duration-300 hover:border-primary/50 hover:shadow-md sm:flex-row sm:items-center sm:p-5"

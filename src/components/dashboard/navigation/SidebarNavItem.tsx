@@ -32,7 +32,7 @@ export function SidebarNavItem({
         "flex items-center rounded-xl text-sm font-medium transition-colors",
         collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2",
         isActive
-          ? "bg-sidebar-accent text-sidebar-primary"
+          ? "bg-sidebar-accent text-sidebar-primary-foreground font-semibold"
           : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
       )}
     >

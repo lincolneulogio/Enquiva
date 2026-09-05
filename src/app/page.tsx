@@ -13,6 +13,7 @@ import {
 } from "@/components/landing";
 import { ScrollToTopButton } from "@/components/shared/ScrollToTopButton";
 import { MarketingMotionProvider } from "@/components/providers/MarketingMotionProvider";
+import { getPublicTestimonials, getCommunityMetrics } from "@/actions/marketing";
 
 /** Debe ser literal: Next.js no analiza imports en segment config. */
 export const revalidate = 120;
@@ -21,16 +22,38 @@ export default async function HomePage() {
   const { locale, t } = await getStaticI18n();
   const landingCopy = getLandingCopy({ role: null, locale: locale === "en" ? "en" : "es", t });
 
-  let events: Awaited<ReturnType<typeof EventService.getPublicEvents>>["events"] = [];
-  let totalRegistrations = 0;
+  // Consultas dinámicas en paralelo para alimentar todas las secciones del Home
+  const [
+    publicResult,
+    categories,
+    upcomingLaunches,
+    premierExperiences,
+    topOrganizations,
+    communityMetrics,
+    testimonials,
+  ] = await Promise.all([
+    EventService.getPublicEvents({ page: 1, limit: 6 }).catch(() => ({
+      events: [],
+      totalRegistrations: 0,
+      total: 0,
+      page: 1,
+      limit: 6,
+    })),
+    EventService.getCategories().catch(() => []),
+    EventService.getUpcomingLaunches(4).catch(() => []),
+    EventService.getPremierExperiences(4).catch(() => []),
+    EventService.getTopOrganizations(2).catch(() => []),
+    getCommunityMetrics().catch(() => ({
+      registeredAttendees: "+50,000",
+      executedEvents: "+1,200",
+      satisfactionRate: "99.4%",
+      connectedCities: "12 Países",
+    })),
+    getPublicTestimonials().catch(() => []),
+  ]);
 
-  try {
-    const publicResult = await EventService.getPublicEvents({ page: 1, limit: 6 });
-    events = publicResult.events;
-    totalRegistrations = publicResult.totalRegistrations;
-  } catch (error) {
-    console.error("[home] public events query failed, using empty catalog", error);
-  }
+  const events = publicResult.events;
+  const totalRegistrations = publicResult.totalRegistrations;
 
   const formattedRegistrations = new Intl.NumberFormat(
     locale === "en" ? "en-US" : "es-PE",
@@ -45,22 +68,29 @@ export default async function HomePage() {
         {/* 2. Hero Section con titular, avatares y CTAs */}
         <SessionAwareHero formattedRegistrations={formattedRegistrations} />
 
-        {/* 3. Cuadrícula de 6 Eventos con Píldoras de Categorías (Datos reales de DB + Fallback de alta fidelidad) */}
-        <EventsCatalogSection dbEvents={events} locale={locale} />
+        {/* 3. Cuadrícula de 6 Eventos con Píldoras de Categorías Dinámicas desde BD */}
+        <EventsCatalogSection
+          dbEvents={events}
+          categories={categories}
+          locale={locale}
+        />
 
-        {/* 4. Experiencias y eventos de primer nivel en Enquiva (Galería Cinema Tech + 3 Tarjetas de organizadores) */}
-        <PremierExperiencesSection />
+        {/* 4. Experiencias y eventos de primer nivel en Enquiva (Galería Cinema Tech + Organizadores de BD) */}
+        <PremierExperiencesSection
+          experiences={premierExperiences}
+          organizations={topOrganizations}
+        />
 
-        {/* 5. Recomendados y Próximos Lanzamientos (Tiras horizontales con badges y tickets) */}
-        <UpcomingLaunchesSection />
+        {/* 5. Recomendados y Próximos Lanzamientos (Tiras horizontales con eventos futuros de BD) */}
+        <UpcomingLaunchesSection dbEvents={upcomingLaunches} />
 
-        {/* 6. Sección Oscura de Impacto y Comunidad (2 fotos gigantes, métricas +50k, CTAs) */}
-        <ImpactCommunitySection />
+        {/* 6. Sección Oscura de Impacto y Comunidad (Métricas calculadas dinámicamente) */}
+        <ImpactCommunitySection metrics={communityMetrics} />
 
-        {/* 7. Testimonios: Tú puedes ser la próxima historia de éxito (3 tarjetas con 5 estrellas) */}
-        <SuccessStoriesSection />
+        {/* 7. Testimonios Reales desde BD */}
+        <SuccessStoriesSection testimonials={testimonials} />
 
-        {/* 8. Footer Integral */}
+        {/* 8. Footer Integral con Boletín conectado a Base de Datos */}
         <Footer copy={landingCopy} />
 
         {/* 9. Botón flotante Scroll To Top */}

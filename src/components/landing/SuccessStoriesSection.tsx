@@ -1,53 +1,17 @@
 import Image from "next/image";
-import { Star, Quote, Sparkles } from "lucide-react";
+import { Star, Sparkles, MessageSquareHeart } from "lucide-react";
+import type { Testimonial } from "@/lib/db/schema";
+import Link from "next/link";
 
-interface Testimonial {
-  id: string;
-  name: string;
-  role: string;
-  company: string;
-  avatarUrl: string;
-  quote: string;
-  rating: number;
+interface SuccessStoriesSectionProps {
+  testimonials?: Testimonial[];
 }
 
-const TESTIMONIALS: Testimonial[] = [
-  {
-    id: "test-1",
-    name: "Mariana Figueroa",
-    role: "Directora de Operaciones",
-    company: "TechSummit Perú",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
-    quote:
-      "Gestionar nuestro congreso anual con más de 1,500 personas fue increíblemente fácil. Los tickets QR funcionaron sin un solo retraso en los accesos y los pagos se procesaron al instante.",
-    rating: 5,
-  },
-  {
-    id: "test-2",
-    name: "Carlos Mendoza",
-    role: "Fundador & Director",
-    company: "Lima Music Fest",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-    quote:
-      "La sincronización de transporte y la analítica en tiempo real nos permitieron ahorrar más de 40 horas operativas en la semana del festival. Es por mucho la mejor plataforma de eventos.",
-    rating: 5,
-  },
-  {
-    id: "test-3",
-    name: "Valeria Ramos",
-    role: "Gerente de Marketing",
-    company: "Innova Hub Latam",
-    avatarUrl:
-      "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80",
-    quote:
-      "Pasamos de vender tickets por formularios manuales a tener una experiencia premium y automatizada. La tasa de conversión aumentó un 35% en solo dos meses con Enquiva.",
-    rating: 5,
-  },
-];
+export function SuccessStoriesSection({ testimonials = [] }: SuccessStoriesSectionProps) {
+  if (testimonials.length === 0) {
+    return null;
+  }
 
-export function SuccessStoriesSection() {
   return (
     <section className="px-4 py-16 sm:px-6 lg:py-24">
       <div className="mx-auto max-w-7xl">
@@ -67,9 +31,9 @@ export function SuccessStoriesSection() {
           </p>
         </div>
 
-        {/* 3 Tarjetas de testimonios con estrellas */}
+        {/* Tarjetas de testimonios reales con estrellas desde la BD */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3 lg:gap-8">
-          {TESTIMONIALS.map((item, idx) => (
+          {testimonials.map((item, idx) => (
             <div
               key={item.id}
               className="flex flex-col justify-between rounded-3xl border border-border/80 bg-card p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 sm:p-8"
@@ -79,7 +43,7 @@ export function SuccessStoriesSection() {
               <div>
                 {/* 5 estrellas */}
                 <div className="mb-4 flex items-center gap-1 text-amber-500">
-                  {Array.from({ length: item.rating }).map((_, i) => (
+                  {Array.from({ length: item.rating ?? 5 }).map((_, i) => (
                     <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
                   ))}
                 </div>
@@ -92,14 +56,20 @@ export function SuccessStoriesSection() {
 
               {/* Autor */}
               <div className="flex items-center gap-3 border-t border-border/60 pt-4">
-                <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full ring-2 ring-primary/20">
-                  <Image
-                    src={item.avatarUrl}
-                    alt={item.name}
-                    fill
-                    sizes="44px"
-                    className="object-cover"
-                  />
+                <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full ring-2 ring-primary/20 bg-muted">
+                  {item.avatarUrl ? (
+                    <Image
+                      src={item.avatarUrl}
+                      alt={item.name}
+                      fill
+                      sizes="44px"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-primary/10 text-primary font-bold text-sm">
+                      {item.name.charAt(0)}
+                    </div>
+                  )}
                 </div>
 
                 <div>
