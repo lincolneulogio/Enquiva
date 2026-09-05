@@ -7,7 +7,7 @@ export type TicketPdfLocale = "es" | "en";
 
 /** Mirrors AccentColorInitializer light primaries (settings → brand-accent). */
 const SETTINGS_ACCENT_PRIMARY_HSL: Record<string, string> = {
-  amber: "32 91% 44%",
+  amber: "20 100% 50%",
   emerald: "142 70% 36%",
   rose: "330 81% 52%",
   blue: "217 91% 56%",

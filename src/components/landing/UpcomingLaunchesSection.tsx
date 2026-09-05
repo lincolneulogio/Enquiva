@@ -1,0 +1,164 @@
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight, Calendar, MapPin, Sparkles, Ticket } from "lucide-react";
+
+interface LaunchItem {
+  id: string;
+  slug: string;
+  badge: string;
+  badgeColor: string;
+  title: string;
+  locationAndDate: string;
+  priceNote: string;
+  remainingSlots?: string;
+  imageUrl: string;
+  actionLabel: string;
+  actionVariant: "primary" | "dark";
+}
+
+const LAUNCH_ITEMS: LaunchItem[] = [
+  {
+    id: "launch-1",
+    slug: "enquiva-marketing-summit-2026",
+    badge: "EARLY BIRD TICKET",
+    badgeColor: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
+    title: "Enquiva Marketing Summit 2026 - Conectando Creadores & Marcas",
+    locationAndDate: "Auditorio Javier Pérez de Cuéllar • 24 de Octubre",
+    priceNote: "Desde S/ 120",
+    remainingSlots: "Quedan 15 cupos",
+    imageUrl:
+      "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&auto=format&fit=crop&q=80",
+    actionLabel: "Ver tickets",
+    actionVariant: "dark",
+  },
+  {
+    id: "launch-2",
+    slug: "ai-revolution-week-deep-learning",
+    badge: "ÚLTIMOS CUPOS",
+    badgeColor: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30",
+    title: "AI Revolution Week: Deep Learning & Generative Models en Producción",
+    locationAndDate: "Campus Tecnológico San Isidro • 12 de Noviembre",
+    priceNote: "Entrada Libre",
+    remainingSlots: "Registro previo requerido",
+    imageUrl:
+      "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=400&auto=format&fit=crop&q=80",
+    actionLabel: "Inscribirme",
+    actionVariant: "dark",
+  },
+  {
+    id: "launch-3",
+    slug: "business-tech-meetup-networking",
+    badge: "DESTACADO",
+    badgeColor: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+    title: "Enquiva Business Tech Meetup & Founders Networking Day",
+    locationAndDate: "Centro Empresarial Real • 05 de Diciembre",
+    priceNote: "Preventa: S/ 85",
+    remainingSlots: "Acceso con cóctel",
+    imageUrl:
+      "https://images.unsplash.com/photo-1511578314322-379afb476865?w=400&auto=format&fit=crop&q=80",
+    actionLabel: "Ver tickets",
+    actionVariant: "primary",
+  },
+];
+
+export function UpcomingLaunchesSection() {
+  return (
+    <section className="px-4 py-14 sm:px-6 lg:py-18">
+      <div className="mx-auto max-w-7xl">
+        {/* Encabezado y enlace derecho */}
+        <div
+          className="mb-8 flex flex-col justify-between gap-4 border-b border-border/70 pb-5 sm:flex-row sm:items-end"
+          data-aos="fade-up"
+        >
+          <div>
+            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-0.5 text-xs font-semibold uppercase tracking-wider text-primary">
+              <Ticket className="h-3 w-3" />
+              Lanzamientos y Tickets
+            </div>
+            <h2 className="font-display text-2xl font-extrabold text-foreground sm:text-3xl lg:text-4xl">
+              Recomendados y Próximos Lanzamientos
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground sm:text-base">
+              Los eventos más esperados con venta anticipada y beneficios exclusivos.
+            </p>
+          </div>
+
+          <Link
+            href="/events"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors hover:underline hover:underline-offset-4"
+          >
+            <span>Explora todos los lanzamientos</span>
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+
+        {/* Lista vertical de tiras horizontales */}
+        <div className="space-y-4">
+          {LAUNCH_ITEMS.map((item, idx) => (
+            <div
+              key={item.id}
+              className="group flex flex-col items-start justify-between gap-4 rounded-2xl border border-border/80 bg-card p-4 shadow-sm transition-all duration-300 hover:border-primary/50 hover:shadow-md sm:flex-row sm:items-center sm:p-5"
+              data-aos="fade-up"
+              data-aos-delay={String(60 + idx * 50)}
+            >
+              {/* Lado izquierdo: Thumbnail + Info */}
+              <div className="flex w-full items-center gap-4 sm:w-auto">
+                <div className="relative h-20 w-24 shrink-0 overflow-hidden rounded-xl bg-muted sm:h-20 sm:w-28">
+                  <Image
+                    src={item.imageUrl}
+                    alt={item.title}
+                    fill
+                    sizes="112px"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span
+                      className={`inline-block rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${item.badgeColor}`}
+                    >
+                      {item.badge}
+                    </span>
+                  </div>
+
+                  <h3 className="line-clamp-1 font-display text-sm font-bold text-foreground transition-colors group-hover:text-primary sm:text-base">
+                    <Link href={`/events/${item.slug}`}>{item.title}</Link>
+                  </h3>
+
+                  <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                    <MapPin className="h-3 w-3 shrink-0 text-primary" />
+                    <span className="line-clamp-1">{item.locationAndDate}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Lado derecho: Precio + Botón */}
+              <div className="flex w-full items-center justify-between gap-4 border-t border-border/60 pt-3 sm:w-auto sm:justify-end sm:border-t-0 sm:pt-0">
+                <div className="text-left sm:text-right">
+                  <p className="text-sm font-bold text-foreground">{item.priceNote}</p>
+                  {item.remainingSlots && (
+                    <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                      {item.remainingSlots}
+                    </p>
+                  )}
+                </div>
+
+                <Link
+                  href={`/events/${item.slug}`}
+                  className={`inline-flex shrink-0 items-center justify-center rounded-full px-6 py-2 text-xs font-bold transition-all duration-200 active:scale-95 ${
+                    item.actionVariant === "primary"
+                      ? "bg-primary text-primary-foreground shadow-md shadow-primary/30 hover:bg-primary/95 hover:shadow-lg hover:shadow-primary/40 hover:brightness-105"
+                      : "bg-foreground text-background hover:bg-foreground/90"
+                  }`}
+                >
+                  {item.actionLabel}
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}

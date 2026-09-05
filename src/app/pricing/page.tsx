@@ -2,6 +2,7 @@ import { Check, X, Sparkles, Calendar, CreditCard, Bus } from "lucide-react";
 import { PublicHeader } from "@/components/shared/PublicHeader";
 import { PublicPageHero } from "@/components/shared/PublicPageHero";
 import { ScrollToTopButton } from "@/components/shared/ScrollToTopButton";
+import { Footer } from "@/components/landing/Footer";
 import { getStaticI18n } from "@/lib/i18n/server";
 import { db } from "@/lib/db";
 import { plans } from "@/lib/db/schema";
@@ -191,6 +192,8 @@ export default async function PricingPage() {
 
         <PricingFooterNote />
       </section>
+
+      <Footer />
 
       <ScrollToTopButton />
     </div>

@@ -3,12 +3,15 @@ import { PublicHeader } from "@/components/shared/PublicHeader";
 import { getStaticI18n } from "@/lib/i18n/server";
 import { getLandingCopy } from "@/lib/navigation/landing-audience";
 import {
-  FeaturedEventsCarousel,
-  EventsShowcase,
-  FeaturesSection,
+  SessionAwareHero,
+  EventsCatalogSection,
+  PremierExperiencesSection,
+  UpcomingLaunchesSection,
+  ImpactCommunitySection,
+  SuccessStoriesSection,
   Footer,
 } from "@/components/landing";
-import { SessionAwareHero } from "@/components/landing/SessionAwareHero";
+import { ScrollToTopButton } from "@/components/shared/ScrollToTopButton";
 import { MarketingMotionProvider } from "@/components/providers/MarketingMotionProvider";
 
 /** Debe ser literal: Next.js no analiza imports en segment config. */
@@ -18,16 +21,11 @@ export default async function HomePage() {
   const { locale, t } = await getStaticI18n();
   const landingCopy = getLandingCopy({ role: null, locale: locale === "en" ? "en" : "es", t });
 
-  let featuredEvents: Awaited<ReturnType<typeof EventService.getFeaturedPublicEvents>> = [];
   let events: Awaited<ReturnType<typeof EventService.getPublicEvents>>["events"] = [];
   let totalRegistrations = 0;
 
   try {
-    const [featured, publicResult] = await Promise.all([
-      EventService.getFeaturedPublicEvents(8),
-      EventService.getPublicEvents({ page: 1, limit: 6 }),
-    ]);
-    featuredEvents = featured;
+    const publicResult = await EventService.getPublicEvents({ page: 1, limit: 6 });
     events = publicResult.events;
     totalRegistrations = publicResult.totalRegistrations;
   } catch (error) {
@@ -41,17 +39,32 @@ export default async function HomePage() {
   return (
     <MarketingMotionProvider>
       <div id="top" className="relative min-h-screen overflow-x-clip bg-background">
+        {/* 1. Header / Barra de Navegación */}
         <PublicHeader />
 
+        {/* 2. Hero Section con titular, avatares y CTAs */}
         <SessionAwareHero formattedRegistrations={formattedRegistrations} />
 
-        <FeaturedEventsCarousel events={featuredEvents} t={t} locale={locale} />
+        {/* 3. Cuadrícula de 6 Eventos con Píldoras de Categorías (Datos reales de DB + Fallback de alta fidelidad) */}
+        <EventsCatalogSection dbEvents={events} locale={locale} />
 
-        <EventsShowcase events={events} t={t} locale={locale} />
+        {/* 4. Experiencias y eventos de primer nivel en Enquiva (Galería Cinema Tech + 3 Tarjetas de organizadores) */}
+        <PremierExperiencesSection />
 
-        <FeaturesSection t={t} copy={landingCopy} />
+        {/* 5. Recomendados y Próximos Lanzamientos (Tiras horizontales con badges y tickets) */}
+        <UpcomingLaunchesSection />
 
-        <Footer t={t} copy={landingCopy} />
+        {/* 6. Sección Oscura de Impacto y Comunidad (2 fotos gigantes, métricas +50k, CTAs) */}
+        <ImpactCommunitySection />
+
+        {/* 7. Testimonios: Tú puedes ser la próxima historia de éxito (3 tarjetas con 5 estrellas) */}
+        <SuccessStoriesSection />
+
+        {/* 8. Footer Integral */}
+        <Footer copy={landingCopy} />
+
+        {/* 9. Botón flotante Scroll To Top */}
+        <ScrollToTopButton />
       </div>
     </MarketingMotionProvider>
   );

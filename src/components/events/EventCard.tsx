@@ -12,7 +12,9 @@ import {
   XCircle,
   Video,
   Globe,
+  QrCode,
 } from "lucide-react";
+
 import { EventCoverFrame, EventCoverPlaceholder } from "@/components/events/EventCoverFrame";
 import { LiveAttendeeCount } from "@/components/events/LiveAttendeeCount";
 import type { Event } from "@/lib/db/schema";
@@ -155,83 +157,59 @@ export function EventCard({
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-14 bg-gradient-to-t from-black/30 to-transparent" />
 
-        {/* Category & Modality badges */}
-        <div className="absolute left-3 top-3 z-30 flex flex-wrap items-center gap-1.5">
-          <span
-            className={cn(
-              "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm border border-white/10 backdrop-blur-md",
-              categoryMeta?.colorClass || categoryColor(event.category),
-            )}
-          >
-            <CategoryIcon slug={event.category} className="h-3.5 w-3.5 shrink-0" />
+        {/* Category badge top-left */}
+        <div className="absolute left-3 top-3 z-30 flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/65 px-2.5 py-1 text-[11px] font-bold text-white shadow-xs backdrop-blur-md">
+            <CategoryIcon slug={event.category} className="h-3.5 w-3.5 shrink-0 text-[#FF6B00]" />
             <span>{categoryMeta?.label || categoryLabel(event.category, locale)}</span>
           </span>
+        </div>
 
-          <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white shadow-xs backdrop-blur-md">
+        {/* Modality badge top-right */}
+        <div className="absolute right-3 top-3 z-30 flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/65 px-2.5 py-1 text-[11px] font-medium text-white shadow-xs backdrop-blur-md">
             {isVirtual ? (
               <>
-                <Video className="h-3 w-3 text-cyan-400" />
+                <span className="h-2 w-2 rounded-full bg-cyan-400" />
                 <span>Online</span>
+              </>
+            ) : (event as { modality?: string }).modality === "hybrid" ? (
+              <>
+                <span className="h-2 w-2 rounded-full bg-purple-400" />
+                <span>Híbrido</span>
               </>
             ) : (
               <>
-                <MapPin className="h-3 w-3 text-emerald-400" />
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
                 <span>Presencial</span>
               </>
             )}
           </span>
         </div>
 
-        {/* Featured badge */}
-        {event.isFeatured && (
-          <div className="absolute right-3 top-3 z-30">
-            <span className="rounded-full bg-accent/90 border border-white/15 px-2.5 py-1 text-xs font-semibold text-accent-foreground shadow-sm backdrop-blur-md">
-              {t("common.featured")}
-            </span>
-          </div>
-        )}
-
-        {/* Estado personal del usuario; separado del estado público del evento. */}
-        {hasRegistration && viewerStatusMeta && ViewerStatusIcon && (
-          <div
-            className={cn(
-              "absolute right-3 z-30 flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold shadow-md backdrop-blur-md",
-              viewerStatusMeta.tone,
-              event.isFeatured ? "top-12" : "top-3",
-            )}
-          >
-            <ViewerStatusIcon className="h-3.5 w-3.5" aria-hidden="true" />
-            {viewerStatusMeta.label}
-          </div>
-        )}
-
+        {/* Date badge bottom-left */}
         <div className="absolute bottom-3 left-3 z-30 flex items-center gap-1.5">
-          <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/45 px-2.5 py-1 text-[11px] font-medium text-white shadow-sm backdrop-blur-md">
-            <Calendar className="h-3 w-3" />
-            {formatEventDateShort(event.date, locale)}
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/75 px-2.5 py-1 text-[11px] font-medium text-white shadow-xs backdrop-blur-md">
+            <Calendar className="h-3 w-3 text-white/90" />
+            <span>{formatEventDateShort(event.date, locale)}</span>
           </span>
-          {event.schedules && event.schedules.length > 1 && (
-            <span className="inline-flex items-center rounded-full border border-white/20 bg-black/55 px-2 py-0.5 text-[10px] font-bold text-amber-300 shadow-sm backdrop-blur-md">
-              {event.schedules.length} turnos
-            </span>
-          )}
         </div>
 
-        {/* Price badge */}
+        {/* Price badge bottom-right */}
         <div className="absolute bottom-3 right-3 z-30">
           {event.price != null && Number(event.price) > 0 ? (
-            <span className="inline-flex items-center rounded-full border border-white/20 bg-black/70 px-2.5 py-0.5 text-[11px] font-bold text-white shadow-xs backdrop-blur-md">
+            <span className="inline-flex items-center rounded-full border border-white/20 bg-black/90 px-3 py-1 text-xs font-black text-[#FF6B00] shadow-xs backdrop-blur-md">
               S/ {Number(event.price).toFixed(2)}
             </span>
           ) : (
-            <span className="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-950/80 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300 shadow-xs backdrop-blur-md">
+            <span className="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-950/90 px-3 py-1 text-xs font-bold text-emerald-300 shadow-xs backdrop-blur-md">
               Gratis
             </span>
           )}
         </div>
 
         {isEventExpired && (
-          <div className="absolute inset-0 flex items-end p-3 z-30 bg-black/10 backdrop-blur-[1px]">
+          <div className="absolute inset-0 flex items-end p-3 z-30 bg-black/40 backdrop-blur-[1px]">
             <span className="inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/90 px-2.5 py-1 text-xs font-semibold text-destructive-foreground shadow-sm">
               <Lock className="h-3.5 w-3.5" />
               {t("register.registrationClosed")}
@@ -242,120 +220,127 @@ export function EventCard({
 
       {/* Content */}
       <div className="flex flex-1 flex-col p-4 sm:p-5">
+        {/* Registration status badge if applicable */}
+        {hasRegistration ? (
+          <div className="mb-2">
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+              <BadgeCheck className="h-3 w-3" />
+              <span>Te has registrado</span>
+            </span>
+          </div>
+        ) : !isEventExpired && !isFull ? (
+          <div className="mb-2">
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              <span>Inscripciones abiertas</span>
+            </span>
+          </div>
+        ) : null}
+
         <h3
           className={cn(
-            "mb-2 line-clamp-2 font-display text-lg sm:text-xl font-bold leading-snug text-foreground transition-colors group-hover:text-primary",
+            "line-clamp-2 font-display text-base sm:text-lg font-extrabold leading-snug text-foreground transition-colors group-hover:text-primary",
             isEventExpired && "text-muted-foreground",
           )}
         >
           {event.title}
         </h3>
 
-        <p className="mb-4 line-clamp-2 text-xs sm:text-sm leading-relaxed text-muted-foreground">
-          {truncate(event.description, 120)}
+        <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+          {truncate(event.description, 130)}
         </p>
 
-        {/* Meta */}
-        <div className="space-y-2 text-xs text-muted-foreground mt-auto">
-          {!hideDateMeta && (
-            <div className="flex items-center gap-2.5 rounded-2xl border border-border/30 bg-secondary/5 dark:bg-secondary/5 px-3 py-2 transition-all hover:bg-secondary/15 hover:border-border/50">
-              <span className="inline-flex h-6.5 w-6.5 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/10 shrink-0">
-                <Calendar className="h-3.5 w-3.5 text-primary" />
-              </span>
-              <span className="font-semibold text-foreground/90 leading-none">
-                {formatEventDateShort(event.date, locale)}
-              </span>
-            </div>
-          )}
-
-          {/* Location */}
-          <div className="flex items-center gap-2.5 rounded-2xl border border-border/30 bg-secondary/5 dark:bg-secondary/5 px-3 py-2 transition-all hover:bg-secondary/15 hover:border-border/50">
-            <span className="inline-flex h-6.5 w-6.5 items-center justify-center rounded-xl bg-violet-500/10 text-violet-500 shrink-0 border border-violet-500/10 dark:text-violet-400">
-              <MapPin className="h-3.5 w-3.5 text-violet-500 dark:text-violet-400" />
+        {/* Meta Box idéntica a la captura */}
+        <div className="mt-4 space-y-2 rounded-2xl border border-border/70 bg-muted/20 p-3 text-xs text-muted-foreground dark:bg-muted/15">
+          {/* Fila 1: Fecha y Hora */}
+          <div className="flex items-center justify-between font-medium">
+            <span className="flex items-center gap-1.5 text-foreground/90">
+              <Calendar className="h-3.5 w-3.5 text-[#FF5500]" />
+              <span>{formatEventDateShort(event.date, locale)}</span>
             </span>
-            <span className="font-semibold text-foreground/80 leading-none truncate flex-1">
-              {isVirtual
-                ? t("common.virtualEvent")
-                : (event.location ?? t("common.locationTbd"))}
+            <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <Clock3 className="h-3 w-3 text-muted-foreground" />
+              <span>
+                {new Date(event.date).toLocaleTimeString(locale === "en" ? "en-US" : "es-PE", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                })}
+              </span>
             </span>
           </div>
 
-          {/* Capacity/Registered */}
-          <div className="flex items-center gap-2.5 rounded-2xl border border-border/30 bg-secondary/5 dark:bg-secondary/5 px-3 py-2 transition-all hover:bg-secondary/15 hover:border-border/50">
-            <span className="inline-flex h-6.5 w-6.5 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 shrink-0 border border-emerald-500/10 dark:text-emerald-400">
-              <Users className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" />
+          {/* Fila 2: Ubicación */}
+          <div className="flex items-center gap-1.5 text-foreground/80 truncate">
+            <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span className="truncate">
+              {isVirtual ? "Auditorio Principal & Zoom Live" : (event.location ?? "Ubicación por confirmar")}
             </span>
-            <span className="font-semibold text-foreground/80 leading-none truncate flex-1">
-              <LiveAttendeeCount
-                eventId={event.id}
-                initialCount={event.attendeeCount ?? 0}
-                capacity={event.capacity}
+          </div>
+
+          {/* Fila 3: Inscritos y Barra de Progreso */}
+          <div className="pt-1">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="flex items-center gap-1 font-semibold text-foreground/80">
+                <Users className="h-3 w-3 text-muted-foreground" />
+                <span>
+                  {event.attendeeCount ?? 0} / {event.capacity ?? 100} inscritos
+                </span>
+              </span>
+              <span className={cn(
+                "font-semibold",
+                (event.attendeeCount ?? 0) >= (event.capacity ?? 100)
+                  ? "text-destructive"
+                  : (event.capacity && (event.capacity - (event.attendeeCount ?? 0)) <= 10)
+                    ? "text-[#FF5500]"
+                    : "text-emerald-600 dark:text-emerald-400"
+              )}>
+                {(event.attendeeCount ?? 0) >= (event.capacity ?? 100)
+                  ? "Agotado"
+                  : (event.capacity && (event.capacity - (event.attendeeCount ?? 0)) <= 10)
+                    ? "Últimos cupos"
+                    : "Cupos libres"}
+              </span>
+            </div>
+
+            {/* Barra de progreso */}
+            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-border/60">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-all duration-500",
+                  (event.attendeeCount ?? 0) >= (event.capacity ?? 100)
+                    ? "bg-destructive"
+                    : (event.capacity && (event.capacity - (event.attendeeCount ?? 0)) <= 10)
+                      ? "bg-[#FF5500]"
+                      : "bg-emerald-500"
+                )}
+                style={{
+                  width: `${Math.min(100, Math.round(((event.attendeeCount ?? 0) / (event.capacity ?? 100)) * 100))}%`,
+                }}
               />
-            </span>
-          </div>
-
-          {viewerStatusMeta && ViewerStatusIcon && (
-            <div
-              className={cn(
-                "flex items-center gap-2.5 rounded-2xl border px-3 py-2",
-                viewerStatusMeta.tone,
-              )}
-            >
-              <span className="inline-flex h-6.5 w-6.5 shrink-0 items-center justify-center rounded-xl bg-background/60">
-                <ViewerStatusIcon className="h-3.5 w-3.5" aria-hidden="true" />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-[10px] font-semibold uppercase tracking-wide opacity-70">
-                  {t("public.events.viewerStatus.label")}
-                </span>
-                <span className="block truncate font-semibold leading-tight">
-                  {viewerStatusMeta.label}
-                </span>
-              </span>
             </div>
-          )}
+          </div>
         </div>
 
-        <div className="mt-4 border-t border-border/50 pt-4">
-          {!isEventExpired ? (
-            <div
-              className={cn(
-                "inline-flex w-full items-center justify-between rounded-2xl border px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-all duration-300 shadow-sm",
-                paymentNeedsAttention
-                  ? "border-rose-500/25 bg-rose-500/5 text-rose-600 dark:text-rose-400 group-hover:bg-rose-600 group-hover:text-white group-hover:border-rose-600"
-                  : viewerStatus === "reserved"
-                    ? "border-amber-500/25 bg-amber-500/5 text-amber-700 dark:text-amber-400 group-hover:bg-amber-600 group-hover:text-white group-hover:border-amber-600"
-                    : hasRegistration
-                  ? "border-emerald-500/25 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-600 group-hover:shadow-md group-hover:shadow-emerald-500/10"
-                  : "border-primary/25 bg-primary/5 text-primary group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary group-hover:shadow-lg group-hover:shadow-primary/20",
-              )}
-            >
-              <span className="font-bold flex items-center gap-1.5">
-                {hasRegistration ? (
-                  <>
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse group-hover:bg-white transition-colors duration-300" />
-                    {viewerCta}
-                  </>
-                ) : (
-                  t("common.view")
-                )}
-              </span>
-              <ArrowUpRight
-                className="h-4 w-4 transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-              />
+        {/* Botón de acción al pie de la tarjeta */}
+        <div className="mt-4 pt-1">
+          {hasRegistration ? (
+            <div className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#FF5500] py-2.5 text-center text-xs font-bold text-white shadow-xs transition-all hover:bg-[#E04B00]">
+              <QrCode className="h-4 w-4" />
+              <span>VER MI PASE CON QR</span>
+            </div>
+          ) : !isEventExpired ? (
+            <div className="flex w-full items-center justify-center gap-1.5 rounded-2xl border border-border/80 bg-[#FAF4ED] py-2.5 text-center text-xs font-bold text-[#A06132] shadow-2xs transition-all hover:bg-[#F3ECE2] dark:bg-card dark:text-foreground dark:hover:bg-muted">
+              <span>VER DETALLES</span>
+              <span className="transition-transform group-hover:translate-x-0.5">➔</span>
             </div>
           ) : (
-            <div className="inline-flex w-full items-center justify-center rounded-2xl border border-destructive/20 bg-destructive/[0.08] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-destructive/90">
+            <div className="flex w-full items-center justify-center rounded-2xl border border-destructive/20 bg-destructive/10 py-2.5 text-center text-xs font-bold text-destructive">
               {t("register.eventExpired")}
             </div>
           )}
-
-          {!isEventExpired && isFull && (
-            <div className="mt-2 inline-flex w-full items-center justify-center rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-700 dark:text-amber-400">
-              {t("register.eventFull")}
-            </div>
-          )}
         </div>
+
       </div>
     </article>
   );

@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, Calendar, Flame, Sparkles, Star, X, Zap, Clock } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ArrowRight, Calendar, Clock, Flame, Sparkles, Star, X, Zap } from "lucide-react";
 import type { EventSpotlightData } from "@/services/events/event-spotlight.service";
 
 export const BANNER_OFFSET_VAR = "--enquiva-banner-offset";
@@ -24,32 +23,13 @@ function dismissKey(eventId: string) {
   return `enquiva-spotlight-dismissed:${eventId}`;
 }
 
-const badgeVariants = {
-  fire: {
-    badge: "bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-800 dark:text-amber-200 border-amber-500/30",
-    dot: "bg-orange-600 dark:bg-orange-400 shadow-orange-500/50",
-    icon: Flame,
-    cta: "bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-400 text-white dark:text-gray-950 shadow-amber-500/20",
-  },
-  bolt: {
-    badge: "bg-gradient-to-r from-rose-500/20 to-amber-500/20 text-rose-800 dark:text-rose-200 border-rose-500/30",
-    dot: "bg-rose-600 dark:bg-rose-400 shadow-rose-500/50 animate-pulse",
-    icon: Zap,
-    cta: "bg-rose-600 hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-400 text-white dark:text-gray-950 shadow-rose-500/20",
-  },
-  clock: {
-    badge: "bg-gradient-to-r from-sky-500/20 to-blue-500/20 text-sky-800 dark:text-sky-200 border-sky-500/30",
-    dot: "bg-sky-600 dark:bg-sky-400 shadow-sky-500/50",
-    icon: Clock,
-    cta: "bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-gray-950 shadow-sky-500/20",
-  },
-  star: {
-    badge: "bg-gradient-to-r from-amber-500/25 to-yellow-500/25 text-amber-900 dark:text-yellow-200 border-yellow-500/40",
-    dot: "bg-amber-600 dark:bg-yellow-400 shadow-yellow-500/50",
-    icon: Star,
-    cta: "bg-gradient-to-r from-amber-600 to-yellow-600 hover:opacity-95 text-white dark:text-gray-950 shadow-yellow-500/25",
-  },
-};
+function getBadgeIcon(variant?: string, type?: string) {
+  if (variant === "fire" || type === "popular") return Flame;
+  if (variant === "bolt") return Zap;
+  if (variant === "clock" || type === "upcoming") return Clock;
+  if (variant === "star" || type === "pinned") return Star;
+  return Sparkles;
+}
 
 export function EventSpotlightBanner({
   event,
@@ -62,12 +42,14 @@ export function EventSpotlightBanner({
   const [dismissed, setDismissed] = useState(false);
   const barRef = useRef<HTMLElement>(null);
 
+  const isCurrentEventPage = Boolean(
+    event && pathname.startsWith(`/events/${event.slug}`),
+  );
+
   const shouldShow =
     event &&
     (isPreview ||
-      (pathname !== "/maintenance" &&
-        !pathname.startsWith("/events/" + event.slug) &&
-        !dismissed));
+      (pathname !== "/maintenance" && !dismissed));
 
   useEffect(() => {
     if (isPreview || !event) return;
@@ -80,7 +62,7 @@ export function EventSpotlightBanner({
   }, [event, isPreview]);
 
   useEffect(() => {
-    if (isPreview) return; // No alterar padding global si es solo preview en admin
+    if (isPreview) return;
 
     if (!shouldShow) {
       clearBannerOffset();
@@ -106,56 +88,98 @@ export function EventSpotlightBanner({
 
   if (!shouldShow || !event) return null;
 
-  const variant = badgeVariants[event.badge.variant] || badgeVariants.star;
-  const BadgeIcon = variant.icon;
+  const BadgeIcon = getBadgeIcon(event.badge?.variant, event.badge?.type);
+  const cleanBadgeLabel =
+    event.badge?.label?.replace(/^[\p{Emoji}\s]+/u, "").trim() || "COMIENZA PRONTO";
+
+  let dateFormatted = "";
+  let timeFormatted = "";
+
+  if (event.date) {
+    try {
+      const dateObj = new Date(event.date);
+      dateFormatted = dateObj.toLocaleDateString("es-PE", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+      timeFormatted = dateObj.toLocaleTimeString("es-PE", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+      if (event.endDate) {
+        const endObj = new Date(event.endDate);
+        const endTimeFormatted = endObj.toLocaleTimeString("es-PE", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        });
+        timeFormatted = `${timeFormatted} - ${endTimeFormatted}`;
+      }
+    } catch {
+      dateFormatted = "";
+      timeFormatted = "";
+    }
+  }
 
   const content = (
-    <div className="relative mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-3 py-2 sm:gap-4 sm:px-6 lg:px-8">
-      {/* Lado izquierdo / Central: Badge + Titulo + Mensaje */}
-      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-        {/* Badge Dinámico */}
-        <span
-          className={cn(
-            "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase shadow-sm",
-            variant.badge,
-          )}
-        >
-          <span className={cn("h-1.5 w-1.5 rounded-full", variant.dot)} />
+    <div className="relative mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-2 text-xs sm:text-sm text-white">
+      {/* Lado izquierdo / Central: Badge + Titulo + Fecha + Hora */}
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 font-medium">
+        {/* Badge Dinámico en píldora con fondo oscuro translúcido */}
+        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-black/20 px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-white backdrop-blur-xs">
+          <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
           <BadgeIcon className="h-3 w-3" />
-          <span>{event.badge.label.replace(/^[\p{Emoji}\s]+/u, "").trim() || event.badge.label}</span>
+          <span className="uppercase">{cleanBadgeLabel}</span>
         </span>
 
-        {/* Separador sutil en desktop */}
-        <span className="hidden h-3.5 w-px bg-border/80 sm:inline-block" />
+        {/* Título del evento */}
+        <span
+          className="truncate font-bold text-white select-text"
+          title={event.title}
+        >
+          {event.title}
+        </span>
 
-        {/* Título (solo texto informativo) y Snippet */}
-        <div className="flex min-w-0 items-center gap-2 overflow-hidden">
-          <span
-            className="truncate text-xs sm:text-sm font-semibold text-foreground select-text"
-            title={event.title}
-          >
-            {event.title}
-          </span>
-
-          {event.highlightMessage && (
-            <span className="hidden md:inline-flex items-center text-xs font-medium text-muted-foreground truncate">
-              — {event.highlightMessage}
+        {dateFormatted && (
+          <>
+            <span className="hidden opacity-60 sm:inline">•</span>
+            <span className="flex shrink-0 items-center gap-1 text-white/95">
+              <Calendar className="h-3.5 w-3.5" />
+              {dateFormatted}
             </span>
-          )}
-        </div>
+          </>
+        )}
+
+        {timeFormatted && (
+          <>
+            <span className="hidden opacity-60 sm:inline">•</span>
+            <span className="flex shrink-0 items-center gap-1 text-white/95">
+              <Clock className="h-3.5 w-3.5" />
+              {timeFormatted}
+            </span>
+          </>
+        )}
       </div>
 
-      {/* Lado derecho: Botón CTA + Cerrar */}
+      {/* Lado derecho: Botón Reservar cupo + Cerrar */}
       <div className="flex shrink-0 items-center gap-2">
         <Link
-          href={`/events/${event.slug}`}
-          className={cn(
-            "group inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold transition-all duration-200 active:scale-95 shadow-sm",
-            variant.cta,
-          )}
+          href={`/events/${event.slug}#registro`}
+          onClick={(e) => {
+            if (isCurrentEventPage && typeof window !== "undefined") {
+              const el = document.getElementById("registro");
+              if (el) {
+                e.preventDefault();
+                el.scrollIntoView({ behavior: "smooth", block: "start" });
+              }
+            }
+          }}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-3.5 py-1 text-xs font-bold text-[#FF5500] shadow-xs transition-all hover:bg-white/90 hover:shadow-md cursor-pointer"
         >
-          <span>Ver evento</span>
-          <ArrowRight className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5" />
+          <span>Reservar cupo</span>
+          <ArrowRight className="h-3 w-3" />
         </Link>
 
         {!isPreview && (
@@ -168,7 +192,7 @@ export function EventSpotlightBanner({
               } catch {}
               setDismissed(true);
             }}
-            className="rounded-md p-1 text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-colors"
+            className="rounded-full p-1 text-white/80 hover:bg-black/20 hover:text-white transition-colors cursor-pointer"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -179,9 +203,7 @@ export function EventSpotlightBanner({
 
   if (isPreview) {
     return (
-      <div
-        className="w-full overflow-hidden rounded-xl border border-border/80 bg-background/95 backdrop-blur-md shadow-sm"
-      >
+      <div className="w-full overflow-hidden rounded-xl bg-[#FF5500] text-white shadow-xs">
         {content}
       </div>
     );
@@ -192,10 +214,8 @@ export function EventSpotlightBanner({
       ref={barRef}
       role="banner"
       aria-label="Evento destacado"
-      className="fixed inset-x-0 top-0 z-[45] w-full overflow-hidden border-b border-border/60 bg-background/90 backdrop-blur-md shadow-sm supports-[backdrop-filter]:bg-background/80"
+      className="fixed inset-x-0 top-0 z-[45] w-full overflow-hidden bg-[#FF5500] text-white shadow-xs"
     >
-      {/* Acento superior sutil */}
-      <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent opacity-80" />
       {content}
     </header>
   );

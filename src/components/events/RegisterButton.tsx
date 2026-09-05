@@ -18,7 +18,8 @@ import {
   Calendar, 
   MapPin, 
   Info,
-  Sparkles
+  Sparkles,
+  ArrowRight
 } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import Link from "next/link";
@@ -73,6 +74,8 @@ interface RegisterButtonProps {
     date: string;
     endDate?: string | null;
   }> | null;
+  buttonText?: string;
+  buttonClassName?: string;
 }
 
 export function RegisterButton({
@@ -80,15 +83,17 @@ export function RegisterButton({
   isAuthenticated,
   isRegistrationClosed = false,
   waitlistAvailable = false,
-  closedReason,
+  closedReason = null,
   hasTransport = false,
-  currentStatus,
+  currentStatus = null,
   registrationId,
   transportRoutes = [],
   eventPrice = 0,
   paymentStatus = null,
   eventSlug,
-  schedules = [],
+  schedules = null,
+  buttonText,
+  buttonClassName,
 }: RegisterButtonProps) {
   const router = useRouter();
   const t = useTranslations();
@@ -619,14 +624,25 @@ export function RegisterButton({
           }
         }}
         disabled={isPending}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 shadow-sm"
+        className={
+          buttonClassName ||
+          "flex w-full items-center justify-center gap-2 rounded-xl bg-[#FF5500] py-3.5 text-base font-bold text-white transition-all hover:bg-[#E04B00] shadow-md hover:shadow-lg active:scale-98 cursor-pointer"
+        }
       >
         {isPending ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-5 w-5 animate-spin" />
         ) : waitlistAvailable ? (
           t("register.joinWaitlist")
+        ) : buttonText ? (
+          <span className="flex items-center gap-2">
+            <span>{buttonText}</span>
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </span>
         ) : (
-          t("register.registerNow")
+          <span className="flex items-center gap-2">
+            <span>{t("register.registerNow")}</span>
+            <ArrowRight className="h-4 w-4" />
+          </span>
         )}
       </button>
 

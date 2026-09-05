@@ -1,107 +1,201 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Star, Mail, CheckCircle2, Globe2 } from "lucide-react";
 import { BrandLogo } from "@/components/shared/BrandLogo";
-import { BrandText, PublicContactBlock, LegalLinks } from "@/components/shared/BrandText";
-import { ScrollToTopButton } from "@/components/shared/ScrollToTopButton";
 import type { LandingCopy } from "@/lib/navigation/landing-audience";
 
 interface FooterProps {
-  t: (key: string) => string;
-  copy: LandingCopy;
+  copy?: LandingCopy;
 }
 
-export function Footer({ t, copy }: FooterProps) {
-  return (
-    <footer
-      className="px-4 pb-8 pt-4 sm:px-6"
-      data-aos="fade-up"
-      data-aos-delay="80"
-    >
-      <div className="mx-auto max-w-7xl overflow-hidden rounded-[1.8rem] border border-border/88 bg-card/80 shadow-lg backdrop-blur-sm">
-        <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[1.2fr_0.8fr_0.8fr_1fr] lg:gap-10 lg:p-10">
-          <div>
-            <BrandLogo href="/" size="sm" showText className="mb-4" />
+export function Footer({ copy }: FooterProps = {}) {
+  const [email, setEmail] = useState("");
+  const [isSubscribed, setIsSubscribed] = useState(false);
 
-            <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-              {t("public.home.footerTagline")}
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email) {
+      setIsSubscribed(true);
+      setEmail("");
+    }
+  };
+
+  return (
+    <footer className="border-t border-border/80 bg-[#F8F5EE] px-4 pb-12 pt-16 text-foreground transition-colors dark:bg-[#0C0C0F] sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        {/* Cuadrícula superior de 5 columnas */}
+        <div className="grid grid-cols-1 gap-10 pb-12 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+          {/* Columna 1: Marca y descripción */}
+          <div className="sm:col-span-2 md:col-span-3 lg:col-span-1">
+            <BrandLogo href="/" size="md" showText className="mb-4" />
+            <p className="max-w-xs text-xs leading-relaxed text-muted-foreground sm:text-sm">
+              Plataforma integral de gestión, venta de tickets y descubrimiento de experiencias inolvidables en Latinoamérica.
             </p>
 
-            <div className="mt-5 flex flex-wrap gap-2">
-              {["24/7", "Live", "Comunidad"].map((pill) => (
-                <span
-                  key={pill}
-                  className="rounded-full border border-border/80 bg-background px-3 py-1 text-xs font-medium text-muted-foreground"
-                >
-                  {pill}
-                </span>
-              ))}
+            <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-border/80 bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm">
+              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+              <span>4.9 / 5.0 en satisfacción</span>
             </div>
           </div>
 
+          {/* Columna 2: Descubre Enquiva */}
           <div>
-            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-foreground">
-              {t("public.home.footerExploreTitle")}
-            </h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              {copy.footerExploreLinks.map((link) => (
-                <li key={`${link.href}-${link.label}`}>
-                  <Link href={link.href} className="transition-colors hover:text-foreground">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
+            <h4 className="mb-4 text-xs font-bold uppercase tracking-wider text-foreground">
+              Descubre Enquiva
+            </h4>
+            <ul className="space-y-2.5 text-xs text-muted-foreground sm:text-sm">
+              <li>
+                <Link href="/events" className="transition-colors hover:text-primary">
+                  Guía de eventos
+                </Link>
+              </li>
+              <li>
+                <Link href="/events?category=tech" className="transition-colors hover:text-primary">
+                  Tecnología y Devs
+                </Link>
+              </li>
+              <li>
+                <Link href="/events?category=business" className="transition-colors hover:text-primary">
+                  Negocios y Startups
+                </Link>
+              </li>
+              <li>
+                <Link href="/events?category=art" className="transition-colors hover:text-primary">
+                  Arte y Festivales
+                </Link>
+              </li>
+              <li>
+                <Link href="/events" className="transition-colors hover:text-primary">
+                  Venta de tickets QR
+                </Link>
+              </li>
             </ul>
           </div>
 
+          {/* Columna 3: Enquiva Institucional */}
           <div>
-            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-foreground">
-              {t("public.home.footerAccountTitle")}
-            </h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              {copy.footerAccountLinks.map((link) => (
-                <li key={`${link.href}-${link.label}`}>
-                  <Link href={link.href} className="transition-colors hover:text-foreground">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
+            <h4 className="mb-4 text-xs font-bold uppercase tracking-wider text-foreground">
+              Enquiva
+            </h4>
+            <ul className="space-y-2.5 text-xs text-muted-foreground sm:text-sm">
+              <li>
+                <Link href="/pricing" className="transition-colors hover:text-primary">
+                  Sobre nosotros
+                </Link>
+              </li>
+              <li>
+                <Link href="/pricing" className="transition-colors hover:text-primary">
+                  Planes y Precios
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="transition-colors hover:text-primary">
+                  Contacto & Soporte
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms" className="transition-colors hover:text-primary">
+                  Términos y condiciones
+                </Link>
+              </li>
+              <li>
+                <Link href="/privacy" className="transition-colors hover:text-primary">
+                  Política de privacidad
+                </Link>
+              </li>
             </ul>
           </div>
 
-          <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-background to-accent/10 p-4 sm:p-5">
-            <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-foreground">
-              {t("public.home.footerContactTitle")}
-            </h3>
-            <p className="mb-4 text-sm text-muted-foreground">{t("public.home.footerContactDescription")}</p>
+          {/* Columna 4: Organizadores */}
+          <div>
+            <h4 className="mb-4 text-xs font-bold uppercase tracking-wider text-foreground">
+              Organizadores
+            </h4>
+            <ul className="space-y-2.5 text-xs text-muted-foreground sm:text-sm">
+              <li>
+                <Link href="/dashboard" className="transition-colors hover:text-primary">
+                  Crear un evento
+                </Link>
+              </li>
+              <li>
+                <Link href="/dashboard" className="transition-colors hover:text-primary">
+                  Solución de Ticketing
+                </Link>
+              </li>
+              <li>
+                <Link href="/dashboard" className="transition-colors hover:text-primary">
+                  Control de Accesos QR
+                </Link>
+              </li>
+              <li>
+                <Link href="/pricing" className="transition-colors hover:text-primary">
+                  Comisiones y Cobros
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="transition-colors hover:text-primary">
+                  Atención empresarial
+                </Link>
+              </li>
+            </ul>
+          </div>
 
-            <PublicContactBlock />
+          {/* Columna 5: Suscripción a Boletín */}
+          <div>
+            <h4 className="mb-4 text-xs font-bold uppercase tracking-wider text-foreground">
+              Boletín de Novedades
+            </h4>
+            <p className="mb-3 text-xs leading-relaxed text-muted-foreground">
+              Recibe invitaciones exclusivas, preventas tempranas y novedades cada semana.
+            </p>
 
-            <Link
-              href={copy.footerContactCta.href}
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              {copy.footerContactCta.label}
-              <ArrowRight className="h-4 w-4" />
+            {isSubscribed ? (
+              <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <span>¡Gracias por suscribirte!</span>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-2">
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="email"
+                    required
+                    placeholder="tu@correo.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full rounded-xl border border-border/90 bg-card py-2 pl-9 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full rounded-xl bg-primary py-2.5 text-xs font-bold text-primary-foreground shadow-md shadow-primary/25 transition-all duration-200 active:scale-98 hover:bg-primary/95 hover:shadow-lg hover:shadow-primary/35 hover:brightness-105 cursor-pointer"
+                >
+                  Suscribirme
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+
+        {/* Barra inferior de copyright y enlaces finales */}
+        <div className="flex flex-col items-center justify-between gap-4 border-t border-border/70 pt-8 text-xs text-muted-foreground sm:flex-row">
+          <p>© 2026 Enquiva Inc. Todos los derechos reservados.</p>
+          <div className="flex flex-wrap items-center gap-6">
+            <Link href="/privacy" className="hover:text-foreground transition-colors">
+              Privacidad
+            </Link>
+            <Link href="/terms" className="hover:text-foreground transition-colors">
+              Términos
+            </Link>
+            <Link href="/contact" className="hover:text-foreground transition-colors">
+              Ayuda
             </Link>
           </div>
         </div>
-
-        <div className="flex flex-col gap-3 border-t border-border/80 bg-background/70 px-6 py-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-10">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-            <p>
-              © {new Date().getFullYear()} <BrandText />. {t("public.home.footerBuilt")}
-            </p>
-            <LegalLinks
-              termsLabel={t("public.home.footerTerms")}
-              privacyLabel={t("public.home.footerPrivacy")}
-              className="inline-flex flex-wrap items-center gap-x-2 gap-y-1"
-            />
-          </div>
-        </div>
       </div>
-
-      {/* Floating circular Back-To-Top button */}
-      <ScrollToTopButton />
     </footer>
   );
 }

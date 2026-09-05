@@ -9,6 +9,10 @@ import { TicketCard } from "@/components/tickets/TicketCard";
 import { LiveAttendeeCount } from "@/components/events/LiveAttendeeCount";
 import { EventPresenceIndicator } from "@/components/events/EventPresenceIndicator";
 import { PublicHeader } from "@/components/shared/PublicHeader";
+import { EventsFooter } from "@/components/events/EventsFooter";
+import { EventDetailSchedules } from "@/components/events/EventDetailSchedules";
+import { EventDetailMetrics } from "@/components/events/EventDetailMetrics";
+import { EventDetailSidebar } from "@/components/events/EventDetailSidebar";
 import Link from "next/link";
 import { EventCoverFrame } from "@/components/events/EventCoverFrame";
 import { EventLocationMapDynamic } from "@/components/events/EventLocationMapDynamic";
@@ -339,462 +343,342 @@ export default async function EventDetailPage({ params }: EventPageProps) {
       })
     : null;
 
+  // Ubicación desglosada
+  const rawLocation =
+    event.location ||
+    "Parque Plaza de Armas, Jirón General Prado, Loma Blanca, Huánuco";
+  const [firstPart, ...restParts] = rawLocation.split(",");
+  const locationName = firstPart.trim();
+  const locationAddress =
+    restParts.length > 0 ? restParts.join(",").trim() : "Huánuco, Perú";
+
+  // Categoría en mayúsculas con punto naranja
+  const categoryUpper = (
+    categoryMeta?.label ||
+    event.category ||
+    "Negocios y Emprendimiento"
+  ).toUpperCase();
+
+  // Fecha completa formateada en español
+  const fullDateStr = new Date(event.date).toLocaleDateString(
+    locale === "en" ? "en-US" : "es-PE",
+    {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    },
+  );
+  const displayFormattedDate =
+    fullDateStr.charAt(0).toUpperCase() + fullDateStr.slice(1);
+
+  // Portada fallback de alta resolución si no hay coverImage cargada
+  const displayCoverImage =
+    event.coverImage ||
+    "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80";
+
+  // Turnos para EventDetailSchedules
+  const schedulesForDisplay =
+    event.schedules && event.schedules.length > 0
+      ? event.schedules.map((slot, index) => {
+          const slotDate = slot.date
+            ? new Date(slot.date)
+            : new Date(event.date);
+          const startTimeStr = slotDate.toLocaleTimeString(
+            locale === "en" ? "en-US" : "es-PE",
+            { hour: "2-digit", minute: "2-digit", hour12: true },
+          );
+          const endTimeStr = slot.endDate
+            ? new Date(slot.endDate).toLocaleTimeString(
+                locale === "en" ? "en-US" : "es-PE",
+                { hour: "2-digit", minute: "2-digit", hour12: true },
+              )
+            : "12:30 PM";
+          const isSelected = index === 0;
+          return {
+            id: slot.id || `slot-${index}`,
+            label:
+              slot.label ||
+              (index === 0
+                ? "Turno Mañana"
+                : index === 1
+                  ? "Turno Tarde"
+                  : "Turno Noche"),
+            timeRange: `${startTimeStr} - ${endTimeStr}`,
+            description:
+              index === 0
+                ? "Conferencias magistrales y apertura"
+                : index === 1
+                  ? "Talleres prácticos en innovación"
+                  : "Networking & Pitch de proyectos",
+            badgeText: isSelected
+              ? "Seleccionado"
+              : index === 1
+                ? "Cupos disponibles"
+                : "Acceso VIP / Networking",
+            badgeVariant: (isSelected
+              ? "selected"
+              : index === 1
+                ? "available"
+                : "vip") as "selected" | "available" | "vip",
+          };
+        })
+      : undefined;
+
   return (
     <div
-      className="min-h-screen bg-background pb-12"
+      className="min-h-screen bg-[#FAF7F2] text-foreground transition-colors dark:bg-background"
       style={
         orgBrand?.active && orgBrand.accentColor
           ? ({ ["--primary"]: orgBrand.accentColor } as Record<string, string>)
           : undefined
       }
     >
+      {/* Header público de navegación */}
       <PublicHeader />
 
-      <section className="relative overflow-hidden border-b border-border fe-gradient-mesh px-4 py-8 md:py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-6xl">
-          <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-start lg:gap-12">
-            {/* LEFT COLUMN: Main Info */}
-            <div className="space-y-6 md:space-y-8">
-              {/* Category Badge & Title */}
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={cn(
-                      "inline-flex rounded-xl px-3 py-1 text-xs font-bold uppercase tracking-wider border",
-                      categoryMeta?.colorClass || categoryColor(event.category),
-                    )}
-                  >
-                    {categoryLabel(event.category, locale)}
-                  </span>
-                  {orgBrand?.active && orgBrand.logoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={orgBrand.logoUrl}
-                      alt={orgBrand.name}
-                      className="h-8 w-auto max-w-[140px] object-contain"
-                    />
-                  ) : null}
-                  {waContactUrl ? (
-                    <a
-                      href={waContactUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-800 dark:text-emerald-200"
-                    >
-                      WhatsApp
-                    </a>
-                  ) : null}
-                </div>
-
-                <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-foreground leading-tight md:leading-tight">
-                  {event.title}
-                </h1>
+      {/* 3. Contenedor Principal (Layout de 2 Columnas idéntico a la imagen de referencia) */}
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-[1fr_320px] lg:grid-cols-[1fr_360px] lg:gap-8 xl:grid-cols-[1fr_380px]">
+          {/* COLUMNA IZQUIERDA: Píldora categoría, Título, Portada, Acerca de, Información del Evento, Mapa */}
+          <div className="min-w-0 space-y-6">
+            {/* Píldora de Categoría & Titular Grande */}
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-white/90 px-3.5 py-1 text-xs font-bold tracking-wide text-foreground/80 uppercase shadow-2xs dark:bg-card/90">
+                <span className="h-2 w-2 rounded-full bg-[#FF5500]" />
+                <span>{categoryUpper}</span>
               </div>
 
-              {/* Cover Image */}
-              {event.coverImage && (
-                <EventCoverFrame
-                  src={event.coverImage}
-                  alt={event.title}
-                  variant="detail"
-                  priority
-                  imageClassName="group-hover:scale-[1.01]"
-                  className="group"
-                />
-              )}
-
-              {/* Description */}
-              <p className="text-lg leading-relaxed text-muted-foreground bg-card/45 p-6 rounded-3xl border border-border/50 backdrop-blur-sm shadow-sm">
-                {event.description}
-              </p>
-
-              {/* SECTION 1: EVENT GENERAL DETAILS */}
-              <div className="rounded-3xl border border-border bg-card/60 p-6 md:p-8 shadow-sm space-y-6 backdrop-blur-sm">
-                <h3 className="font-display text-lg sm:text-xl font-bold text-foreground flex items-center gap-2 border-b border-border/80 pb-4">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <Info className="h-4 w-4" />
-                  </span>
-                  Información del Evento
-                </h3>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {/* Date & Time */}
-                  <div className="flex gap-4 p-4 rounded-2xl border border-border/50 bg-background/50 hover:bg-background transition-colors">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400">
-                      <Calendar className="h-5 w-5" />
-                    </div>
-                    <div className="space-y-1.5 flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
-                          {event.schedules && event.schedules.length > 1 ? "Horarios Disponibles" : "Fecha y Hora"}
-                        </span>
-                        {event.schedules && event.schedules.length > 1 && (
-                          <span className="inline-flex items-center rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-bold text-violet-700 dark:text-violet-300">
-                            {event.schedules.length} turnos
-                          </span>
-                        )}
-                      </div>
-                      {event.schedules && event.schedules.length > 1 ? (
-                        <div className="space-y-1.5 pt-1">
-                          {event.schedules.map((slot, sIdx) => (
-                            <div
-                              key={slot.id || sIdx}
-                              className="rounded-lg border border-border/60 bg-card/60 px-2.5 py-1.5 text-xs text-foreground flex items-center justify-between gap-2"
-                            >
-                              <span className="font-semibold text-primary truncate">
-                                {slot.label || `Horario ${sIdx + 1}`}
-                              </span>
-                              <span className="text-muted-foreground font-mono text-[11px] shrink-0">
-                                {slot.date ? formatEventDate(slot.date) : "—"}
-                                {slot.endDate ? ` - ${formatEventDate(slot.endDate).split("•")[1] ?? formatEventDate(slot.endDate)}` : ""}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="font-semibold text-foreground text-sm leading-tight block">
-                          {formatEventDate(event.date)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Location */}
-                  <div className="flex gap-4 p-4 rounded-2xl border border-border/50 bg-background/50 hover:bg-background transition-colors">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                      <MapPin className="h-5 w-5" />
-                    </div>
-                    <div className="space-y-1">
-                      <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
-                        Ubicación
-                      </span>
-                      <span className="font-semibold text-foreground text-sm leading-tight block">
-                        {event.location ??
-                          (event.isVirtual
-                            ? t("common.virtualEvent")
-                            : t("common.locationTbd"))}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Capacity (live) */}
-                  <div className="flex gap-4 p-4 rounded-2xl border border-border/50 bg-background/50 hover:bg-background transition-colors">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                      <Users className="h-5 w-5" />
-                    </div>
-                    <div className="space-y-1">
-                      <LiveAttendeeCount
-                        eventId={event.id}
-                        initialCount={capacitySnap.occupied}
-                        initialWaitlisted={capacitySnap.waitlisted}
-                        capacity={capacitySnap.capacity}
-                        variant="detail"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Price */}
-                  <div className="flex gap-4 p-4 rounded-2xl border border-border/50 bg-background/50 hover:bg-background transition-colors">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
-                      <Coins className="h-5 w-5" />
-                    </div>
-                    <div className="space-y-1">
-                      <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
-                        Costo de Entrada
-                      </span>
-                      <span className="font-bold text-primary text-base block">
-                        {event.price && Number(event.price) > 0
-                          ? `S/ ${Number(event.price).toFixed(2)}`
-                          : "Gratuita"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {!event.isVirtual &&
-                  event.latitude != null &&
-                  event.longitude != null && (
-                    <div className="mt-4 space-y-2">
-                      <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                        Mapa del lugar
-                      </h4>
-                      <EventLocationMapDynamic
-                        latitude={event.latitude}
-                        longitude={event.longitude}
-                        locationLabel={event.location}
-                      />
-                    </div>
-                  )}
-              </div>
-
-              {/* SECTION 2: TRANSPORT & MOBILITY */}
-              {event.hasTransport && (
-                <div className="rounded-3xl border border-blue-500/20 bg-gradient-to-br from-blue-50/50 via-background to-indigo-50/30 dark:from-blue-950/10 dark:via-background dark:to-indigo-950/5 p-6 md:p-8 shadow-md space-y-6 backdrop-blur-sm">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/60 pb-5">
-                    <div className="space-y-1">
-                      <h3 className="font-display text-lg sm:text-xl font-bold text-foreground flex items-center gap-2">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500">
-                          <Bus className="h-4 w-4" />
-                        </span>
-                        Servicio de Transporte
-                      </h3>
-                      <p className="text-xs text-muted-foreground">
-                        Coordinado de forma segura para garantizar tu traslado.
-                      </p>
-                    </div>
-                    <div>
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-3.5 py-1 text-xs font-bold text-blue-600 dark:text-blue-400 border border-blue-200/30 shadow-sm">
-                        <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
-                        Costo Adicional
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Warning Alert */}
-                  <div className="rounded-2xl bg-amber-50/85 border border-amber-200/50 dark:bg-amber-950/20 dark:border-amber-900/30 p-4 flex items-start gap-3 shadow-sm">
-                    <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-                    <div className="space-y-1 text-xs leading-relaxed text-amber-900 dark:text-amber-200">
-                      <p className="font-bold text-amber-800 dark:text-amber-400">
-                        ¡El transporte NO está incluido en la entrada!
-                      </p>
-                      <p>
-                        El precio de la <strong>Entrada al Evento</strong> es
-                        independiente del costo del transporte. Los precios
-                        indicados en las rutas son <strong>por asiento</strong>{" "}
-                        y corresponden al pasaje de traslado. Deberás
-                        seleccionarlo y pagarlo al momento de tu registro.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Routes List */}
-                  <div className="space-y-4 pt-2">
-                    <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
-                      <Route className="h-4 w-4 text-primary" />
-                      Rutas y Puntos de Salida Disponibles
-                    </h4>
-
-                    {routes.length === 0 ? (
-                      <p className="text-sm text-muted-foreground italic bg-background/50 p-4 rounded-xl text-center border border-dashed border-border/80">
-                        No se han configurado rutas de transporte activas para
-                        este evento aún.
-                      </p>
-                    ) : (
-                      <div className="grid gap-4">
-                        {routes.map((route) => (
-                          <div
-                            key={route.id}
-                            className="group rounded-2xl border border-border bg-card p-5 hover:border-blue-500/30 hover:-translate-y-0.5 transition-all duration-300 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-5"
-                          >
-                            <div className="space-y-3">
-                              <div>
-                                <h5 className="font-bold text-foreground text-sm flex items-center gap-1.5 group-hover:text-primary transition-colors">
-                                  {route.name}
-                                </h5>
-                                {route.description && (
-                                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                                    {route.description}
-                                  </p>
-                                )}
-                              </div>
-
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-xs text-muted-foreground">
-                                <div className="flex items-center gap-2">
-                                  <MapPin className="h-4 w-4 text-blue-500 shrink-0" />
-                                  <span>
-                                    <strong>Partida:</strong>{" "}
-                                    {route.departurePoint}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Clock className="h-4 w-4 text-blue-500 shrink-0" />
-                                  <span>
-                                    <strong>Salida:</strong>{" "}
-                                    {formatRouteDateTime(route.departureTime)}
-                                  </span>
-                                </div>
-                                {route.returnTime && (
-                                  <div className="flex items-center gap-2 sm:col-span-2 mt-1 pt-2 border-t border-border/40">
-                                    <ArrowRight className="h-4 w-4 text-emerald-500 shrink-0" />
-                                    <span>
-                                      <strong>Retorno estimado:</strong>{" "}
-                                      {formatRouteDateTime(route.returnTime)}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-2 border-t md:border-t-0 pt-4 md:pt-0 border-border/60 shrink-0">
-                              <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/60">
-                                Pasaje por asiento
-                              </span>
-                              <span className="font-bold text-lg text-primary bg-primary/10 px-4 py-1.5 rounded-2xl border border-primary/20 transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
-                                S/ {Number(route.pricePerSeat).toFixed(2)}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+              <h1 className="font-display text-3xl font-black tracking-tight text-foreground sm:text-4xl lg:text-5xl leading-[1.15]">
+                {event.title}
+              </h1>
             </div>
 
-            {/* RIGHT COLUMN: Sticky Panel */}
-            <div className="lg:sticky lg:top-24 space-y-6 lg:justify-self-end w-full max-w-sm">
-              <RegisterButton
-                eventId={event.id}
-                isAuthenticated={isAuthenticated}
-                isRegistrationClosed={isRegistrationClosed}
-                waitlistAvailable={waitlistAvailable}
-                closedReason={registrationClosedReason}
-                hasTransport={event.hasTransport}
-                currentStatus={registration?.status}
-                registrationId={registration?.id}
-                transportRoutes={serializedRoutes}
-                eventPrice={event.price ? Number(event.price) : 0}
-                paymentStatus={paymentForRegistration?.payment?.status}
-                eventSlug={event.slug}
-                schedules={
-                  event.schedules
-                    ? event.schedules.map((s) => ({
-                        id: s.id,
-                        label: s.label ?? null,
-                        date: String(s.date),
-                        endDate: s.endDate ? String(s.endDate) : null,
-                      }))
-                    : null
-                }
+            {/* Portada en alta resolución con Badges en esquina inferior izquierda */}
+            <div className="relative aspect-[16/10] sm:aspect-[16/9] max-h-[460px] overflow-hidden rounded-2xl border border-border/70 bg-muted/40 shadow-sm sm:rounded-3xl">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={displayCoverImage}
+                alt={event.title}
+                className="h-full w-full object-cover object-center"
               />
 
-              {/* ASISTENTES */}
-              <div className="fe-glass rounded-3xl p-6 shadow-md hover:shadow-lg transition-shadow duration-300 flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                  <Users className="h-6 w-6" />
-                </div>
-                <LiveAttendeeCount
-                  eventId={event.id}
-                  initialCount={capacitySnap.occupied}
-                  initialWaitlisted={capacitySnap.waitlisted}
-                  capacity={capacitySnap.capacity}
-                  variant="sidebar"
-                />
+              {/* Badges superpuestos idénticos a la captura */}
+              <div className="absolute bottom-4 left-4 z-20 flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#00C06D] px-3.5 py-1.5 text-xs font-bold text-white shadow-md">
+                  <span className="h-2 w-2 rounded-full bg-white" />
+                  INSCRIPCIONES ABIERTAS
+                </span>
+                <span className="inline-flex items-center rounded-full bg-white/95 px-3.5 py-1.5 text-xs font-bold text-zinc-900 shadow-md backdrop-blur-xs dark:bg-card/95 dark:text-zinc-100">
+                  {event.isVirtual
+                    ? "Edición Virtual Oficial"
+                    : "Edición Presencial Oficial"}
+                </span>
               </div>
-              {enablePresence && session?.user ? (
-                <EventPresenceIndicator
-                  eventId={event.id}
-                  currentUserId={session.user.id}
-                  variant="staff"
-                />
-              ) : null}
+            </div>
 
-              {/* PASAJEROS BUS */}
-              {event.hasTransport && totalTransportSeats > 0 && (
-                <div className="fe-glass rounded-3xl p-6 shadow-md hover:shadow-lg transition-shadow duration-300 border border-blue-500/10 dark:border-blue-500/5 space-y-4">
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-500">
-                      <Bus className="h-6 w-6" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 leading-none">
-                        Pasajeros Bus
-                      </p>
-                      <p className="text-3xl font-extrabold text-foreground leading-none pt-1">
-                        {totalBookedTransportSeats}
-                        <span className="text-sm font-normal text-muted-foreground/85 ml-1">
-                          / {totalTransportSeats}
-                        </span>
-                      </p>
-                      <p className="text-xs text-muted-foreground font-medium pt-0.5">
-                        asientos reservados (
-                        {Math.round(
-                          totalTransportSeats > 0
-                            ? (totalBookedTransportSeats /
-                                totalTransportSeats) *
-                                100
-                            : 0,
-                        )}
-                        % ocupado)
-                      </p>
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <div className="w-full bg-muted dark:bg-muted/50 rounded-full h-2 overflow-hidden shadow-inner border border-border/20">
-                      <div
-                        className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full transition-all duration-500 ease-out"
-                        style={{
-                          width: `${Math.min(100, Math.round((totalBookedTransportSeats / totalTransportSeats) * 100))}%`,
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              )}
+            {/* Tarjeta: Acerca de esta conferencia */}
+            <div className="space-y-2 rounded-2xl border border-border/80 bg-white p-6 shadow-xs dark:bg-card">
+              <h2 className="text-base font-bold text-foreground sm:text-lg">
+                Acerca de esta conferencia
+              </h2>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                {event.description ||
+                  "Un encuentro dirigido a emprendedores, estudiantes, profesionales y personas interesadas en desarrollar nuevas ideas de negocio. Durante el evento se realizarán conferencias, talleres prácticos y espacios de networking con especialistas en emprendimiento, marketing digital, tecnología e innovación."}
+              </p>
+            </div>
 
-              {/* ORGANIZADOR */}
-              <div className="fe-glass rounded-3xl p-6 shadow-md hover:shadow-lg transition-shadow duration-300 flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                  <ShieldCheck className="h-6 w-6" />
-                </div>
-                <div className="space-y-1 flex-1">
-                  <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 leading-none">
-                    {t("common.organizer")}
+            {/* Tarjeta: Información del Evento */}
+            <div className="space-y-6 rounded-2xl border border-border/80 bg-white p-6 shadow-xs sm:p-8 dark:bg-card">
+              {/* Cabecera */}
+              <div className="flex items-center justify-between border-b border-border/60 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-500/15 text-[#FF5500]">
+                    <Clock className="h-4 w-4" />
+                  </span>
+                  <h3 className="font-display text-lg font-bold text-foreground sm:text-xl">
+                    Información del Evento
                   </h3>
-                  <p className="text-base font-bold text-foreground leading-snug pt-1">
-                    {t("public.eventDetail.organizerName")}
-                  </p>
-                  <p className="text-xs text-muted-foreground leading-relaxed pt-0.5">
-                    {t("public.eventDetail.organizerDescription")}
-                  </p>
                 </div>
+                <span className="text-xs font-medium text-muted-foreground">
+                  Valores actualizados en vivo
+                </span>
               </div>
 
-              {/* ACCESOS RÁPIDOS (panel member; staff usa la página pública / checkout) */}
-              {isAuthenticated && session?.user?.role === "member" && (
-                <div className="fe-glass rounded-3xl p-6 shadow-md hover:shadow-lg transition-shadow duration-300 space-y-4">
-                  <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/80 flex items-center gap-2 border-b border-border/50 pb-3">
-                    <Info className="h-3.5 w-3.5 text-primary" />
-                    {t("public.eventDetail.quickLinksTitle")}
-                  </h3>
-                  <div className="space-y-2 text-sm">
-                    <Link
-                      href="/member/events"
-                      className="flex items-center justify-between p-2.5 rounded-xl border border-border/30 hover:border-primary/30 hover:bg-primary/5 transition-all duration-300 text-foreground/90 hover:text-primary group"
-                    >
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
-                        <span className="font-medium text-xs">
-                          {t("public.eventDetail.reviewRegistrations")}
-                        </span>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform duration-300 group-hover:translate-x-0.5" />
-                    </Link>
-                    <Link
-                      href="/member/payments"
-                      className="flex items-center justify-between p-2.5 rounded-xl border border-border/30 hover:border-primary/30 hover:bg-primary/5 transition-all duration-300 text-foreground/90 hover:text-primary group"
-                    >
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
-                        <span className="font-medium text-xs">
-                          {t("public.eventDetail.checkPaymentHistory")}
-                        </span>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform duration-300 group-hover:translate-x-0.5" />
-                    </Link>
-                  </div>
-                </div>
+              {/* 1. Fecha y Horarios Disponibles */}
+              <EventDetailSchedules
+                formattedDate={displayFormattedDate}
+                eventTitle={event.title}
+                eventDescription={event.description}
+                eventLocation={rawLocation}
+                schedules={schedulesForDisplay}
+              />
+
+              {/* 2. Tres Tarjetas de Métricas (Ubicación, Capacidad, Costo) */}
+              <EventDetailMetrics
+                locationName={locationName}
+                locationAddress={locationAddress}
+                occupied={capacitySnap.occupied}
+                capacity={capacitySnap.capacity}
+                price={event.price}
+                isVirtual={event.isVirtual}
+              />
+
+              {/* 3. Mapa del Lugar */}
+              {!event.isVirtual && (
+                <EventLocationMapDynamic
+                  latitude={event.latitude ?? -9.9306}
+                  longitude={event.longitude ?? -76.2422}
+                  locationLabel={rawLocation}
+                />
               )}
             </div>
+
+            {/* Servicio de Transporte (si el evento lo ofrece) */}
+            {event.hasTransport && routes.length > 0 && (
+              <div className="space-y-6 rounded-3xl border border-blue-500/20 bg-gradient-to-br from-blue-50/50 via-background to-indigo-50/30 p-6 shadow-md backdrop-blur-sm sm:p-8 dark:from-blue-950/10 dark:via-background dark:to-indigo-950/5">
+                <div className="flex flex-col gap-4 border-b border-border/60 pb-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-1">
+                    <h3 className="font-display text-lg font-bold text-foreground sm:text-xl flex items-center gap-2">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500">
+                        <Bus className="h-4 w-4" />
+                      </span>
+                      Servicio de Transporte
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Coordinado de forma segura para garantizar tu traslado.
+                    </p>
+                  </div>
+                  <div>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200/30 bg-blue-500/10 px-3.5 py-1 text-xs font-bold text-blue-600 shadow-sm dark:text-blue-400">
+                      <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                      Costo Adicional
+                    </span>
+                  </div>
+                </div>
+
+                {/* Warning Alert */}
+                <div className="flex items-start gap-3 rounded-2xl border border-amber-200/50 bg-amber-50/85 p-4 shadow-sm dark:border-amber-900/30 dark:bg-amber-950/20">
+                  <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+                  <div className="space-y-1 text-xs leading-relaxed text-amber-900 dark:text-amber-200">
+                    <p className="font-bold text-amber-800 dark:text-amber-400">
+                      ¡El transporte NO está incluido en la entrada!
+                    </p>
+                    <p>
+                      El precio de la <strong>Entrada al Evento</strong> es
+                      independiente del costo del transporte. Los precios
+                      indicados en las rutas son <strong>por asiento</strong> y
+                      corresponden al pasaje de traslado. Deberás seleccionarlo
+                      y pagarlo al momento de tu registro.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Routes List */}
+                <div className="space-y-4 pt-2">
+                  <h4 className="flex items-center gap-2 text-sm font-bold text-foreground">
+                    <Route className="h-4 w-4 text-primary" />
+                    Rutas y Puntos de Salida Disponibles
+                  </h4>
+
+                  <div className="grid gap-4">
+                    {routes.map((route) => (
+                      <div
+                        key={route.id}
+                        className="group flex flex-col justify-between gap-5 rounded-2xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-500/30 md:flex-row md:items-center"
+                      >
+                        <div className="space-y-3">
+                          <div>
+                            <h5 className="flex items-center gap-1.5 text-sm font-bold text-foreground transition-colors group-hover:text-primary">
+                              {route.name}
+                            </h5>
+                            {route.description && (
+                              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                                {route.description}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-x-6 gap-y-2 text-xs text-muted-foreground sm:grid-cols-2">
+                            <div className="flex items-center gap-2">
+                              <MapPin className="h-4 w-4 shrink-0 text-blue-500" />
+                              <span>
+                                <strong>Partida:</strong> {route.departurePoint}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 shrink-0 text-blue-500" />
+                              <span>
+                                <strong>Salida:</strong>{" "}
+                                {formatRouteDateTime(route.departureTime)}
+                              </span>
+                            </div>
+                            {route.returnTime && (
+                              <div className="mt-1 flex items-center gap-2 border-t border-border/40 pt-2 sm:col-span-2">
+                                <ArrowRight className="h-4 w-4 shrink-0 text-emerald-500" />
+                                <span>
+                                  <strong>Retorno estimado:</strong>{" "}
+                                  {formatRouteDateTime(route.returnTime)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex shrink-0 flex-row items-center justify-between gap-2 border-t border-border/60 pt-4 md:flex-col md:items-end md:justify-center md:border-t-0 md:pt-0">
+                          <span className="text-[10px] font-bold tracking-wider text-muted-foreground/60 uppercase">
+                            Pasaje por asiento
+                          </span>
+                          <span className="rounded-2xl border border-primary/20 bg-primary/10 px-4 py-1.5 text-lg font-bold text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
+                            S/ {Number(route.pricePerSeat).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* COLUMNA DERECHA: Sticky Sidebar con Registrarme ahora, Asistentes, Viendo ahora, Organizador y Garantías */}
+          <div className="space-y-4 md:sticky md:top-6 lg:top-6">
+            <EventDetailSidebar
+              eventId={event.id}
+              eventSlug={event.slug}
+              eventPrice={event.price ? Number(event.price) : 0}
+              occupied={capacitySnap.occupied}
+              capacity={capacitySnap.capacity}
+              isAuthenticated={isAuthenticated}
+              isRegistrationClosed={isRegistrationClosed}
+              waitlistAvailable={waitlistAvailable}
+              closedReason={registrationClosedReason}
+              hasTransport={event.hasTransport}
+              currentStatus={registration?.status}
+              registrationId={registration?.id}
+              transportRoutes={serializedRoutes}
+              paymentStatus={paymentForRegistration?.payment?.status}
+              schedules={
+                event.schedules
+                  ? event.schedules.map((s) => ({
+                      id: s.id,
+                      label: s.label ?? null,
+                      date: String(s.date),
+                      endDate: s.endDate ? String(s.endDate) : null,
+                    }))
+                  : null
+              }
+              organizerName={orgBrand?.name || "Operaciones Enquiva"}
+              organizerDescription="Nos encargamos de la logística, pagos y soporte."
+              waContactUrl={waContactUrl}
+            />
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* Ticket card if registered */}
+      {/* Tarjeta de Ticket si el usuario ya cuenta con inscripción activa */}
       {registration && (
-        <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
           <TicketCard
             ticket={ticket}
             event={event}
@@ -805,6 +689,9 @@ export default async function EventDetailPage({ params }: EventPageProps) {
           />
         </section>
       )}
+
+      {/* 4. Footer institucional con las columnas idénticas a la imagen */}
+      <EventsFooter />
     </div>
   );
 }
