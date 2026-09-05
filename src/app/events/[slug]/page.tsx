@@ -25,7 +25,7 @@ import { getOrgPublicBrand } from "@/lib/brand/org-brand";
 import { buildWhatsAppChatUrl } from "@/lib/share/whatsapp";
 import { env } from "@/env";
 import { db } from "@/lib/db";
-import { transportRoutes, transportBookings, transportStops, type TransportRoute } from "@/lib/db/schema";
+import { transportRoutes, transportBookings, transportStops, users, type TransportRoute } from "@/lib/db/schema";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import {
   Calendar,
@@ -334,13 +334,31 @@ export default async function EventDetailPage({ params }: EventPageProps) {
           ? "Cancelado"
           : event.status;
   const orgBrand = await getOrgPublicBrand(event.organizationId);
-  const waContactUrl = orgBrand?.whatsappNumber
+  let contactPhone = orgBrand?.whatsappNumber || null;
+  if (!contactPhone && event.organizerId) {
+    const organizerOrg = await OrganizationService.getOrganizationForUser(event.organizerId).catch(() => null);
+    if (organizerOrg?.whatsappNumber) {
+      contactPhone = organizerOrg.whatsappNumber;
+    } else {
+      const [organizerUser] = await db
+        .select({ phone: users.phone })
+        .from(users)
+        .where(eq(users.id, event.organizerId))
+        .limit(1)
+        .catch(() => []);
+      if (organizerUser?.phone) {
+        contactPhone = organizerUser.phone;
+      }
+    }
+  }
+
+  const waContactUrl = contactPhone
     ? buildWhatsAppChatUrl({
-        phone: orgBrand.whatsappNumber,
+        phone: contactPhone,
         text:
           locale === "en"
-            ? `Hi! I'm interested in ${event.title}.`
-            : `¡Hola! Me interesa el evento ${event.title}.`,
+            ? `Hello! I would like more information about the event "${event.title}".`
+            : `¡Hola! Me gustaría obtener más información sobre el evento "${event.title}".`,
       })
     : null;
 
@@ -523,6 +541,8 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                 capacity={capacitySnap.capacity}
                 price={event.price}
                 isVirtual={event.isVirtual}
+                hasCertificate={event.hasCertificate}
+                certificateTitle={event.certificateTitle}
               />
 
               {/* 3. Mapa del Lugar */}
@@ -679,6 +699,9 @@ export default async function EventDetailPage({ params }: EventPageProps) {
               organizerName={orgBrand?.name || "Operaciones Enquiva"}
               organizerDescription="Nos encargamos de la logística, pagos y soporte."
               waContactUrl={waContactUrl}
+              hasCertificate={Boolean(event.hasCertificate)}
+              certificateTitle={event.certificateTitle ?? null}
+              certificatePrice={event.certificatePrice ? Number(event.certificatePrice) : 0}
             />
           </div>
         </div>

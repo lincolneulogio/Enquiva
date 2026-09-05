@@ -20,7 +20,8 @@ import {
   Info,
   Sparkles,
   ArrowRight,
-  CreditCard
+  CreditCard,
+  Award
 } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import Link from "next/link";
@@ -77,6 +78,9 @@ interface RegisterButtonProps {
     date: string;
     endDate?: string | null;
   }> | null;
+  hasCertificate?: boolean;
+  certificateTitle?: string | null;
+  certificatePrice?: number | null;
   buttonText?: string;
   buttonClassName?: string;
 }
@@ -96,6 +100,9 @@ export function RegisterButton({
   holdExpiresAt = null,
   eventSlug,
   schedules = null,
+  hasCertificate = false,
+  certificateTitle = null,
+  certificatePrice = 0,
   buttonText,
   buttonClassName,
 }: RegisterButtonProps) {
@@ -179,7 +186,7 @@ export function RegisterButton({
   const hasMultipleSchedules = Array.isArray(schedules) && schedules.length > 1;
   const isTransportAvailable = Boolean(hasTransport && transportRoutes && transportRoutes.length > 0);
   const hasTransportEnabledWithoutRoutes = Boolean(hasTransport && (!transportRoutes || transportRoutes.length === 0));
-  const shouldOpenModal = Boolean(hasMultipleSchedules || hasTransport);
+  const shouldOpenModal = Boolean(hasMultipleSchedules || hasTransport || hasCertificate);
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -193,9 +200,10 @@ export function RegisterButton({
       seatsCount: 1,
       contactPhone: "",
       guests: [] as Array<{ name: string; phone: string }>,
+      wantsCertificate: false,
     },
   );
-  const { selectedScheduleId, wantsTransport, selectedRouteId, selectedStopId, seatsCount, contactPhone, guests } = registrationDraft;
+  const { selectedScheduleId, wantsTransport, selectedRouteId, selectedStopId, seatsCount, contactPhone, guests, wantsCertificate } = registrationDraft;
   const [visualHeight, setVisualHeight] = useState("90vh");
 
   // Si hay horarios disponibles y el guardado en draft es inválido o vacío, sincronizar con el primero
@@ -334,7 +342,9 @@ export function RegisterButton({
   const transportPricePerSeat = activeRoute ? Number(activeRoute.pricePerSeat) : 0;
   const effectiveWantsTransport = Boolean(isTransportAvailable && wantsTransport);
   const transportTotalCost = effectiveWantsTransport ? transportPricePerSeat * seatsCount : 0;
-  const consolidatedTotalCost = (eventPrice * (1 + guests.length)) + transportTotalCost;
+  const effectiveWantsCertificate = Boolean(hasCertificate && wantsCertificate);
+  const certificateTotalCost = effectiveWantsCertificate ? Number(certificatePrice || 0) : 0;
+  const consolidatedTotalCost = (eventPrice * (1 + guests.length)) + transportTotalCost + certificateTotalCost;
 
   const handleRegisterSubmit = () => {
     if (hasMultipleSchedules && !effectiveScheduleId) {
@@ -386,6 +396,7 @@ export function RegisterButton({
           routeId: effectiveWantsTransport ? selectedRouteId : null,
           stopId: effectiveWantsTransport && selectedStopId ? selectedStopId : null,
           seats: effectiveWantsTransport ? seatsCount : null,
+          wantsCertificate: effectiveWantsCertificate,
           guests: guests.map((g) => ({
             name: g.name.trim(),
             phone: g.phone ? `+51${g.phone.replace(/\D/g, "")}` : null,
@@ -1323,6 +1334,65 @@ export function RegisterButton({
                 )}
               </div>
 
+              {/* Opción de Certificado Oficial (si el evento lo ofrece) */}
+              {hasCertificate && (
+                <div className="space-y-3 pt-1">
+                  <div className="space-y-1 text-left">
+                    <label className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                      <Award className="h-4 w-4 text-primary" />
+                      Certificación Oficial de Participación
+                    </label>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      El organizador ofrece un certificado oficial verificable con código QR único anti-fraude.
+                    </p>
+                  </div>
+
+                  <div
+                    onClick={() => setRegistrationValue("wantsCertificate", !wantsCertificate)}
+                    className={`group cursor-pointer rounded-2xl border p-4 transition-all duration-200 text-left flex items-center justify-between gap-3 ${
+                      wantsCertificate
+                        ? "border-primary bg-primary/10 dark:bg-primary/20 ring-2 ring-primary shadow-sm"
+                        : "border-border bg-card hover:border-primary/40 hover:bg-muted/40"
+                    }`}
+                  >
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-foreground">
+                          {certificateTitle || "Certificado Oficial de Aprobación / Asistencia"}
+                        </span>
+                        {wantsCertificate && (
+                          <span className="rounded-full bg-primary/15 text-primary text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider border border-primary/20">
+                            Añadido
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {Number(certificatePrice) > 0
+                          ? `Add-on opcional de certificación: S/ ${Number(certificatePrice).toFixed(2)}`
+                          : "Incluido sin costo adicional con tu inscripción"}
+                      </p>
+                    </div>
+
+                    <div className="shrink-0 flex items-center gap-2.5">
+                      <span className="text-xs font-bold text-primary">
+                        {Number(certificatePrice) > 0
+                          ? `+ S/ ${Number(certificatePrice).toFixed(2)}`
+                          : "Gratis"}
+                      </span>
+                      <div
+                        className={`h-5 w-5 rounded-md border flex items-center justify-center transition-colors ${
+                          wantsCertificate
+                            ? "bg-primary border-primary text-primary-foreground"
+                            : "border-muted-foreground/30 bg-background"
+                        }`}
+                      >
+                        {wantsCertificate && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Informative Alert for payment */}
               {consolidatedTotalCost > 0 && (
                 <div className="rounded-xl bg-primary/5 border border-primary/15 p-3.5 flex items-start gap-2.5">
@@ -1377,6 +1447,20 @@ export function RegisterButton({
                       <span className="font-medium text-foreground">
                         {transportTotalCost > 0
                           ? `S/ ${transportTotalCost.toFixed(2)}`
+                          : t("register.free")}
+                      </span>
+                    </div>
+                  )}
+
+                  {effectiveWantsCertificate && (
+                    <div className="flex justify-between items-center animate-fadeIn">
+                      <span className="flex items-center gap-1.5">
+                        <Award className="h-3.5 w-3.5 text-primary shrink-0" />
+                        <span>{certificateTitle || "Certificado Oficial"}</span>
+                      </span>
+                      <span className="font-medium text-foreground">
+                        {Number(certificatePrice) > 0
+                          ? `S/ ${Number(certificatePrice).toFixed(2)}`
                           : t("register.free")}
                       </span>
                     </div>

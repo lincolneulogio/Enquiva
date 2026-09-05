@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { db } from "@/lib/db";
+import { getCertificateStatusDetails } from "@/lib/certificates/eligibility";
 import { registrations, events, users, registrationStatusEnum, registrationGuests } from "@/lib/db/schema";
 import { getRequestSession } from "@/lib/request-context";
 import { eq, desc, and, gte, lte, count, sql } from "drizzle-orm";
-import { Users, Clock } from "lucide-react";
+import { Users, Clock, Award, ExternalLink } from "lucide-react";
 import { ManualCheckInButton } from "@/components/events/ManualCheckInButton";
 import { ManualRegistrationDialog } from "@/components/events/ManualRegistrationDialog";
 import { ExpressCheckInConsole } from "@/components/events/ExpressCheckInConsole";
@@ -97,9 +99,17 @@ export default async function OrganizerAttendeesPage({
       registeredAt: registrations.registeredAt,
       checkedInAt: registrations.checkedInAt,
       selectedScheduleLabel: registrations.selectedScheduleLabel,
+      wantsCertificate: registrations.wantsCertificate,
+      certificateCode: registrations.certificateCode,
       eventTitle: events.title,
       eventDate: events.date,
       eventSlug: events.slug,
+      eventLocation: events.location,
+      isVirtual: events.isVirtual,
+      hasCertificate: events.hasCertificate,
+      certificateTitle: events.certificateTitle,
+      certificatePrice: events.certificatePrice,
+      eventEndDate: events.endDate,
       userName: sql<string>`coalesce(${registrationGuests.name}, ${users.name}, 'Asistente')`,
       userEmail: users.email,
     })
@@ -166,7 +176,7 @@ export default async function OrganizerAttendeesPage({
             ↔ Scroll
           </p>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] text-sm">
+            <table className="w-full min-w-[1320px] text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/50">
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">
@@ -180,6 +190,12 @@ export default async function OrganizerAttendeesPage({
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                     {t("common.date")}
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                    {locale === "en" ? "Offers Cert.?" : "¿Ofrece Cert.?"}
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                    {locale === "en" ? "Cert. Status" : "Certificado"}
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                     {t("common.status")}
@@ -222,6 +238,67 @@ export default async function OrganizerAttendeesPage({
                           year: "numeric",
                         },
                       )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {row.hasCertificate ? (
+                        <div className="space-y-0.5">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                            <Award className="h-3 w-3" />
+                            <span>{locale === "en" ? "Yes" : "Sí"}</span>
+                          </span>
+                          <p className="text-xs font-medium text-foreground truncate max-w-[150px]" title={row.certificateTitle || "Certificado Oficial"}>
+                            {row.certificateTitle || "Certificado Oficial"}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {row.certificatePrice && Number(row.certificatePrice) > 0
+                              ? `+ S/ ${Number(row.certificatePrice).toFixed(2)}`
+                              : (locale === "en" ? "Included" : "Incluido")}
+                          </p>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground/40">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {!row.hasCertificate ? (
+                        <span className="text-xs text-muted-foreground/40">—</span>
+                      ) : !row.wantsCertificate ? (
+                        <span className="inline-flex items-center rounded-md bg-muted/60 px-2 py-0.5 text-[11px] font-medium text-muted-foreground border border-border">
+                          {locale === "en" ? "No" : "No solicitado"}
+                        </span>
+                      ) : (() => {
+                        const certInfo = getCertificateStatusDetails(
+                          {
+                            wantsCertificate: row.wantsCertificate,
+                            registrationStatus: row.status,
+                            certificateCode: row.certificateCode,
+                            eventDate: row.eventDate,
+                            eventEndDate: row.eventEndDate,
+                          },
+                          locale as "es" | "en"
+                        );
+                        return (
+                          <div className="space-y-1">
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border ${certInfo.badgeClass}`}
+                              title={certInfo.unlockMessage}
+                            >
+                              {certInfo.badgeLabel}
+                            </span>
+                            {row.certificateCode && (
+                              <Link
+                                href={`/verify/${row.certificateCode}`}
+                                target="_blank"
+                                className="text-[10px] font-mono font-bold text-primary hover:underline flex items-center gap-0.5"
+                                title="Verificar certificado públicamente"
+                              >
+                                <span>{row.certificateCode}</span>
+                                <ExternalLink className="h-2.5 w-2.5 opacity-70" />
+                              </Link>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3">
                       <span

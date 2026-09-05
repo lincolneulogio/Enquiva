@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { registrations, events, users, payments, transportBookings, transportRoutes, registrationStatusEnum, registrationGuests } from "@/lib/db/schema";
 import { eq, desc, count, and, gte, lte, sql, inArray, type SQL } from "drizzle-orm";
 import { isGuestRegistration } from "@/lib/registrations/guests";
-import { ClipboardList, Bus, CreditCard } from "lucide-react";
+import { ClipboardList, Bus, CreditCard, Award, ExternalLink } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
 import { categoryLabel, registrationStatusLabel, formatCurrency } from "@/lib/utils";
@@ -104,11 +104,18 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
       checkedInAt: registrations.checkedInAt,
       guestId: registrations.guestId,
       parentRegistrationId: registrations.parentRegistrationId,
+      wantsCertificate: registrations.wantsCertificate,
+      certificateCode: registrations.certificateCode,
       event: {
         id: events.id,
         title: events.title,
         slug: events.slug,
         date: events.date,
+        location: events.location,
+        isVirtual: events.isVirtual,
+        hasCertificate: events.hasCertificate,
+        certificateTitle: events.certificateTitle,
+        certificatePrice: events.certificatePrice,
       },
       attendee: {
         id: sql<string>`coalesce(${users.id}, ${registrationGuests.id}::text)`,
@@ -316,18 +323,20 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
             </span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1480px] table-fixed text-sm">
+            <table className="w-full min-w-[1880px] table-fixed text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/50">
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[60px]">N°</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[240px]">{t("common.attendee")}</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[240px]">{t("common.event")}</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[160px]">{locale === "en" ? "Type / Invited By" : "Tipo / Invitado Por"}</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[160px]">{locale === "en" ? "Payment" : "Pago"}</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[240px]">{locale === "en" ? "Transport" : "Transporte"}</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[140px]">{t("common.status")}</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[135px]">{t("common.registered")}</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[135px]">{t("common.checkedIn")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[220px]">{t("common.attendee")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[220px]">{t("common.event")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[150px]">{locale === "en" ? "Type / Invited By" : "Tipo / Invitado Por"}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[150px]">{locale === "en" ? "Payment" : "Pago"}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[220px]">{locale === "en" ? "Transport" : "Transporte"}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[190px]">{locale === "en" ? "Offers Certificate?" : "¿Ofrece Certificado?"}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[220px]">{locale === "en" ? "Certificate Status" : "Certificado Solicitado / Pagado"}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[130px]">{t("common.status")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[130px]">{t("common.registered")}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[130px]">{t("common.checkedIn")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -455,6 +464,68 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
                           <span className="text-xs text-muted-foreground/55 italic">
                             {locale === "en" ? "No transport" : "Sin transporte"}
                           </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4">
+                        {reg.event.hasCertificate ? (
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                              <Award className="h-3 w-3" />
+                              <span>{locale === "en" ? "Yes" : "Sí"}</span>
+                            </span>
+                            <p className="text-xs font-medium text-foreground truncate max-w-[170px]" title={reg.event.certificateTitle || "Certificado Oficial"}>
+                              {reg.event.certificateTitle || "Certificado Oficial"}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {reg.event.certificatePrice && Number(reg.event.certificatePrice) > 0
+                                ? `+ S/ ${Number(reg.event.certificatePrice).toFixed(2)}`
+                                : (locale === "en" ? "Included (Free)" : "Incluido (Gratis)")}
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/50 italic">
+                            {locale === "en" ? "No" : "No ofrece"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4">
+                        {!reg.event.hasCertificate ? (
+                          <span className="text-xs text-muted-foreground/40">—</span>
+                        ) : !reg.wantsCertificate ? (
+                          <span className="inline-flex items-center rounded-md bg-muted/60 px-2 py-0.5 text-[11px] font-medium text-muted-foreground border border-border">
+                            {locale === "en" ? "Not requested" : "No lo solicitó"}
+                          </span>
+                        ) : (
+                          <div className="space-y-1.5">
+                            <div className="flex flex-wrap items-center gap-1">
+                              {reg.status === "checked_in" ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                                  ✓ {locale === "en" ? "Checked-in / Issued" : "Asistió / Emitido"}
+                                </span>
+                              ) : payment?.status === "approved" || !payment ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold text-blue-700 dark:text-blue-300 border border-blue-500/20">
+                                  ✓ {locale === "en" ? "Paid / Requested" : "Pagado y Solicitado"}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300 border border-amber-500/20">
+                                  ⏳ {locale === "en" ? "Payment Pending" : "Pago Pendiente"}
+                                </span>
+                              )}
+                            </div>
+                            {reg.certificateCode && (
+                              <div className="flex items-center gap-1.5">
+                                <Link
+                                  href={`/verify/${reg.certificateCode}`}
+                                  target="_blank"
+                                  className="text-[10px] font-mono font-bold text-primary hover:underline flex items-center gap-0.5"
+                                  title="Verificar certificado públicamente"
+                                >
+                                  <span>{reg.certificateCode}</span>
+                                  <ExternalLink className="h-2.5 w-2.5 opacity-70" />
+                                </Link>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </td>
                       <td className="px-4 py-4">

@@ -14,7 +14,9 @@ export function permissionsForDashboardPath(pathname: string): readonly Permissi
 
   if (
     pathname.startsWith("/member/tickets") ||
-    pathname.startsWith("/attendee/tickets")
+    pathname.startsWith("/attendee/tickets") ||
+    pathname.startsWith("/member/certificates") ||
+    pathname.startsWith("/attendee/certificates")
   ) {
     return ["tickets:view:own"];
   }

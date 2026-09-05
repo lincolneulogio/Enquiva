@@ -4,6 +4,7 @@ import { normalizePeruPhoneValue } from "./phone";
 
 export const createRegistrationSchema = z.object({
   eventId: z.string().uuid(),
+  wantsCertificate: z.boolean().default(false).optional(),
   contactPhone: z.preprocess(
     normalizePeruPhoneValue,
     z.string().regex(peruPhoneRegex, "Phone must follow format +519XXXXXXXX")

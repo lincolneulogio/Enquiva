@@ -1,7 +1,10 @@
 "use client";
 
-import { Users, ShieldCheck, Check, ExternalLink, Sparkles } from "lucide-react";
+import { Users, ShieldCheck, Check, ExternalLink, Sparkles, MessageCircle } from "lucide-react";
+import { toast } from "sonner";
 import { RegisterButton } from "@/components/events/RegisterButton";
+import { useSession } from "@/lib/auth/client";
+import { useEventPresence } from "@/hooks/useEventPresence";
 
 interface EventDetailSidebarProps {
   eventId: string;
@@ -20,9 +23,20 @@ interface EventDetailSidebarProps {
   paymentStatus?: "pending" | "approved" | "rejected" | null;
   holdExpiresAt?: string | Date | null;
   schedules?: any[] | null;
+  hasCertificate?: boolean;
+  certificateTitle?: string | null;
+  certificatePrice?: number | null;
   organizerName?: string;
   organizerDescription?: string;
   waContactUrl?: string | null;
+}
+
+function getUserInitials(name?: string | null): string {
+  if (!name) return "Tú";
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "Tú";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
 export function EventDetailSidebar({
@@ -42,10 +56,27 @@ export function EventDetailSidebar({
   paymentStatus,
   holdExpiresAt,
   schedules,
+  hasCertificate = false,
+  certificateTitle = null,
+  certificatePrice = 0,
   organizerName = "Operaciones Enquiva",
   organizerDescription = "Nos encargamos de la logística, pagos y soporte.",
   waContactUrl,
 }: EventDetailSidebarProps) {
+  const { data: session } = useSession();
+  const { count: presenceCount } = useEventPresence(
+    eventId,
+    Boolean(isAuthenticated)
+  );
+
+  const userName = session?.user?.name;
+  const userImage = session?.user?.image;
+  const userInitials = getUserInitials(userName);
+
+  // Cantidad de navegantes en tiempo real con fallback realista
+  const otherCount = presenceCount > 1 ? presenceCount - 1 : 3;
+  const totalCount = presenceCount > 0 ? presenceCount : 4;
+
   return (
     <div id="registro" className="space-y-4 scroll-mt-24">
       {/* 1. Botón Principal de Acción "Registrarme ahora" */}
@@ -64,6 +95,9 @@ export function EventDetailSidebar({
         paymentStatus={paymentStatus}
         holdExpiresAt={holdExpiresAt}
         schedules={schedules}
+        hasCertificate={hasCertificate}
+        certificateTitle={certificateTitle}
+        certificatePrice={certificatePrice}
         buttonText="Registrarme ahora"
         buttonClassName="w-full flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground py-3.5 px-6 text-base font-bold shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/35 active:scale-98 transition-all cursor-pointer"
       />
@@ -96,26 +130,45 @@ export function EventDetailSidebar({
       </div>
 
       {/* 3. Tarjeta Viendo ahora (Social Proof en vivo) */}
-      <div className="rounded-xl border border-border/80 bg-white dark:bg-card px-3.5 py-2.5 shadow-xs flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+      <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-r from-emerald-500/[0.04] via-white to-white dark:via-card dark:to-card px-4 py-3 shadow-xs flex items-center justify-between gap-3 transition-colors">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="relative flex h-2.5 w-2.5 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
           </span>
-          <span className="text-xs font-semibold text-foreground">
-            [1+] Viendo ahora
-          </span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-xs font-bold text-foreground tracking-tight">
+              Viendo ahora
+            </span>
+            <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              En vivo
+            </span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-            <span className="h-3 w-3 rounded-full bg-primary text-primary-foreground text-[8px] flex items-center justify-center font-black">
-              OD
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center -space-x-1.5">
+            {userImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={userImage}
+                alt={userName || "Tú"}
+                className="h-6 w-6 rounded-full object-cover ring-2 ring-white dark:ring-card shadow-xs"
+              />
+            ) : (
+              <span
+                className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[9px] font-extrabold text-primary-foreground ring-2 ring-white dark:ring-card shadow-xs"
+                title={userName || "Tú"}
+              >
+                {userInitials}
+              </span>
+            )}
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[9px] font-bold text-muted-foreground ring-2 ring-white dark:ring-card shadow-xs">
+              +{otherCount}
             </span>
-            Tú
-          </span>
-          <span className="text-[11px] text-muted-foreground font-medium">
-            + 3 navegando
+          </div>
+          <span className="text-[11px] font-semibold text-muted-foreground">
+            {isAuthenticated ? `Tú y ${otherCount} más` : `${totalCount} navegando`}
           </span>
         </div>
       </div>
@@ -145,16 +198,23 @@ export function EventDetailSidebar({
               href={waContactUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 text-primary hover:underline font-semibold"
+              className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-semibold transition-colors"
             >
+              <MessageCircle className="h-3.5 w-3.5 text-emerald-500" />
               <span>Contactar organizador</span>
-              <ExternalLink className="h-3.5 w-3.5" />
+              <ExternalLink className="h-3 w-3 opacity-70" />
             </a>
           ) : (
-            <span className="inline-flex items-center gap-1 text-primary hover:underline font-semibold cursor-pointer">
+            <button
+              type="button"
+              onClick={() =>
+                toast.info("El organizador aún no ha registrado un número de WhatsApp para contacto directo.")
+              }
+              className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground font-medium transition-colors"
+            >
+              <MessageCircle className="h-3.5 w-3.5 opacity-60" />
               <span>Contactar organizador</span>
-              <ExternalLink className="h-3.5 w-3.5" />
-            </span>
+            </button>
           )}
 
           <span className="inline-flex items-center rounded-full bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 border border-emerald-200/50">

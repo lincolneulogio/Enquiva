@@ -152,5 +152,30 @@ describe("validations unificadas", () => {
     });
     expect(parsed.scheduleId).toBeUndefined();
   });
-});
 
+  it("acepta evento con certificado digital opcional y título personalizado", () => {
+    const futureDate = new Date(Date.now() + 86_400_000 * 3).toISOString();
+    const parsed = baseEventSchema.parse({
+      title: "Masterclass de Inteligencia Artificial",
+      description: "Aprende todo sobre modelos de lenguaje avanzados y agentes inteligentes.",
+      category: "technology",
+      date: futureDate,
+      hasCertificate: true,
+      certificateTitle: "Certificado de Especialización en IA",
+    });
+    expect(parsed.hasCertificate).toBe(true);
+    expect(parsed.certificateTitle).toBe("Certificado de Especialización en IA");
+  });
+
+  it("por defecto hasCertificate es false si no se especifica", () => {
+    const futureDate = new Date(Date.now() + 86_400_000 * 3).toISOString();
+    const parsed = baseEventSchema.parse({
+      title: "Taller Rápido",
+      description: "Descripción extensa del taller rápido para cumplir longitud.",
+      category: "workshops",
+      date: futureDate,
+    });
+    expect(parsed.hasCertificate).toBe(false);
+    expect(parsed.certificateTitle).toBeUndefined();
+  });
+});

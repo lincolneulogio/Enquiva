@@ -40,6 +40,7 @@ export interface RegisterEventInput {
   notes?: string | null;
   guests?: Array<{ name: string; phone?: string | null }> | null;
   scheduleId?: string | null;
+  wantsCertificate?: boolean;
 }
 
 export interface CheckInInput {
@@ -168,6 +169,11 @@ export class RegistrationService {
       const guestRegIds: string[] = [];
       const guestUserIdMap = new Map<string, string>();
       const now = new Date();
+      const wantsCert = Boolean(event.hasCertificate && input.wantsCertificate);
+      const certificatePrice = wantsCert && event.certificatePrice ? Number(event.certificatePrice) : 0;
+      const certCode = wantsCert
+        ? `ENQ-${now.getFullYear()}-CERT-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+        : null;
 
       let registration;
       if (existing?.status === "cancelled") {
@@ -185,6 +191,9 @@ export class RegistrationService {
             guestId: null,
             selectedScheduleId,
             selectedScheduleLabel,
+            wantsCertificate: wantsCert,
+            certificateCode: certCode,
+            certificateIssuedAt: null,
           })
           .where(eq(registrations.id, existing.id))
           .returning();
@@ -205,6 +214,9 @@ export class RegistrationService {
             holdReminderSentAt: null,
             selectedScheduleId,
             selectedScheduleLabel,
+            wantsCertificate: wantsCert,
+            certificateCode: certCode,
+            certificateIssuedAt: null,
           })
           .returning();
         registration = created;
@@ -319,9 +331,9 @@ export class RegistrationService {
         }
       }
 
-      // 6. Gestionar cobro/pago (Multiplicar el costo de entrada por la cantidad de asistentes)
+      // 6. Gestionar cobro/pago (Multiplicar el costo de entrada por la cantidad de asistentes + transporte + certificado)
       const totalTicketPrice = eventPrice * (1 + guests.length);
-      const totalAmount = totalTicketPrice + transportPrice;
+      const totalAmount = totalTicketPrice + transportPrice + certificatePrice;
       const isPaid = totalAmount > 0;
       let requiresPayment = false;
       let holdExpiresAt: Date | null = null;
@@ -341,6 +353,10 @@ export class RegistrationService {
 
         registration = { ...registration, holdExpiresAt, holdReminderSentAt: null };
 
+        const certNote = wantsCert
+          ? ` + Certificado Digital${certificatePrice > 0 ? ` (S/ ${certificatePrice.toFixed(2)})` : " (Incluido)"}`
+          : "";
+
         await tx.insert(payments).values({
           registrationId: registration.id,
           userId: attendee.id,
@@ -349,8 +365,8 @@ export class RegistrationService {
           currency: "PEN",
           status: "pending",
           notes: transportBooking
-            ? `Inscripción consolidada con servicio de transporte (${input.seats} asiento${input.seats && input.seats > 1 ? "s" : ""}) para el titular y ${guests.length} invitado(s)${selectedScheduleLabel ? ` - Turno: ${selectedScheduleLabel}` : ""}`
-            : `Inscripción al evento para el titular y ${guests.length} invitado(s)${selectedScheduleLabel ? ` - Turno: ${selectedScheduleLabel}` : ""}`,
+            ? `Inscripción consolidada con servicio de transporte (${input.seats} asiento${input.seats && input.seats > 1 ? "s" : ""}) para el titular y ${guests.length} invitado(s)${selectedScheduleLabel ? ` - Turno: ${selectedScheduleLabel}` : ""}${certNote}`
+            : `Inscripción al evento para el titular y ${guests.length} invitado(s)${selectedScheduleLabel ? ` - Turno: ${selectedScheduleLabel}` : ""}${certNote}`,
         });
       } else {
         // Si es gratuito, generamos el ticket inmediatamente de forma consistente para todos

@@ -2,7 +2,7 @@ import { getPublicEvents } from "@/actions/events";
 import { getUserRegistrations } from "@/actions/registrations";
 import { EventCard } from "@/components/events/EventCard";
 import Link from "next/link";
-import { Calendar, ArrowRight } from "lucide-react";
+import { Calendar, ArrowRight, Award } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
 import { registrationStatusLabel } from "@/lib/utils";
@@ -34,20 +34,56 @@ export default async function MemberDashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Link
-          href="/member/payments"
-          className="rounded-2xl border border-border bg-card p-4 text-sm font-semibold text-foreground transition hover:border-primary hover:shadow-lg sm:p-5"
-        >
-          {t("dashboard.member.reviewPayments")}
-        </Link>
-        <Link
-          href="/member/tickets"
-          className="rounded-2xl border border-border bg-card p-4 text-sm font-semibold text-foreground transition hover:border-primary hover:shadow-lg sm:p-5"
-        >
-          {t("dashboard.member.viewTickets")}
-        </Link>
-      </div>
+      {(() => {
+        const certCount = myRegistrations.filter((r) => r.registration.wantsCertificate).length;
+        return (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Link
+              href="/member/payments"
+              className="rounded-2xl border border-border bg-card p-4 text-sm font-semibold text-foreground transition hover:border-primary hover:shadow-lg sm:p-5 flex flex-col justify-between gap-2"
+            >
+              <span>{t("dashboard.member.reviewPayments")}</span>
+              <span className="text-xs text-muted-foreground font-normal">
+                {locale === "en" ? "Track status and receipts" : "Historial y comprobantes"}
+              </span>
+            </Link>
+            <Link
+              href="/member/tickets"
+              className="rounded-2xl border border-border bg-card p-4 text-sm font-semibold text-foreground transition hover:border-primary hover:shadow-lg sm:p-5 flex flex-col justify-between gap-2"
+            >
+              <span>{t("dashboard.member.viewTickets")}</span>
+              <span className="text-xs text-muted-foreground font-normal">
+                {locale === "en" ? "Access passes & QR codes" : "Tus accesos y códigos QR"}
+              </span>
+            </Link>
+            <Link
+              href="/member/certificates"
+              className="rounded-2xl border border-amber-500/20 bg-card p-4 text-sm font-semibold text-foreground transition hover:border-amber-500 hover:shadow-lg sm:p-5 flex flex-col justify-between gap-2 group"
+            >
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Award className="h-4 w-4 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform" />
+                  <span>{locale === "en" ? "My Certificates" : "Mis Certificados"}</span>
+                </span>
+                {certCount > 0 && (
+                  <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300 border border-amber-500/20">
+                    {certCount}
+                  </span>
+                )}
+              </div>
+              <span className="text-xs text-muted-foreground font-normal">
+                {certCount > 0
+                  ? locale === "en"
+                    ? `${certCount} accreditation(s) on file`
+                    : `${certCount} acreditación(es) registrada(s)`
+                  : locale === "en"
+                    ? "Official verifiable credentials"
+                    : "Diplomas y credenciales verificables"}
+              </span>
+            </Link>
+          </div>
+        );
+      })()}
 
       {/* My Upcoming Events */}
       {activeRegistrations.length > 0 && (

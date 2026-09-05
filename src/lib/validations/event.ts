@@ -143,6 +143,18 @@ export const baseEventSchema = z.object({
   status: z.enum(eventStatusValues).default("draft"),
   isFeatured: z.boolean().default(false),
   hasTransport: z.boolean().default(false),
+  hasCertificate: z.boolean().default(false),
+  certificateTitle: z.string().max(120, "Máximo 120 caracteres").optional().nullable(),
+  certificatePrice: z
+    .union([z.string(), z.number()])
+    .optional()
+    .nullable()
+    .transform((value) => {
+      if (value === "" || value === null || value === undefined) return 0;
+      const num = Number(value);
+      return Number.isNaN(num) ? 0 : Math.max(0, num);
+    })
+    .default(0),
   holdMinutesCard: z.coerce.number().int().min(5).max(120).optional().default(30),
   holdHoursManual: z.coerce.number().int().min(1).max(72).optional().default(24),
   nearEventWindowHours: z.coerce.number().int().min(1).max(168).optional().default(48),

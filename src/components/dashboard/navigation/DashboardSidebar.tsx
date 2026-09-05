@@ -30,6 +30,7 @@ import {
   LineChart,
   PanelLeftClose,
   PanelLeftOpen,
+  Award,
 } from "lucide-react";
 import { signOut } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
@@ -474,6 +475,12 @@ const memberSections: NavSection[] = compactSections([
         href: "/member/tickets",
         icon: Ticket,
         permissions: ["tickets:view:own"],
+      },
+      {
+        labelKey: "dashboard.sidebar.member.certificates",
+        href: "/member/certificates",
+        icon: Award,
+        permissions: ["tickets:view:own", "registrations:view:own"],
       },
     ],
   },

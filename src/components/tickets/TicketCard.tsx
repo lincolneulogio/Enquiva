@@ -35,9 +35,12 @@ import {
   MessageSquare,
   Share2,
   Clock,
-  XCircle
+  XCircle,
+  Award
 } from "lucide-react";
 import { DownloadTicketButton } from "./DownloadTicketButton";
+import { DownloadCertificateButton } from "@/components/certificates/DownloadCertificateButton";
+import { isCertificateEligible } from "@/lib/certificates/eligibility";
 import { CalendarSyncButtons } from "./CalendarSyncButtons";
 import { buildTicketQrDataUrlClient } from "@/lib/tickets/qr-client";
 import {
@@ -903,6 +906,45 @@ export function TicketCard({
                     scheduleLabel={registration.selectedScheduleLabel}
                     className="rounded-full border border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-foreground hover:bg-secondary transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 select-none"
                   />
+                )}
+                {/* Certificado Oficial (si fue solicitado) */}
+                {registration.wantsCertificate && (
+                  isCertificateEligible({
+                    wantsCertificate: registration.wantsCertificate,
+                    registrationStatus: primaryStatus,
+                    certificateCode: registration.certificateCode,
+                    eventDate: event.date,
+                    eventEndDate: event.endDate,
+                  }) ? (
+                    <DownloadCertificateButton
+                      data={{
+                        certificateCode: registration.certificateCode || `ENQ-${new Date().getFullYear()}-CERT`,
+                        attendeeName: attendeeName || "Asistente",
+                        eventTitle: event.title,
+                        certificateTitle: event.certificateTitle,
+                        eventDate: event.date,
+                        eventLocation: event.location,
+                        isVirtual: event.isVirtual,
+                      }}
+                      className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-xs font-semibold uppercase tracking-wide transition flex items-center gap-1.5 cursor-pointer shadow-xs select-none"
+                      label={locale === "en" ? "Official Certificate" : "Certificado Oficial"}
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        toast.info(
+                          locale === "en"
+                            ? `Your official certificate will be available upon check-in or once the event concludes (${new Date(event.date).toLocaleDateString()}).`
+                            : `Tu certificado oficial estará disponible para descarga una vez que concluya el evento (${new Date(event.date).toLocaleDateString()}) o registres tu asistencia.`
+                        )
+                      }
+                      className="rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 px-4 py-2 text-xs font-semibold uppercase tracking-wide transition flex items-center gap-1.5 cursor-pointer select-none"
+                    >
+                      <Award className="h-3.5 w-3.5" />
+                      <span>{locale === "en" ? "Certificate Included" : "Certificado Incluido"}</span>
+                    </button>
+                  )
                 )}
                 {ticket && guestsState.length > 0 && (
                   <button

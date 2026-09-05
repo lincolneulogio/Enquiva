@@ -41,6 +41,9 @@ export const events = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
     price: numeric("price", { precision: 10, scale: 2 }),
     hasTransport: boolean("has_transport").notNull().default(false),
+    hasCertificate: boolean("has_certificate").notNull().default(false),
+    certificateTitle: text("certificate_title"),
+    certificatePrice: numeric("certificate_price", { precision: 10, scale: 2 }).notNull().default("0"),
     /** Minutos de reserva de cupo tras registrarse (pago con tarjeta/Culqi). */
     holdMinutesCard: integer("hold_minutes_card").notNull().default(30),
     /** Horas de reserva si elige efectivo u otro método manual/legacy. */

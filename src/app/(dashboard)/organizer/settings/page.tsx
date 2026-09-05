@@ -6,7 +6,11 @@ import { ROLE_BADGE_STYLES, normalizeRole } from "@/lib/auth/rbac";
 import { OrganizationService } from "@/lib/organizations/organization.service";
 import { JoinEntityForm } from "@/components/dashboard/organizer/JoinEntityForm";
 import { PersonalAppearancePreferences } from "@/components/dashboard/appearance/PersonalAppearancePreferences";
+import { OrganizerWhatsAppContactCard } from "@/components/dashboard/organizer/OrganizerWhatsAppContactCard";
 import { getSystemSettings } from "@/lib/settings";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 const roleIcons = {
     super_admin: Crown,
@@ -25,6 +29,14 @@ export default async function OrganizerSettingsPage() {
     const RoleIcon = roleIcons[normalizedRole];
     const organization = await OrganizationService.getOrganizationForUser(user.id);
     const platformSettings = await getSystemSettings();
+
+    const [userRecord] = await db
+        .select({ phone: users.phone })
+        .from(users)
+        .where(eq(users.id, user.id))
+        .limit(1)
+        .catch(() => []);
+    const initialWhatsapp = organization?.whatsappNumber ?? userRecord?.phone ?? null;
 
     return (
         <div className="space-y-8">
@@ -50,6 +62,12 @@ export default async function OrganizerSettingsPage() {
 
                 <PersonalAppearancePreferences
                     platformDefaultAccent={platformSettings.defaultAccentColor}
+                />
+
+                <OrganizerWhatsAppContactCard
+                    initialWhatsapp={initialWhatsapp}
+                    organizerName={user.name ?? "Organizador"}
+                    locale={locale}
                 />
 
                 {organization ? (

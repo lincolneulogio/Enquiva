@@ -57,9 +57,11 @@ export async function saveSystemSettingsAction(settings: Partial<SystemSettings>
         details: describeSettingsChanges(before, updated),
     });
 
+    revalidatePath("/");
+    revalidatePath("/", "page");
+    revalidatePath("/", "layout");
     revalidatePath("/admin/settings");
     revalidatePath("/superadmin/settings");
-    revalidatePath("/", "layout");
     return { success: true, settings: updated };
 }
 

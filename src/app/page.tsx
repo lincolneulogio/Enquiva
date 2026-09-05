@@ -15,8 +15,8 @@ import { ScrollToTopButton } from "@/components/shared/ScrollToTopButton";
 import { MarketingMotionProvider } from "@/components/providers/MarketingMotionProvider";
 import { getPublicTestimonials, getCommunityMetrics } from "@/actions/marketing";
 
-/** Debe ser literal: Next.js no analiza imports en segment config. */
-export const revalidate = 120;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function HomePage() {
   const { locale, t } = await getStaticI18n();

@@ -1,6 +1,6 @@
 "use client";
 
-import { MapPin, Users, Ticket, Check } from "lucide-react";
+import { MapPin, Users, Ticket, Check, Award } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface EventDetailMetricsProps {
@@ -11,6 +11,8 @@ interface EventDetailMetricsProps {
   price: string | number | null;
   currency?: string;
   isVirtual?: boolean;
+  hasCertificate?: boolean;
+  certificateTitle?: string | null;
 }
 
 export function EventDetailMetrics({
@@ -21,6 +23,8 @@ export function EventDetailMetrics({
   price,
   currency = "PEN",
   isVirtual = false,
+  hasCertificate = false,
+  certificateTitle,
 }: EventDetailMetricsProps) {
   const maxCapacity = capacity && capacity > 0 ? capacity : 10;
   const available = Math.max(0, maxCapacity - occupied);
@@ -133,10 +137,17 @@ export function EventDetailMetrics({
         </div>
 
         <div className="pt-2 border-t border-border/50">
-          <div className="flex items-center gap-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 border border-emerald-200/40">
-            <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-            <span>Incluye certificado digital</span>
-          </div>
+          {hasCertificate ? (
+            <div className="flex items-center gap-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 border border-emerald-200/40">
+              <Award className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <span className="truncate">{certificateTitle || "Incluye certificado digital"}</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 rounded-lg bg-muted/40 px-2.5 py-1 text-[11px] font-medium text-muted-foreground border border-border/40">
+              <Check className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+              <span>Entrada y acceso oficial</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

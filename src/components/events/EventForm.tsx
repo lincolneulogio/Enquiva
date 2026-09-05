@@ -9,7 +9,7 @@ import { createEvent, updateEvent } from "@/actions/events";
 import { getPaymentMethodsForEventForm, setEventPaymentMethods } from "@/actions/payment-methods";
 import { UploadDropzone } from "@/lib/uploadthing/components";
 import { toast } from "sonner";
-import { Loader2, ImageIcon, Video, Star, Bus, Smartphone, QrCode, Wallet, CreditCard, Plus, CalendarDays, Clock3, Trash2, Copy } from "lucide-react";
+import { Loader2, ImageIcon, Video, Star, Bus, Smartphone, QrCode, Wallet, CreditCard, Plus, CalendarDays, Clock3, Trash2, Copy, Award } from "lucide-react";
 import { EventCoverFrame } from "@/components/events/EventCoverFrame";
 import type { Event } from "@/lib/db/schema";
 import type { FieldErrors } from "react-hook-form";
@@ -194,6 +194,9 @@ export function EventForm({
                 status: event.status,
                 isFeatured: event.isFeatured,
                 hasTransport: event.hasTransport,
+                hasCertificate: event.hasCertificate ?? false,
+                certificateTitle: event.certificateTitle ?? "",
+                certificatePrice: event.certificatePrice ? Number(event.certificatePrice) : 0,
                 holdMinutesCard: event.holdMinutesCard ?? 30,
                 holdHoursManual: event.holdHoursManual ?? 24,
                 nearEventWindowHours: event.nearEventWindowHours ?? 48,
@@ -205,6 +208,9 @@ export function EventForm({
                 isVirtual: false,
                 isFeatured: false,
                 hasTransport: false,
+                hasCertificate: false,
+                certificateTitle: "",
+                certificatePrice: 0,
                 price: undefined,
                 latitude: null,
                 longitude: null,
@@ -377,12 +383,18 @@ export function EventForm({
 
     const isVirtual = useWatch({ control, name: "isVirtual" });
     const hasTransport = useWatch({ control, name: "hasTransport" });
+    const hasCertificate = useWatch({ control, name: "hasCertificate" });
+    const watchedCertificatePrice = useWatch({ control, name: "certificatePrice" });
     const watchedPrice = useWatch({ control, name: "price" });
     const watchedTitle = useWatch({ control, name: "title" });
     const watchedLocation = useWatch({ control, name: "location" });
     const watchedLatitude = useWatch({ control, name: "latitude" });
     const watchedLongitude = useWatch({ control, name: "longitude" });
     const watchedEndDate = useWatch({ control, name: "endDate" });
+
+    const isPaidEvent = Boolean(watchedPrice != null && Number(watchedPrice) > 0);
+    const hasPaidCertificate = Boolean(hasCertificate && watchedCertificatePrice != null && Number(watchedCertificatePrice) > 0);
+    const requiresPaymentMethods = isPaidEvent || hasPaidCertificate;
 
     useEffect(() => {
         if (!isVirtual) return;
@@ -452,6 +464,12 @@ export function EventForm({
             setAllPaymentMethods(methods);
         })();
     }, [event?.organizerId]);
+
+    useEffect(() => {
+        if (requiresPaymentMethods && selectedPaymentMethodIds.length === 0 && selectablePaymentMethods.length > 0) {
+            setSelectedPaymentMethodIds(selectablePaymentMethods.map((m) => m.id));
+        }
+    }, [requiresPaymentMethods, selectedPaymentMethodIds.length, selectablePaymentMethods]);
 
     useEffect(() => {
         if (planMaxAttendees == null || isVirtual) return;
@@ -569,6 +587,32 @@ export function EventForm({
             setHighlightedField("location");
             document.getElementById("event-location")?.focus();
             return;
+        }
+
+        const isPaid = Boolean(data.price != null && Number(data.price) > 0);
+        const hasPaidCert = Boolean(data.hasCertificate && data.certificatePrice != null && Number(data.certificatePrice) > 0);
+        const requiresPayment = isPaid || hasPaidCert;
+
+        if (requiresPayment) {
+            if (selectablePaymentMethods.length === 0) {
+                toast.error(
+                    locale === "en"
+                        ? "You have not configured any payment methods in your organizer settings. Please configure one in Settings > Payment Methods before publishing."
+                        : "No has configurado ningún medio de pago en tu panel. Debes activar al menos uno en Configuración > Medios de pago para poder cobrar por el evento o certificaciones."
+                );
+                return;
+            }
+
+            if (selectedPaymentMethodIds.length === 0) {
+                toast.error(
+                    locale === "en"
+                        ? "Please select at least one payment method for this event."
+                        : "Debes seleccionar al menos un medio de pago obligatorio para este evento."
+                );
+                const el = document.getElementById("event-payment-methods-section");
+                el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                return;
+            }
         }
 
         for (let i = 1; i < scheduleSlots.length; i++) {
@@ -1252,9 +1296,29 @@ export function EventForm({
                         </div>
                     )}
 
-                    {selectablePaymentMethods.length > 0 && !!watchedPrice && Number(watchedPrice) > 0 && (
-                        <div className="rounded-xl border border-border p-4 space-y-3">
-                            <h3 className="text-sm font-semibold text-foreground">{t("events.form.paymentMethodsTitle")}</h3>
+                    {selectablePaymentMethods.length > 0 && requiresPaymentMethods && (
+                        <div
+                            id="event-payment-methods-section"
+                            className={`rounded-xl border p-4 space-y-3 transition-all ${
+                                selectedPaymentMethodIds.length === 0
+                                    ? "border-destructive/60 bg-destructive/5 ring-2 ring-destructive/20 shadow-xs"
+                                    : "border-border"
+                            }`}
+                        >
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                                    <CreditCard className="h-4 w-4 text-primary" />
+                                    <span>{t("events.form.paymentMethodsTitle")}</span>
+                                    <span className="text-[11px] font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-full border border-destructive/20">
+                                        * Obligatorio
+                                    </span>
+                                </h3>
+                                {selectedPaymentMethodIds.length === 0 && (
+                                    <span className="text-[11px] font-bold text-destructive animate-pulse">
+                                        ⚠️ Selecciona al menos 1 medio de pago
+                                    </span>
+                                )}
+                            </div>
                             <p className="text-xs text-muted-foreground">{t("events.form.paymentMethodsHelp")}</p>
                             <div className="flex flex-wrap gap-2">
                                 {selectablePaymentMethods.map((pm) => {
@@ -1278,10 +1342,11 @@ export function EventForm({
                                                         : [...prev, pm.id]
                                                 );
                                             }}
-                                            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${selected
-                                                ? "border-primary bg-primary/10 text-primary"
-                                                : "border-border bg-background text-foreground hover:bg-muted"
-                                                }`}
+                                            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
+                                                selected
+                                                    ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/30"
+                                                    : "border-border bg-background text-foreground hover:bg-muted"
+                                            }`}
                                         >
                                             <PmIcon className="h-4 w-4 shrink-0" />
                                             <span className="truncate">{pm.label}</span>
@@ -1473,6 +1538,81 @@ export function EventForm({
                             </p>
                         </div>
                     </label>
+
+                    {/* Certificado Digital (Opcional) */}
+                    <div className="rounded-xl border border-border p-4 bg-muted/10 space-y-3">
+                        <label className="flex items-start gap-3 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                {...register("hasCertificate")}
+                                className="mt-0.5 rounded border-border text-primary focus:ring-primary/20"
+                            />
+                            <div>
+                                <div className="flex items-center gap-1.5">
+                                    <Award className="h-4 w-4 text-primary" />
+                                    <p className="text-sm font-medium text-foreground">
+                                        {locale === "en" ? "Include Digital Certificate" : "Incluir Certificado Digital"}
+                                    </p>
+                                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                                        {locale === "en" ? "Optional" : "Opcional"}
+                                    </span>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                    {locale === "en"
+                                        ? "Issues official downloadable certificate or attendance credential for attendees."
+                                        : "Emite constancia o certificado oficial de participación descargable para los asistentes."}
+                                </p>
+                            </div>
+                        </label>
+
+                        {hasCertificate && (
+                            <div className="pt-2 pl-7 border-t border-border/60 space-y-3">
+                                <div>
+                                    <label className="block text-xs font-medium text-foreground mb-1">
+                                        {locale === "en" ? "Certificate Title / Recognition (Optional)" : "Título de la Certificación o Reconocimiento (Opcional)"}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        {...register("certificateTitle")}
+                                        placeholder={locale === "en" ? "e.g. Certificate of Attendance and Approval" : "ej. Certificado de Asistencia y Aprobación"}
+                                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                        maxLength={120}
+                                    />
+                                    <p className="text-[11px] text-muted-foreground mt-1">
+                                        {locale === "en"
+                                            ? "Customize the title shown on the certificate and public event page. If left blank, 'Certificado Digital de Participación' will be used."
+                                            : "Personaliza el título que se mostrará en el certificado y página pública del evento. Si lo dejas vacío, se usará 'Certificado Digital de Participación'."}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-medium text-foreground mb-1">
+                                        {locale === "en" ? "Certificate Price (PEN) — Optional Add-on" : "Precio del Certificado (PEN) — Add-on Opcional"}
+                                    </label>
+                                    <div className="relative flex items-center max-w-[200px]">
+                                        <span className="absolute left-3 text-xs font-bold text-muted-foreground select-none">
+                                            S/
+                                        </span>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            {...register("certificatePrice", {
+                                                setValueAs: (v) => (v === "" || v === null ? 0 : Number(v)),
+                                            })}
+                                            placeholder="0.00"
+                                            className="w-full rounded-lg border border-border bg-background pl-8 pr-3 py-2 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                        />
+                                    </div>
+                                    <p className="text-[11px] text-muted-foreground mt-1">
+                                        {locale === "en"
+                                            ? "If set to 0, certificate is included for free with registration. If greater than 0, attendee can choose to add it during checkout."
+                                            : "Si lo dejas en 0, el certificado estará incluido gratis con la entrada. Si colocas un monto (ej. S/ 15), el asistente podrá elegir si desea agregarlo al registrarse."}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
                     <button
                         type="submit"

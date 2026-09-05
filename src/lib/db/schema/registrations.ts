@@ -88,6 +88,10 @@ export const registrations = pgTable(
     /** Horario o turno específico seleccionado por el asistente (Opción A / Multi-horario) */
     selectedScheduleId: text("selected_schedule_id"),
     selectedScheduleLabel: text("selected_schedule_label"),
+    /** Certificación digital oficial */
+    wantsCertificate: boolean("wants_certificate").notNull().default(false),
+    certificateCode: text("certificate_code"),
+    certificateIssuedAt: timestamp("certificate_issued_at"),
   },
   (t) => [
     index("registrations_event_idx").on(t.eventId),
@@ -103,6 +107,9 @@ export const registrations = pgTable(
     index("registrations_event_status_idx").on(t.eventId, t.status),
     index("registrations_guest_idx").on(t.guestId),
     index("registrations_selected_schedule_idx").on(t.eventId, t.selectedScheduleId),
+    uniqueIndex("registrations_certificate_code_unique_idx")
+      .on(t.certificateCode)
+      .where(sql`${t.certificateCode} IS NOT NULL`),
   ]
 );
 

@@ -114,6 +114,7 @@ export class EventService {
         ...validated,
         schedules: resolvedSchedules,
         price: validated.price != null ? String(validated.price) : null,
+        certificatePrice: String(validated.certificatePrice ?? 0),
         latitude: validated.isVirtual ? null : validated.latitude,
         longitude: validated.isVirtual ? null : validated.longitude,
         location: validated.isVirtual ? null : validated.location,
@@ -164,6 +165,10 @@ export class EventService {
       ? (validated.price != null ? String(validated.price) : null)
       : undefined;
 
+    const certificatePriceValue = validated.certificatePrice !== undefined
+      ? (validated.certificatePrice != null ? String(validated.certificatePrice) : "0")
+      : undefined;
+
     const primarySlot = validated.schedules?.[0];
     const primaryDate = primarySlot?.date
       ? new Date(primarySlot.date)
@@ -181,6 +186,7 @@ export class EventService {
       .set({
         ...validated,
         price: priceValue,
+        certificatePrice: certificatePriceValue,
         ...(validated.isVirtual === true
           ? { latitude: null, longitude: null, location: null }
           : {}),
