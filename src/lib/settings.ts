@@ -97,6 +97,14 @@ export interface SystemSettings {
   alertEventPublished: boolean;
   alertSubscriptionPastDue: boolean;
   alertDailyFinanceSummary: boolean;
+  /** Tarjetas y métricas de impacto en portada */
+  impactCard1Title: string;
+  impactCard1Subtitle: string;
+  impactCard1ImageUrl: string;
+  impactCard2Title: string;
+  impactCard2Subtitle: string;
+  impactCard2ImageUrl: string;
+  impactSatisfactionRate: string;
 }
 
 const SETTINGS_ROW_ID = "default";
@@ -151,6 +159,13 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   alertEventPublished: true,
   alertSubscriptionPastDue: true,
   alertDailyFinanceSummary: false,
+  impactCard1Title: "5+ años impulsando",
+  impactCard1Subtitle: "Eventos de tecnología, negocios e innovación en Latinoamérica.",
+  impactCard1ImageUrl: "",
+  impactCard2Title: "Más de 250 empresas",
+  impactCard2Subtitle: "Ya patrocinan y reclutan talento activamente en nuestros eventos.",
+  impactCard2ImageUrl: "",
+  impactSatisfactionRate: "99.8%",
 };
 
 function rowToSettings(row: typeof platformSettings.$inferSelect): SystemSettings {
@@ -207,6 +222,13 @@ function rowToSettings(row: typeof platformSettings.$inferSelect): SystemSetting
     alertEventPublished: row.alertEventPublished !== false,
     alertSubscriptionPastDue: row.alertSubscriptionPastDue !== false,
     alertDailyFinanceSummary: row.alertDailyFinanceSummary,
+    impactCard1Title: row.impactCard1Title || DEFAULT_SETTINGS.impactCard1Title,
+    impactCard1Subtitle: row.impactCard1Subtitle || DEFAULT_SETTINGS.impactCard1Subtitle,
+    impactCard1ImageUrl: row.impactCard1ImageUrl || DEFAULT_SETTINGS.impactCard1ImageUrl,
+    impactCard2Title: row.impactCard2Title || DEFAULT_SETTINGS.impactCard2Title,
+    impactCard2Subtitle: row.impactCard2Subtitle || DEFAULT_SETTINGS.impactCard2Subtitle,
+    impactCard2ImageUrl: row.impactCard2ImageUrl || DEFAULT_SETTINGS.impactCard2ImageUrl,
+    impactSatisfactionRate: row.impactSatisfactionRate || DEFAULT_SETTINGS.impactSatisfactionRate,
   };
 }
 
@@ -327,6 +349,27 @@ function sanitizeSettingsPatch(settings: Partial<SystemSettings>): Partial<Syste
   if (typeof next.pushNotificationTitle === "string") {
     next.pushNotificationTitle = normalizePushNotificationTitle(next.pushNotificationTitle);
   }
+  if (typeof next.impactCard1Title === "string") {
+    next.impactCard1Title = next.impactCard1Title.trim().slice(0, 100);
+  }
+  if (typeof next.impactCard1Subtitle === "string") {
+    next.impactCard1Subtitle = next.impactCard1Subtitle.trim().slice(0, 250);
+  }
+  if (typeof next.impactCard1ImageUrl === "string") {
+    next.impactCard1ImageUrl = next.impactCard1ImageUrl.trim();
+  }
+  if (typeof next.impactCard2Title === "string") {
+    next.impactCard2Title = next.impactCard2Title.trim().slice(0, 100);
+  }
+  if (typeof next.impactCard2Subtitle === "string") {
+    next.impactCard2Subtitle = next.impactCard2Subtitle.trim().slice(0, 250);
+  }
+  if (typeof next.impactCard2ImageUrl === "string") {
+    next.impactCard2ImageUrl = next.impactCard2ImageUrl.trim();
+  }
+  if (typeof next.impactSatisfactionRate === "string") {
+    next.impactSatisfactionRate = next.impactSatisfactionRate.trim().slice(0, 20);
+  }
 
   return next;
 }
@@ -391,6 +434,13 @@ function toDbRow(
     alertEventPublished: settings.alertEventPublished,
     alertSubscriptionPastDue: settings.alertSubscriptionPastDue,
     alertDailyFinanceSummary: settings.alertDailyFinanceSummary,
+    impactCard1Title: settings.impactCard1Title,
+    impactCard1Subtitle: settings.impactCard1Subtitle,
+    impactCard1ImageUrl: settings.impactCard1ImageUrl,
+    impactCard2Title: settings.impactCard2Title,
+    impactCard2Subtitle: settings.impactCard2Subtitle,
+    impactCard2ImageUrl: settings.impactCard2ImageUrl,
+    impactSatisfactionRate: settings.impactSatisfactionRate,
   };
 }
 

@@ -104,6 +104,20 @@ export const uploadRouter = {
     .onUploadComplete(async ({ metadata, file }) => {
       return { uploadedBy: metadata.userId, url: file.url };
     }),
+
+  // Landing impact images (SuperAdmin / Admin only)
+  landingImpactImage: f({ image: { maxFileSize: "4MB", maxFileCount: 1 } })
+    .middleware(async () => {
+      const user = await getUser();
+      if (!user) throw new Error("Unauthorized");
+      if (user.role !== "super_admin" && user.role !== "admin") {
+        throw new Error("Only super admins can upload landing impact images");
+      }
+      return { userId: user.id };
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      return { uploadedBy: metadata.userId, url: file.url };
+    }),
 } satisfies FileRouter;
 
 export type OurFileRouter = typeof uploadRouter;

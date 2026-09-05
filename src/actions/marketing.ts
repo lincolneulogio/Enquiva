@@ -8,9 +8,11 @@ import {
   registrations,
   events,
   organizations,
+  tickets,
   type Testimonial,
 } from "@/lib/db/schema";
-import { eq, and, desc, asc, count, inArray } from "drizzle-orm";
+import { eq, and, desc, asc, count, inArray, isNull } from "drizzle-orm";
+import { getSystemSettings } from "@/lib/settings";
 import { z } from "zod";
 
 const subscribeSchema = z.object({
@@ -118,15 +120,33 @@ export type CommunityMetrics = {
   executedEvents: string;
   satisfactionRate: string;
   connectedCities: string;
+  card1Title?: string;
+  card1Subtitle?: string;
+  card1ImageUrl?: string;
+  card2Title?: string;
+  card2Subtitle?: string;
+  card2ImageUrl?: string;
 };
 
 /**
  * Calcula métricas dinámicas de la comunidad e impacto desde la base de datos.
+ * El conteo de asistentes incluye exclusivamente aquellos con ticket emitido activo o usado
+ * y sin retenciones (hold) pendientes.
  */
 export async function getCommunityMetrics(): Promise<CommunityMetrics> {
   try {
-    const [regResult, eventResult, orgResult] = await Promise.all([
-      db.select({ count: count() }).from(registrations),
+    const [regResult, eventResult, orgResult, settings] = await Promise.all([
+      db
+        .select({ count: count() })
+        .from(registrations)
+        .innerJoin(tickets, eq(tickets.registrationId, registrations.id))
+        .where(
+          and(
+            inArray(registrations.status, ["registered", "checked_in"]),
+            inArray(tickets.status, ["active", "used"]),
+            isNull(registrations.holdExpiresAt)
+          )
+        ),
       db
         .select({ count: count() })
         .from(events)
@@ -135,6 +155,7 @@ export async function getCommunityMetrics(): Promise<CommunityMetrics> {
         .select({ count: count() })
         .from(organizations)
         .where(eq(organizations.isActive, true)),
+      getSystemSettings().catch(() => null),
     ]);
 
     const regCount = Number(regResult[0]?.count ?? 0);
@@ -160,8 +181,18 @@ export async function getCommunityMetrics(): Promise<CommunityMetrics> {
     return {
       registeredAttendees: formattedAttendees,
       executedEvents: formattedEvents,
-      satisfactionRate: "99.8%",
+      satisfactionRate: settings?.impactSatisfactionRate || "99.8%",
       connectedCities: formattedOrgs,
+      card1Title: settings?.impactCard1Title || "5+ años impulsando",
+      card1Subtitle:
+        settings?.impactCard1Subtitle ||
+        "Eventos de tecnología, negocios e innovación en Latinoamérica.",
+      card1ImageUrl: settings?.impactCard1ImageUrl || "",
+      card2Title: settings?.impactCard2Title || "Más de 250 empresas",
+      card2Subtitle:
+        settings?.impactCard2Subtitle ||
+        "Ya patrocinan y reclutan talento activamente en nuestros eventos.",
+      card2ImageUrl: settings?.impactCard2ImageUrl || "",
     };
   } catch (error) {
     console.error("[marketing] Error computing community metrics:", error);
@@ -170,6 +201,12 @@ export async function getCommunityMetrics(): Promise<CommunityMetrics> {
       executedEvents: "0",
       satisfactionRate: "99.8%",
       connectedCities: "0 Organizaciones",
+      card1Title: "5+ años impulsando",
+      card1Subtitle: "Eventos de tecnología, negocios e innovación en Latinoamérica.",
+      card1ImageUrl: "",
+      card2Title: "Más de 250 empresas",
+      card2Subtitle: "Ya patrocinan y reclutan talento activamente en nuestros eventos.",
+      card2ImageUrl: "",
     };
   }
 }

@@ -30,6 +30,18 @@ export function ImpactCommunitySection({ metrics }: ImpactCommunitySectionProps)
     },
   ];
 
+  const card1Title = metrics?.card1Title || "5+ años impulsando";
+  const card1Subtitle =
+    metrics?.card1Subtitle ||
+    "Eventos de tecnología, negocios e innovación en Latinoamérica.";
+  const card1ImageUrl = metrics?.card1ImageUrl || "";
+
+  const card2Title = metrics?.card2Title || "Más de 250 empresas";
+  const card2Subtitle =
+    metrics?.card2Subtitle ||
+    "Ya patrocinan y reclutan talento activamente en nuestros eventos.";
+  const card2ImageUrl = metrics?.card2ImageUrl || "";
+
   return (
     <section className="relative w-full bg-[#121214] py-20 text-white lg:py-28">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
@@ -55,44 +67,56 @@ export function ImpactCommunitySection({ metrics }: ImpactCommunitySectionProps)
           data-aos-delay="100"
         >
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {/* Tarjeta 1: Conferencia multitudinaria */}
+            {/* Tarjeta 1 */}
             <div className="group relative aspect-[16/10] overflow-hidden rounded-2xl border border-zinc-800/60 bg-zinc-950 shadow-xl">
-              <Image
-                src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80"
-                alt="5+ años impulsando"
-                fill
-                sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover transition-transform duration-700 group-hover:scale-105 opacity-85"
-              />
+              {card1ImageUrl ? (
+                <Image
+                  src={card1ImageUrl}
+                  alt={card1Title}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="object-cover transition-transform duration-700 group-hover:scale-105 opacity-85"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-950 to-primary/15">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(245,158,11,0.12),transparent_70%)]" />
+                </div>
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
 
               <div className="absolute bottom-5 left-5 right-5 sm:bottom-6 sm:left-6 sm:right-6">
                 <h3 className="text-xl font-extrabold text-white sm:text-2xl">
-                  5+ años impulsando
+                  {card1Title}
                 </h3>
                 <p className="mt-1 text-xs text-zinc-300 sm:text-sm">
-                  Eventos de tecnología, negocios e innovación en Latinoamérica.
+                  {card1Subtitle}
                 </p>
               </div>
             </div>
 
-            {/* Tarjeta 2: Empresas y equipo colaborando */}
+            {/* Tarjeta 2 */}
             <div className="group relative aspect-[16/10] overflow-hidden rounded-2xl border border-zinc-800/60 bg-zinc-950 shadow-xl">
-              <Image
-                src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1200&auto=format&fit=crop&q=80"
-                alt="Más de 250 empresas"
-                fill
-                sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover transition-transform duration-700 group-hover:scale-105 opacity-85"
-              />
+              {card2ImageUrl ? (
+                <Image
+                  src={card2ImageUrl}
+                  alt={card2Title}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="object-cover transition-transform duration-700 group-hover:scale-105 opacity-85"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-950 to-primary/10">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_70%,rgba(59,130,246,0.12),transparent_70%)]" />
+                </div>
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
 
               <div className="absolute bottom-5 left-5 right-5 sm:bottom-6 sm:left-6 sm:right-6">
                 <h3 className="text-xl font-extrabold text-white sm:text-2xl">
-                  Más de 250 empresas
+                  {card2Title}
                 </h3>
                 <p className="mt-1 text-xs text-zinc-300 sm:text-sm">
-                  Ya patrocinan y reclutan talento activamente en nuestros eventos.
+                  {card2Subtitle}
                 </p>
               </div>
             </div>
