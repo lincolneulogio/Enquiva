@@ -7,6 +7,7 @@ import { OrganizationService } from "@/lib/organizations/organization.service";
 import { JoinEntityForm } from "@/components/dashboard/organizer/JoinEntityForm";
 import { PersonalAppearancePreferences } from "@/components/dashboard/appearance/PersonalAppearancePreferences";
 import { OrganizerWhatsAppContactCard } from "@/components/dashboard/organizer/OrganizerWhatsAppContactCard";
+import { OrganizerCertificateSignatureCard } from "@/components/dashboard/organizer/OrganizerCertificateSignatureCard";
 import { getSystemSettings } from "@/lib/settings";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
@@ -31,7 +32,11 @@ export default async function OrganizerSettingsPage() {
     const platformSettings = await getSystemSettings();
 
     const [userRecord] = await db
-        .select({ phone: users.phone })
+        .select({
+            phone: users.phone,
+            signatureUrl: users.signatureUrl,
+            signatureTitle: users.signatureTitle,
+        })
         .from(users)
         .where(eq(users.id, user.id))
         .limit(1)
@@ -67,6 +72,14 @@ export default async function OrganizerSettingsPage() {
                 <OrganizerWhatsAppContactCard
                     initialWhatsapp={initialWhatsapp}
                     organizerName={user.name ?? "Organizador"}
+                    locale={locale}
+                />
+
+                <OrganizerCertificateSignatureCard
+                    initialSignatureUrl={userRecord?.signatureUrl}
+                    initialSignatureTitle={userRecord?.signatureTitle}
+                    organizerName={user.name ?? "Organizador"}
+                    organizationName={organization?.name ?? null}
                     locale={locale}
                 />
 

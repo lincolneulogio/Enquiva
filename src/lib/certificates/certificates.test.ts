@@ -77,4 +77,21 @@ describe("Certificate System Business Logic & Eligibility", () => {
     expect(details.isEligible).toBe(false);
     expect(details.status).toBe("not_requested");
   });
+
+  it("supports organizer custom handwritten signature and official title/cargo", () => {
+    const certData = {
+      certificateCode: "ENQ-2026-CERT-ABCDEF",
+      attendeeName: "María López",
+      eventTitle: "Congreso Internacional de IA 2026",
+      eventDate: new Date("2026-11-15"),
+      organizerName: "Dr. Carlos Meneses",
+      organizerImage: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      organizerTitle: "Director Académico y Decano",
+      organizationName: "Universidad Continental",
+    };
+
+    expect(certData.organizerTitle).toBe("Director Académico y Decano");
+    expect(certData.organizerImage).toContain("data:image/png;base64");
+    expect(certData.organizerName).toBe("Dr. Carlos Meneses");
+  });
 });

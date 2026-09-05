@@ -18,6 +18,8 @@ export const users = pgTable("users", {
   address: text("address"),
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
+  signatureUrl: text("signature_url"),
+  signatureTitle: text("signature_title"),
   role: roleEnum("role").notNull().default("member"),
   organizationId: uuid("organization_id").references(
     (): AnyPgColumn => organizations.id,

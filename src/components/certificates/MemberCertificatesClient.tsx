@@ -41,6 +41,9 @@ export interface MemberCertificateItem {
   registrationStatus: string;
   organizationName?: string | null;
   organizationLogo?: string | null;
+  organizerName?: string | null;
+  organizerImage?: string | null;
+  organizerTitle?: string | null;
   attendeeName: string;
 }
 
@@ -368,6 +371,10 @@ export function MemberCertificatesClient({
                           eventLocation: item.eventLocation,
                           isVirtual: item.isVirtual,
                           organizationName: item.organizationName,
+                          organizationLogo: item.organizationLogo,
+                          organizerName: item.organizerName,
+                          organizerImage: item.organizerImage,
+                          organizerTitle: item.organizerTitle,
                         }}
                         className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 text-xs font-bold transition flex items-center gap-2 cursor-pointer shadow-xs"
                         label={

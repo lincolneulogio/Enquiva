@@ -2,7 +2,7 @@ import { getUserRegistrations } from "@/actions/registrations";
 import { getI18n } from "@/lib/i18n/server";
 import { getRequestSession } from "@/lib/request-context";
 import { db } from "@/lib/db";
-import { organizations } from "@/lib/db/schema";
+import { organizations, users } from "@/lib/db/schema";
 import { inArray } from "drizzle-orm";
 import {
   MemberCertificatesClient,
@@ -52,8 +52,43 @@ export default async function MemberCertificatesPage() {
     }
   }
 
+  // Collect unique organizer IDs to get profile image & name
+  const organizerIds = Array.from(
+    new Set(
+      certRegistrations
+        .map((r) => r.event.organizerId)
+        .filter((id): id is string => Boolean(id))
+    )
+  );
+
+  const organizerMap = new Map<
+    string,
+    { name: string; image: string | null; title: string | null }
+  >();
+  if (organizerIds.length > 0) {
+    const orgUsers = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        image: users.image,
+        signatureUrl: users.signatureUrl,
+        signatureTitle: users.signatureTitle,
+      })
+      .from(users)
+      .where(inArray(users.id, organizerIds));
+
+    for (const u of orgUsers) {
+      organizerMap.set(u.id, {
+        name: u.name ?? "Organizador Responsable",
+        image: u.signatureUrl || u.image,
+        title: u.signatureTitle ?? null,
+      });
+    }
+  }
+
   const items: MemberCertificateItem[] = certRegistrations.map(({ registration, event }) => {
     const orgInfo = event.organizationId ? orgMap.get(event.organizationId) : null;
+    const organizerInfo = organizerMap.get(event.organizerId);
 
     return {
       registrationId: registration.id,
@@ -72,6 +107,9 @@ export default async function MemberCertificatesPage() {
       registrationStatus: registration.status,
       organizationName: orgInfo?.name ?? null,
       organizationLogo: orgInfo?.logoUrl ?? null,
+      organizerName: organizerInfo?.name ?? null,
+      organizerImage: organizerInfo?.image ?? null,
+      organizerTitle: organizerInfo?.title ?? null,
       attendeeName: userName,
     };
   });

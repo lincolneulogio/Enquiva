@@ -94,7 +94,7 @@ export function getCertificateStatusDetails(
   return {
     isEligible: false,
     status: "pending",
-    badgeLabel: locale === "en" ? "⏳ Pending check-in or end" : "⏳ Pendiente (Check-in o Fin)",
+    badgeLabel: locale === "en" ? "⏳ Pending check-in or end" : "Pendiente (Check-in o Fin)",
     badgeClass: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
     unlockMessage:
       locale === "en"

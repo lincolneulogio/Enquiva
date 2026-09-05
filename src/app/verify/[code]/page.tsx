@@ -41,6 +41,7 @@ export default async function CertificateVerifyPage({ params }: VerifyPageProps)
       userEmail: users.email,
       guestName: registrationGuests.name,
       organizationName: organizations.name,
+      organizationLogo: organizations.logoUrl,
     })
     .from(registrations)
     .innerJoin(events, eq(registrations.eventId, events.id))
@@ -49,6 +50,19 @@ export default async function CertificateVerifyPage({ params }: VerifyPageProps)
     .leftJoin(organizations, eq(events.organizationId, organizations.id))
     .where(eq(registrations.certificateCode, decodedCode))
     .limit(1);
+
+  const [organizerUser] = record?.event?.organizerId
+    ? await db
+        .select({
+          name: users.name,
+          image: users.image,
+          signatureUrl: users.signatureUrl,
+          signatureTitle: users.signatureTitle,
+        })
+        .from(users)
+        .where(eq(users.id, record.event.organizerId))
+        .limit(1)
+    : [null];
 
   const isValid = Boolean(
     record &&
@@ -216,6 +230,10 @@ export default async function CertificateVerifyPage({ params }: VerifyPageProps)
                     eventLocation: record.event.location,
                     isVirtual: record.event.isVirtual,
                     organizationName: orgName,
+                    organizationLogo: record.organizationLogo,
+                    organizerName: organizerUser?.name,
+                    organizerImage: organizerUser?.signatureUrl || organizerUser?.image,
+                    organizerTitle: organizerUser?.signatureTitle,
                   }}
                   className="flex-1 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground py-3.5 px-6 text-sm font-bold shadow-md shadow-primary/25 hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
                   label="Descargar Copia Oficial (PDF)"
