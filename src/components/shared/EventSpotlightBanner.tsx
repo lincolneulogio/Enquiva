@@ -136,7 +136,7 @@ export function EventSpotlightBanner({
 
         {/* Título del evento */}
         <span
-          className="truncate font-bold text-white select-text"
+          className="truncate max-w-full font-bold text-white select-text"
           title={event.title}
         >
           {event.title}
@@ -203,7 +203,7 @@ export function EventSpotlightBanner({
 
   if (isPreview) {
     return (
-      <div className="w-full overflow-hidden rounded-xl bg-primary text-primary-foreground shadow-xs">
+      <div className="w-full min-w-0 max-w-full overflow-hidden rounded-xl bg-primary text-primary-foreground shadow-xs">
         {content}
       </div>
     );
@@ -214,7 +214,7 @@ export function EventSpotlightBanner({
       ref={barRef}
       role="banner"
       aria-label="Evento destacado"
-      className="fixed inset-x-0 top-0 z-[45] w-full overflow-hidden bg-primary text-primary-foreground shadow-xs"
+      className="fixed inset-x-0 top-0 z-[45] w-full min-w-0 max-w-full overflow-hidden bg-primary text-primary-foreground shadow-xs"
     >
       {content}
     </header>

@@ -59,13 +59,13 @@ export default async function AdminSettingsPage() {
               : "settingsIntroEntity";
 
     return (
-        <div className="space-y-8 pb-12">
-            <div>
+        <div className="w-full min-w-0 max-w-full space-y-8 pb-12">
+            <div className="w-full min-w-0">
                 <h1 className="font-display text-3xl font-semibold text-foreground">{t("common.settings")}</h1>
                 <p className="mt-1 text-muted-foreground">{t(`dashboard.admin.${introKey}`)}</p>
             </div>
 
-            <div className="max-w-5xl">
+            <div className="w-full min-w-0 max-w-5xl">
                 <SettingsTabs
                     isSuperAdmin={isSuperAdmin}
                     entityContext={entityContext}
@@ -80,7 +80,7 @@ export default async function AdminSettingsPage() {
             </div>
 
             {isSuperAdmin && (
-                <div className="max-w-5xl pt-4">
+                <div className="w-full min-w-0 max-w-5xl pt-4">
                     <div className="rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
                         <h2 className="text-lg font-semibold text-foreground">Copia de Seguridad de la Base de Datos</h2>
                         <p className="mt-1 text-xs text-muted-foreground">

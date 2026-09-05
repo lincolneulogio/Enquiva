@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   Mail,
   Download,
@@ -48,8 +49,37 @@ export function NewsletterManager({
   const [broadcastMessage, setBroadcastMessage] = useState("");
   const [broadcastImageUrl, setBroadcastImageUrl] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    setPortalTarget(document.body);
+  }, []);
+
+  useEffect(() => {
+    const isModalOpen = isBroadcastModalOpen || Boolean(deleteConfirmId);
+    if (!isModalOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (deleteConfirmId) {
+          setDeleteConfirmId(null);
+        } else if (isBroadcastModalOpen) {
+          closeBroadcastModal();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isBroadcastModalOpen, deleteConfirmId]);
 
   // Filtrado del lado cliente para respuesta instantánea
   const filteredSubscribers = useMemo(() => {
@@ -404,8 +434,13 @@ export function NewsletterManager({
       )}
 
       {/* Modal Redactar Comunicado a Suscriptores */}
-      {isBroadcastModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      {portalTarget && isBroadcastModalOpen && createPortal(
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeBroadcastModal();
+          }}
+        >
           <div className="w-full max-w-xl rounded-2xl border border-border bg-card shadow-2xl flex flex-col max-h-[90vh]">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-border px-6 py-4 shrink-0">
@@ -543,12 +578,18 @@ export function NewsletterManager({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        portalTarget
       )}
 
       {/* Modal Confirmar Eliminación */}
-      {deleteConfirmId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      {portalTarget && deleteConfirmId && createPortal(
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDeleteConfirmId(null);
+          }}
+        >
           <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-xl">
             <h4 className="font-semibold text-foreground">¿Eliminar este suscriptor?</h4>
             <p className="mt-2 text-xs text-muted-foreground">
@@ -573,7 +614,8 @@ export function NewsletterManager({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        portalTarget
       )}
     </div>
   );

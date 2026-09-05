@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   Quote,
   Star,
@@ -35,6 +36,7 @@ export function TestimonialsManager({ initialTestimonials }: TestimonialsManager
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
   // Form State
   const [name, setName] = useState("");
@@ -48,6 +50,34 @@ export function TestimonialsManager({ initialTestimonials }: TestimonialsManager
   const [sortOrder, setSortOrder] = useState(0);
 
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    setPortalTarget(document.body);
+  }, []);
+
+  useEffect(() => {
+    const isAnyModalOpen = isModalOpen || Boolean(deleteConfirmId);
+    if (!isAnyModalOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (deleteConfirmId) {
+          setDeleteConfirmId(null);
+        } else if (isModalOpen) {
+          closeModal();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isModalOpen, deleteConfirmId]);
 
   const featuredCount = items.filter((i) => i.isFeatured).length;
   const avgRating =
@@ -411,8 +441,13 @@ export function TestimonialsManager({ initialTestimonials }: TestimonialsManager
       )}
 
       {/* Modal Crear / Editar */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      {portalTarget && isModalOpen && createPortal(
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeModal();
+          }}
+        >
           <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl">
             <div className="flex items-center justify-between border-b border-border pb-4">
               <h3 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
@@ -655,12 +690,18 @@ export function TestimonialsManager({ initialTestimonials }: TestimonialsManager
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        portalTarget
       )}
 
       {/* Modal Confirmar Eliminación */}
-      {deleteConfirmId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      {portalTarget && deleteConfirmId && createPortal(
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDeleteConfirmId(null);
+          }}
+        >
           <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-xl">
             <h4 className="font-semibold text-foreground">¿Eliminar este testimonio?</h4>
             <p className="mt-2 text-xs text-muted-foreground">
@@ -685,7 +726,8 @@ export function TestimonialsManager({ initialTestimonials }: TestimonialsManager
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        portalTarget
       )}
     </div>
   );
