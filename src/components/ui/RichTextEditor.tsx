@@ -29,10 +29,10 @@ function ToolbarBtn({
         onClick();
       }}
       title={title}
-      className={`inline-flex h-7 w-7 items-center justify-center rounded text-sm transition-colors
+      className={`inline-flex h-7 w-7 items-center justify-center rounded-lg text-xs font-semibold transition-all cursor-pointer active:scale-95
         ${active
-          ? "bg-primary text-primary-foreground"
-          : "text-foreground hover:bg-accent hover:text-accent-foreground"
+          ? "bg-primary text-primary-foreground shadow-2xs"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground"
         }`}
     >
       {children}
@@ -41,7 +41,7 @@ function ToolbarBtn({
 }
 
 function Divider() {
-  return <span className="mx-1 h-5 w-px shrink-0 bg-border" />;
+  return <span className="mx-1 h-4 w-px shrink-0 bg-border/60" />;
 }
 
 // ─── Toolbar ──────────────────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ function Toolbar({ editor }: { editor: Editor }) {
   }, [editor]);
 
   return (
-    <div className="flex flex-wrap items-center gap-0.5 border-b border-border bg-muted/40 px-2 py-1.5">
+    <div className="flex flex-wrap items-center gap-1 border-b border-border/60 bg-muted/25 px-2.5 py-1.5 backdrop-blur-xs">
       {/* Headings */}
       <ToolbarBtn
         title="Título H1"
@@ -281,7 +281,7 @@ export function RichTextEditor({
 
   return (
     <div
-      className={`overflow-hidden rounded-xl border border-border bg-background transition-colors focus-within:border-primary focus-within:ring-1 focus-within:ring-primary ${className}`}
+      className={`overflow-hidden rounded-xl border border-border/80 bg-background/90 transition-all focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 shadow-2xs hover:border-border ${className}`}
     >
       <Toolbar editor={editor} />
       <EditorContent

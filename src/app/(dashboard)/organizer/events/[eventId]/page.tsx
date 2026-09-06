@@ -10,6 +10,7 @@ import { getMyPlanSummary } from "@/actions/billing";
 import { getEventTypes } from "@/actions/admin/event-types";
 import { getRequestSession } from "@/lib/request-context";
 import { getI18n } from "@/lib/i18n/server";
+import { cn } from "@/lib/utils";
 
 interface OrganizerEditEventPageProps {
     params: Promise<{ eventId: string }>;
@@ -42,29 +43,80 @@ export default async function OrganizerEditEventPage({ params }: OrganizerEditEv
 
     return (
         <div className="space-y-6">
-            <div>
-                <Link
-                    href="/organizer/events"
-                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                    <ArrowLeft className="h-3.5 w-3.5" />
-                    {t("dashboard.organizer.backToMyEvents")}
-                </Link>
-                <h1 className="mt-3 font-display text-3xl font-semibold text-foreground">{t("dashboard.organizer.editEvent")}</h1>
-                <p className="mt-1 text-muted-foreground">{t("dashboard.organizer.updateEventDetails", { title: event.title })}</p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <Link
+                        href="/organizer/events"
+                        className="group inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card/80 px-3 py-1 text-xs font-semibold text-muted-foreground shadow-2xs backdrop-blur-xs transition-all hover:border-border hover:bg-card hover:text-foreground"
+                    >
+                        <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+                        <span>{t("dashboard.organizer.backToMyEvents")}</span>
+                    </Link>
+                    <div className="mt-2.5 flex flex-wrap items-center gap-3">
+                        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                            {t("dashboard.organizer.editEvent")}
+                        </h1>
+                        <span
+                            className={cn(
+                                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold border shadow-2xs",
+                                event.status === "published"
+                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25"
+                                    : event.status === "cancelled"
+                                      ? "bg-destructive/10 text-destructive border-destructive/25"
+                                      : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25",
+                            )}
+                        >
+                            <span
+                                className={cn(
+                                    "h-1.5 w-1.5 rounded-full",
+                                    event.status === "published"
+                                        ? "bg-emerald-500 animate-pulse"
+                                        : event.status === "cancelled"
+                                          ? "bg-destructive"
+                                          : "bg-amber-500",
+                                )}
+                            />
+                            {event.status === "published"
+                                ? "Publicado"
+                                : event.status === "cancelled"
+                                  ? "Cancelado"
+                                  : "Borrador"}
+                        </span>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        {t("dashboard.organizer.updateEventDetails", { title: event.title })}
+                    </p>
+                </div>
+
+                {event.status === "published" && (
+                    <Link
+                        href={`/events/${event.slug || event.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-xl border border-border/80 bg-background/80 px-3.5 py-2 text-xs font-semibold text-foreground shadow-2xs hover:border-primary/40 hover:bg-card hover:text-primary transition-all active:scale-95"
+                    >
+                        <span>Ver página pública</span>
+                        <span className="text-xs">&nearr;</span>
+                    </Link>
+                )}
             </div>
 
             <EventForm event={event} redirectPath="/organizer/events" categories={categories} canFeature={session.user.role === "super_admin"} planSummary={planSummary} initialEventTypes={eventTypesList} />
 
             {event.hasTransport && (
-                <div className="rounded-2xl border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 px-5 py-4 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-2 text-blue-800 dark:text-blue-300">
-                        <Bus className="h-4 w-4" />
-                        <p className="text-sm font-medium">{t("dashboard.organizer.eventOffersTransport")}</p>
+                <div className="rounded-2xl border border-blue-200/80 bg-blue-50/60 dark:border-blue-800/60 dark:bg-blue-950/20 px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
+                    <div className="flex items-center gap-2.5 text-blue-800 dark:text-blue-300">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300">
+                            <Bus className="h-4 w-4" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-semibold">{t("dashboard.organizer.eventOffersTransport")}</p>
+                            <p className="text-xs text-blue-700/80 dark:text-blue-400">Rutas y buses habilitados para los asistentes</p>
+                        </div>
                     </div>
                     <Link
                         href={`/organizer/events/${event.id}/transport`}
-                        className="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                        className="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition-all shadow-sm hover:shadow active:scale-95"
                     >
                         {t("dashboard.organizer.manageRoutes")}
                     </Link>

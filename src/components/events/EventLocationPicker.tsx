@@ -97,7 +97,7 @@ export function EventLocationPicker({
         onRemovePin={removePin}
       />
 
-      <div className="overflow-hidden rounded-xl border border-border">
+      <div className="overflow-hidden rounded-2xl border border-border/80 shadow-2xs">
         <MapContainer
           center={[center.lat, center.lng]}
           zoom={pin ? 15 : 12}

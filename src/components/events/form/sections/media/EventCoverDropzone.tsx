@@ -33,47 +33,43 @@ export function EventCoverDropzone({
         {t("events.form.coverImageHint")}
       </p>
 
-      <div className="overflow-hidden rounded-xl border border-border/80 bg-background/50">
-        {coverImage ? (
-          <div className="relative">
-            <EventCoverFrame
-              src={coverImage}
-              alt="Cover"
-              variant="preview"
-              className="min-h-64 rounded-none"
-            />
-            <button
-              type="button"
-              onClick={() => setCoverImage(null)}
-              className="absolute right-3 top-3 rounded-lg border border-border bg-background/90 px-2.5 py-1 text-xs font-semibold backdrop-blur shadow-sm transition hover:bg-destructive hover:text-destructive-foreground cursor-pointer"
-            >
-              {t("events.form.removeImage")}
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center p-4">
-            <UploadDropzone
-              endpoint="eventCoverImage"
-              config={{ mode: "auto" }}
-              onClientUploadComplete={(res) => {
-                if (res[0]) setCoverImage(res[0].url);
-              }}
-              onUploadError={(err) => {
-                toast.error(err.message);
-              }}
-              content={{
-                label: t("events.form.uploadDragDrop"),
-                allowedContent: t("events.form.uploadAllowedContent"),
-                button({ isUploading }) {
-                  if (isUploading) return t("common.loading");
-                  return t("events.form.uploadButton");
-                },
-              }}
-              appearance={coverDropzoneAppearance}
-            />
-          </div>
-        )}
-      </div>
+      {coverImage ? (
+        <div className="relative overflow-hidden rounded-xl border border-border/80 bg-background/50 shadow-2xs">
+          <EventCoverFrame
+            src={coverImage}
+            alt="Cover"
+            variant="preview"
+            className="min-h-64 rounded-none"
+          />
+          <button
+            type="button"
+            onClick={() => setCoverImage(null)}
+            className="absolute right-3 top-3 rounded-lg border border-border bg-background/90 px-2.5 py-1 text-xs font-semibold backdrop-blur shadow-sm transition hover:bg-destructive hover:text-destructive-foreground cursor-pointer"
+          >
+            {t("events.form.removeImage")}
+          </button>
+        </div>
+      ) : (
+        <UploadDropzone
+          endpoint="eventCoverImage"
+          config={{ mode: "auto" }}
+          onClientUploadComplete={(res) => {
+            if (res[0]) setCoverImage(res[0].url);
+          }}
+          onUploadError={(err) => {
+            toast.error(err.message);
+          }}
+          content={{
+            label: t("events.form.uploadDragDrop"),
+            allowedContent: t("events.form.uploadAllowedContent"),
+            button({ isUploading }) {
+              if (isUploading) return t("common.loading");
+              return t("events.form.uploadButton");
+            },
+          }}
+          appearance={coverDropzoneAppearance}
+        />
+      )}
     </div>
   );
 }

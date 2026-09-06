@@ -36,15 +36,15 @@ export default async function NewEventPage() {
       <div>
         <Link
           href="/organizer"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="group inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card/80 px-3 py-1 text-xs font-semibold text-muted-foreground shadow-2xs backdrop-blur-xs transition-all hover:border-border hover:bg-card hover:text-foreground"
         >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          {t("dashboard.organizer.backToDashboard")}
+          <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+          <span>{t("dashboard.organizer.backToDashboard")}</span>
         </Link>
-        <h1 className="mt-3 font-display text-3xl font-semibold text-foreground">
+        <h1 className="mt-2.5 font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
           {createEventTitle}
         </h1>
-        <p className="mt-1 text-muted-foreground">
+        <p className="mt-1 text-sm text-muted-foreground">
           {createEventIntro}
         </p>
       </div>

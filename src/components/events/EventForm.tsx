@@ -21,12 +21,12 @@ import {
 
 const COVER_DROPZONE_APPEARANCE = {
   container:
-    "h-48 w-full rounded-xl border border-dashed border-primary/25 bg-gradient-to-br from-primary/5 via-muted/10 to-transparent p-4 transition-all duration-300 hover:border-primary/40 hover:from-primary/10 hover:shadow-sm cursor-pointer",
-  uploadIcon: "h-7 w-7 text-primary/70 transition-transform duration-300 hover:scale-110",
-  label: "text-xs font-semibold text-foreground tracking-wide mt-1.5",
-  allowedContent: "text-[10px] text-muted-foreground/80 mt-0.5 font-medium",
+    "h-52 w-full rounded-2xl border-2 border-dashed border-primary/25 bg-gradient-to-b from-primary/[0.03] to-transparent p-5 transition-all duration-300 hover:border-primary/50 hover:bg-primary/[0.06] hover:shadow-xs cursor-pointer flex flex-col items-center justify-center",
+  uploadIcon: "h-8 w-8 text-primary/80 transition-transform duration-300 hover:scale-110",
+  label: "text-xs font-bold text-foreground tracking-wide mt-2",
+  allowedContent: "text-[11px] text-muted-foreground/80 mt-0.5 font-medium",
   button:
-    "mt-3 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-md shadow-primary/15 transition-all duration-300 hover:bg-primary/95 hover:shadow-lg hover:shadow-primary/25 active:scale-95",
+    "mt-3 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-300 hover:bg-primary/95 hover:shadow-md hover:shadow-primary/30 active:scale-95 cursor-pointer",
 };
 
 export function EventForm({

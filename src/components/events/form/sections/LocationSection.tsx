@@ -51,7 +51,11 @@ export function LocationSection({
 
         <label
           htmlFor="event-virtual-toggle"
-          className="inline-flex items-center gap-2 rounded-xl border border-border/80 bg-background/80 px-3 py-1.5 text-xs font-semibold text-foreground/80 cursor-pointer hover:border-primary/40 hover:text-foreground transition-all shadow-2xs"
+          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer transition-all shadow-2xs ${
+            isVirtual
+              ? "bg-primary/10 border-primary/30 text-primary"
+              : "border-border/80 bg-background text-muted-foreground hover:text-foreground hover:border-border"
+          }`}
         >
           <input
             id="event-virtual-toggle"
@@ -100,10 +104,11 @@ export function LocationSection({
               placeholder={t("events.form.venuePlaceholder")}
               invalid={Boolean(errors.location)}
               describedBy={errors.location ? "event-location-error" : undefined}
-              className={`w-full rounded-xl border border-border/80 bg-background px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${getFieldHighlightClass("location")}`}
+              className="w-full"
+              inputClassName={`w-full rounded-xl border border-border/80 bg-background pl-10 pr-10 py-2.5 text-sm font-medium text-foreground transition-all hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${getFieldHighlightClass("location")}`}
             />
             {errors.location && (
-              <p id="event-location-error" role="alert" className="mt-1 text-xs text-destructive">
+              <p id="event-location-error" role="alert" className="mt-1 text-xs text-destructive font-medium">
                 {getLocalizedValidationMessage(errors.location.message)}
               </p>
             )}
@@ -113,21 +118,19 @@ export function LocationSection({
             <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
               {t("events.form.mapCoordinates")}
             </label>
-            <div className="overflow-hidden rounded-xl border border-border/80 shadow-2xs">
-              <EventLocationPickerDynamic
-                address={watchedLocation || ""}
-                latitude={watchedLatitude}
-                longitude={watchedLongitude}
-                className="w-full"
-                onChange={(coords: LatLng | null) => {
-                  setValue("latitude", coords?.lat ?? null, { shouldDirty: true });
-                  setValue("longitude", coords?.lng ?? null, { shouldDirty: true });
-                }}
-                onAddressChange={(newAddress: string) => {
-                  setValue("location", newAddress, { shouldDirty: true, shouldValidate: true });
-                }}
-              />
-            </div>
+            <EventLocationPickerDynamic
+              address={watchedLocation || ""}
+              latitude={watchedLatitude}
+              longitude={watchedLongitude}
+              className="w-full"
+              onChange={(coords: LatLng | null) => {
+                setValue("latitude", coords?.lat ?? null, { shouldDirty: true });
+                setValue("longitude", coords?.lng ?? null, { shouldDirty: true });
+              }}
+              onAddressChange={(newAddress: string) => {
+                setValue("location", newAddress, { shouldDirty: true, shouldValidate: true });
+              }}
+            />
             <p className="mt-1 text-xs text-muted-foreground">
               {t("events.form.mapCoordinatesHelp")}
             </p>

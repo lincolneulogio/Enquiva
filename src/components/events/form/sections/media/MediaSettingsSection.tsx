@@ -51,7 +51,7 @@ export function MediaSettingsSection({
   const currentStatus = watchedStatus || (event?.status ?? "draft");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 lg:sticky lg:top-24 self-start">
       <EventCoverDropzone
         coverImage={coverImage}
         setCoverImage={setCoverImage}
@@ -198,7 +198,7 @@ export function MediaSettingsSection({
         <button
           type="submit"
           disabled={isPending || (!event && !canCreateEvent)}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 px-6 text-base font-bold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:bg-primary/95 hover:shadow-xl hover:shadow-primary/35 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary via-primary to-primary/95 py-3.5 px-6 text-base font-bold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:bg-primary/95 hover:shadow-xl hover:shadow-primary/35 hover:scale-[1.01] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
         >
           {isPending ? (
             <Loader2 className="h-5 w-5 animate-spin" />

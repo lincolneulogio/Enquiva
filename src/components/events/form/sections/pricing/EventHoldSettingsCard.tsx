@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Clock } from "lucide-react";
 import type { UseFormRegister } from "react-hook-form";
 import type { CreateEventInput } from "@/lib/validations";
 
@@ -13,10 +14,15 @@ export function EventHoldSettingsCard({ register, t }: EventHoldSettingsCardProp
   return (
     <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs space-y-5 transition-all md:col-span-2">
       <div className="border-b border-border/60 pb-3.5">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          {t("events.form.holdSettingsTitle")}
-        </h3>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Clock className="h-4 w-4" />
+          </div>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            {t("events.form.holdSettingsTitle")}
+          </h3>
+        </div>
+        <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed ml-9">
           {t("events.form.holdSettingsHelp")}
         </p>
       </div>

@@ -37,43 +37,46 @@ export function PlanUsageBanner({ summary, className, showFeatures = false }: Pl
   return (
     <div
       className={cn(
-        "rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5",
-        !summary.canCreateEvent && "border-amber-300/60 dark:border-amber-800/40",
+        "rounded-2xl border border-border/80 bg-gradient-to-r from-card via-card to-primary/[0.02] p-4.5 sm:p-5 shadow-xs transition-all",
+        !summary.canCreateEvent && "border-amber-400/50 bg-amber-500/[0.02]",
         className,
       )}
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-            <Crown className="h-5 w-5 text-primary" />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3.5">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 text-primary border border-primary/20 shadow-2xs">
+            <Crown className="h-5 w-5" />
           </div>
           <div>
-            <p className="font-semibold text-foreground">
-              Plan {plan.name}
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-bold text-foreground text-sm sm:text-base">
+                Plan {plan.name}
+              </p>
               {!summary.canCreateEvent && (
-                <span className="ml-2 text-xs font-medium text-amber-600 dark:text-amber-400">
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/25 px-2.5 py-0.5 text-xs font-bold text-amber-600 dark:text-amber-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
                   {t("dashboard.organizer.planUsageLimitReached")}
                 </span>
               )}
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t("dashboard.organizer.planUsageActiveEvents")}{" "}
-              <strong className="text-foreground">{eventsLabel}</strong>
-              {" · "}
-              {t("dashboard.organizer.planUsageBroadcasts")}{" "}
-              <strong className="text-foreground">{broadcastsLabel}</strong>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+              {t("dashboard.organizer.planUsageActiveEvents")}:{" "}
+              <strong className="text-foreground font-semibold">{eventsLabel}</strong>
+              <span className="mx-1.5 text-border">•</span>
+              {t("dashboard.organizer.planUsageBroadcasts")}:{" "}
+              <strong className="text-foreground font-semibold">{broadcastsLabel}</strong>
               {aiMessagesLabel && (
                 <>
-                  {" · "}
-                  {t("dashboard.organizer.planUsageAiMessages")}{" "}
-                  <strong className="text-foreground">{aiMessagesLabel}</strong>
+                  <span className="mx-1.5 text-border">•</span>
+                  {t("dashboard.organizer.planUsageAiMessages")}:{" "}
+                  <strong className="text-foreground font-semibold">{aiMessagesLabel}</strong>
                 </>
               )}
               {plan.maxAttendeesPerEvent != null && (
                 <>
-                  {" · "}
-                  {t("dashboard.organizer.planUsageMaxAttendees")}{" "}
-                  <strong className="text-foreground">{plan.maxAttendeesPerEvent}</strong>
+                  <span className="mx-1.5 text-border">•</span>
+                  {t("dashboard.organizer.planUsageMaxAttendees")}:{" "}
+                  <strong className="text-foreground font-semibold">{plan.maxAttendeesPerEvent}</strong>
                 </>
               )}
             </p>
@@ -90,9 +93,10 @@ export function PlanUsageBanner({ summary, className, showFeatures = false }: Pl
         {summary.canManageBilling ? (
           <Link
             href="/organizer/billing"
-            className="inline-flex shrink-0 items-center justify-center rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/95 hover:shadow hover:scale-[1.02] active:scale-95 cursor-pointer"
+            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground shadow-sm shadow-primary/20 transition-all hover:bg-primary/95 hover:shadow-md hover:shadow-primary/30 active:scale-95 cursor-pointer self-start sm:self-auto"
           >
-            {t("dashboard.organizer.planUsageUpgrade")} &rarr;
+            <span>{t("dashboard.organizer.planUsageUpgrade")}</span>
+            <span>&rarr;</span>
           </Link>
         ) : summary.organizationName ? (
           <p className="max-w-xs text-right text-xs text-muted-foreground">

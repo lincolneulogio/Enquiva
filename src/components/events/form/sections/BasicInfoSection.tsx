@@ -59,18 +59,18 @@ export function BasicInfoSection({
           aria-invalid={!!errors.title}
           aria-describedby={errors.title ? "event-title-error" : undefined}
           placeholder={t("events.form.titlePlaceholder") || t("events.form.eventTitlePlaceholder")}
-          className={`w-full rounded-xl border bg-background/80 px-4 py-2.5 text-base font-medium text-foreground placeholder:text-muted-foreground/60 transition-all hover:border-border focus:border-primary focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+          className={`w-full rounded-xl border bg-background px-4 py-3 text-base font-semibold text-foreground placeholder:text-muted-foreground/50 transition-all hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${
             errors.title ? "border-destructive ring-1 ring-destructive" : "border-border/80"
           } ${getFieldHighlightClass("title")}`}
         />
         {errors.title && (
-          <p id="event-title-error" role="alert" className="mt-1 text-xs text-destructive">
+          <p id="event-title-error" role="alert" className="mt-1 text-xs text-destructive font-medium">
             {getLocalizedValidationMessage(errors.title.message)}
           </p>
         )}
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
           <label htmlFor="event-description" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             {t("events.form.description")} <span className="text-destructive">*</span>
@@ -111,16 +111,16 @@ export function BasicInfoSection({
                 setIsImproving(false);
               }
             }}
-            className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary transition-all hover:bg-primary/20 hover:border-primary/40 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed shadow-2xs cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-gradient-to-r from-primary/10 via-primary/15 to-primary/10 px-3.5 py-1 text-xs font-bold text-primary transition-all hover:border-primary/40 hover:from-primary/15 hover:to-primary/20 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed shadow-2xs cursor-pointer"
           >
             {isImproving ? (
               <>
-                <Loader2 className="h-3 w-3 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 <span>{locale === "en" ? "Improving…" : "Mejorando…"}</span>
               </>
             ) : (
               <>
-                <Sparkles className="h-3 w-3 text-primary" />
+                <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />
                 <span>{t("events.form.improveWithAi")}</span>
               </>
             )}
