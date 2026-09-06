@@ -1,8 +1,10 @@
 "use client";
 
+import { useState, useMemo, useEffect } from "react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { BrandLogo } from "@/components/shared/BrandLogo";
 import { SidebarNavItem } from "@/components/dashboard/navigation/SidebarNavItem";
+import { SidebarAccordionSection } from "./SidebarAccordionSection";
 import { isNavItemActive } from "@/lib/navigation/is-nav-active";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -26,6 +28,27 @@ export function DesktopSidebar({
   onToggleCollapsed,
 }: DesktopSidebarProps) {
   const t = useTranslations();
+
+  // Find section containing the active route
+  const activeSectionKey = useMemo(() => {
+    const found = sections.find((sec) =>
+      sec.items.some((item) => isNavItemActive(pathname, item.href))
+    );
+    return found?.titleKey ?? sections[0]?.titleKey ?? null;
+  }, [sections, pathname]);
+
+  const [openSectionKey, setOpenSectionKey] = useState<string | null>(() => activeSectionKey);
+
+  // Synchronize open section when route changes
+  useEffect(() => {
+    if (activeSectionKey) {
+      setOpenSectionKey(activeSectionKey);
+    }
+  }, [activeSectionKey]);
+
+  const handleToggle = (key: string) => {
+    setOpenSectionKey((prev) => (prev === key ? null : key));
+  };
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -69,30 +92,44 @@ export function DesktopSidebar({
           ) : null}
         </div>
 
-        <nav className={cn("flex-1 space-y-4 overflow-y-auto py-4", isCollapsed ? "px-2" : "px-3")}>
-          {sections.map((section, secIdx) => (
-            <div key={`desktop-sec-${section.titleKey || secIdx}`} className="space-y-1">
-              {isCollapsed ? (
-                secIdx > 0 ? (
-                  <div className="mx-auto my-2 h-px w-6 bg-sidebar-border" aria-hidden />
-                ) : null
-              ) : section.titleKey ? (
-                <h3 className="mb-1.5 mt-2 px-3 text-[10px] font-bold tracking-wider text-sidebar-foreground/45 uppercase select-none first:mt-0">
-                  {t(section.titleKey)}
-                </h3>
-              ) : null}
-              {section.items.map(({ labelKey, href, icon }) => (
-                <SidebarNavItem
-                  key={href}
-                  href={href}
-                  label={t(labelKey)}
-                  icon={icon}
-                  isActive={isNavItemActive(pathname, href)}
-                  collapsed={isCollapsed}
-                />
-              ))}
-            </div>
-          ))}
+        <nav className={cn("flex-1 space-y-1.5 overflow-y-auto py-3", isCollapsed ? "px-2" : "px-3")}>
+          {sections.map((section, secIdx) => {
+            const sectionKey = section.titleKey ?? `section-${secIdx}`;
+            const isSectionActive = section.items.some((item) =>
+              isNavItemActive(pathname, item.href)
+            );
+
+            if (isCollapsed) {
+              return (
+                <div key={`desktop-sec-${sectionKey}`} className="space-y-1">
+                  {secIdx > 0 ? (
+                    <div className="mx-auto my-2 h-px w-6 bg-sidebar-border" aria-hidden />
+                  ) : null}
+                  {section.items.map(({ labelKey, href, icon }) => (
+                    <SidebarNavItem
+                      key={href}
+                      href={href}
+                      label={t(labelKey)}
+                      icon={icon}
+                      isActive={isNavItemActive(pathname, href)}
+                      collapsed={true}
+                    />
+                  ))}
+                </div>
+              );
+            }
+
+            return (
+              <SidebarAccordionSection
+                key={`desktop-sec-${sectionKey}`}
+                section={section}
+                isOpen={openSectionKey === sectionKey}
+                onToggle={() => handleToggle(sectionKey)}
+                pathname={pathname}
+                isSectionActive={isSectionActive}
+              />
+            );
+          })}
         </nav>
 
         <SidebarUserFooter user={user} collapsed={isCollapsed} />
@@ -100,3 +137,4 @@ export function DesktopSidebar({
     </TooltipProvider>
   );
 }
+

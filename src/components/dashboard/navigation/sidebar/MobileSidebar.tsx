@@ -1,10 +1,10 @@
 "use client";
 
+import { useState, useMemo, useEffect } from "react";
 import { X } from "lucide-react";
 import { BrandLogo } from "@/components/shared/BrandLogo";
-import { SidebarNavItem } from "@/components/dashboard/navigation/SidebarNavItem";
+import { SidebarAccordionSection } from "./SidebarAccordionSection";
 import { isNavItemActive } from "@/lib/navigation/is-nav-active";
-import { useTranslations } from "@/components/providers/LocaleProvider";
 import { cn } from "@/lib/utils";
 import type { NavSection, SidebarUser } from "./types";
 import { SidebarUserFooter } from "./SidebarUserFooter";
@@ -24,7 +24,26 @@ export function MobileSidebar({
   pathname,
   user,
 }: MobileSidebarProps) {
-  const t = useTranslations();
+  // Find section containing the active route
+  const activeSectionKey = useMemo(() => {
+    const found = sections.find((sec) =>
+      sec.items.some((item) => isNavItemActive(pathname, item.href))
+    );
+    return found?.titleKey ?? sections[0]?.titleKey ?? null;
+  }, [sections, pathname]);
+
+  const [openSectionKey, setOpenSectionKey] = useState<string | null>(() => activeSectionKey);
+
+  // Synchronize open section when route changes
+  useEffect(() => {
+    if (activeSectionKey) {
+      setOpenSectionKey(activeSectionKey);
+    }
+  }, [activeSectionKey]);
+
+  const handleToggle = (key: string) => {
+    setOpenSectionKey((prev) => (prev === key ? null : key));
+  };
 
   return (
     <>
@@ -61,27 +80,25 @@ export function MobileSidebar({
           </div>
         </div>
 
-        <nav className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain scroll-smooth snap-y snap-proximity px-3 py-4 [-webkit-overflow-scrolling:touch]">
-          {sections.map((section, secIdx) => (
-            <div key={`mobile-sec-${section.titleKey || secIdx}`} className="space-y-1">
-              {section.titleKey && (
-                <h3 className="px-3 text-[10px] font-bold tracking-wider text-sidebar-foreground/45 uppercase select-none mb-1.5 mt-2 first:mt-0">
-                  {t(section.titleKey)}
-                </h3>
-              )}
-              {section.items.map(({ labelKey, href, icon }) => (
-                <div key={`mobile-${href}`} className="snap-start">
-                  <SidebarNavItem
-                    href={href}
-                    label={t(labelKey)}
-                    icon={icon}
-                    isActive={isNavItemActive(pathname, href)}
-                    onNavigate={onClose}
-                  />
-                </div>
-              ))}
-            </div>
-          ))}
+        <nav className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain scroll-smooth px-3 py-3 [-webkit-overflow-scrolling:touch]">
+          {sections.map((section, secIdx) => {
+            const sectionKey = section.titleKey ?? `section-${secIdx}`;
+            const isSectionActive = section.items.some((item) =>
+              isNavItemActive(pathname, item.href)
+            );
+
+            return (
+              <SidebarAccordionSection
+                key={`mobile-sec-${sectionKey}`}
+                section={section}
+                isOpen={openSectionKey === sectionKey}
+                onToggle={() => handleToggle(sectionKey)}
+                pathname={pathname}
+                isSectionActive={isSectionActive}
+                onNavigate={onClose}
+              />
+            );
+          })}
         </nav>
 
         <SidebarUserFooter user={user} collapsed={false} />
@@ -89,3 +106,4 @@ export function MobileSidebar({
     </>
   );
 }
+
