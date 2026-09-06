@@ -5,22 +5,43 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, Calendar, Clock, Flame, Sparkles, Star, X, Zap } from "lucide-react";
 import type { EventSpotlightData } from "@/services/events/event-spotlight.service";
+import { useLocale } from "@/components/providers/LocaleProvider";
 
 export const BANNER_OFFSET_VAR = "--enquiva-banner-offset";
 
 function setBannerOffset(px: number) {
+  if (typeof document === "undefined") return;
   const value = `${Math.max(0, px)}px`;
   document.documentElement.style.setProperty(BANNER_OFFSET_VAR, value);
   document.body.style.paddingTop = value;
 }
 
 function clearBannerOffset() {
+  if (typeof document === "undefined") return;
   document.documentElement.style.setProperty(BANNER_OFFSET_VAR, "0px");
   document.body.style.paddingTop = "";
 }
 
 function dismissKey(eventId: string) {
   return `enquiva-spotlight-dismissed:${eventId}`;
+}
+
+export function isAuthPath(pathname: string | null | undefined): boolean {
+  if (!pathname) return false;
+  const clean = pathname.split("?")[0].replace(/\/$/, "") || "/";
+  if (
+    clean === "/login" ||
+    clean === "/register" ||
+    clean === "/forgot-password" ||
+    clean === "/two-factor" ||
+    clean === "/superadmin/login" ||
+    clean === "/superadmin/register"
+  ) {
+    return true;
+  }
+  if (clean.startsWith("/reset-password")) return true;
+  if (clean.startsWith("/verify-account")) return true;
+  return false;
 }
 
 function getBadgeIcon(variant?: string, type?: string) {
@@ -38,6 +59,7 @@ export function EventSpotlightBanner({
   event: EventSpotlightData | null;
   isPreview?: boolean;
 }) {
+  const { locale } = useLocale();
   const pathname = usePathname();
   const [dismissed, setDismissed] = useState(false);
   const barRef = useRef<HTMLElement>(null);
@@ -46,10 +68,12 @@ export function EventSpotlightBanner({
     event && pathname.startsWith(`/events/${event.slug}`),
   );
 
+  const isAuthPage = isAuthPath(pathname);
+
   const shouldShow =
     event &&
     (isPreview ||
-      (pathname !== "/maintenance" && !isCurrentEventPage && !dismissed));
+      (pathname !== "/maintenance" && !isAuthPage && !isCurrentEventPage && !dismissed));
 
   useEffect(() => {
     if (isPreview || !event) return;
@@ -97,23 +121,22 @@ export function EventSpotlightBanner({
 
   if (event.date) {
     try {
+      const dateLocale = locale.startsWith("en") ? "en-US" : "es-PE";
       const dateObj = new Date(event.date);
-      dateFormatted = dateObj.toLocaleDateString("es-PE", {
+      dateFormatted = dateObj.toLocaleDateString(dateLocale, {
         day: "numeric",
         month: "short",
         year: "numeric",
       });
-      timeFormatted = dateObj.toLocaleTimeString("es-PE", {
+      timeFormatted = dateObj.toLocaleTimeString(dateLocale, {
         hour: "2-digit",
         minute: "2-digit",
-        hour12: true,
       });
       if (event.endDate) {
         const endObj = new Date(event.endDate);
-        const endTimeFormatted = endObj.toLocaleTimeString("es-PE", {
+        const endTimeFormatted = endObj.toLocaleTimeString(dateLocale, {
           hour: "2-digit",
           minute: "2-digit",
-          hour12: true,
         });
         timeFormatted = `${timeFormatted} - ${endTimeFormatted}`;
       }
@@ -178,14 +201,14 @@ export function EventSpotlightBanner({
           }}
           className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white px-3.5 py-1 text-xs font-bold text-primary shadow-xs transition-all hover:bg-white/90 hover:shadow-md cursor-pointer"
         >
-          <span>Reservar cupo</span>
+          <span>{locale === "en" ? "Book now" : "Reservar cupo"}</span>
           <ArrowRight className="h-3 w-3" />
         </Link>
 
         {!isPreview && (
           <button
             type="button"
-            aria-label="Cerrar anuncio de evento"
+            aria-label={locale === "en" ? "Dismiss event announcement" : "Cerrar anuncio de evento"}
             onClick={() => {
               try {
                 sessionStorage.setItem(dismissKey(event.id), "1");
