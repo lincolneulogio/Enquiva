@@ -6,6 +6,7 @@ import type { UseFormSetValue, UseFormTrigger, UseFormClearErrors } from "react-
 import type { CreateEventInput, EventScheduleSlot } from "@/lib/validations";
 import type { Event } from "@/lib/db/schema";
 import { type ScheduleSlotState, toLocalDateTimeInputValue } from "../types";
+import { detectShiftFromTime, isGenericShiftLabel } from "@/lib/events/schedule-utils";
 
 interface UseEventScheduleSlotsProps {
   event?: Event;
@@ -31,23 +32,27 @@ export function useEventScheduleSlots({
       return event.schedules.slice(0, 3).map((s, idx) => {
         const sDate = s.date ? toLocalDateTimeInputValue(s.date) : "";
         const sEndDate = s.endDate ? toLocalDateTimeInputValue(s.endDate) : "";
+        const startTimePart = sDate.slice(11, 16);
+        const shift = startTimePart ? detectShiftFromTime(startTimePart, locale) : null;
         return {
           id: s.id || `slot-${idx + 1}`,
-          label: s.label || (idx === 0 ? "Horario Principal" : `Horario ${idx + 1}`),
+          label: s.label || shift?.label || (idx === 0 ? "Horario Principal" : `Horario ${idx + 1}`),
           datePart: sDate.slice(0, 10),
-          startTimePart: sDate.slice(11, 16),
+          startTimePart,
           endTimePart: sEndDate ? sEndDate.slice(11, 16) : "",
         };
       });
     }
     const initialDateStr = event?.date ? toLocalDateTimeInputValue(event.date) : "";
     const initialEndDateStr = event?.endDate ? toLocalDateTimeInputValue(event.endDate) : "";
+    const initialStartTime = initialDateStr.slice(11, 16);
+    const initialShift = initialStartTime ? detectShiftFromTime(initialStartTime, locale) : null;
     return [
       {
         id: "slot-1",
-        label: "Horario Principal",
+        label: initialShift?.label || (locale === "en" ? "Main Schedule" : "Horario Principal"),
         datePart: initialDateStr.slice(0, 10),
-        startTimePart: initialDateStr.slice(11, 16),
+        startTimePart: initialStartTime,
         endTimePart: initialEndDateStr ? initialEndDateStr.slice(11, 16) : "",
       },
     ];
@@ -70,11 +75,16 @@ export function useEventScheduleSlots({
       if (prev[0].datePart === nextDate && prev[0].startTimePart === nextTime) {
         return prev;
       }
-      return prev.map((item, idx) =>
-        idx === 0 ? { ...item, datePart: nextDate, startTimePart: nextTime } : item,
-      );
+      return prev.map((item, idx) => {
+        if (idx !== 0) return item;
+        const nextItem = { ...item, datePart: nextDate, startTimePart: nextTime };
+        if (isGenericShiftLabel(item.label) && nextTime) {
+          nextItem.label = detectShiftFromTime(nextTime, locale).label;
+        }
+        return nextItem;
+      });
     });
-  }, [watchedDateTime]);
+  }, [watchedDateTime, locale]);
 
   const syncSlotsToForm = (slots: ScheduleSlotState[]) => {
     const slot1 = slots[0];
@@ -96,9 +106,10 @@ export function useEventScheduleSlots({
     const schedulesPayload: EventScheduleSlot[] = slots.map((s, idx) => {
       const sDate = s.datePart && s.startTimePart ? `${s.datePart}T${s.startTimePart}` : "";
       const sEndDate = s.datePart && s.endTimePart ? `${s.datePart}T${s.endTimePart}` : null;
+      const detected = s.startTimePart ? detectShiftFromTime(s.startTimePart, locale).label : null;
       return {
         id: s.id,
-        label: s.label.trim() || (idx === 0 ? "Horario Principal" : `Horario ${idx + 1}`),
+        label: s.label.trim() || detected || (idx === 0 ? "Horario Principal" : `Horario ${idx + 1}`),
         date: sDate,
         endDate: sEndDate,
       };
@@ -122,7 +133,16 @@ export function useEventScheduleSlots({
     value: string,
   ) => {
     setScheduleSlots((prev) => {
-      const updated = prev.map((item, idx) => (idx === index ? { ...item, [field]: value } : item));
+      const updated = prev.map((item, idx) => {
+        if (idx !== index) return item;
+        const nextItem = { ...item, [field]: value };
+        // Si el usuario cambia la hora de inicio y no ha escrito un nombre personalizado,
+        // actualizamos la etiqueta automáticamente al turno correspondiente (Mañana, Tarde o Noche).
+        if (field === "startTimePart" && isGenericShiftLabel(item.label) && value) {
+          nextItem.label = detectShiftFromTime(value, locale).label;
+        }
+        return nextItem;
+      });
       syncSlotsToForm(updated);
       return updated;
     });
@@ -134,7 +154,7 @@ export function useEventScheduleSlots({
     const defaultDate = scheduleSlots[0]?.datePart || "";
     const newSlot: ScheduleSlotState = {
       id: `slot-${Date.now()}`,
-      label: nextIndex === 2 ? "Turno Tarde" : "Turno Noche",
+      label: locale === "en" ? `Schedule ${nextIndex}` : `Horario ${nextIndex}`,
       datePart: defaultDate,
       startTimePart: "",
       endTimePart: "",

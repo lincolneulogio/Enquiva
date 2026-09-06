@@ -5,11 +5,7 @@ import { Copy, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CreateEventInput } from "@/lib/validations";
 import type { ScheduleSlotState } from "../types";
-
-const PRESET_LABELS = {
-  en: ["Morning", "Afternoon", "Night"],
-  es: ["Turno Mañana", "Turno Tarde", "Turno Noche"],
-};
+import { detectShiftFromTime } from "@/lib/events/schedule-utils";
 
 interface ScheduleSlotCardProps {
   slot: ScheduleSlotState;
@@ -39,7 +35,7 @@ export function ScheduleSlotCard({
   getFieldHighlightClass,
 }: ScheduleSlotCardProps) {
   const isPrimary = index === 0;
-  const presets = PRESET_LABELS[locale];
+  const detectedShift = slot.startTimePart ? detectShiftFromTime(slot.startTimePart, locale) : null;
 
   return (
     <div
@@ -63,6 +59,11 @@ export function ScheduleSlotCard({
               ? locale === "en" ? "Schedule 1 (Principal)" : "Horario 1 (Principal)"
               : locale === "en" ? `Schedule ${index + 1}` : `Horario ${index + 1}`}
           </span>
+          {detectedShift && (
+            <span className="inline-flex items-center rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+              {detectedShift.badge}
+            </span>
+          )}
           {slot.label && (
             <span className="text-xs font-semibold text-foreground/80 truncate max-w-[160px] sm:max-w-none">
               • {slot.label}
@@ -87,42 +88,29 @@ export function ScheduleSlotCard({
         </div>
       </div>
 
-      <div className="space-y-2">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
           <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            {locale === "en" ? "Shift presets:" : "Preajustes de turno:"}
+            {locale === "en" ? "Schedule Name / Label (Optional)" : "Nombre / Etiqueta del Horario (Opcional)"}
           </label>
-          <div className="flex flex-wrap gap-1.5">
-            {presets.map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => handleSlotFieldChange(index, "label", preset)}
-                className={cn(
-                  "rounded-lg border px-3 py-1 text-xs font-semibold transition-all cursor-pointer shadow-2xs",
-                  slot.label === preset
-                    ? "border-primary bg-primary text-primary-foreground shadow-xs"
-                    : "border-border/80 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
-                )}
-              >
-                {preset}
-              </button>
-            ))}
-          </div>
+          {detectedShift && (
+            <span className="text-[11px] text-muted-foreground font-medium inline-flex items-center gap-1">
+              <span>{locale === "en" ? "Auto shift:" : "Turno según hora:"}</span>
+              <strong className="text-foreground">{detectedShift.label}</strong>
+            </span>
+          )}
         </div>
-
-        <div className="space-y-1">
-          <label className="block text-xs font-medium text-muted-foreground">
-            {locale === "en" ? "Schedule Label / Name" : "Nombre / Etiqueta del Horario"}
-          </label>
-          <input
-            type="text"
-            value={slot.label}
-            onChange={(e) => handleSlotFieldChange(index, "label", e.target.value)}
-            placeholder={locale === "en" ? "e.g. Morning Shift, Workshop Room A" : "ej. Turno Mañana, Taller Principal, Sala A"}
-            className="w-full rounded-xl border border-border/80 bg-background px-3.5 py-2.5 text-sm font-medium text-foreground transition-all hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-          />
-        </div>
+        <input
+          type="text"
+          value={slot.label}
+          onChange={(e) => handleSlotFieldChange(index, "label", e.target.value)}
+          placeholder={
+            detectedShift
+              ? detectedShift.label
+              : (locale === "en" ? "e.g. Morning Shift, Main Hall, Room A" : "ej. Turno Mañana, Sala A, Auditorio Principal")
+          }
+          className="w-full rounded-xl border border-border/80 bg-background px-3.5 py-2.5 text-sm font-medium text-foreground transition-all hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+        />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3 pt-1">
@@ -156,9 +144,16 @@ export function ScheduleSlotCard({
         </div>
 
         <div className="space-y-1.5">
-          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            {locale === "en" ? "Start Time" : "Hora de inicio"} <span className="text-destructive">*</span>
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              {locale === "en" ? "Start Time" : "Hora de inicio"} <span className="text-destructive">*</span>
+            </label>
+            {detectedShift && (
+              <span className="text-[11px] font-bold text-primary">
+                {detectedShift.badge}
+              </span>
+            )}
+          </div>
           <input
             type="time"
             value={slot.startTimePart}
@@ -185,3 +180,4 @@ export function ScheduleSlotCard({
     </div>
   );
 }
+

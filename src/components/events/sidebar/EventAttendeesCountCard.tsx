@@ -49,7 +49,7 @@ export function EventAttendeesCountCard({
       {isScarce && (
         <div className="mt-2.5 pt-2 border-t border-amber-500/20 flex items-center gap-1.5 text-xs font-black text-amber-700 dark:text-amber-300 animate-pulse">
           <span className="h-2 w-2 rounded-full bg-amber-500" />
-          <span>⚡ ¡Solo quedan {remaining} entradas disponibles!</span>
+          <span>¡Solo quedan {remaining} entradas disponibles!</span>
         </div>
       )}
     </div>

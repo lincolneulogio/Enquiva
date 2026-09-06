@@ -33,7 +33,7 @@ export function formatSlotDateTime(dateStr: string, endDateStr?: string | null) 
       : null;
     return {
       dateLabel: formattedDate,
-      timeLabel: formattedEnd ? `${formattedStart} - ${formattedEnd}` : formattedStart,
+      timeLabel: formattedEnd ? `${formattedStart} - ${formattedEnd}` : `${formattedStart} - --`,
     };
   } catch {
     return { dateLabel: dateStr, timeLabel: "" };

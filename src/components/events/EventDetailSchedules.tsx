@@ -28,28 +28,12 @@ interface EventDetailSchedulesProps {
 
 const DEFAULT_SCHEDULES: EventScheduleOption[] = [
   {
-    id: "slot-morning",
-    label: "Turno Mañana",
-    timeRange: "09:00 AM - 12:30 PM",
-    description: "Conferencias magistrales y apertura",
+    id: "slot-main",
+    label: "Horario Principal",
+    timeRange: "09:00 a. m. - --",
+    description: "Acceso a todas las actividades programadas",
     badgeText: "Seleccionado",
     badgeVariant: "selected",
-  },
-  {
-    id: "slot-afternoon",
-    label: "Turno Tarde",
-    timeRange: "02:30 PM - 06:00 PM",
-    description: "Talleres prácticos en innovación",
-    badgeText: "Cupos disponibles",
-    badgeVariant: "available",
-  },
-  {
-    id: "slot-night",
-    label: "Turno Noche",
-    timeRange: "06:30 PM - 09:30 PM",
-    description: "Networking & Pitch de proyectos",
-    badgeText: "Acceso VIP / Networking",
-    badgeVariant: "vip",
   },
 ];
 

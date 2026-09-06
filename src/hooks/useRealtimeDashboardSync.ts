@@ -92,7 +92,7 @@ export function useRealtimeDashboardSync({
     });
     channel.bind(PUSHER_EVENTS.newRegistration, (data: NewRegistrationPayload) => {
       playSuccessChime();
-      toast.success("🎉 ¡Nueva inscripción recibida!", {
+      toast.success("¡Nueva inscripción recibida!", {
         description:
           data.status === "waitlisted"
             ? "Un usuario se ha unido a la lista de espera."
@@ -112,21 +112,21 @@ export function useRealtimeDashboardSync({
     });
     channel.bind(PUSHER_EVENTS.paymentUpdated, () => {
       playNotificationBlip();
-      toast.info("💳 Comprobante o pago actualizado", {
+      toast.info("Comprobante o pago actualizado", {
         description: "Se ha registrado un movimiento en los pagos del evento.",
         duration: 4000,
       });
       scheduleRefresh({ resource: "payments" });
     });
     channel.bind(PUSHER_EVENTS.eventUpdated, () => {
-      toast.info("✏️ Evento sincronizado en vivo", {
+      toast.info("Evento sincronizado en vivo", {
         duration: 3000,
       });
       scheduleRefresh({ resource: "events" });
     });
     channel.bind(PUSHER_EVENTS.checkIn, () => {
       playNotificationBlip();
-      toast.success("🎟️ Asistencia confirmada (Check-in en puerta)", {
+      toast.success("Asistencia confirmada (Check-in en puerta)", {
         duration: 3500,
       });
       scheduleRefresh({ resource: ["registrations", "attendees"] });
