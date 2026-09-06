@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useMemo, useRef } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
+import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 import { TextStyle } from "@tiptap/extension-text-style";
-import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 
 // ─── Toolbar button ───────────────────────────────────────────────────────────
@@ -244,36 +244,54 @@ export function RichTextEditor({
   minHeight = "180px",
   id,
 }: RichTextEditorProps) {
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Underline,
-      TextStyle,
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
-      Link.configure({ openOnClick: false, HTMLAttributes: { class: "text-primary underline" } }),
-      Placeholder.configure({ placeholder }),
-    ],
-    content: value || "",
-    editorProps: {
-      attributes: {
-        class: "prose prose-sm dark:prose-invert max-w-none focus:outline-none px-4 py-3",
-        ...(id ? { id } : {}),
+  const lastEmittedValueRef = useRef(value);
+
+  const extensions = useMemo(() => [
+    StarterKit,
+    Underline,
+    Link.configure({
+      openOnClick: false,
+      HTMLAttributes: { class: "text-primary underline" },
+    }),
+    TextStyle,
+    TextAlign.configure({ types: ["heading", "paragraph"] }),
+    Placeholder.configure({ placeholder }),
+  ], [placeholder]);
+
+  const editorProps = useMemo(() => ({
+    attributes: {
+      class: "prose prose-sm dark:prose-invert max-w-none focus:outline-none px-4 py-3",
+      ...(id ? { id } : {}),
+    },
+  }), [id]);
+
+  const editor = useEditor(
+    {
+      immediatelyRender: false,
+      extensions,
+      content: value || "",
+      editorProps,
+      onUpdate({ editor }) {
+        const html = editor.getHTML();
+        const nextVal = html === "<p></p>" ? "" : html;
+        lastEmittedValueRef.current = nextVal;
+        onChange(nextVal);
       },
     },
-    onUpdate({ editor }) {
-      const html = editor.getHTML();
-      // Emit empty string when content is just an empty paragraph
-      onChange(html === "<p></p>" ? "" : html);
-    },
-  });
+    [],
+  );
 
-  // Sync external value changes (e.g. AI improvement)
+  // Sync external value changes (e.g. AI improvement or form reset)
   useEffect(() => {
     if (!editor) return;
-    const current = editor.getHTML();
-    const incoming = value || "";
-    if (current !== incoming && incoming !== (current === "<p></p>" ? "" : current)) {
-      editor.commands.setContent(incoming, { emitUpdate: false });
+    if (value !== lastEmittedValueRef.current) {
+      lastEmittedValueRef.current = value;
+      const current = editor.getHTML();
+      const currentNormalized = current === "<p></p>" ? "" : current;
+      const incomingNormalized = value || "";
+      if (currentNormalized !== incomingNormalized) {
+        editor.commands.setContent(incomingNormalized, { emitUpdate: false });
+      }
     }
   }, [value, editor]);
 

@@ -61,18 +61,20 @@ export function useEventScheduleSlots({
       datePartsUpdateRef.current = false;
       return;
     }
-    if (watchedDateTime && scheduleSlots.length > 0) {
-      const nextDate = watchedDateTime.slice(0, 10);
-      const nextTime = watchedDateTime.slice(11, 16);
-      if (scheduleSlots[0].datePart !== nextDate || scheduleSlots[0].startTimePart !== nextTime) {
-        setScheduleSlots((prev) =>
-          prev.map((item, idx) =>
-            idx === 0 ? { ...item, datePart: nextDate, startTimePart: nextTime } : item,
-          ),
-        );
+    if (!watchedDateTime) return;
+    const nextDate = watchedDateTime.slice(0, 10);
+    const nextTime = watchedDateTime.slice(11, 16);
+
+    setScheduleSlots((prev) => {
+      if (prev.length === 0) return prev;
+      if (prev[0].datePart === nextDate && prev[0].startTimePart === nextTime) {
+        return prev;
       }
-    }
-  }, [watchedDateTime, scheduleSlots]);
+      return prev.map((item, idx) =>
+        idx === 0 ? { ...item, datePart: nextDate, startTimePart: nextTime } : item,
+      );
+    });
+  }, [watchedDateTime]);
 
   const syncSlotsToForm = (slots: ScheduleSlotState[]) => {
     const slot1 = slots[0];

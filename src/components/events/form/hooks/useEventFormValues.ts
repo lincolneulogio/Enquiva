@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createEventSchema, type CreateEventInput } from "@/lib/validations";
@@ -83,15 +83,16 @@ export function useEventFormValues({
   const currentDescription = useWatch({ control, name: "description" });
   const watchedStatus = useWatch({ control, name: "status" });
 
-  const suggestedTypes = watchedCategory && initialEventTypes.length > 0
-    ? initialEventTypes.filter((t) => t.categorySlug === watchedCategory)
-    : [];
+  const suggestedTypes = useMemo(() => {
+    if (!watchedCategory || initialEventTypes.length === 0) return [];
+    return initialEventTypes.filter((t) => t.categorySlug === watchedCategory);
+  }, [watchedCategory, initialEventTypes]);
 
   useEffect(() => {
     if (!watchedCategory) return;
-    if (suggestedTypes.length > 0 && !suggestedTypes.some((item) => item.slug === watchedType)) {
+    if (suggestedTypes.length > 0 && !suggestedTypes.some((item: { slug: string }) => item.slug === watchedType)) {
       setValue("eventType", suggestedTypes[0].slug, { shouldValidate: true, shouldDirty: true });
-    } else if (suggestedTypes.length === 0) {
+    } else if (suggestedTypes.length === 0 && watchedType !== "") {
       setValue("eventType", "", { shouldValidate: true, shouldDirty: true });
     }
   }, [watchedCategory, suggestedTypes, watchedType, setValue]);

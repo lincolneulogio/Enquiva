@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { getPaymentMethodsForEventForm, getEventPaymentMethods } from "@/actions/payment-methods";
 import { getRoutesByEvent } from "@/actions/transport";
 import { loadFormDraft, saveFormDraft } from "@/lib/form-persistence";
@@ -36,8 +36,9 @@ export function useEventPaymentAndRoutes({
   const [loadingRoutes, setLoadingRoutes] = useState(false);
   const extraHydratedRef = useRef(false);
 
-  const selectablePaymentMethods = allPaymentMethods.filter(
-    (pm) => pm.type !== "culqi" || canUseCulqi,
+  const selectablePaymentMethods = useMemo(
+    () => allPaymentMethods.filter((pm) => pm.type !== "culqi" || canUseCulqi),
+    [allPaymentMethods, canUseCulqi],
   );
 
   useEffect(() => {
@@ -53,7 +54,7 @@ export function useEventPaymentAndRoutes({
       selectedPaymentMethodIds.length === 0 &&
       selectablePaymentMethods.length > 0
     ) {
-      setSelectedPaymentMethodIds(selectablePaymentMethods.map((m) => m.id));
+      setSelectedPaymentMethodIds(selectablePaymentMethods.map((m: { id: string }) => m.id));
     }
   }, [requiresPaymentMethods, selectedPaymentMethodIds.length, selectablePaymentMethods]);
 
@@ -121,7 +122,7 @@ export function useEventPaymentAndRoutes({
   };
 
   const selectAllPaymentMethods = () => {
-    setSelectedPaymentMethodIds(selectablePaymentMethods.map((m) => m.id));
+    setSelectedPaymentMethodIds(selectablePaymentMethods.map((m: { id: string }) => m.id));
   };
 
   const clearAllPaymentMethods = () => {
