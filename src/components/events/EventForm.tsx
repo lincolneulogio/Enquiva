@@ -4,115 +4,37 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { toast } from "sonner";
 import { createEventSchema, type CreateEventInput, type EventScheduleSlot } from "@/lib/validations";
 import { createEvent, updateEvent } from "@/actions/events";
 import { getPaymentMethodsForEventForm, setEventPaymentMethods } from "@/actions/payment-methods";
-import { UploadDropzone } from "@/lib/uploadthing/components";
-import { toast } from "sonner";
-import { Loader2, ImageIcon, Video, Star, Bus, Smartphone, QrCode, Wallet, CreditCard, Plus, CalendarDays, Clock3, Trash2, Copy, Award } from "lucide-react";
-import { EventCoverFrame } from "@/components/events/EventCoverFrame";
-import type { Event } from "@/lib/db/schema";
-import type { FieldErrors } from "react-hook-form";
-import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
-import { categoryLabel, cn } from "@/lib/utils";
 import { getRoutesByEvent } from "@/actions/transport";
-import { TransportRoutesManager } from "@/components/dashboard/organizer/TransportRoutesManager";
 import { PlanUsageBanner } from "@/components/dashboard/organizer/PlanUsageBanner";
-import type { getOrganizerPlanSummary } from "@/lib/billing/enforce";
-import Link from "next/link";
-import { Lock } from "lucide-react";
-import { EventLocationPickerDynamic } from "@/components/events/EventLocationMapDynamic";
-import { VenueAddressAutocomplete } from "@/components/events/VenueAddressAutocomplete";
 import { useFormPersistence } from "@/hooks/useFormPersistence";
 import { formStorageKey, loadFormDraft, saveFormDraft } from "@/lib/form-persistence";
-import type { LatLng } from "@/lib/geo";
-import type { PlaceSuggestion } from "@/lib/geo/nominatim";
-
+import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { EVENT_CATEGORIES, getTypesForCategory } from "@/lib/events/taxonomy";
 
-type PlanSummary = Awaited<ReturnType<typeof getOrganizerPlanSummary>>;
+// Subcomponents & Types
+import {
+    type EventFormProps,
+    type CategoryOption,
+    type ScheduleSlotState,
+    type EventFormDraft,
+    EVENT_DRAFT_STORAGE_KEY,
+    toLocalDateTimeInputValue,
+    VALIDATION_MESSAGE_KEY_BY_TEXT,
+    FIRST_ERROR_FIELD_ORDER,
+} from "./form/types";
+import { BasicInfoSection } from "./form/BasicInfoSection";
+import { ScheduleSection } from "./form/ScheduleSection";
+import { LocationSection } from "./form/LocationSection";
+import { PricingPaymentsSection } from "./form/PricingPaymentsSection";
+import { MediaSettingsSection } from "./form/MediaSettingsSection";
+import { TransportSection } from "./form/TransportSection";
+
 type TransportRouteList = Awaited<ReturnType<typeof getRoutesByEvent>>;
-
-interface CategoryOption {
-    slug: string;
-    label: string;
-    colorClass: string;
-}
-
-interface EventFormProps {
-    event?: Event;
-    redirectPath?: string;
-    categories: CategoryOption[];
-    canFeature?: boolean;
-    planSummary?: PlanSummary;
-}
-
-const EVENT_DRAFT_STORAGE_KEY = formStorageKey("event.create");
-const EVENT_HOUR_OPTIONS = Array.from({ length: 12 }, (_, index) =>
-    String(index + 1).padStart(2, "0"),
-);
-const EVENT_MINUTE_OPTIONS = Array.from({ length: 12 }, (_, index) =>
-    String(index * 5).padStart(2, "0"),
-);
-
-function toLocalDateTimeInputValue(value: Date | string) {
-    const date = new Date(value);
-    const pad = (part: number) => String(part).padStart(2, "0");
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-function openNativePicker(input: HTMLInputElement | null) {
-    if (!input) return;
-    try {
-        input.showPicker();
-    } catch {
-        input.focus();
-        input.click();
-    }
-}
-
-function to24HourTime(hour12: string, minute: string, period: "AM" | "PM") {
-    const parsedHour = Number(hour12);
-    const hour24 =
-        period === "PM"
-            ? (parsedHour % 12) + 12
-            : parsedHour % 12;
-    return `${String(hour24).padStart(2, "0")}:${minute}`;
-}
-
-type EventFormDraft = {
-    coverImage: string | null;
-    selectedPaymentMethodIds: string[];
-};
-
-const VALIDATION_MESSAGE_KEY_BY_TEXT: Record<string, string> = {
-    "Title must be at least 3 characters": "events.form.validation.titleMin",
-    "Description must be at least 20 characters": "events.form.validation.descriptionMin",
-    "Category is required": "events.form.validation.categoryRequired",
-    "Date is required": "events.form.validation.dateRequired",
-    "Invalid date format": "events.form.validation.dateInvalid",
-    "Event date cannot be in the past": "events.form.validation.datePast",
-    "Meeting link is required for virtual events": "events.form.validation.virtualLinkRequired",
-    "Venue address is required for in-person events": "events.form.validation.locationRequired",
-    "Map pin is required to publish an in-person event": "events.form.validation.mapPinRequired",
-    "Invalid url": "events.form.validation.invalidUrl",
-    "Expected number, received nan": "events.form.validation.capacityInvalid",
-    "Expected number, received string": "events.form.validation.capacityInvalid",
-    "Number must be greater than 0": "events.form.validation.capacityInvalid",
-    "Required": "events.form.validation.required",
-};
-
-const FIRST_ERROR_FIELD_ORDER: Array<keyof CreateEventInput> = [
-    "title",
-    "description",
-    "category",
-    "date",
-    "virtualLink",
-    "location",
-    "latitude",
-    "capacity",
-    "status",
-];
 
 export function EventForm({
     event,
@@ -126,7 +48,9 @@ export function EventForm({
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [coverImage, setCoverImage] = useState<string | null>(event?.coverImage ?? null);
-    const [allPaymentMethods, setAllPaymentMethods] = useState<Array<{ id: string; type: string; label: string; holderName: string }>>([]);
+    const [allPaymentMethods, setAllPaymentMethods] = useState<
+        Array<{ id: string; type: string; label: string; holderName: string }>
+    >([]);
     const [selectedPaymentMethodIds, setSelectedPaymentMethodIds] = useState<string[]>([]);
     const [highlightedField, setHighlightedField] = useState<keyof CreateEventInput | null>(null);
     const highlightTimeoutRef = useRef<number | null>(null);
@@ -178,48 +102,49 @@ export function EventForm({
         reValidateMode: "onChange",
         defaultValues: event
             ? {
-                title: event.title,
-                description: event.description,
-                category: event.category,
-                date: toLocalDateTimeInputValue(event.date),
-                endDate: event.endDate ? toLocalDateTimeInputValue(event.endDate) : undefined,
-                schedules: event.schedules ?? undefined,
-                location: event.location ?? undefined,
-                latitude: event.latitude ?? null,
-                longitude: event.longitude ?? null,
-                isVirtual: event.isVirtual,
-                virtualLink: event.virtualLink ?? undefined,
-                capacity: event.capacity ?? undefined,
-                price: event.price ? Number(event.price) : undefined,
-                status: event.status,
-                isFeatured: event.isFeatured,
-                hasTransport: event.hasTransport,
-                hasCertificate: event.hasCertificate ?? false,
-                certificateTitle: event.certificateTitle ?? "",
-                certificatePrice: event.certificatePrice ? Number(event.certificatePrice) : 0,
-                holdMinutesCard: event.holdMinutesCard ?? 30,
-                holdHoursManual: event.holdHoursManual ?? 24,
-                nearEventWindowHours: event.nearEventWindowHours ?? 48,
-                nearEventHoldMinutes: event.nearEventHoldMinutes ?? 15,
-                salesCutoffHoursBefore: event.salesCutoffHoursBefore ?? undefined,
-            }
+                  title: event.title,
+                  description: event.description,
+                  category: event.category,
+                  date: toLocalDateTimeInputValue(event.date),
+                  endDate: event.endDate ? toLocalDateTimeInputValue(event.endDate) : undefined,
+                  schedules: event.schedules ?? undefined,
+                  location: event.location ?? undefined,
+                  latitude: event.latitude ?? null,
+                  longitude: event.longitude ?? null,
+                  isVirtual: event.isVirtual,
+                  virtualLink: event.virtualLink ?? undefined,
+                  capacity: event.capacity ?? undefined,
+                  price: event.price ? Number(event.price) : undefined,
+                  status: event.status,
+                  isFeatured: event.isFeatured,
+                  hasTransport: event.hasTransport,
+                  hasCertificate: event.hasCertificate ?? false,
+                  certificateTitle: event.certificateTitle ?? "",
+                  certificatePrice: event.certificatePrice ? Number(event.certificatePrice) : 0,
+                  holdMinutesCard: event.holdMinutesCard ?? 30,
+                  holdHoursManual: event.holdHoursManual ?? 24,
+                  nearEventWindowHours: event.nearEventWindowHours ?? 48,
+                  nearEventHoldMinutes: event.nearEventHoldMinutes ?? 15,
+                  salesCutoffHoursBefore: event.salesCutoffHoursBefore ?? undefined,
+              }
             : {
-                status: "draft",
-                isVirtual: false,
-                isFeatured: false,
-                hasTransport: false,
-                hasCertificate: false,
-                certificateTitle: "",
-                certificatePrice: 0,
-                price: undefined,
-                latitude: null,
-                longitude: null,
-                holdMinutesCard: 30,
-                holdHoursManual: 24,
-                nearEventWindowHours: 48,
-                nearEventHoldMinutes: 15,
+                  status: "draft",
+                  isVirtual: false,
+                  isFeatured: false,
+                  hasTransport: false,
+                  hasCertificate: false,
+                  certificateTitle: "",
+                  certificatePrice: 0,
+                  price: undefined,
+                  latitude: null,
+                  longitude: null,
+                  holdMinutesCard: 30,
+                  holdHoursManual: 24,
+                  nearEventWindowHours: 48,
+                  nearEventHoldMinutes: 15,
               },
     });
+
     const {
         register,
         handleSubmit,
@@ -228,17 +153,10 @@ export function EventForm({
         setFocus,
         clearErrors,
         trigger,
-        reset,
         formState: { errors },
     } = form;
 
-    const buildInitialSlots = (): Array<{
-        id: string;
-        label: string;
-        datePart: string;
-        startTimePart: string;
-        endTimePart: string;
-    }> => {
+    const buildInitialSlots = (): ScheduleSlotState[] => {
         if (event?.schedules && event.schedules.length > 0) {
             return event.schedules.slice(0, 3).map((s, idx) => {
                 const sDate = s.date ? toLocalDateTimeInputValue(s.date) : "";
@@ -265,7 +183,7 @@ export function EventForm({
         ];
     };
 
-    const [scheduleSlots, setScheduleSlots] = useState(buildInitialSlots);
+    const [scheduleSlots, setScheduleSlots] = useState<ScheduleSlotState[]>(buildInitialSlots);
     const datePartsUpdateRef = useRef(false);
     const watchedDateTime = useWatch({ control, name: "date" });
     const watchedCategory = useWatch({ control, name: "category" });
@@ -282,17 +200,19 @@ export function EventForm({
             if (scheduleSlots[0].datePart !== nextDate || scheduleSlots[0].startTimePart !== nextTime) {
                 setScheduleSlots((prev) =>
                     prev.map((item, idx) =>
-                        idx === 0 ? { ...item, datePart: nextDate, startTimePart: nextTime } : item
-                    )
+                        idx === 0 ? { ...item, datePart: nextDate, startTimePart: nextTime } : item,
+                    ),
                 );
             }
         }
     }, [watchedDateTime, scheduleSlots]);
 
-    const syncSlotsToForm = (slots: typeof scheduleSlots) => {
+    const syncSlotsToForm = (slots: ScheduleSlotState[]) => {
         const slot1 = slots[0];
-        const combinedPrimaryDate = slot1 && slot1.datePart && slot1.startTimePart ? `${slot1.datePart}T${slot1.startTimePart}` : "";
-        const combinedPrimaryEndDate = slot1 && slot1.datePart && slot1.endTimePart ? `${slot1.datePart}T${slot1.endTimePart}` : null;
+        const combinedPrimaryDate =
+            slot1 && slot1.datePart && slot1.startTimePart ? `${slot1.datePart}T${slot1.startTimePart}` : "";
+        const combinedPrimaryEndDate =
+            slot1 && slot1.datePart && slot1.endTimePart ? `${slot1.datePart}T${slot1.endTimePart}` : null;
 
         datePartsUpdateRef.current = true;
         setValue("date", combinedPrimaryDate, {
@@ -321,7 +241,7 @@ export function EventForm({
             void trigger("date").then((valid) => {
                 if (!valid) return;
                 clearErrors("date");
-                setHighlightedField((current) => current === "date" ? null : current);
+                setHighlightedField((current) => (current === "date" ? null : current));
                 toast.dismiss("event-form-validation");
             });
         }
@@ -330,10 +250,10 @@ export function EventForm({
     const handleSlotFieldChange = (
         index: number,
         field: "label" | "datePart" | "startTimePart" | "endTimePart",
-        value: string
+        value: string,
     ) => {
         setScheduleSlots((prev) => {
-            const updated = prev.map((item, idx) => idx === index ? { ...item, [field]: value } : item);
+            const updated = prev.map((item, idx) => (idx === index ? { ...item, [field]: value } : item));
             syncSlotsToForm(updated);
             return updated;
         });
@@ -344,7 +264,7 @@ export function EventForm({
         setScheduleSlots((prev) => {
             const nextIndex = prev.length + 1;
             const defaultDate = prev[0]?.datePart || "";
-            const newSlot = {
+            const newSlot: ScheduleSlotState = {
                 id: `slot-${Date.now()}`,
                 label: nextIndex === 2 ? "Turno Tarde" : "Turno Noche",
                 datePart: defaultDate,
@@ -374,9 +294,7 @@ export function EventForm({
         handleSlotFieldChange(index, "datePart", primaryDate);
     };
 
-    const eventDraftKey = event
-        ? formStorageKey(`event.edit.${event.id}`)
-        : EVENT_DRAFT_STORAGE_KEY;
+    const eventDraftKey = event ? formStorageKey(`event.edit.${event.id}`) : EVENT_DRAFT_STORAGE_KEY;
     const { clearDraft } = useFormPersistence(eventDraftKey, form);
     const extraDraftKey = `${eventDraftKey}.extra`;
     const extraHydratedRef = useRef(false);
@@ -391,9 +309,12 @@ export function EventForm({
     const watchedLatitude = useWatch({ control, name: "latitude" });
     const watchedLongitude = useWatch({ control, name: "longitude" });
     const watchedEndDate = useWatch({ control, name: "endDate" });
+    const currentDescription = useWatch({ control, name: "description" });
 
     const isPaidEvent = Boolean(watchedPrice != null && Number(watchedPrice) > 0);
-    const hasPaidCertificate = Boolean(hasCertificate && watchedCertificatePrice != null && Number(watchedCertificatePrice) > 0);
+    const hasPaidCertificate = Boolean(
+        hasCertificate && watchedCertificatePrice != null && Number(watchedCertificatePrice) > 0,
+    );
     const requiresPaymentMethods = isPaidEvent || hasPaidCertificate;
 
     useEffect(() => {
@@ -406,9 +327,7 @@ export function EventForm({
     const canUseCulqi = planSummary?.isUnlimited || planSummary?.features.culqi;
     const canCreateEvent = planSummary?.isUnlimited || planSummary?.canCreateEvent !== false;
     const planMaxAttendees =
-        planSummary && !planSummary.isUnlimited
-            ? planSummary.plan.maxAttendeesPerEvent
-            : null;
+        planSummary && !planSummary.isUnlimited ? planSummary.plan.maxAttendeesPerEvent : null;
 
     const clampCapacityInput = (raw: string) => {
         if (raw === "" || planMaxAttendees == null) return raw;
@@ -437,26 +356,25 @@ export function EventForm({
         },
     });
 
-    const handleCapacityChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const clamped = clampCapacityInput(event.target.value);
-        if (clamped !== event.target.value) {
-            event.target.value = clamped;
+    const handleCapacityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const clamped = clampCapacityInput(e.target.value);
+        if (clamped !== e.target.value) {
+            e.target.value = clamped;
         }
-        void onCapacityChange(event);
+        void onCapacityChange(e);
     };
 
-    const handleCapacityBlur = (event: React.FocusEvent<HTMLInputElement>) => {
-        const clamped = clampCapacityInput(event.target.value);
-        if (clamped !== event.target.value) {
-            event.target.value = clamped;
+    const handleCapacityBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+        const clamped = clampCapacityInput(e.target.value);
+        if (clamped !== e.target.value) {
+            e.target.value = clamped;
             const num = clamped === "" ? null : Number(clamped);
             setValue("capacity", Number.isNaN(num) ? null : num, { shouldValidate: true });
         }
-        void onCapacityBlur(event);
+        void onCapacityBlur(e);
     };
-    const selectablePaymentMethods = allPaymentMethods.filter(
-        (pm) => pm.type !== "culqi" || canUseCulqi,
-    );
+
+    const selectablePaymentMethods = allPaymentMethods.filter((pm) => pm.type !== "culqi" || canUseCulqi);
 
     useEffect(() => {
         (async () => {
@@ -466,7 +384,11 @@ export function EventForm({
     }, [event?.organizerId]);
 
     useEffect(() => {
-        if (requiresPaymentMethods && selectedPaymentMethodIds.length === 0 && selectablePaymentMethods.length > 0) {
+        if (
+            requiresPaymentMethods &&
+            selectedPaymentMethodIds.length === 0 &&
+            selectablePaymentMethods.length > 0
+        ) {
             setSelectedPaymentMethodIds(selectablePaymentMethods.map((m) => m.id));
         }
     }, [requiresPaymentMethods, selectedPaymentMethodIds.length, selectablePaymentMethods]);
@@ -488,12 +410,14 @@ export function EventForm({
             try {
                 const fetched = await getRoutesByEvent(event.id);
                 if (active) {
-                    setRoutes(fetched.map((r) => ({
-                        ...r,
-                        departureTime: new Date(r.departureTime),
-                        returnTime: r.returnTime ? new Date(r.returnTime) : null,
-                        bookedSeats: Number(r.bookedSeats),
-                    })));
+                    setRoutes(
+                        fetched.map((r) => ({
+                            ...r,
+                            departureTime: new Date(r.departureTime),
+                            returnTime: r.returnTime ? new Date(r.returnTime) : null,
+                            bookedSeats: Number(r.bookedSeats),
+                        })),
+                    );
                 }
             } catch (err) {
                 console.error("Failed to load routes", err);
@@ -570,9 +494,7 @@ export function EventForm({
             data.capacity != null &&
             data.capacity > planMaxAttendees
         ) {
-            toast.error(
-                t("events.form.validation.capacityPlanLimit", { max: planMaxAttendees }),
-            );
+            toast.error(t("events.form.validation.capacityPlanLimit", { max: planMaxAttendees }));
             setFocus("capacity");
             setHighlightedField("capacity");
             return;
@@ -590,7 +512,9 @@ export function EventForm({
         }
 
         const isPaid = Boolean(data.price != null && Number(data.price) > 0);
-        const hasPaidCert = Boolean(data.hasCertificate && data.certificatePrice != null && Number(data.certificatePrice) > 0);
+        const hasPaidCert = Boolean(
+            data.hasCertificate && data.certificatePrice != null && Number(data.certificatePrice) > 0,
+        );
         const requiresPayment = isPaid || hasPaidCert;
 
         if (requiresPayment) {
@@ -598,7 +522,7 @@ export function EventForm({
                 toast.error(
                     locale === "en"
                         ? "You have not configured any payment methods in your organizer settings. Please configure one in Settings > Payment Methods before publishing."
-                        : "No has configurado ningún medio de pago en tu panel. Debes activar al menos uno en Configuración > Medios de pago para poder cobrar por el evento o certificaciones."
+                        : "No has configurado ningún medio de pago en tu panel. Debes activar al menos uno en Configuración > Medios de pago para poder cobrar por el evento o certificaciones.",
                 );
                 return;
             }
@@ -607,7 +531,7 @@ export function EventForm({
                 toast.error(
                     locale === "en"
                         ? "Please select at least one payment method for this event."
-                        : "Debes seleccionar al menos un medio de pago obligatorio para este evento."
+                        : "Debes seleccionar al menos un medio de pago obligatorio para este evento.",
                 );
                 const el = document.getElementById("event-payment-methods-section");
                 el?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -621,7 +545,7 @@ export function EventForm({
                 toast.error(
                     locale === "en"
                         ? `Please complete date and start time for ${slot.label || `Schedule ${i + 1}`}`
-                        : `Por favor completa la fecha y hora de inicio para el ${slot.label || `Horario ${i + 1}`}`
+                        : `Por favor completa la fecha y hora de inicio para el ${slot.label || `Horario ${i + 1}`}`,
                 );
                 const missingId = !slot.datePart ? `event-slot-${slot.id}-date` : `event-slot-${slot.id}-start`;
                 document.getElementById(missingId)?.focus();
@@ -644,9 +568,7 @@ export function EventForm({
                     hasTransport: data.hasTransport ?? false,
                 };
 
-                const result = event
-                    ? await updateEvent(event.id, payload)
-                    : await createEvent(payload);
+                const result = event ? await updateEvent(event.id, payload) : await createEvent(payload);
 
                 if (result.success) {
                     const savedEventId = event?.id ?? result.event?.id;
@@ -666,13 +588,13 @@ export function EventForm({
                 toast.error(
                     err instanceof Error
                         ? getLocalizedValidationMessage(err.message)
-                        : t("events.form.genericError")
+                        : t("events.form.genericError"),
                 );
             }
         });
     };
 
-    const onInvalid = (errs: FieldErrors<CreateEventInput>) => {
+    const onInvalid = (errs: any) => {
         const firstFieldWithError = FIRST_ERROR_FIELD_ORDER.find((field) => !!errs[field]);
 
         if (firstFieldWithError) {
@@ -701,7 +623,7 @@ export function EventForm({
         }
 
         const first = Object.values(errs).find(
-            (e): e is { message?: string } => typeof e === "object" && e !== null && "message" in e
+            (e): e is { message?: string } => typeof e === "object" && e !== null && "message" in e,
         );
         toast.error(getLocalizedValidationMessage(first?.message), {
             id: "event-form-validation",
@@ -748,886 +670,97 @@ export function EventForm({
 
             <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-6 lg:col-span-2">
-                    <div>
-                        <label htmlFor="event-title" className="mb-1.5 block text-sm font-medium text-foreground">
-                            {t("events.form.eventTitle")}
-                        </label>
-                        <input
-                            id="event-title"
-                            {...register("title")}
-                            aria-invalid={Boolean(errors.title)}
-                            aria-describedby={errors.title ? "event-title-error" : undefined}
-                            placeholder={t("events.form.eventTitlePlaceholder")}
-                            className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary ${getFieldHighlightClass("title")}`}
-                        />
-                        {errors.title && (
-                            <p id="event-title-error" role="alert" className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.title.message)}</p>
-                        )}
-                    </div>
+                    <BasicInfoSection
+                        register={register}
+                        errors={errors}
+                        setValue={setValue}
+                        currentDescription={currentDescription}
+                        categoryOptions={categoryOptions}
+                        suggestedTypes={suggestedTypes}
+                        locale={locale}
+                        getFieldHighlightClass={getFieldHighlightClass}
+                        getLocalizedValidationMessage={getLocalizedValidationMessage}
+                        t={t}
+                    />
 
-                    <div>
-                        <div className="mb-1.5 flex items-center justify-between">
-                            <label htmlFor="event-description" className="text-sm font-medium text-foreground">{t("events.form.description")}</label>
-                        </div>
-                        <textarea
-                            id="event-description"
-                            {...register("description")}
-                            aria-invalid={Boolean(errors.description)}
-                            aria-describedby={errors.description ? "event-description-error" : undefined}
-                            rows={6}
-                            placeholder={t("events.form.descriptionPlaceholder")}
-                            className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary resize-none ${getFieldHighlightClass("description")}`}
-                        />
-                        {errors.description && (
-                            <p id="event-description-error" role="alert" className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.description.message)}</p>
-                        )}
-                    </div>
+                    <ScheduleSection
+                        scheduleSlots={scheduleSlots}
+                        minimumEventDate={minimumEventDate}
+                        locale={locale}
+                        handleAddScheduleSlot={handleAddScheduleSlot}
+                        handleRemoveScheduleSlot={handleRemoveScheduleSlot}
+                        handleCopyDateFromPrimary={handleCopyDateFromPrimary}
+                        handleSlotFieldChange={handleSlotFieldChange}
+                        errors={errors}
+                        getFieldHighlightClass={getFieldHighlightClass}
+                        getLocalizedValidationMessage={getLocalizedValidationMessage}
+                    />
 
-                    <div>
-                        <label htmlFor="event-category" className="mb-1.5 block text-sm font-medium text-foreground">{t("events.form.category")}</label>
-                        <select
-                            id="event-category"
-                            {...register("category")}
-                            aria-invalid={Boolean(errors.category)}
-                            aria-describedby={errors.category ? "event-category-error" : undefined}
-                            className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("category")}`}
-                        >
-                            <option value="">{t("events.form.selectCategory")}</option>
-                            {categoryOptions.map((cat) => (
-                                <option key={cat.slug} value={cat.slug}>
-                                    {cat.label || categoryLabel(cat.slug, locale)}
-                                </option>
-                            ))}
-                        </select>
-                        {suggestedTypes.length > 0 && (
-                            <div className="mt-2.5">
-                                <p className="mb-1.5 text-xs font-medium text-muted-foreground">
-                                    {locale === "en" ? "Suggested formats for this category:" : "Formatos sugeridos para esta categoría:"}
-                                </p>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {suggestedTypes.map((typeOption) => (
-                                        <button
-                                            key={typeOption.slug}
-                                            type="button"
-                                            onClick={() => {
-                                                const currentDesc = form.getValues("description") || "";
-                                                if (!currentDesc.toLowerCase().includes(typeOption.label.toLowerCase())) {
-                                                    const prefix = currentDesc.trim() ? `${currentDesc}\n\n` : "";
-                                                    setValue("description", `${prefix}Tipo de evento: ${typeOption.label}`, {
-                                                        shouldDirty: true,
-                                                        shouldValidate: true,
-                                                    });
-                                                    toast.success(`${typeOption.label} agregado a la descripción`);
-                                                }
-                                            }}
-                                            className="rounded-full border border-border/80 bg-muted/40 hover:bg-primary/10 hover:border-primary/40 px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                                            title={locale === "en" ? `Click to mention ${typeOption.label} in description` : `Haz clic para incluir ${typeOption.label} en la descripción`}
-                                        >
-                                            + {typeOption.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                        {errors.category && (
-                            <p id="event-category-error" role="alert" className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.category.message)}</p>
-                        )}
-                    </div>
+                    <LocationSection
+                        isVirtual={isVirtual}
+                        register={register}
+                        errors={errors}
+                        watchedLocation={watchedLocation ?? undefined}
+                        watchedLatitude={typeof watchedLatitude === "number" ? watchedLatitude : null}
+                        watchedLongitude={typeof watchedLongitude === "number" ? watchedLongitude : null}
+                        setValue={setValue}
+                        planMaxAttendees={planMaxAttendees}
+                        getFieldHighlightClass={getFieldHighlightClass}
+                        getLocalizedValidationMessage={getLocalizedValidationMessage}
+                        t={t}
+                    />
 
-                    {/* Horarios del Evento (1 a 3 horarios) */}
-                    <div className="rounded-2xl border border-border/70 bg-card/40 p-4 sm:p-5 shadow-xs space-y-4">
-                        <input type="hidden" {...register("date")} />
-                        <input type="hidden" {...register("endDate")} />
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3.5">
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                                        <CalendarDays className="h-4 w-4" />
-                                    </div>
-                                    <h4 className="text-sm font-bold text-foreground">
-                                        {locale === "en" ? "Event Schedules & Shifts" : "Horarios y Turnos del Evento"}
-                                    </h4>
-                                    <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-                                        {scheduleSlots.length} / 3 {scheduleSlots.length === 1 ? (locale === "en" ? "schedule" : "horario") : (locale === "en" ? "schedules" : "horarios")}
-                                    </span>
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    {locale === "en"
-                                        ? "Configure 1, 2, or up to 3 schedules/shifts for this event (e.g. morning, afternoon, evening)."
-                                        : "Configura de 1 a 3 horarios o turnos para tu evento (ej. mañana, tarde o noche)."}
-                                </p>
-                            </div>
+                    <PricingPaymentsSection
+                        isVirtual={isVirtual}
+                        register={register}
+                        errors={errors}
+                        capacityField={capacityField}
+                        handleCapacityChange={handleCapacityChange}
+                        handleCapacityBlur={handleCapacityBlur}
+                        planMaxAttendees={planMaxAttendees}
+                        watchedPrice={typeof watchedPrice === "number" ? watchedPrice : undefined}
+                        selectablePaymentMethods={selectablePaymentMethods}
+                        requiresPaymentMethods={requiresPaymentMethods}
+                        selectedPaymentMethodIds={selectedPaymentMethodIds}
+                        setSelectedPaymentMethodIds={setSelectedPaymentMethodIds}
+                        getFieldHighlightClass={getFieldHighlightClass}
+                        getLocalizedValidationMessage={getLocalizedValidationMessage}
+                        t={t}
+                    />
 
-                            {scheduleSlots.length < 3 && (
-                                <button
-                                    type="button"
-                                    onClick={handleAddScheduleSlot}
-                                    className="inline-flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-3.5 py-2 text-xs font-semibold text-primary hover:bg-primary/20 transition-all active:scale-95 shrink-0 self-start sm:self-auto"
-                                >
-                                    <Plus className="h-3.5 w-3.5" />
-                                    {locale === "en"
-                                        ? `+ Add Schedule ${scheduleSlots.length + 1}`
-                                        : `+ Agregar Horario ${scheduleSlots.length + 1}`}
-                                </button>
-                            )}
-                        </div>
-
-                        {/* List of schedule slots */}
-                        <div className="space-y-3.5">
-                            {scheduleSlots.map((slot, index) => (
-                                <div
-                                    key={slot.id}
-                                    className={cn(
-                                        "rounded-xl border p-3.5 sm:p-4 transition-all space-y-3",
-                                        index === 0
-                                            ? "border-primary/40 bg-primary/[0.02]"
-                                            : "border-border/80 bg-background/50 hover:border-border"
-                                    )}
-                                >
-                                    <div className="flex items-center justify-between gap-2">
-                                        <div className="flex items-center gap-2">
-                                            <span
-                                                className={cn(
-                                                    "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-bold",
-                                                    index === 0
-                                                        ? "bg-primary text-primary-foreground"
-                                                        : index === 1
-                                                        ? "bg-blue-600 text-white"
-                                                        : "bg-emerald-600 text-white"
-                                                )}
-                                            >
-                                                {index === 0
-                                                    ? (locale === "en" ? "Schedule 1 (Primary)" : "Horario 1 (Principal)")
-                                                    : (locale === "en" ? `Schedule ${index + 1}` : `Horario ${index + 1}`)}
-                                            </span>
-                                            {slot.label && (
-                                                <span className="text-xs font-semibold text-muted-foreground truncate max-w-[200px]">
-                                                    • {slot.label}
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        <div className="flex items-center gap-1.5">
-                                            {index > 0 && scheduleSlots[0]?.datePart && slot.datePart !== scheduleSlots[0].datePart && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleCopyDateFromPrimary(index)}
-                                                    className="inline-flex items-center gap-1 rounded-lg border border-border/80 bg-background px-2 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                                                    title={locale === "en" ? "Copy date from Schedule 1" : "Copiar fecha del Horario 1"}
-                                                >
-                                                    <Copy className="h-3 w-3" />
-                                                    <span className="hidden sm:inline">
-                                                        {locale === "en" ? "Same date as Slot 1" : "Misma fecha que Horario 1"}
-                                                    </span>
-                                                </button>
-                                            )}
-                                            {index > 0 && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRemoveScheduleSlot(index)}
-                                                    className="inline-flex items-center gap-1 rounded-lg p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                                                    title={locale === "en" ? "Remove schedule" : "Eliminar horario"}
-                                                    aria-label={locale === "en" ? `Remove schedule ${index + 1}` : `Eliminar horario ${index + 1}`}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Quick chips for preset labels */}
-                                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                                        <span className="text-[11px] font-medium text-muted-foreground mr-1">
-                                            {locale === "en" ? "Label:" : "Etiqueta:"}
-                                        </span>
-                                        <input
-                                            type="text"
-                                            value={slot.label}
-                                            onChange={(e) => handleSlotFieldChange(index, "label", e.target.value)}
-                                            placeholder={
-                                                index === 0
-                                                    ? (locale === "en" ? "e.g. Morning Shift" : "ej. Turno Mañana")
-                                                    : index === 1
-                                                    ? (locale === "en" ? "e.g. Afternoon Shift" : "ej. Turno Tarde")
-                                                    : (locale === "en" ? "e.g. Evening Shift" : "ej. Turno Noche")
-                                            }
-                                            className="min-w-[140px] max-w-[220px] rounded-lg border border-border bg-background px-2.5 py-1 text-xs focus:border-primary focus:outline-none"
-                                        />
-                                        {(locale === "en"
-                                            ? ["Morning", "Afternoon", "Night", "Shift 1", "Shift 2", "Shift 3"]
-                                            : ["Turno Mañana", "Turno Tarde", "Turno Noche", "1er Turno", "2do Turno", "3er Turno"]
-                                        ).map((preset) => (
-                                            <button
-                                                key={preset}
-                                                type="button"
-                                                onClick={() => handleSlotFieldChange(index, "label", preset)}
-                                                className={cn(
-                                                    "rounded-md border px-2 py-0.5 text-[11px] transition-colors",
-                                                    slot.label === preset
-                                                        ? "border-primary bg-primary/10 text-primary font-semibold"
-                                                        : "border-border/60 bg-muted/30 text-muted-foreground hover:bg-muted hover:text-foreground"
-                                                )}
-                                            >
-                                                {preset}
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    {/* Date, Start Time, End Time inputs */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                                        <div>
-                                            <label
-                                                htmlFor={`event-slot-${slot.id}-date`}
-                                                className="mb-1 block text-xs font-medium text-muted-foreground"
-                                            >
-                                                {locale === "en" ? "Date" : "Fecha"} <span className="text-destructive">*</span>
-                                            </label>
-                                            <div className="relative">
-                                                <input
-                                                    id={`event-slot-${slot.id}-date`}
-                                                    type="date"
-                                                    min={minimumEventDate || undefined}
-                                                    value={slot.datePart}
-                                                    onChange={(e) => handleSlotFieldChange(index, "datePart", e.target.value)}
-                                                    className={cn(
-                                                        "w-full rounded-xl border border-border bg-background py-2 px-3 text-xs focus:border-primary focus:outline-none",
-                                                        index === 0 && getFieldHighlightClass("date")
-                                                    )}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label
-                                                htmlFor={`event-slot-${slot.id}-start`}
-                                                className="mb-1 block text-xs font-medium text-muted-foreground"
-                                            >
-                                                {locale === "en" ? "Start Time" : "Hora de Inicio"} <span className="text-destructive">*</span>
-                                            </label>
-                                            <div className="relative">
-                                                <input
-                                                    id={`event-slot-${slot.id}-start`}
-                                                    type="time"
-                                                    value={slot.startTimePart}
-                                                    onChange={(e) => handleSlotFieldChange(index, "startTimePart", e.target.value)}
-                                                    className={cn(
-                                                        "w-full rounded-xl border border-border bg-background py-2 px-3 text-xs focus:border-primary focus:outline-none",
-                                                        index === 0 && getFieldHighlightClass("date")
-                                                    )}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label
-                                                htmlFor={`event-slot-${slot.id}-end`}
-                                                className="mb-1 block text-xs font-medium text-muted-foreground"
-                                            >
-                                                {locale === "en" ? "End Time (optional)" : "Hora de Fin (opcional)"}
-                                            </label>
-                                            <div className="relative">
-                                                <input
-                                                    id={`event-slot-${slot.id}-end`}
-                                                    type="time"
-                                                    value={slot.endTimePart}
-                                                    onChange={(e) => handleSlotFieldChange(index, "endTimePart", e.target.value)}
-                                                    className="w-full rounded-xl border border-border bg-background py-2 px-3 text-xs focus:border-primary focus:outline-none"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {errors.date && (
-                            <p id="event-date-error" role="alert" className="mt-1 text-xs text-destructive">
-                                {scheduleSlots[0]?.datePart && !scheduleSlots[0]?.startTimePart
-                                    ? (locale === "en" ? "Start time is required for primary schedule" : "La hora de inicio es requerida para el horario principal")
-                                    : getLocalizedValidationMessage(errors.date.message)}
-                            </p>
-                        )}
-                    </div>
-
-                    <div>
-                        <div className="mb-2 flex items-center gap-3">
-                            <label htmlFor={isVirtual ? "event-virtual-link" : "event-location"} className="text-sm font-medium text-foreground">
-                                {isVirtual ? t("events.form.meetingLink") : t("events.form.venueAddress")}
-                            </label>
-                            <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                                <input
-                                    id="event-virtual-toggle"
-                                    type="checkbox"
-                                    {...register("isVirtual")}
-                                    className="rounded border-border"
-                                />
-                                <Video className="h-3.5 w-3.5" /> {t("events.form.virtualEvent")}
-                            </label>
-                        </div>
-
-                        {isVirtual ? (
-                            <div key="virtual-fields">
-                                <input
-                                    id="event-virtual-link"
-                                    {...register("virtualLink")}
-                                    aria-invalid={Boolean(errors.virtualLink)}
-                                    aria-describedby={errors.virtualLink ? "event-virtual-link-error" : "event-virtual-link-help"}
-                                    placeholder={t("events.form.meetingLinkPlaceholder")}
-                                    className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("virtualLink")}`}
-                                />
-                                <p id="event-virtual-link-help" className="mt-1 text-xs text-muted-foreground">
-                                    {t("events.form.meetingLinkHelp")}
-                                </p>
-                                {errors.virtualLink && (
-                                    <p id="event-virtual-link-error" role="alert" className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.virtualLink.message)}</p>
-                                )}
-                                {planMaxAttendees != null && (
-                                    <p className="mt-2 text-xs text-muted-foreground">
-                                        {t("events.form.virtualCapacityHelpPlan", { max: planMaxAttendees })}
-                                    </p>
-                                )}
-                            </div>
-                        ) : (
-                            <div key="physical-fields">
-                                <VenueAddressAutocomplete
-                                    id="event-location"
-                                    value={watchedLocation ?? ""}
-                                    onChange={(next) => {
-                                        setValue("location", next, {
-                                            shouldDirty: true,
-                                            shouldValidate: true,
-                                        });
-                                    }}
-                                    onSelectSuggestion={(suggestion: PlaceSuggestion) => {
-                                        setValue("location", suggestion.label, {
-                                            shouldDirty: true,
-                                            shouldValidate: true,
-                                            shouldTouch: true,
-                                        });
-                                        setValue("latitude", suggestion.lat, {
-                                            shouldDirty: true,
-                                            shouldValidate: true,
-                                        });
-                                        setValue("longitude", suggestion.lng, {
-                                            shouldDirty: true,
-                                            shouldValidate: true,
-                                        });
-                                    }}
-                                    invalid={Boolean(errors.location || errors.latitude)}
-                                    describedBy={
-                                        errors.location || errors.latitude
-                                            ? "event-location-error"
-                                            : undefined
-                                    }
-                                    placeholder={t("events.form.venuePlaceholder")}
-                                    inputClassName={getFieldHighlightClass("location")}
-                                />
-                                {(errors.location || errors.latitude) && (
-                                    <p id="event-location-error" role="alert" className="mt-1 text-xs text-destructive">
-                                        {getLocalizedValidationMessage(
-                                            errors.location?.message || errors.latitude?.message,
-                                        )}
-                                    </p>
-                                )}
-                                <EventLocationPickerDynamic
-                                    className="mt-3"
-                                    address={watchedLocation ?? ""}
-                                    latitude={
-                                        typeof watchedLatitude === "number"
-                                            ? watchedLatitude
-                                            : null
-                                    }
-                                    longitude={
-                                        typeof watchedLongitude === "number"
-                                            ? watchedLongitude
-                                            : null
-                                    }
-                                    onChange={(coords: LatLng | null) => {
-                                        setValue("latitude", coords?.lat ?? null, {
-                                            shouldDirty: true,
-                                            shouldValidate: true,
-                                        });
-                                        setValue("longitude", coords?.lng ?? null, {
-                                            shouldDirty: true,
-                                            shouldValidate: true,
-                                        });
-                                    }}
-                                    onAddressChange={(nextAddress) => {
-                                        setValue("location", nextAddress, {
-                                            shouldDirty: true,
-                                            shouldValidate: true,
-                                            shouldTouch: true,
-                                        });
-                                    }}
-                                    onRequestEditAddress={() => {
-                                        document.getElementById("event-location")?.focus();
-                                    }}
-                                />
-                            </div>
-                        )}
-                    </div>
-
-                    {!isVirtual && (
-                        <div>
-                            <label htmlFor="event-capacity" className="mb-1.5 block text-sm font-medium text-foreground">
-                                {t("events.form.capacity")} <span className="font-normal text-muted-foreground">{t("events.form.optional")}</span>
-                            </label>
-                            <input
-                                id="event-capacity"
-                                type="number"
-                                {...capacityField}
-                                onChange={handleCapacityChange}
-                                onBlur={handleCapacityBlur}
-                                placeholder={
-                                    planMaxAttendees != null
-                                        ? t("events.form.capacityPlaceholderPlan", { max: planMaxAttendees })
-                                        : t("events.form.capacityPlaceholder")
-                                }
-                                min={1}
-                                max={planMaxAttendees ?? undefined}
-                                inputMode="numeric"
-                                aria-invalid={Boolean(errors.capacity)}
-                                aria-describedby={errors.capacity ? "event-capacity-help event-capacity-error" : "event-capacity-help"}
-                                className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("capacity")}`}
-                            />
-                            <p id="event-capacity-help" className="mt-1 text-xs text-muted-foreground">
-                                {planMaxAttendees != null
-                                    ? t("events.form.capacityHelpPlan", { max: planMaxAttendees })
-                                    : t("events.form.capacityHelp")}
-                            </p>
-                            {errors.capacity && (
-                                <p id="event-capacity-error" role="alert" className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.capacity.message)}</p>
-                            )}
-                        </div>
-                    )}
-
-                    <div>
-                        <label htmlFor="event-price" className="mb-1.5 block text-sm font-medium text-foreground">
-                            {t("events.form.price")} <span className="font-normal text-muted-foreground">{t("events.form.optional")}</span>
-                        </label>
-                        <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">S/</span>
-                            <input
-                                id="event-price"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                {...register("price", {
-                                    setValueAs: (value) => {
-                                        if (value === "" || value === null || value === undefined) return undefined;
-                                        const num = Number(value);
-                                        return Number.isNaN(num) ? undefined : num;
-                                    },
-                                })}
-                                placeholder="0.00"
-                                className="w-full rounded-xl border border-border bg-background pl-9 pr-4 py-2.5 text-sm focus:border-primary focus:outline-none"
-                            />
-                        </div>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                            {t("events.form.priceHelp")}
-                        </p>
-                    </div>
-
-                    {!!watchedPrice && Number(watchedPrice) > 0 && (
-                        <div className="space-y-3 rounded-xl border border-border p-4 md:col-span-2">
-                            <div>
-                                <h3 className="text-sm font-semibold text-foreground">{t("events.form.holdSettingsTitle")}</h3>
-                                <p className="mt-0.5 text-xs text-muted-foreground">{t("events.form.holdSettingsHelp")}</p>
-                            </div>
-                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                                <div>
-                                    <label className="mb-1 block text-xs font-medium text-foreground">{t("events.form.holdMinutesCard")}</label>
-                                    <input
-                                        type="number"
-                                        min={5}
-                                        max={120}
-                                        {...register("holdMinutesCard", { valueAsNumber: true })}
-                                        className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="mb-1 block text-xs font-medium text-foreground">{t("events.form.holdHoursManual")}</label>
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        max={72}
-                                        {...register("holdHoursManual", { valueAsNumber: true })}
-                                        className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="mb-1 block text-xs font-medium text-foreground">{t("events.form.nearEventHoldMinutes")}</label>
-                                    <input
-                                        type="number"
-                                        min={5}
-                                        max={60}
-                                        {...register("nearEventHoldMinutes", { valueAsNumber: true })}
-                                        className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="mb-1 block text-xs font-medium text-foreground">{t("events.form.nearEventWindowHours")}</label>
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        max={168}
-                                        {...register("nearEventWindowHours", { valueAsNumber: true })}
-                                        className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="mb-1 block text-xs font-medium text-foreground">{t("events.form.salesCutoffHoursBefore")}</label>
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        max={168}
-                                        {...register("salesCutoffHoursBefore", {
-                                            setValueAs: (v) => {
-                                                if (v === "" || v == null) return null;
-                                                const n = Number(v);
-                                                return Number.isNaN(n) ? null : n;
-                                            },
-                                        })}
-                                        placeholder={t("events.form.salesCutoffPlaceholder")}
-                                        className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {selectablePaymentMethods.length > 0 && requiresPaymentMethods && (
-                        <div
-                            id="event-payment-methods-section"
-                            className={`rounded-xl border p-4 space-y-3 transition-all ${
-                                selectedPaymentMethodIds.length === 0
-                                    ? "border-destructive/60 bg-destructive/5 ring-2 ring-destructive/20 shadow-xs"
-                                    : "border-border"
-                            }`}
-                        >
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-                                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                                    <CreditCard className="h-4 w-4 text-primary" />
-                                    <span>{t("events.form.paymentMethodsTitle")}</span>
-                                    <span className="text-[11px] font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-full border border-destructive/20">
-                                        * Obligatorio
-                                    </span>
-                                </h3>
-                                {selectedPaymentMethodIds.length === 0 && (
-                                    <span className="text-[11px] font-bold text-destructive animate-pulse">
-                                        ⚠️ Selecciona al menos 1 medio de pago
-                                    </span>
-                                )}
-                            </div>
-                            <p className="text-xs text-muted-foreground">{t("events.form.paymentMethodsHelp")}</p>
-                            <div className="flex flex-wrap gap-2">
-                                {selectablePaymentMethods.map((pm) => {
-                                    const selected = selectedPaymentMethodIds.includes(pm.id);
-                                    const IconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-                                        yape: Smartphone,
-                                        plin: QrCode,
-                                        cash: Wallet,
-                                        culqi: CreditCard,
-                                    };
-                                    const PmIcon = IconMap[pm.type] ?? Wallet;
-                                    const isLegacy = pm.type === "yape" || pm.type === "plin";
-                                    return (
-                                        <button
-                                            key={pm.id}
-                                            type="button"
-                                            onClick={() => {
-                                                setSelectedPaymentMethodIds((prev) =>
-                                                    prev.includes(pm.id)
-                                                        ? prev.filter((id) => id !== pm.id)
-                                                        : [...prev, pm.id]
-                                                );
-                                            }}
-                                            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
-                                                selected
-                                                    ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/30"
-                                                    : "border-border bg-background text-foreground hover:bg-muted"
-                                            }`}
-                                        >
-                                            <PmIcon className="h-4 w-4 shrink-0" />
-                                            <span className="truncate">{pm.label}</span>
-                                            {isLegacy && (
-                                                <span className="text-[10px] uppercase text-amber-700">Legacy</span>
-                                            )}
-                                            <span className="text-xs text-muted-foreground">({pm.holderName})</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-
-                    {hasTransport && (
-                        <div className="mt-6 space-y-4">
-                            {event?.id ? (
-                                loadingRoutes ? (
-                                    <div className="rounded-2xl border border-border bg-card p-8 flex items-center justify-center">
-                                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                                        <span className="ml-2 text-sm text-muted-foreground">Cargando rutas de transporte...</span>
-                                    </div>
-                                ) : (
-                                    <div className="rounded-3xl border border-border bg-card p-5 sm:p-6">
-                                        <TransportRoutesManager
-                                            eventId={event.id}
-                                            initialRoutes={routes}
-                                            eventInfo={{
-                                                title: watchedTitle || event.title,
-                                                date: watchedDateTime || event.date,
-                                                endDate: watchedEndDate || event.endDate,
-                                                location: watchedLocation ?? event.location,
-                                                isVirtual: Boolean(isVirtual),
-                                                latitude:
-                                                    typeof watchedLatitude === "number"
-                                                        ? watchedLatitude
-                                                        : typeof event.latitude === "number"
-                                                          ? event.latitude
-                                                          : null,
-                                                longitude:
-                                                    typeof watchedLongitude === "number"
-                                                        ? watchedLongitude
-                                                        : typeof event.longitude === "number"
-                                                          ? event.longitude
-                                                          : null,
-                                            }}
-                                        />
-                                    </div>
-                                )
-                            ) : (
-                                <div className="rounded-3xl border border-primary/20 bg-primary/5 p-6 space-y-3">
-                                    <div className="flex items-center gap-3">
-                                        <div className="rounded-xl bg-primary/10 p-2.5 text-primary">
-                                            <Bus className="h-5 w-5 animate-pulse" />
-                                        </div>
-                                        <div>
-                                            <p className="mb-1 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-background/70 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-                                                Transporte
-                                            </p>
-                                            <h3 className="font-display font-semibold text-foreground">
-                                                Configuración de Rutas de Transporte
-                                            </h3>
-                                            <p className="text-xs text-muted-foreground">
-                                                El transporte para este evento quedará habilitado automáticamente.
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="rounded-xl bg-card border border-border p-4 text-sm text-muted-foreground">
-                                        Al guardar este evento podrás añadir rutas, horarios y precios. El QR de entrada y el bus se pagan por separado.
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
+                    <TransportSection
+                        hasTransport={hasTransport}
+                        event={event}
+                        loadingRoutes={loadingRoutes}
+                        routes={routes}
+                        watchedTitle={watchedTitle}
+                        watchedDateTime={watchedDateTime}
+                        watchedEndDate={watchedEndDate ?? undefined}
+                        watchedLocation={watchedLocation ?? undefined}
+                        isVirtual={isVirtual}
+                        watchedLatitude={typeof watchedLatitude === "number" ? watchedLatitude : null}
+                        watchedLongitude={typeof watchedLongitude === "number" ? watchedLongitude : null}
+                    />
                 </div>
 
-                <div className="space-y-6">
-                    <div>
-                        <label className="mb-1.5 block text-sm font-medium text-foreground">{t("events.form.coverImage")}</label>
-                        <p className="mb-2 text-xs text-muted-foreground">{t("events.form.coverImageHint")}</p>
-                        <div className="overflow-hidden rounded-xl border border-border bg-secondary">
-                            {coverImage ? (
-                                <div className="relative">
-                                    <EventCoverFrame
-                                        src={coverImage}
-                                        alt="Cover"
-                                        variant="preview"
-                                        className="min-h-72 rounded-none"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setCoverImage(null)}
-                                        className="absolute right-2 top-2 rounded-lg border border-border bg-background/85 px-2 py-1 text-xs font-medium backdrop-blur transition hover:bg-background"
-                                    >
-                                        {t("events.form.removeImage")}
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="flex aspect-[16/10] min-h-72 flex-col items-center justify-center gap-2 px-4 text-center text-muted-foreground">
-                                    <div className="rounded-full bg-primary/10 p-2.5">
-                                        <ImageIcon className="h-5 w-5 text-primary animate-pulse" />
-                                    </div>
-                                    <p className="text-sm text-muted-foreground">{t("events.form.coverImage")}</p>
-                                    <UploadDropzone
-                                        endpoint="eventCoverImage"
-                                        config={{ mode: "auto" }}
-                                        onClientUploadComplete={(res) => {
-                                            if (res[0]) setCoverImage(res[0].url);
-                                        }}
-                                        onUploadError={(err) => {
-                                            toast.error(err.message);
-                                        }}
-                                        content={{
-                                            label: t("events.form.uploadDragDrop"),
-                                            allowedContent: t("events.form.uploadAllowedContent"),
-                                            button({ ready, isUploading }) {
-                                                if (isUploading) return t("common.loading");
-                                                return t("events.form.uploadButton");
-                                            }
-                                        }}
-                                        appearance={coverDropzoneAppearance}
-                                    />
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div>
-                        <label htmlFor="event-status" className="mb-1.5 block text-sm font-medium text-foreground">{t("events.form.status")}</label>
-                        <select
-                            id="event-status"
-                            {...register("status")}
-                            aria-invalid={Boolean(errors.status)}
-                            aria-describedby={errors.status ? "event-status-error" : undefined}
-                            className={`w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none ${getFieldHighlightClass("status")}`}
-                        >
-                            <option value="draft">{t("eventStatus.draft")}</option>
-                            <option value="published">{t("eventStatus.published")}</option>
-                            <option value="cancelled">{t("eventStatus.cancelled")}</option>
-                        </select>
-                        {errors.status && (
-                            <p id="event-status-error" role="alert" className="mt-1 text-xs text-destructive">{getLocalizedValidationMessage(errors.status.message)}</p>
-                        )}
-                    </div>
-
-                    {canFeature && (
-                        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-4">
-                            <input
-                                type="checkbox"
-                                {...register("isFeatured")}
-                                className="mt-0.5 rounded border-border"
-                            />
-                            <div>
-                                <div className="flex items-center gap-1.5">
-                                    <Star className="h-3.5 w-3.5 text-amber-500" />
-                                    <p className="text-sm font-medium text-foreground">{t("events.form.featureEvent")}</p>
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    {t("events.form.featureEventHelp")}
-                                </p>
-                            </div>
-                        </label>
-                    )}
-
-                    <label
-                        className={cn(
-                            "flex items-start gap-3 rounded-xl border border-border p-4",
-                            canUseTransport ? "cursor-pointer" : "cursor-not-allowed opacity-70",
-                        )}
-                    >
-                        <input
-                            type="checkbox"
-                            {...register("hasTransport")}
-                            disabled={!canUseTransport}
-                            className="mt-0.5 rounded border-border"
-                        />
-                        <div>
-                            <div className="flex items-center gap-1.5">
-                                <Bus className="h-3.5 w-3.5 text-primary" />
-                                <p className="text-sm font-medium text-foreground">{t("events.form.offerTransport")}</p>
-                                {!canUseTransport && <Lock className="h-3.5 w-3.5 text-muted-foreground" />}
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                {!canUseTransport
-                                    ? "Disponible en plan Pro. Mejora en /organizer/billing"
-                                    : hasTransport
-                                    ? t("events.form.transportEnabledHelp")
-                                    : t("events.form.transportDisabledHelp")}
-                            </p>
-                        </div>
-                    </label>
-
-                    {/* Certificado Digital (Opcional) */}
-                    <div className="rounded-xl border border-border p-4 bg-muted/10 space-y-3">
-                        <label className="flex items-start gap-3 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                {...register("hasCertificate")}
-                                className="mt-0.5 rounded border-border text-primary focus:ring-primary/20"
-                            />
-                            <div>
-                                <div className="flex items-center gap-1.5">
-                                    <Award className="h-4 w-4 text-primary" />
-                                    <p className="text-sm font-medium text-foreground">
-                                        {locale === "en" ? "Include Digital Certificate" : "Incluir Certificado Digital"}
-                                    </p>
-                                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
-                                        {locale === "en" ? "Optional" : "Opcional"}
-                                    </span>
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                    {locale === "en"
-                                        ? "Issues official downloadable certificate or attendance credential for attendees."
-                                        : "Emite constancia o certificado oficial de participación descargable para los asistentes."}
-                                </p>
-                            </div>
-                        </label>
-
-                        {hasCertificate && (
-                            <div className="pt-2 pl-7 border-t border-border/60 space-y-3">
-                                <div>
-                                    <label className="block text-xs font-medium text-foreground mb-1">
-                                        {locale === "en" ? "Certificate Title / Recognition (Optional)" : "Título de la Certificación o Reconocimiento (Opcional)"}
-                                    </label>
-                                    <input
-                                        type="text"
-                                        {...register("certificateTitle")}
-                                        placeholder={locale === "en" ? "e.g. Certificate of Attendance and Approval" : "ej. Certificado de Asistencia y Aprobación"}
-                                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                        maxLength={120}
-                                    />
-                                    <p className="text-[11px] text-muted-foreground mt-1">
-                                        {locale === "en"
-                                            ? "Customize the title shown on the certificate and public event page. If left blank, 'Certificado Digital de Participación' will be used."
-                                            : "Personaliza el título que se mostrará en el certificado y página pública del evento. Si lo dejas vacío, se usará 'Certificado Digital de Participación'."}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <label className="block text-xs font-medium text-foreground mb-1">
-                                        {locale === "en" ? "Certificate Price (PEN) — Optional Add-on" : "Precio del Certificado (PEN) — Add-on Opcional"}
-                                    </label>
-                                    <div className="relative flex items-center max-w-[200px]">
-                                        <span className="absolute left-3 text-xs font-bold text-muted-foreground select-none">
-                                            S/
-                                        </span>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
-                                            {...register("certificatePrice", {
-                                                setValueAs: (v) => (v === "" || v === null ? 0 : Number(v)),
-                                            })}
-                                            placeholder="0.00"
-                                            className="w-full rounded-lg border border-border bg-background pl-8 pr-3 py-2 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                        />
-                                    </div>
-                                    <p className="text-[11px] text-muted-foreground mt-1">
-                                        {locale === "en"
-                                            ? "If set to 0, certificate is included for free with registration. If greater than 0, attendee can choose to add it during checkout."
-                                            : "Si lo dejas en 0, el certificado estará incluido gratis con la entrada. Si colocas un monto (ej. S/ 15), el asistente podrá elegir si desea agregarlo al registrarse."}
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={isPending || (!event && !canCreateEvent)}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
-                    >
-                        {isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : event ? (
-                            t("events.form.saveChanges")
-                        ) : (
-                            t("events.form.createEvent")
-                        )}
-                    </button>
-                </div>
+                <MediaSettingsSection
+                    coverImage={coverImage}
+                    setCoverImage={setCoverImage}
+                    coverDropzoneAppearance={coverDropzoneAppearance}
+                    register={register}
+                    errors={errors}
+                    canFeature={canFeature}
+                    canUseTransport={Boolean(canUseTransport)}
+                    hasTransport={hasTransport}
+                    hasCertificate={hasCertificate}
+                    isPending={isPending}
+                    event={event}
+                    canCreateEvent={canCreateEvent}
+                    getFieldHighlightClass={getFieldHighlightClass}
+                    getLocalizedValidationMessage={getLocalizedValidationMessage}
+                    locale={locale}
+                    t={t}
+                />
             </div>
         </form>
     );
