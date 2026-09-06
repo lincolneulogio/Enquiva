@@ -23,17 +23,17 @@ export function AdminAnalyticsRangeFilter({
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {RANGE_OPTIONS.map((option) => {
           const active = option.value === selectedRange;
           return (
             <Link
               key={option.value}
               href={`${rangeBasePath}?range=${option.value}`}
-              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`rounded-xl border px-3.5 py-1.5 text-xs font-semibold shadow-2xs transition-all duration-200 ${
                 active
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-card text-muted-foreground hover:bg-secondary"
+                  ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                  : "border-border/80 bg-card text-muted-foreground hover:border-border hover:bg-muted/40 hover:text-foreground"
               }`}
             >
               {t(option.labelKey)}
@@ -42,7 +42,7 @@ export function AdminAnalyticsRangeFilter({
         })}
       </div>
       {rangeLabelKey ? (
-        <p className="text-xs text-muted-foreground sm:text-right">
+        <p className="text-xs font-medium text-muted-foreground sm:text-right">
           {t("dashboard.admin.analyticsShowingRange", { range: t(rangeLabelKey) })}
         </p>
       ) : null}

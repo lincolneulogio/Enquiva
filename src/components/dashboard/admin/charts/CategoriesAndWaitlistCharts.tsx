@@ -35,8 +35,8 @@ export function CategoriesAndWaitlistCharts({
   return (
     <>
       {/* Category breakdown */}
-      <div className="rounded-2xl border border-border bg-card p-6">
-        <h3 className="mb-1 font-display text-lg font-semibold text-foreground">
+      <div className="rounded-2xl border border-border/80 bg-card p-5 shadow-xs sm:p-6">
+        <h3 className="mb-1 font-display text-base font-bold text-foreground sm:text-lg">
           {t("dashboard.admin.eventsByCategory")}
         </h3>
         <p className="mb-4 text-xs text-muted-foreground">{t("dashboard.admin.statsCategoryDescription")}</p>
@@ -83,51 +83,51 @@ export function CategoriesAndWaitlistCharts({
       </div>
 
       {/* Resumen de Cola de Espera y Asistencia */}
-      <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-6">
+      <div className="flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-5 shadow-xs sm:p-6">
         <div>
-          <h3 className="mb-1 font-display text-lg font-semibold text-foreground">
+          <h3 className="mb-1 font-display text-base font-bold text-foreground sm:text-lg">
             {t("dashboard.admin.statsWaitlistTitle")}
           </h3>
-          <p className="mb-6 text-xs text-muted-foreground">{t("dashboard.admin.statsWaitlistDescription")}</p>
+          <p className="mb-5 text-xs text-muted-foreground">{t("dashboard.admin.statsWaitlistDescription")}</p>
           
-          <div className="space-y-5">
+          <div className="space-y-3.5">
             {/* Cola de espera */}
-            <div className="flex items-center justify-between rounded-xl bg-amber-500/5 p-4 border border-amber-500/10">
+            <div className="flex items-center justify-between rounded-2xl border border-border/70 bg-muted/30 p-4 transition-colors hover:border-amber-500/30">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
-                  <Clock className="h-5 w-5" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-amber-200/80 bg-amber-50 text-amber-600 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-400 shadow-2xs">
+                  <Clock className="h-4 w-4" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-foreground">{t("dashboard.admin.statsWaitlistActive")}</h4>
-                  <p className="text-xs text-muted-foreground">{t("dashboard.admin.statsWaitlistActiveHelp")}</p>
+                  <h4 className="text-xs sm:text-sm font-semibold text-foreground">{t("dashboard.admin.statsWaitlistActive")}</h4>
+                  <p className="text-[11px] text-muted-foreground">{t("dashboard.admin.statsWaitlistActiveHelp")}</p>
                 </div>
               </div>
               <div className="text-right">
-                <span className="font-display text-2xl font-bold text-amber-600">{waitlistedCount}</span>
-                <p className="text-[10px] text-muted-foreground">{t("dashboard.admin.statsWaitlistPeople")}</p>
+                <span className="font-display text-2xl font-bold text-amber-600 dark:text-amber-400">{waitlistedCount}</span>
+                <p className="text-[10px] font-medium text-muted-foreground">{t("dashboard.admin.statsWaitlistPeople")}</p>
               </div>
             </div>
 
             {/* Registro total de entradas emitidas */}
-            <div className="flex items-center justify-between rounded-xl bg-indigo-500/5 p-4 border border-indigo-500/10">
+            <div className="flex items-center justify-between rounded-2xl border border-border/70 bg-muted/30 p-4 transition-colors hover:border-indigo-500/30">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600">
-                  <CreditCard className="h-5 w-5" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-indigo-200/80 bg-indigo-50 text-indigo-600 dark:border-indigo-800/50 dark:bg-indigo-950/40 dark:text-indigo-400 shadow-2xs">
+                  <CreditCard className="h-4 w-4" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-foreground">{t("dashboard.admin.statsWaitlistActiveRegistrations")}</h4>
-                  <p className="text-xs text-muted-foreground">{t("dashboard.admin.statsWaitlistActiveRegistrationsHelp")}</p>
+                  <h4 className="text-xs sm:text-sm font-semibold text-foreground">{t("dashboard.admin.statsWaitlistActiveRegistrations")}</h4>
+                  <p className="text-[11px] text-muted-foreground">{t("dashboard.admin.statsWaitlistActiveRegistrationsHelp")}</p>
                 </div>
               </div>
               <div className="text-right">
-                <span className="font-display text-2xl font-bold text-indigo-600">{registeredCount}</span>
-                <p className="text-[10px] text-muted-foreground">{t("dashboard.admin.statsWaitlistTickets")}</p>
+                <span className="font-display text-2xl font-bold text-indigo-600 dark:text-indigo-400">{registeredCount}</span>
+                <p className="text-[10px] font-medium text-muted-foreground">{t("dashboard.admin.statsWaitlistTickets")}</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="mt-6 border-t border-border pt-4 text-center">
+        <div className="mt-6 border-t border-border/60 pt-4 text-center">
           <p className="text-xs text-muted-foreground">{t("dashboard.admin.statsRangeTip")}</p>
         </div>
       </div>

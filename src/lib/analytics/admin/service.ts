@@ -37,7 +37,16 @@ export async function getAdminDashboardStats(options?: AdminDashboardStatsOption
     const cached = await getCached<AdminDashboardStatsResult>(
       CACHE_KEYS.adminDashboardStats(cacheKey),
     );
-    if (cached) return cached;
+    if (cached) {
+      return {
+        ...cached,
+        superAdminCount: typeof cached.superAdminCount === "number" ? cached.superAdminCount : 0,
+        adminCount: typeof cached.adminCount === "number" ? cached.adminCount : 0,
+        organizerCount: typeof cached.organizerCount === "number" ? cached.organizerCount : 0,
+        memberCount: typeof cached.memberCount === "number" ? cached.memberCount : 0,
+        scannerCount: typeof cached.scannerCount === "number" ? cached.scannerCount : 0,
+      };
+    }
   }
 
   const result = await computeAdminDashboardStats(options);
@@ -82,13 +91,16 @@ export async function computeAdminDashboardStats(options?: AdminDashboardStatsOp
   const draftWhere = andWithScope(rangeStart ? [gte(events.createdAt, rangeStart)] : [], eq(events.status, "draft"), eventOrgScope);
   const cancelledWhere = andWithScope(rangeStart ? [gte(events.createdAt, rangeStart)] : [], eq(events.status, "cancelled"), eventOrgScope);
 
-  const membersWhere = organizerOnly ? undefined : andWithScope(rangeStart ? [gte(users.createdAt, rangeStart)] : [], eq(users.role, "member"), userOrgScope);
+  const superAdminsWhere = organizerOnly ? undefined : andWithScope(rangeStart ? [gte(users.createdAt, rangeStart)] : [], eq(users.role, "super_admin"), userOrgScope);
+  const adminsWhere = organizerOnly ? undefined : andWithScope(rangeStart ? [gte(users.createdAt, rangeStart)] : [], eq(users.role, "admin"), userOrgScope);
   const organizersWhere = organizerOnly ? undefined : andWithScope(rangeStart ? [gte(users.createdAt, rangeStart)] : [], eq(users.role, "organizer"), userOrgScope);
+  const membersWhere = organizerOnly ? undefined : andWithScope(rangeStart ? [gte(users.createdAt, rangeStart)] : [], eq(users.role, "member"), userOrgScope);
+  const scannersWhere = organizerOnly ? undefined : andWithScope(rangeStart ? [gte(users.createdAt, rangeStart)] : [], eq(users.role, "scanner"), userOrgScope);
 
   const [
     totalUsers, totalEvents, totalRegistrations,
     publishedEvents, draftEvents, cancelledEvents,
-    memberCount, organizerCount,
+    superAdminCount, adminCount, organizerCount, memberCount, scannerCount,
     { monthlyActivity, categoryData },
     financialTransport,
     comparisons,
@@ -99,8 +111,11 @@ export async function computeAdminDashboardStats(options?: AdminDashboardStatsOp
     db.select({ count: count() }).from(events).where(publishedWhere),
     db.select({ count: count() }).from(events).where(draftWhere),
     db.select({ count: count() }).from(events).where(cancelledWhere),
-    membersWhere ? db.select({ count: count() }).from(users).where(membersWhere) : Promise.resolve([{ count: 0 }]),
+    superAdminsWhere ? db.select({ count: count() }).from(users).where(superAdminsWhere) : Promise.resolve([{ count: 0 }]),
+    adminsWhere ? db.select({ count: count() }).from(users).where(adminsWhere) : Promise.resolve([{ count: 0 }]),
     organizersWhere ? db.select({ count: count() }).from(users).where(organizersWhere) : Promise.resolve([{ count: 0 }]),
+    membersWhere ? db.select({ count: count() }).from(users).where(membersWhere) : Promise.resolve([{ count: 0 }]),
+    scannersWhere ? db.select({ count: count() }).from(users).where(scannersWhere) : Promise.resolve([{ count: 0 }]),
     queryMonthlyActivityAndCategories({ eventsWhere, registrationsWhere, usersWhere, organizerOnly, lastMonths }),
     queryFinancialAndTransportStats({ rangeStart, paymentOrgScope, transportRouteOrgScope, transportBookingOrgScope, registrationsWhere, eventOrgScope }),
     calculatePeriodComparisons({ windows: getComparisonWindows(range), organizerOnly, eventOrgScope, registrationOrgScope, userOrgScope, paymentOrgScope }),
@@ -115,8 +130,11 @@ export async function computeAdminDashboardStats(options?: AdminDashboardStatsOp
     publishedEvents: publishedEvents[0]?.count ?? 0,
     draftEvents: draftEvents[0]?.count ?? 0,
     cancelledEvents: cancelledEvents[0]?.count ?? 0,
-    memberCount: memberCount[0]?.count ?? 0,
+    superAdminCount: superAdminCount[0]?.count ?? 0,
+    adminCount: adminCount[0]?.count ?? 0,
     organizerCount: organizerCount[0]?.count ?? 0,
+    memberCount: memberCount[0]?.count ?? 0,
+    scannerCount: scannerCount[0]?.count ?? 0,
     monthlyActivity,
     categoryData,
     ...financialTransport,

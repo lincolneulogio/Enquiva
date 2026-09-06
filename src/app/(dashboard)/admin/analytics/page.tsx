@@ -78,31 +78,39 @@ export default async function AdminAnalyticsPage({ searchParams }: AdminAnalytic
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <div className="space-y-4">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center rounded-md border border-sky-200/80 bg-sky-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-sky-700 dark:border-sky-800/60 dark:bg-sky-950/40 dark:text-sky-300">
+              {isEntityScope ? "VISTA ENTIDAD" : "ANALÍTICA GLOBAL"}
+            </span>
+          </div>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             {exportTitle}
           </h1>
-          <p className="mt-1 text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {isEntityScope
               ? t("dashboard.admin.analyticsEntityIntro")
               : t("dashboard.admin.analyticsGlobalIntro")}
           </p>
         </div>
-        {isPlatformSuperAdmin ? (
-          <Suspense fallback={null}>
-            <AdminAnalyticsScopeNav />
-          </Suspense>
-        ) : null}
         {isPlatformSuperAdmin && orgOptions.length > 0 ? (
-          <Suspense fallback={null}>
-            <AdminAnalyticsOrgFilter
-              organizations={orgOptions}
-              selectedOrgId={organizationId}
-            />
-          </Suspense>
+          <div className="shrink-0">
+            <Suspense fallback={null}>
+              <AdminAnalyticsOrgFilter
+                organizations={orgOptions}
+                selectedOrgId={organizationId}
+              />
+            </Suspense>
+          </div>
         ) : null}
       </div>
+
+      {isPlatformSuperAdmin ? (
+        <Suspense fallback={null}>
+          <AdminAnalyticsScopeNav />
+        </Suspense>
+      ) : null}
 
       <AdminAnalyticsView
         mode={isEntityScope ? "entity" : "global"}

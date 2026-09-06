@@ -57,7 +57,7 @@ export const CACHE_KEYS = {
   eventBySlug: (slug: string) => `events:slug:${slug}`,
   userNotificationsCount: (userId: string) => `notifications:unread:${userId}`,
   eventAttendeesCount: (eventId: string) => `events:attendees:${eventId}`,
-  adminDashboardStats: (key: string) => `admin:stats:${key}`,
+  adminDashboardStats: (key: string) => `admin:stats:v3:${key}`,
   platformSettings: "platform:settings:v1",
   eventSpotlight: "events:spotlight-banner",
 } as const;
