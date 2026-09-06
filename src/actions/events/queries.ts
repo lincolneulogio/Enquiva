@@ -27,7 +27,7 @@ export async function getCategories(): Promise<Pick<Category, "slug" | "label" |
     if (role === "admin") {
       const scope = await resolveAdminScopeForUser(session.user.id, session.user.role);
       if (scope.mode === "org") return EventService.getCategories(scope.organizationId);
-      return [];
+      return EventService.getCategories(null);
     }
 
     if (role === "organizer") {
@@ -37,6 +37,8 @@ export async function getCategories(): Promise<Pick<Category, "slug" | "label" |
     }
 
     if (role === "super_admin") {
+      const { ensureDefaultPlatformCategories } = await import("@/lib/events/category-bootstrap");
+      await ensureDefaultPlatformCategories();
       return await db
         .select({ slug: categories.slug, label: categories.label, colorClass: categories.colorClass })
         .from(categories)

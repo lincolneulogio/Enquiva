@@ -71,8 +71,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ improved });
   } catch (error: any) {
-    if (error?.status === 401 || error?.statusCode === 401) {
-      return apiAuthErrorResponse(error);
+    const authError = apiAuthErrorResponse(error);
+    if (authError) {
+      return authError;
     }
     console.error("[improve-description] Error:", error);
     return NextResponse.json(

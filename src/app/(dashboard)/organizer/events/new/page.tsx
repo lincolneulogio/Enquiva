@@ -1,14 +1,18 @@
 import { EventForm } from "@/components/events/EventForm";
 import { getCategories } from "@/actions/events";
 import { getMyPlanSummary } from "@/actions/billing";
+import { getEventTypes } from "@/actions/admin/event-types";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 
 export default async function NewEventPage() {
   const { t, locale } = await getI18n();
-  const categories = await getCategories();
-  const planSummary = await getMyPlanSummary();
+  const [categories, planSummary, eventTypesList] = await Promise.all([
+    getCategories(),
+    getMyPlanSummary(),
+    getEventTypes(),
+  ]);
 
   const titleKey = t("dashboard.organizer.createEventTitle");
   const introKey = t("dashboard.organizer.createEventIntro");
@@ -44,7 +48,7 @@ export default async function NewEventPage() {
           {createEventIntro}
         </p>
       </div>
-      <EventForm categories={categories} planSummary={planSummary} />
+      <EventForm categories={categories} planSummary={planSummary} initialEventTypes={eventTypesList} />
     </div>
   );
 }

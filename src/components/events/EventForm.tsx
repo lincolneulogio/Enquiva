@@ -35,12 +35,13 @@ export function EventForm({
   categories,
   canFeature = false,
   planSummary,
+  initialEventTypes = [],
 }: EventFormProps) {
   const t = useTranslations();
   const { locale } = useLocale();
   const [coverImage, setCoverImage] = useState<string | null>(event?.coverImage ?? null);
 
-  const formValues = useEventFormValues({ event, categories, planSummary, locale, t });
+  const formValues = useEventFormValues({ event, categories, planSummary, locale, t, initialEventTypes });
   const { form, setHighlightedField, highlightTimeoutRef, getFieldHighlightClass, getLocalizedValidationMessage } = formValues;
   const { register, handleSubmit, setValue, setFocus, clearErrors, trigger, formState: { errors } } = form;
 
@@ -135,6 +136,7 @@ export function EventForm({
           currentDescription={formValues.currentDescription}
           categoryOptions={formValues.categoryOptions}
           suggestedTypes={formValues.suggestedTypes}
+          currentEventType={formValues.watchedType ?? undefined}
           locale={locale}
           getFieldHighlightClass={getFieldHighlightClass}
           getLocalizedValidationMessage={getLocalizedValidationMessage}
@@ -173,6 +175,7 @@ export function EventForm({
           coverDropzoneAppearance={COVER_DROPZONE_APPEARANCE}
           register={register}
           errors={errors}
+          watchedStatus={formValues.watchedStatus}
           canFeature={canFeature}
           canUseTransport={Boolean(formValues.canUseTransport)}
           hasTransport={formValues.hasTransport}

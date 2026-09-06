@@ -11,18 +11,18 @@ interface EventHoldSettingsCardProps {
 
 export function EventHoldSettingsCard({ register, t }: EventHoldSettingsCardProps) {
   return (
-    <div className="space-y-3 rounded-xl border border-border p-4 md:col-span-2">
-      <div>
-        <h3 className="text-sm font-semibold text-foreground">
+    <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs space-y-5 transition-all md:col-span-2">
+      <div className="border-b border-border/60 pb-3.5">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
           {t("events.form.holdSettingsTitle")}
         </h3>
-        <p className="mt-0.5 text-xs text-muted-foreground">
+        <p className="mt-1 text-xs text-muted-foreground">
           {t("events.form.holdSettingsHelp")}
         </p>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <div>
-          <label className="mb-1 block text-xs font-medium text-foreground">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-1.5">
+          <label className="block text-xs font-medium text-muted-foreground">
             {t("events.form.holdMinutesCard")}
           </label>
           <input
@@ -30,11 +30,11 @@ export function EventHoldSettingsCard({ register, t }: EventHoldSettingsCardProp
             min={5}
             max={120}
             {...register("holdMinutesCard", { valueAsNumber: true })}
-            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+            className="w-full rounded-xl border border-border/80 bg-background px-3.5 py-2 text-sm font-medium text-foreground transition-all hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-foreground">
+        <div className="space-y-1.5">
+          <label className="block text-xs font-medium text-muted-foreground">
             {t("events.form.holdHoursManual")}
           </label>
           <input
@@ -42,11 +42,11 @@ export function EventHoldSettingsCard({ register, t }: EventHoldSettingsCardProp
             min={1}
             max={72}
             {...register("holdHoursManual", { valueAsNumber: true })}
-            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+            className="w-full rounded-xl border border-border/80 bg-background px-3.5 py-2 text-sm font-medium text-foreground transition-all hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-foreground">
+        <div className="space-y-1.5">
+          <label className="block text-xs font-medium text-muted-foreground">
             {t("events.form.nearEventHoldMinutes")}
           </label>
           <input
@@ -54,11 +54,11 @@ export function EventHoldSettingsCard({ register, t }: EventHoldSettingsCardProp
             min={5}
             max={60}
             {...register("nearEventHoldMinutes", { valueAsNumber: true })}
-            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+            className="w-full rounded-xl border border-border/80 bg-background px-3.5 py-2 text-sm font-medium text-foreground transition-all hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-foreground">
+        <div className="space-y-1.5">
+          <label className="block text-xs font-medium text-muted-foreground">
             {t("events.form.nearEventWindowHours")}
           </label>
           <input
@@ -66,11 +66,11 @@ export function EventHoldSettingsCard({ register, t }: EventHoldSettingsCardProp
             min={1}
             max={168}
             {...register("nearEventWindowHours", { valueAsNumber: true })}
-            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+            className="w-full rounded-xl border border-border/80 bg-background px-3.5 py-2 text-sm font-medium text-foreground transition-all hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-foreground">
+        <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
+          <label className="block text-xs font-medium text-muted-foreground">
             {t("events.form.salesCutoffHoursBefore")}
           </label>
           <input
@@ -85,7 +85,7 @@ export function EventHoldSettingsCard({ register, t }: EventHoldSettingsCardProp
               },
             })}
             placeholder={t("events.form.salesCutoffPlaceholder")}
-            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+            className="w-full rounded-xl border border-border/80 bg-background px-3.5 py-2 text-sm font-medium text-foreground transition-all hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
       </div>

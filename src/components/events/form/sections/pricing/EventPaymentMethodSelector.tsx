@@ -41,14 +41,14 @@ export function EventPaymentMethodSelector({
   return (
     <div
       id="event-payment-methods-section"
-      className={`rounded-xl border p-4 space-y-3 transition-all ${
+      className={`rounded-2xl border p-5 sm:p-6 space-y-4 transition-all ${
         isMissingSelection
           ? "border-destructive/60 bg-destructive/5 ring-2 ring-destructive/20 shadow-xs"
-          : "border-border"
+          : "border-border/80 bg-card shadow-xs"
       }`}
     >
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border/60 pb-3.5">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
           <CreditCard className="h-4 w-4 text-primary" />
           <span>{t("events.form.paymentMethodsTitle")}</span>
           <span className="text-[11px] font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-full border border-destructive/20">
@@ -56,13 +56,13 @@ export function EventPaymentMethodSelector({
           </span>
         </h3>
         {isMissingSelection && (
-          <span className="text-[11px] font-bold text-destructive animate-pulse">
+          <span className="text-xs font-bold text-destructive animate-pulse">
             ⚠️ Selecciona al menos 1 medio de pago
           </span>
         )}
       </div>
       <p className="text-xs text-muted-foreground">{t("events.form.paymentMethodsHelp")}</p>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2.5">
         {selectablePaymentMethods.map((pm) => {
           const selected = selectedPaymentMethodIds.includes(pm.id);
           const PmIcon = ICON_MAP[pm.type] ?? Wallet;
@@ -73,16 +73,18 @@ export function EventPaymentMethodSelector({
               key={pm.id}
               type="button"
               onClick={() => togglePaymentMethod(pm.id)}
-              className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
+              className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-medium transition-all cursor-pointer shadow-2xs ${
                 selected
                   ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/30"
-                  : "border-border bg-background text-foreground hover:bg-muted"
+                  : "border-border/80 bg-background text-foreground hover:border-primary/40 hover:bg-muted/40"
               }`}
             >
-              <PmIcon className="h-4 w-4 shrink-0" />
-              <span className="truncate">{pm.label}</span>
+              <div className={`flex h-6 w-6 items-center justify-center rounded-lg ${selected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                <PmIcon className="h-3.5 w-3.5 shrink-0" />
+              </div>
+              <span className="font-semibold">{pm.label}</span>
               {isLegacy && (
-                <span className="text-[10px] uppercase text-amber-700">Legacy</span>
+                <span className="text-[10px] uppercase font-bold text-amber-700 bg-amber-500/10 px-1.5 py-0.5 rounded">Legacy</span>
               )}
               <span className="text-xs text-muted-foreground">({pm.holderName})</span>
             </button>

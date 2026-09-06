@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import { EventForm } from "@/components/events/EventForm";
 import { getCategories } from "@/actions/events";
 import { getMyPlanSummary } from "@/actions/billing";
+import { getEventTypes } from "@/actions/admin/event-types";
 import { getRequestSession } from "@/lib/request-context";
 import { getI18n } from "@/lib/i18n/server";
 
@@ -33,8 +34,11 @@ export default async function OrganizerEditEventPage({ params }: OrganizerEditEv
         redirect("/organizer/events");
     }
 
-    const categories = await getCategories();
-    const planSummary = await getMyPlanSummary();
+    const [categories, planSummary, eventTypesList] = await Promise.all([
+        getCategories(),
+        getMyPlanSummary(),
+        getEventTypes(),
+    ]);
 
     return (
         <div className="space-y-6">
@@ -50,7 +54,7 @@ export default async function OrganizerEditEventPage({ params }: OrganizerEditEv
                 <p className="mt-1 text-muted-foreground">{t("dashboard.organizer.updateEventDetails", { title: event.title })}</p>
             </div>
 
-            <EventForm event={event} redirectPath="/organizer/events" categories={categories} canFeature={session.user.role === "super_admin"} planSummary={planSummary} />
+            <EventForm event={event} redirectPath="/organizer/events" categories={categories} canFeature={session.user.role === "super_admin"} planSummary={planSummary} initialEventTypes={eventTypesList} />
 
             {event.hasTransport && (
                 <div className="rounded-2xl border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 px-5 py-4 flex items-center justify-between gap-4">

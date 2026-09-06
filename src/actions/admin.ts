@@ -23,3 +23,11 @@ export {
   deletePlan,
   getPlatformRevenue,
 } from "./admin/plans";
+export {
+  getEventTypes,
+  getAllEventTypes,
+  createEventType,
+  updateEventType,
+  deleteEventType,
+  syncDefaultEventTypesAction,
+} from "./admin/event-types";

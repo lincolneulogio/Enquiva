@@ -15,9 +15,11 @@ export default async function AdminNewEventPage() {
 
     const { EventForm } = await import("@/components/events/EventForm");
     const { getCategories } = await import("@/actions/events");
+    const { getEventTypes } = await import("@/actions/admin/event-types");
     const { resolveAdminScope } = await import("@/lib/organizations/admin-scope");
 
     const categories = await getCategories();
+    const eventTypesList = await getEventTypes();
     const adminScope = await resolveAdminScope();
 
     const createEventIntro =
@@ -41,7 +43,7 @@ export default async function AdminNewEventPage() {
                 <p className="mt-1 text-muted-foreground">{createEventIntro}</p>
             </div>
 
-            <EventForm redirectPath={eventsPath} categories={categories} canFeature />
+            <EventForm redirectPath={eventsPath} categories={categories} initialEventTypes={eventTypesList} canFeature />
         </div>
     );
 }

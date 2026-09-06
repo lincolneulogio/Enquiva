@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Crown, Lock } from "lucide-react";
+import { Crown, Lock, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { getOrganizerPlanSummary } from "@/lib/billing/enforce";
 import { useTranslations } from "@/components/providers/LocaleProvider";
@@ -78,7 +78,7 @@ export function PlanUsageBanner({ summary, className, showFeatures = false }: Pl
               )}
             </p>
             {showFeatures && (
-              <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
+              <div className="mt-2.5 flex flex-wrap gap-2 text-[11px]">
                 <FeaturePill ok={plan.features.transport} label={t("dashboard.organizer.planUsageFeatureTransport")} />
                 <FeaturePill ok={plan.features.culqi} label={t("dashboard.organizer.planUsageFeatureCulqi")} />
                 <FeaturePill ok={plan.features.ai} label={t("dashboard.organizer.planUsageFeatureAi")} />
@@ -90,9 +90,9 @@ export function PlanUsageBanner({ summary, className, showFeatures = false }: Pl
         {summary.canManageBilling ? (
           <Link
             href="/organizer/billing"
-            className="inline-flex shrink-0 items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+            className="inline-flex shrink-0 items-center justify-center rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/95 hover:shadow hover:scale-[1.02] active:scale-95 cursor-pointer"
           >
-            {t("dashboard.organizer.planUsageUpgrade")}
+            {t("dashboard.organizer.planUsageUpgrade")} &rarr;
           </Link>
         ) : summary.organizationName ? (
           <p className="max-w-xs text-right text-xs text-muted-foreground">
@@ -108,13 +108,13 @@ function FeaturePill({ ok, label }: { ok: boolean; label: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 font-medium border transition-colors",
         ok
-          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-          : "bg-muted text-muted-foreground",
+          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+          : "bg-muted/60 text-muted-foreground border-border/80",
       )}
     >
-      {!ok && <Lock className="h-3 w-3" />}
+      {ok ? <Check className="h-3 w-3 text-emerald-600" /> : <Lock className="h-3 w-3 text-muted-foreground" />}
       {label}
     </span>
   );

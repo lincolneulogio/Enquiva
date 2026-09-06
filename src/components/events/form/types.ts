@@ -17,6 +17,7 @@ export interface EventFormProps {
     categories: CategoryOption[];
     canFeature?: boolean;
     planSummary?: PlanSummary;
+    initialEventTypes?: Array<{ slug: string; label: string; categorySlug: string }>;
 }
 
 export interface ScheduleSlotState {

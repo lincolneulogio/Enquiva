@@ -6,6 +6,7 @@ import { events } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { EventForm } from "@/components/events/EventForm";
 import { getCategories } from "@/actions/events";
+import { getEventTypes } from "@/actions/admin/event-types";
 import { getI18n } from "@/lib/i18n/server";
 import { getRequestSession } from "@/lib/request-context";
 import { assertEventInAdminScope } from "@/lib/organizations/admin-scope";
@@ -41,6 +42,7 @@ export default async function AdminEditEventPage({ params }: AdminEditEventPageP
     if (!event) notFound();
 
     const categories = await getCategories();
+    const eventTypesList = await getEventTypes();
 
     return (
         <div className="space-y-6">
@@ -58,7 +60,7 @@ export default async function AdminEditEventPage({ params }: AdminEditEventPageP
                 <p className="mt-1 text-muted-foreground">{t("dashboard.admin.updateEventDetails", { title: event.title })}</p>
             </div>
 
-            <EventForm event={event} redirectPath={eventsPath} categories={categories} canFeature />
+            <EventForm event={event} redirectPath={eventsPath} categories={categories} initialEventTypes={eventTypesList} canFeature />
         </div>
     );
 }

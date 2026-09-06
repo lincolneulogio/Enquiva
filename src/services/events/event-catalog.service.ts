@@ -1,7 +1,8 @@
 import { db } from "@/lib/db";
 import { events, registrations, categories } from "@/lib/db/schema";
 import type { Category } from "@/lib/db/schema";
-import { eq, and, desc, count, sql, asc, isNull, gte } from "drizzle-orm";
+import { eq, and, or, desc, count, sql, asc, isNull, gte } from "drizzle-orm";
+import { ensureDefaultPlatformCategories } from "@/lib/events/category-bootstrap";
 import {
   getCached,
   setCached,
@@ -22,9 +23,10 @@ export class EventCatalogService {
    */
   static async getCategories(organizationId?: string | null): Promise<Pick<Category, "slug" | "label" | "colorClass">[]> {
     try {
+      await ensureDefaultPlatformCategories();
       const conditions = [eq(categories.isActive, true)];
       if (organizationId) {
-        conditions.push(eq(categories.organizationId, organizationId));
+        conditions.push(or(isNull(categories.organizationId), eq(categories.organizationId, organizationId))!);
       } else {
         conditions.push(isNull(categories.organizationId));
       }

@@ -334,6 +334,7 @@ export const en: TranslationDictionary = {
                     entityEvents: "Entity events",
                     registeredEvents: "Registered events",
                     categories: "Categories",
+                    eventTypes: "Event Types",
                     users: "Users",
                     registrations: "Registrations",
                     notifications: "Notifications",

@@ -13,7 +13,6 @@ export interface EventCategoryDefinition {
   shortLabelEs: string;
   shortLabelEn: string;
   description: string;
-  examples: string[];
   colorClass: string;
   featured: boolean;
   sortOrder: number;

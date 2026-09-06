@@ -121,3 +121,28 @@ export type Event = typeof events.$inferSelect;
 export type NewEvent = typeof events.$inferInsert;
 export type EventAttachment = typeof eventAttachments.$inferSelect;
 export type Category = typeof categories.$inferSelect;
+
+export const eventTypes = pgTable(
+  "event_types",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Slug de la categoría a la que pertenece este tipo (FK lógica). */
+    categorySlug: text("category_slug").notNull(),
+    slug: text("slug").notNull(),
+    label: text("label").notNull(),
+    description: text("description"),
+    isActive: boolean("is_active").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
+  },
+  (t) => [
+    index("event_types_category_idx").on(t.categorySlug),
+    uniqueIndex("event_types_slug_category_unique_idx").on(t.categorySlug, t.slug),
+  ],
+);
+
+export type EventType = typeof eventTypes.$inferSelect;
+export type NewEventType = typeof eventTypes.$inferInsert;
+

@@ -3,6 +3,7 @@ export * from "./event-form-defaults";
 export * from "./ui/EventFormBanner";
 export * from "./sections/EventFormLeftColumn";
 export * from "./sections/BasicInfoSection";
+export * from "./sections/EventTypeSelector";
 export * from "./sections/LocationSection";
 export * from "./sections/ScheduleSection";
 export * from "./sections/ScheduleSlotCard";

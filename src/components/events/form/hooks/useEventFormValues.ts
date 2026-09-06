@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createEventSchema, type CreateEventInput } from "@/lib/validations";
-import { EVENT_CATEGORIES, getTypesForCategory } from "@/lib/events/taxonomy";
 import type { Event } from "@/lib/db/schema";
 import {
   type CategoryOption,
@@ -21,6 +20,7 @@ interface UseEventFormValuesProps {
   planSummary?: PlanSummary;
   locale: "es" | "en";
   t: (key: string, params?: Record<string, string | number>) => string;
+  initialEventTypes?: Array<{ slug: string; label: string; categorySlug: string }>;
 }
 
 export function useEventFormValues({
@@ -29,30 +29,16 @@ export function useEventFormValues({
   planSummary,
   locale,
   t,
+  initialEventTypes = [],
 }: UseEventFormValuesProps) {
   const [highlightedField, setHighlightedField] = useState<keyof CreateEventInput | null>(null);
   const highlightTimeoutRef = useRef<number | null>(null);
 
-  const buildCategoryOptions = (customCats: CategoryOption[]): CategoryOption[] => {
-    const standard: CategoryOption[] = EVENT_CATEGORIES.map((cat) => ({
-      slug: cat.slug,
-      label: locale === "en" ? cat.labelEn : cat.labelEs,
-      colorClass: cat.colorClass,
-    }));
-    const combined = [...standard];
-    customCats.forEach((c) => {
-      if (!combined.some((item) => item.slug === c.slug)) combined.push(c);
-    });
-    return combined;
-  };
-
-  const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>(() =>
-    buildCategoryOptions(categories),
-  );
+  const [categoryOptions, setCategoryOptions] = useState<CategoryOption[]>(() => categories);
   const [minimumEventDate, setMinimumEventDate] = useState("");
 
   useEffect(() => {
-    setCategoryOptions(buildCategoryOptions(categories));
+    setCategoryOptions(categories);
   }, [categories]);
 
   useEffect(() => {
@@ -95,13 +81,18 @@ export function useEventFormValues({
   const watchedDateTime = useWatch({ control, name: "date" });
   const watchedEndDate = useWatch({ control, name: "endDate" });
   const currentDescription = useWatch({ control, name: "description" });
+  const watchedStatus = useWatch({ control, name: "status" });
 
-  const suggestedTypes = watchedCategory ? getTypesForCategory(watchedCategory) : [];
+  const suggestedTypes = watchedCategory && initialEventTypes.length > 0
+    ? initialEventTypes.filter((t) => t.categorySlug === watchedCategory)
+    : [];
 
   useEffect(() => {
     if (!watchedCategory) return;
     if (suggestedTypes.length > 0 && !suggestedTypes.some((item) => item.slug === watchedType)) {
       setValue("eventType", suggestedTypes[0].slug, { shouldValidate: true, shouldDirty: true });
+    } else if (suggestedTypes.length === 0) {
+      setValue("eventType", "", { shouldValidate: true, shouldDirty: true });
     }
   }, [watchedCategory, suggestedTypes, watchedType, setValue]);
 
@@ -136,6 +127,7 @@ export function useEventFormValues({
     categoryOptions,
     setCategoryOptions,
     suggestedTypes,
+    watchedType,
     minimumEventDate,
     isVirtual,
     highlightedField,
@@ -151,6 +143,7 @@ export function useEventFormValues({
     watchedLongitude,
     watchedPrice,
     currentDescription,
+    watchedStatus,
     hasTransport,
     hasCertificate,
     requiresPaymentMethods,

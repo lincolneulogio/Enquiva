@@ -21,6 +21,7 @@ interface EventFormLeftColumnProps {
   currentDescription?: string;
   categoryOptions: CategoryOption[];
   suggestedTypes: Array<{ slug: string; label: string }>;
+  currentEventType?: string;
   locale: "es" | "en";
   getFieldHighlightClass: (field: keyof CreateEventInput) => string;
   getLocalizedValidationMessage: (message?: string) => string;
@@ -60,6 +61,7 @@ export function EventFormLeftColumn({
   currentDescription,
   categoryOptions,
   suggestedTypes,
+  currentEventType,
   locale,
   getFieldHighlightClass,
   getLocalizedValidationMessage,
@@ -100,6 +102,7 @@ export function EventFormLeftColumn({
         currentDescription={currentDescription}
         categoryOptions={categoryOptions}
         suggestedTypes={suggestedTypes}
+        currentEventType={currentEventType}
         locale={locale}
         getFieldHighlightClass={getFieldHighlightClass}
         getLocalizedValidationMessage={getLocalizedValidationMessage}

@@ -20,34 +20,38 @@ export function EventCoverDropzone({
   t,
 }: EventCoverDropzoneProps) {
   return (
-    <div>
-      <label className="mb-1.5 block text-sm font-medium text-foreground">
-        {t("events.form.coverImage")}
-      </label>
-      <p className="mb-2 text-xs text-muted-foreground">{t("events.form.coverImageHint")}</p>
-      <div className="overflow-hidden rounded-xl border border-border bg-secondary">
+    <div className="rounded-2xl border border-border/80 bg-card p-5 sm:p-6 shadow-xs space-y-3.5 transition-all">
+      <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-3">
+        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          {t("events.form.coverImage")}
+        </label>
+        <span className="rounded-full bg-muted border border-border/80 px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+          Horizontal JPG
+        </span>
+      </div>
+      <p className="text-xs text-muted-foreground leading-relaxed">
+        {t("events.form.coverImageHint")}
+      </p>
+
+      <div className="overflow-hidden rounded-xl border border-border/80 bg-background/50">
         {coverImage ? (
           <div className="relative">
             <EventCoverFrame
               src={coverImage}
               alt="Cover"
               variant="preview"
-              className="min-h-72 rounded-none"
+              className="min-h-64 rounded-none"
             />
             <button
               type="button"
               onClick={() => setCoverImage(null)}
-              className="absolute right-2 top-2 rounded-lg border border-border bg-background/85 px-2 py-1 text-xs font-medium backdrop-blur transition hover:bg-background"
+              className="absolute right-3 top-3 rounded-lg border border-border bg-background/90 px-2.5 py-1 text-xs font-semibold backdrop-blur shadow-sm transition hover:bg-destructive hover:text-destructive-foreground cursor-pointer"
             >
               {t("events.form.removeImage")}
             </button>
           </div>
         ) : (
-          <div className="flex aspect-[16/10] min-h-72 flex-col items-center justify-center gap-2 px-4 text-center text-muted-foreground">
-            <div className="rounded-full bg-primary/10 p-2.5">
-              <ImageIcon className="h-5 w-5 text-primary animate-pulse" />
-            </div>
-            <p className="text-sm text-muted-foreground">{t("events.form.coverImage")}</p>
+          <div className="flex flex-col items-center justify-center p-4">
             <UploadDropzone
               endpoint="eventCoverImage"
               config={{ mode: "auto" }}

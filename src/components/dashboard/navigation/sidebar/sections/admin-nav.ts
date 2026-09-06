@@ -21,6 +21,7 @@ import {
   MessageSquareQuote,
   Crown,
   LineChart,
+  Layers,
 } from "lucide-react";
 import type { NavSection, AdminNavOptions } from "../types";
 import { compactSections } from "./helpers";
@@ -79,6 +80,7 @@ export const adminSections = (options: AdminNavOptions): NavSection[] => {
         ...(isSuperAdmin
           ? [
               { labelKey: "dashboard.sidebar.admin.categories", href: "/superadmin/categories", icon: ClipboardList, permissions: ["categories:manage:platform"] as const },
+              { labelKey: "dashboard.sidebar.admin.eventTypes", href: "/superadmin/event-types", icon: Layers, permissions: ["categories:manage:platform"] as const },
               { labelKey: "dashboard.sidebar.admin.roles", href: p("/roles"), icon: Shield, permissions: ["roles:manage"] as const },
             ]
           : []),

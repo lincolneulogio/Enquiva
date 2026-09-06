@@ -44,82 +44,101 @@ export function ScheduleSlotCard({
   return (
     <div
       className={cn(
-        "rounded-xl border p-3.5 sm:p-4 transition-all space-y-3",
-        isPrimary ? "border-primary/40 bg-primary/[0.02]" : "border-border/80 bg-background/50 hover:border-border",
+        "rounded-xl border p-4 sm:p-5 transition-all space-y-4",
+        isPrimary ? "border-primary/30 bg-primary/[0.02] shadow-xs" : "border-border/80 bg-card/60 hover:border-border",
       )}
     >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-2.5">
+        <div className="flex items-center gap-2.5">
           <span
             className={cn(
-              "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-bold",
-              isPrimary ? "bg-primary text-primary-foreground" : index === 1 ? "bg-blue-600 text-white" : "bg-emerald-600 text-white",
+              "inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-bold tracking-wide uppercase",
+              isPrimary
+                ? "bg-primary/10 text-primary border border-primary/20"
+                : "bg-muted text-muted-foreground border border-border",
             )}
           >
+            <span className={cn("h-1.5 w-1.5 rounded-full", isPrimary ? "bg-primary" : "bg-muted-foreground")} />
             {isPrimary
-              ? locale === "en" ? "Schedule 1 (Primary)" : "Horario 1 (Principal)"
+              ? locale === "en" ? "Schedule 1 (Principal)" : "Horario 1 (Principal)"
               : locale === "en" ? `Schedule ${index + 1}` : `Horario ${index + 1}`}
           </span>
-          <span className="text-xs text-muted-foreground font-medium truncate max-w-[140px] sm:max-w-none">
-            {slot.label || `Horario ${index + 1}`}
+          {slot.label && (
+            <span className="text-xs font-semibold text-foreground/80 truncate max-w-[160px] sm:max-w-none">
+              • {slot.label}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            {locale === "en" ? "Active" : "Activo"}
           </span>
-        </div>
-        {!isPrimary && (
-          <button
-            type="button"
-            onClick={() => handleRemoveScheduleSlot(index)}
-            className="rounded-lg p-1 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive cursor-pointer"
-            title={locale === "en" ? "Remove schedule" : "Eliminar horario"}
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        )}
-      </div>
-
-      <div className="space-y-1">
-        <label className="block text-xs font-medium text-muted-foreground">
-          {locale === "en" ? "Schedule Name / Description" : "Nombre / Etiqueta del Horario"}
-        </label>
-        <div className="flex flex-wrap gap-1 mb-1.5">
-          {presets.slice(0, 4).map((preset) => (
+          {!isPrimary && (
             <button
-              key={preset}
               type="button"
-              onClick={() => handleSlotFieldChange(index, "label", preset)}
-              className={cn(
-                "rounded-md border px-2 py-0.5 text-[11px] font-medium transition cursor-pointer",
-                slot.label === preset
-                  ? "border-primary bg-primary/10 text-primary font-semibold"
-                  : "border-border/70 bg-background hover:border-primary/50 text-muted-foreground hover:text-foreground",
-              )}
+              onClick={() => handleRemoveScheduleSlot(index)}
+              className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+              title={locale === "en" ? "Remove schedule" : "Eliminar horario"}
             >
-              {preset}
+              <Trash2 className="h-4 w-4" />
             </button>
-          ))}
+          )}
         </div>
-        <input
-          type="text"
-          value={slot.label}
-          onChange={(e) => handleSlotFieldChange(index, "label", e.target.value)}
-          placeholder={locale === "en" ? "e.g. Morning Shift, Workshop Room A" : "ej. Turno Mañana, Sala 1, Taller Especial"}
-          className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
-        />
       </div>
 
-      <div className="grid gap-2.5 sm:grid-cols-3">
+      <div className="space-y-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            {locale === "en" ? "Shift presets:" : "Preajustes de turno:"}
+          </label>
+          <div className="flex flex-wrap gap-1.5">
+            {presets.slice(0, 4).map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => handleSlotFieldChange(index, "label", preset)}
+                className={cn(
+                  "rounded-lg border px-3 py-1 text-xs font-semibold transition-all cursor-pointer shadow-2xs",
+                  slot.label === preset
+                    ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                    : "border-border/80 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                )}
+              >
+                {preset}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="space-y-1">
+          <label className="block text-xs font-medium text-muted-foreground">
+            {locale === "en" ? "Schedule Label / Name" : "Nombre / Etiqueta del Horario"}
+          </label>
+          <input
+            type="text"
+            value={slot.label}
+            onChange={(e) => handleSlotFieldChange(index, "label", e.target.value)}
+            placeholder={locale === "en" ? "e.g. Morning Shift, Workshop Room A" : "ej. 1er Turno, Mañana, Sala A"}
+            className="w-full rounded-xl border border-border/80 bg-background px-3.5 py-2.5 text-sm font-medium text-foreground transition-all hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3 pt-1">
+        <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <label className="block text-xs font-medium text-muted-foreground">
+            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
               {locale === "en" ? "Date" : "Fecha"} <span className="text-destructive">*</span>
             </label>
             {!isPrimary && primaryDatePart && slot.datePart !== primaryDatePart && (
               <button
                 type="button"
                 onClick={() => handleCopyDateFromPrimary(index)}
-                className="inline-flex items-center gap-0.5 text-[10px] text-primary hover:underline cursor-pointer"
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
                 title={locale === "en" ? "Same date as Schedule 1" : "Misma fecha que Horario 1"}
               >
-                <Copy className="h-2.5 w-2.5" />
+                <Copy className="h-3 w-3" />
                 <span>{locale === "en" ? "Same date" : "Misma fecha"}</span>
               </button>
             )}
@@ -130,36 +149,36 @@ export function ScheduleSlotCard({
             value={slot.datePart}
             onChange={(e) => handleSlotFieldChange(index, "datePart", e.target.value)}
             className={cn(
-              "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none",
+              "w-full rounded-xl border border-border/80 bg-background px-3.5 py-2.5 text-sm font-medium text-foreground transition-all hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20",
               isPrimary ? getFieldHighlightClass("date") : "",
             )}
           />
         </div>
 
-        <div className="space-y-1">
-          <label className="block text-xs font-medium text-muted-foreground">
-            {locale === "en" ? "Start Time" : "Hora de Inicio"} <span className="text-destructive">*</span>
+        <div className="space-y-1.5">
+          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            {locale === "en" ? "Start Time" : "Hora de inicio"} <span className="text-destructive">*</span>
           </label>
           <input
             type="time"
             value={slot.startTimePart}
             onChange={(e) => handleSlotFieldChange(index, "startTimePart", e.target.value)}
             className={cn(
-              "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none",
+              "w-full rounded-xl border border-border/80 bg-background px-3.5 py-2.5 text-sm font-medium text-foreground transition-all hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20",
               isPrimary ? getFieldHighlightClass("date") : "",
             )}
           />
         </div>
 
-        <div className="space-y-1">
-          <label className="block text-xs font-medium text-muted-foreground">
-            {locale === "en" ? "End Time (optional)" : "Hora de Fin (opcional)"}
+        <div className="space-y-1.5">
+          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            {locale === "en" ? "End Time (optional)" : "Hora de fin (opcional)"}
           </label>
           <input
             type="time"
             value={slot.endTimePart}
             onChange={(e) => handleSlotFieldChange(index, "endTimePart", e.target.value)}
-            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
+            className="w-full rounded-xl border border-border/80 bg-background px-3.5 py-2.5 text-sm font-medium text-foreground transition-all hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
       </div>

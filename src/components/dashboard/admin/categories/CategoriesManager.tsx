@@ -20,6 +20,7 @@ import {
 } from "./types";
 import { CreateCategoryForm } from "./CreateCategoryForm";
 import { CategoriesTable } from "./CategoriesTable";
+import { TaxonomyNavTabs } from "./TaxonomyNavTabs";
 
 
 export function CategoriesManager({ initialCategories }: CategoriesManagerProps) {
@@ -167,6 +168,8 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
 
     return (
         <div className="space-y-6">
+            <TaxonomyNavTabs />
+
             <CreateCategoryForm
                 newItem={newItem}
                 setNewItem={setNewItem}
