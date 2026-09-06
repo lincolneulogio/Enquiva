@@ -1564,6 +1564,8 @@ export const es: TranslationDictionary = {
                 openFilters: "Filtros",
             },
             form: {
+                title: "Título del evento *",
+                titlePlaceholder: "Dale a tu evento un título atractivo",
                 eventTitle: "Título del evento *",
                 eventTitlePlaceholder: "Dale a tu evento un título atractivo",
                 description: "Descripción *",
@@ -1605,6 +1607,8 @@ export const es: TranslationDictionary = {
                 meetingLinkPlaceholder: "https://meet.google.com/...",
                 meetingLinkHelp: "Agrega tu enlace de Zoom/Meet/Teams. Los asistentes ingresarán mediante esta URL.",
                 venuePlaceholder: "Lugar del evento o dirección completa",
+                mapCoordinates: "Coordenadas y mapa de ubicación",
+                mapCoordinatesHelp: "Haz clic o arrastra el pin en el mapa para ajustar la ubicación exacta del evento.",
                 capacity: "Capacidad",
                 optional: "(opcional)",
                 capacityPlaceholder: "Déjalo vacío para ilimitado",
@@ -1640,6 +1644,8 @@ export const es: TranslationDictionary = {
                 createEvent: "Crear evento",
                 eventUpdated: "¡Evento actualizado!",
                 eventCreated: "¡Evento creado!",
+                updatedSuccess: "¡Evento actualizado exitosamente!",
+                createdSuccess: "¡Evento creado exitosamente!",
                 genericError: "Algo salió mal",
                 requiredFieldsError: "Por favor revisa los campos requeridos.",
                 validation: {

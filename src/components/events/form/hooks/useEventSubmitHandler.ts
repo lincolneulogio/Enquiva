@@ -104,16 +104,20 @@ export function useEventSubmitHandler({
           coverImage,
         };
 
+        const validPaymentMethodIds = selectedPaymentMethodIds.filter(
+          (id): id is string => typeof id === "string" && id.trim().length > 0,
+        );
+
         let result;
         if (event) {
           result = await updateEvent(event.id, payload);
           if (result.success && selectablePaymentMethods.length > 0) {
-            await setEventPaymentMethods(event.id, selectedPaymentMethodIds);
+            await setEventPaymentMethods(event.id, validPaymentMethodIds);
           }
         } else {
           result = await createEvent(payload);
           if (result.success && "event" in result && result.event?.id && selectablePaymentMethods.length > 0) {
-            await setEventPaymentMethods(result.event.id, selectedPaymentMethodIds);
+            await setEventPaymentMethods(result.event.id, validPaymentMethodIds);
           }
         }
 

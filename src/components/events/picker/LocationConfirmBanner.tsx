@@ -24,9 +24,29 @@ export function LocationConfirmBanner({
     <>
       {confirmOpen && address.trim() && !addressConfirmed && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 space-y-2">
-          <p className="text-xs font-medium text-foreground">
-            ¿Es correcta esta ubicación?
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-semibold text-foreground">
+              ¿Es correcta esta ubicación?
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onConfirm}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+              >
+                <Check className="h-3.5 w-3.5" />
+                Sí, es correcto
+              </button>
+              <button
+                type="button"
+                onClick={onEditAddress}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Editar dirección
+              </button>
+            </div>
+          </div>
           <p className="text-[11px] leading-relaxed text-muted-foreground">
             {address}
             {nearbyPoi ? (
@@ -39,27 +59,6 @@ export function LocationConfirmBanner({
               </>
             ) : null}
           </p>
-          <p className="text-[10px] text-muted-foreground">
-            Los datos vienen de OpenStreetMap; en Perú a veces falta el número o el nombre del local. Puedes editar el texto a mano.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={onConfirm}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
-            >
-              <Check className="h-3.5 w-3.5" />
-              Sí, es correcto
-            </button>
-            <button
-              type="button"
-              onClick={onEditAddress}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-              Editar dirección
-            </button>
-          </div>
         </div>
       )}
 

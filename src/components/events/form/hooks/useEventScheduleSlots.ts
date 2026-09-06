@@ -128,31 +128,27 @@ export function useEventScheduleSlots({
 
   const handleAddScheduleSlot = () => {
     if (scheduleSlots.length >= 3) return;
-    setScheduleSlots((prev) => {
-      const nextIndex = prev.length + 1;
-      const defaultDate = prev[0]?.datePart || "";
-      const newSlot: ScheduleSlotState = {
-        id: `slot-${Date.now()}`,
-        label: nextIndex === 2 ? "Turno Tarde" : "Turno Noche",
-        datePart: defaultDate,
-        startTimePart: "",
-        endTimePart: "",
-      };
-      const updated = [...prev, newSlot];
-      syncSlotsToForm(updated);
-      toast.info(locale === "en" ? `Schedule ${nextIndex} added` : `Horario ${nextIndex} agregado`);
-      return updated;
-    });
+    const nextIndex = scheduleSlots.length + 1;
+    const defaultDate = scheduleSlots[0]?.datePart || "";
+    const newSlot: ScheduleSlotState = {
+      id: `slot-${Date.now()}`,
+      label: nextIndex === 2 ? "Turno Tarde" : "Turno Noche",
+      datePart: defaultDate,
+      startTimePart: "",
+      endTimePart: "",
+    };
+    const updated = [...scheduleSlots, newSlot];
+    syncSlotsToForm(updated);
+    setScheduleSlots(updated);
+    toast.info(locale === "en" ? `Schedule ${nextIndex} added` : `Horario ${nextIndex} agregado`);
   };
 
   const handleRemoveScheduleSlot = (index: number) => {
     if (index === 0) return;
-    setScheduleSlots((prev) => {
-      const updated = prev.filter((_, idx) => idx !== index);
-      syncSlotsToForm(updated);
-      toast.info(locale === "en" ? "Schedule removed" : "Horario eliminado");
-      return updated;
-    });
+    const updated = scheduleSlots.filter((_, idx) => idx !== index);
+    syncSlotsToForm(updated);
+    setScheduleSlots(updated);
+    toast.info(locale === "en" ? "Schedule removed" : "Horario eliminado");
   };
 
   const handleCopyDateFromPrimary = (index: number) => {

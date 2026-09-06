@@ -61,7 +61,10 @@ export function useEventPaymentAndRoutes({
     if (event?.id) {
       (async () => {
         const methods = await getEventPaymentMethods(event.id);
-        setSelectedPaymentMethodIds(methods.map((m: any) => m.paymentMethodId));
+        const methodIds = (methods || [])
+          .map((m: any) => m?.id || m?.paymentMethodId)
+          .filter((id): id is string => typeof id === "string" && id.trim().length > 0);
+        setSelectedPaymentMethodIds(methodIds);
       })();
     }
   }, [event?.id]);
@@ -72,7 +75,11 @@ export function useEventPaymentAndRoutes({
       if (saved) {
         if (typeof saved.coverImage !== "undefined") setCoverImage(saved.coverImage);
         if (Array.isArray(saved.selectedPaymentMethodIds)) {
-          setSelectedPaymentMethodIds(saved.selectedPaymentMethodIds);
+          setSelectedPaymentMethodIds(
+            saved.selectedPaymentMethodIds.filter(
+              (id): id is string => typeof id === "string" && id.trim().length > 0,
+            ),
+          );
         }
       }
       extraHydratedRef.current = true;

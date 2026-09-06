@@ -193,7 +193,15 @@ export async function setEventPaymentMethods(eventId: string, methodIds: string[
   if (!event) throw new Error("Evento no encontrado");
   await assertEventInAdminScope(eventId, user.id, user.role);
 
-  if (methodIds.length > 0) {
+  const cleanMethodIds = Array.from(
+    new Set(
+      (methodIds || []).filter(
+        (id): id is string => typeof id === "string" && id.trim().length > 0,
+      ),
+    ),
+  );
+
+  if (cleanMethodIds.length > 0) {
     const usesPlatform = await eventOrganizerUsesPlatformPaymentsByUserId(event.organizerId);
 
     const owned = await db
@@ -201,14 +209,14 @@ export async function setEventPaymentMethods(eventId: string, methodIds: string[
       .from(paymentMethods)
       .where(
         and(
-          inArray(paymentMethods.id, methodIds),
+          inArray(paymentMethods.id, cleanMethodIds),
           usesPlatform
             ? isNull(paymentMethods.organizerId)
             : eq(paymentMethods.organizerId, event.organizerId),
         ),
       );
 
-    if (owned.length !== methodIds.length) {
+    if (owned.length !== cleanMethodIds.length) {
       throw new Error("Solo puedes asignar medios de pago válidos para este evento");
     }
 
@@ -220,9 +228,9 @@ export async function setEventPaymentMethods(eventId: string, methodIds: string[
   }
 
   await db.delete(eventPaymentMethods).where(eq(eventPaymentMethods.eventId, eventId));
-  if (methodIds.length > 0) {
+  if (cleanMethodIds.length > 0) {
     await db.insert(eventPaymentMethods).values(
-      methodIds.map((paymentMethodId) => ({ eventId, paymentMethodId })),
+      cleanMethodIds.map((paymentMethodId) => ({ eventId, paymentMethodId })),
     );
   }
 

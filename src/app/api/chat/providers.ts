@@ -1,6 +1,6 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
-import { streamText, stepCountIs, type LanguageModel } from "ai";
+import { generateText, streamText, stepCountIs, type LanguageModel } from "ai";
 import { env } from "@/env";
 import { createResponseSanitizer } from "./sanitize-output";
 import {
@@ -259,6 +259,51 @@ export async function streamWithFallback(
         modelId: entry.id,
         ...meta,
       });
+    } catch (error) {
+      lastError = error;
+      console.warn(
+        `[AI] Model failed (${entry.id}): ${shortError(error)} — trying next`,
+      );
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("No se pudo obtener respuesta de ningún proveedor de IA.");
+}
+
+export async function generateTextWithFallback({
+  prompt,
+  system,
+  maxOutputTokens = 1000,
+}: {
+  prompt: string;
+  system?: string;
+  maxOutputTokens?: number;
+}): Promise<string> {
+  const models = resolveModels();
+
+  if (models.length === 0) {
+    throw new Error(
+      "Configura GEMINI_API_KEY u OPENROUTER_API_KEY en el .env para usar la IA.",
+    );
+  }
+
+  let lastError: unknown;
+
+  for (const entry of models) {
+    try {
+      console.info(`[AI] Trying model for text: ${entry.id}`);
+      const result = await generateText({
+        model: entry.model,
+        prompt,
+        system,
+        maxOutputTokens,
+      });
+
+      if (result.text?.trim()) {
+        return result.text.trim();
+      }
     } catch (error) {
       lastError = error;
       console.warn(

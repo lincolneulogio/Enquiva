@@ -107,10 +107,13 @@ export function LocationSection({
               address={watchedLocation || ""}
               latitude={watchedLatitude}
               longitude={watchedLongitude}
-              className="h-60 w-full"
+              className="w-full"
               onChange={(coords: LatLng | null) => {
                 setValue("latitude", coords?.lat ?? null, { shouldDirty: true });
                 setValue("longitude", coords?.lng ?? null, { shouldDirty: true });
+              }}
+              onAddressChange={(newAddress: string) => {
+                setValue("location", newAddress, { shouldDirty: true, shouldValidate: true });
               }}
             />
             <p className="mt-1 text-xs text-muted-foreground">
