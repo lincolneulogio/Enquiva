@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 import type { AdminStatsRange } from "@/lib/analytics/admin";
 
 export const RANGE_OPTIONS: { value: AdminStatsRange; labelKey: string }[] = [
@@ -19,33 +20,25 @@ export function AdminAnalyticsRangeFilter({
   rangeBasePath,
   t,
 }: AdminAnalyticsRangeFilterProps) {
-  const rangeLabelKey = RANGE_OPTIONS.find((o) => o.value === selectedRange)?.labelKey;
-
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex flex-wrap items-center gap-2">
-        {RANGE_OPTIONS.map((option) => {
-          const active = option.value === selectedRange;
-          return (
-            <Link
-              key={option.value}
-              href={`${rangeBasePath}?range=${option.value}`}
-              className={`rounded-xl border px-3.5 py-1.5 text-xs font-semibold shadow-2xs transition-all duration-200 ${
-                active
-                  ? "border-primary bg-primary text-primary-foreground shadow-xs"
-                  : "border-border/80 bg-card text-muted-foreground hover:border-border hover:bg-muted/40 hover:text-foreground"
-              }`}
-            >
-              {t(option.labelKey)}
-            </Link>
-          );
-        })}
-      </div>
-      {rangeLabelKey ? (
-        <p className="text-xs font-medium text-muted-foreground sm:text-right">
-          {t("dashboard.admin.analyticsShowingRange", { range: t(rangeLabelKey) })}
-        </p>
-      ) : null}
+    <div className="inline-flex items-center gap-1 rounded-xl border border-border/80 bg-muted/40 p-1 text-xs">
+      {RANGE_OPTIONS.map((option) => {
+        const active = option.value === selectedRange;
+        return (
+          <Link
+            key={option.value}
+            href={`${rangeBasePath}?range=${option.value}`}
+            className={cn(
+              "rounded-lg px-2.5 py-1 text-xs font-semibold transition-all duration-200",
+              active
+                ? "bg-primary text-primary-foreground shadow-2xs font-semibold"
+                : "text-muted-foreground hover:bg-card/40 hover:text-foreground"
+            )}
+          >
+            {t(option.labelKey)}
+          </Link>
+        );
+      })}
     </div>
   );
 }

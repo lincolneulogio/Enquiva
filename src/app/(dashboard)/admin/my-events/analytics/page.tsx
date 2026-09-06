@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { AdminAnalyticsView } from "@/components/dashboard/admin/AdminAnalyticsView";
-import { AdminAnalyticsScopeNav } from "@/components/dashboard/admin/AdminAnalyticsScopeNav";
 import { getAdminDashboardStats, type AdminStatsRange } from "@/services/analytics/analytics.service";
 import { getI18n } from "@/lib/i18n/server";
 import { getRequestSession } from "@/lib/request-context";
@@ -47,17 +46,12 @@ export default async function AdminMyEventsAnalyticsPage({
   });
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      <div className="space-y-4">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
-            {t("dashboard.admin.analyticsOwnTitle")}
-          </h1>
-          <p className="mt-1 text-muted-foreground">{t("dashboard.admin.analyticsOwnIntro")}</p>
-        </div>
-        <Suspense fallback={null}>
-          <AdminAnalyticsScopeNav />
-        </Suspense>
+    <div className="space-y-5 sm:space-y-6">
+      <div>
+        <h1 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
+          {t("dashboard.admin.analyticsOwnTitle")}
+        </h1>
+        <p className="mt-1 text-xs text-muted-foreground sm:text-sm">{t("dashboard.admin.analyticsOwnIntro")}</p>
       </div>
 
       <AdminAnalyticsView

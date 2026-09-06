@@ -32,7 +32,7 @@ export function AdminAnalyticsScopeNav() {
 
   return (
     <nav
-      className="inline-flex items-center gap-1.5 rounded-2xl border border-border/80 bg-muted/30 p-1.5 shadow-2xs"
+      className="inline-flex items-center gap-1 rounded-xl border border-border/80 bg-muted/40 p-1 text-xs"
       aria-label={t("dashboard.admin.analyticsScopeNavLabel")}
     >
       {TABS.map(({ href, labelKey, Icon }) => {
@@ -42,13 +42,13 @@ export function AdminAnalyticsScopeNav() {
             key={href}
             href={`${href}${query}`}
             className={cn(
-              "inline-flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all duration-200",
+              "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all duration-200",
               active
-                ? "border border-border/80 bg-card text-foreground shadow-xs dark:bg-card"
+                ? "border border-border/80 bg-card text-foreground shadow-2xs font-semibold"
                 : "text-muted-foreground hover:bg-card/40 hover:text-foreground",
             )}
           >
-            <Icon className={cn("h-4 w-4 shrink-0", active ? "text-primary" : "text-muted-foreground")} />
+            <Icon className={cn("h-3.5 w-3.5 shrink-0", active ? "text-primary" : "text-muted-foreground")} />
             <span>{t(`dashboard.admin.${labelKey}`)}</span>
           </Link>
         );

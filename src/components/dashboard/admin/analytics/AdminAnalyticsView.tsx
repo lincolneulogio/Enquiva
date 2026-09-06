@@ -22,12 +22,14 @@ export async function AdminAnalyticsView({
 
   if (mode === "own" && stats.totalEvents === 0) {
     return (
-      <div className="space-y-6">
-        <AdminAnalyticsRangeFilter
-          selectedRange={selectedRange}
-          rangeBasePath={rangeBasePath}
-          t={t}
-        />
+      <div className="space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-border/80 bg-card p-2 sm:p-2.5 shadow-2xs">
+          <AdminAnalyticsRangeFilter
+            selectedRange={selectedRange}
+            rangeBasePath={rangeBasePath}
+            t={t}
+          />
+        </div>
         <AdminOwnEventsEmptyState />
       </div>
     );
@@ -37,16 +39,21 @@ export async function AdminAnalyticsView({
   const eventsScope = mode === "entity" ? "entity" : mode === "own" ? "own-events" : "platform-events";
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      {showExport && exportTitle ? (
-        <AdminAnalyticsExportBar stats={stats} mode={mode} title={exportTitle} />
-      ) : null}
+    <div className="space-y-5 sm:space-y-6">
+      {/* Consolidated Toolbar: Date Range & Export Actions */}
+      <div className="flex flex-col gap-2.5 rounded-2xl border border-border/80 bg-card p-2 sm:p-2.5 shadow-2xs sm:flex-row sm:items-center sm:justify-between">
+        <AdminAnalyticsRangeFilter
+          selectedRange={selectedRange}
+          rangeBasePath={rangeBasePath}
+          t={t}
+        />
 
-      <AdminAnalyticsRangeFilter
-        selectedRange={selectedRange}
-        rangeBasePath={rangeBasePath}
-        t={t}
-      />
+        {showExport && exportTitle ? (
+          <div className="flex items-center justify-between border-t border-border/60 pt-2 sm:border-t-0 sm:pt-0 sm:justify-end">
+            <AdminAnalyticsExportBar stats={stats} mode={mode} title={exportTitle} />
+          </div>
+        ) : null}
+      </div>
 
       <AdminStatsSectionHeader scope={globalScope} />
 
