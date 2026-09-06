@@ -4,10 +4,12 @@ import { useLocale, useTranslations } from "@/components/providers/LocaleProvide
 import { getRoleLabel } from "@/lib/i18n/core";
 import { ProfileForm } from "./ProfileForm";
 import { PasswordForm } from "./PasswordForm";
+import { ActiveSessionsCard } from "./ActiveSessionsCard";
 import { Crown, ShieldCheck, Briefcase, UserRound, QrCode } from "lucide-react";
 import { ROLE_BADGE_STYLES, normalizeRole } from "@/lib/auth/rbac";
 import { TwoFactorSettings } from "@/components/auth/TwoFactorSettings";
 import type { AccentColor } from "@/lib/brand/accent";
+import type { ActiveSession } from "@/lib/auth/sessions";
 
 interface ProfileEditorProps {
   user: {
@@ -22,6 +24,8 @@ interface ProfileEditorProps {
   };
   /** Acento por defecto de plataforma (opcional, reservado para compatibilidad). */
   platformDefaultAccent?: AccentColor | string;
+  /** Sesiones activas obtenidas en el servidor (opcional; si no se pasan se cargan en el cliente). */
+  initialSessions?: ActiveSession[];
 }
 
 const roleIcons = {
@@ -32,7 +36,7 @@ const roleIcons = {
   scanner: QrCode,
 };
 
-export function ProfileEditor({ user }: ProfileEditorProps) {
+export function ProfileEditor({ user, initialSessions }: ProfileEditorProps) {
   const t = useTranslations();
   const { locale } = useLocale();
   const initials = (user.name || "U").charAt(0).toUpperCase();
@@ -75,6 +79,8 @@ export function ProfileEditor({ user }: ProfileEditorProps) {
       <PasswordForm />
 
       <TwoFactorSettings enabled={Boolean(user.twoFactorEnabled)} />
+
+      <ActiveSessionsCard initialSessions={initialSessions} />
     </div>
   );
 }

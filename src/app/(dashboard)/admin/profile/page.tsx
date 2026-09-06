@@ -3,11 +3,13 @@ import { getRequestSession } from "@/lib/request-context";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { ProfileEditor } from "@/components/dashboard/profile/ProfileEditor";
+import { getActiveSessionsForCurrentUser } from "@/lib/auth/sessions";
 import { getI18n } from "@/lib/i18n/server";
 
 export default async function AdminProfilePage() {
     const { t } = await getI18n();
     const session = await getRequestSession();
+    const activeSessions = await getActiveSessionsForCurrentUser();
 
     const [user] = await db
         .select({
@@ -42,7 +44,7 @@ export default async function AdminProfilePage() {
                 <p className="mt-1 text-muted-foreground">{t("dashboard.settings.adminInfo")}</p>
             </div>
 
-            <ProfileEditor user={profileUser} />
+            <ProfileEditor user={profileUser} initialSessions={activeSessions} />
         </div>
     );
 }
