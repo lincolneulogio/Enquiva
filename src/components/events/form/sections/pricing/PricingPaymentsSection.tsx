@@ -49,7 +49,7 @@ export function PricingPaymentsSection({
             <div className="space-y-1.5">
               <label htmlFor="event-capacity" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 {t("events.form.capacity")}{" "}
-                <span className="font-normal lowercase text-muted-foreground/80">({t("events.form.optional")})</span>
+                <span className="font-normal lowercase text-muted-foreground/80">{t("events.form.optional")}</span>
               </label>
               <div className="relative">
                 <input
@@ -90,8 +90,8 @@ export function PricingPaymentsSection({
 
           <div className="space-y-1.5">
             <label htmlFor="event-price" className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              {t("events.form.price")} (S/.){" "}
-              <span className="font-normal lowercase text-muted-foreground/80">({t("events.form.optional")})</span>
+              {t("events.form.price")}{" "}
+              <span className="font-normal lowercase text-muted-foreground/80">{t("events.form.optional")}</span>
             </label>
             <div className="relative flex items-center">
               <span className="absolute left-3.5 text-sm font-bold text-muted-foreground select-none">

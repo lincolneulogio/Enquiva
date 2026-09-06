@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Bus } from "lucide-react";
+import { ArrowLeft, Bus, ExternalLink } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { events } from "@/lib/db/schema";
@@ -96,7 +96,7 @@ export default async function OrganizerEditEventPage({ params }: OrganizerEditEv
                         className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-xl border border-border/80 bg-background/80 px-3.5 py-2 text-xs font-semibold text-foreground shadow-2xs hover:border-primary/40 hover:bg-card hover:text-primary transition-all active:scale-95"
                     >
                         <span>Ver página pública</span>
-                        <span className="text-xs">&nearr;</span>
+                        <ExternalLink className="h-3.5 w-3.5 opacity-70" />
                     </Link>
                 )}
             </div>
