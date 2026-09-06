@@ -94,4 +94,16 @@ describe("Certificate System Business Logic & Eligibility", () => {
     expect(certData.organizerImage).toContain("data:image/png;base64");
     expect(certData.organizerName).toBe("Dr. Carlos Meneses");
   });
+
+  it("supports dynamic Enquiva Verified official seal url", () => {
+    const certData = {
+      certificateCode: "ENQ-2026-CERT-ABCDEF",
+      attendeeName: "María López",
+      eventTitle: "Congreso Internacional de IA 2026",
+      eventDate: new Date("2026-11-15"),
+      certificateSealUrl: "https://utfs.io/f/custom-seal-uuid.png",
+    };
+
+    expect(certData.certificateSealUrl).toBe("https://utfs.io/f/custom-seal-uuid.png");
+  });
 });

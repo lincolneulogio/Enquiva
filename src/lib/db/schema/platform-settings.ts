@@ -80,6 +80,8 @@ export const platformSettings = pgTable("platform_settings", {
   impactCard2Subtitle: text("impact_card_2_subtitle").notNull().default("Ya patrocinan y reclutan talento activamente en nuestros eventos."),
   impactCard2ImageUrl: text("impact_card_2_image_url").notNull().default(""),
   impactSatisfactionRate: text("impact_satisfaction_rate").notNull().default("99.8%"),
+  /** Sello oficial Enquiva Verified para certificados de participación */
+  certificateSealUrl: text("certificate_seal_url").notNull().default("/images/enquiva-verified-seal.png"),
   updatedBy: text("updated_by").references(() => users.id, { onDelete: "set null" }),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

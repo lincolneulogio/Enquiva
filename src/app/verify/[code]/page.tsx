@@ -16,6 +16,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { DownloadCertificateButton } from "@/components/certificates/DownloadCertificateButton";
+import { getSystemSettings } from "@/lib/settings";
 
 interface VerifyPageProps {
   params: Promise<{ code: string }>;
@@ -32,6 +33,7 @@ export async function generateMetadata({ params }: VerifyPageProps): Promise<Met
 export default async function CertificateVerifyPage({ params }: VerifyPageProps) {
   const { code } = await params;
   const decodedCode = decodeURIComponent(code).trim().toUpperCase();
+  const systemSettings = await getSystemSettings().catch(() => null);
 
   const [record] = await db
     .select({
@@ -234,6 +236,7 @@ export default async function CertificateVerifyPage({ params }: VerifyPageProps)
                     organizerName: organizerUser?.name,
                     organizerImage: organizerUser?.signatureUrl || organizerUser?.image,
                     organizerTitle: organizerUser?.signatureTitle,
+                    certificateSealUrl: systemSettings?.certificateSealUrl,
                   }}
                   className="flex-1 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground py-3.5 px-6 text-sm font-bold shadow-md shadow-primary/25 hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
                   label="Descargar Copia Oficial (PDF)"

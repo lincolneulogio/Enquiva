@@ -15,6 +15,7 @@ export interface CertificatePdfData {
   organizerImage?: string | null;
   organizerTitle?: string | null;
   platformLogo?: string | null;
+  certificateSealUrl?: string | null;
   issuedAt?: Date | string | null;
 }
 
@@ -64,11 +65,13 @@ export async function generateCertificatePdf(data: CertificatePdfData) {
   const pageHeight = 210;
 
   // Cargar imágenes de forma concurrente con fallback seguro
-  const [platformLogoDataUrl, organizationLogoDataUrl, organizerImageDataUrl] =
+  const sealUrlToFetch = data.certificateSealUrl || "/images/enquiva-verified-seal.png";
+  const [platformLogoDataUrl, organizationLogoDataUrl, organizerImageDataUrl, sealImageDataUrl] =
     await Promise.all([
       fetchImageAsDataUrl(data.platformLogo || BRAND.logo.source || BRAND.logo.markLg),
       fetchImageAsDataUrl(data.organizationLogo),
       fetchImageAsDataUrl(data.organizerImage),
+      fetchImageAsDataUrl(sealUrlToFetch),
     ]);
 
   // URL de verificación oficial
@@ -415,36 +418,56 @@ export async function generateCertificatePdf(data: CertificatePdfData) {
   const sealCenterY = 152;
   const sealRadius = 16.5;
 
-  // Fondo sutil dorado del sello
-  doc.setFillColor(254, 243, 199); // amber-100
-  doc.circle(sealCenterX, sealCenterY, sealRadius, "F");
+  const drawVectorSealFallback = () => {
+    // Fondo sutil dorado del sello
+    doc.setFillColor(254, 243, 199); // amber-100
+    doc.circle(sealCenterX, sealCenterY, sealRadius, "F");
 
-  // Anillos concéntricos dorados
-  doc.setDrawColor(217, 119, 6); // amber-600
-  doc.setLineWidth(0.8);
-  doc.circle(sealCenterX, sealCenterY, sealRadius, "S");
+    // Anillos concéntricos dorados
+    doc.setDrawColor(217, 119, 6); // amber-600
+    doc.setLineWidth(0.8);
+    doc.circle(sealCenterX, sealCenterY, sealRadius, "S");
 
-  doc.setDrawColor(180, 83, 9); // amber-700
-  doc.setLineWidth(0.3);
-  doc.circle(sealCenterX, sealCenterY, sealRadius - 1.8, "S");
+    doc.setDrawColor(180, 83, 9); // amber-700
+    doc.setLineWidth(0.3);
+    doc.circle(sealCenterX, sealCenterY, sealRadius - 1.8, "S");
 
-  // Texto dentro del sello (perfectamente contenido con márgenes limpios)
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(5.8);
-  doc.setTextColor(180, 83, 9);
-  doc.text("★ ENQUIVA VERIFIED ★", sealCenterX, sealCenterY - 5.5, { align: "center" });
+    // Texto dentro del sello
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(5.8);
+    doc.setTextColor(180, 83, 9);
+    doc.text("★ ENQUIVA VERIFIED ★", sealCenterX, sealCenterY - 5.5, { align: "center" });
 
-  doc.setFontSize(9.5);
-  doc.setTextColor(15, 23, 42);
-  doc.text("AUTÉNTICO", sealCenterX, sealCenterY + 0.5, { align: "center" });
+    doc.setFontSize(9.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text("AUTÉNTICO", sealCenterX, sealCenterY + 0.5, { align: "center" });
 
-  doc.setFontSize(5.2);
-  doc.setTextColor(100, 116, 139);
-  doc.text("REGISTRO DIGITAL OFICIAL", sealCenterX, sealCenterY + 5.5, { align: "center" });
+    doc.setFontSize(5.2);
+    doc.setTextColor(100, 116, 139);
+    doc.text("REGISTRO DIGITAL OFICIAL", sealCenterX, sealCenterY + 5.5, { align: "center" });
 
-  doc.setFontSize(4.8);
-  doc.setTextColor(180, 83, 9);
-  doc.text("SEGURIDAD CRIPTOGRÁFICA", sealCenterX, sealCenterY + 8.8, { align: "center" });
+    doc.setFontSize(4.8);
+    doc.setTextColor(180, 83, 9);
+    doc.text("SEGURIDAD CRIPTOGRÁFICA", sealCenterX, sealCenterY + 8.8, { align: "center" });
+  };
+
+  if (sealImageDataUrl) {
+    try {
+      const sealDiameter = sealRadius * 2;
+      doc.addImage(
+        sealImageDataUrl,
+        detectImageFormat(sealImageDataUrl),
+        sealCenterX - sealDiameter / 2,
+        sealCenterY - sealDiameter / 2,
+        sealDiameter,
+        sealDiameter
+      );
+    } catch {
+      drawVectorSealFallback();
+    }
+  } else {
+    drawVectorSealFallback();
+  }
 
   // [C] FLECHA 3 (DERECHA): QR CODE + BADGE DE CÓDIGO ANTI-FRAUDE
   const qrCenterX = pageWidth - 65;

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Award, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { generateCertificatePdf, CertificatePdfData } from "@/lib/certificates/generate-pdf";
+import { getCertificateSealAction } from "@/actions/admin/certificate-seal";
 
 interface DownloadCertificateButtonProps {
   data: CertificatePdfData;
@@ -23,7 +24,22 @@ export function DownloadCertificateButton({
   const handleDownload = async () => {
     setIsGenerating(true);
     try {
-      const { download } = await generateCertificatePdf(data);
+      let finalSealUrl = data.certificateSealUrl;
+      if (!finalSealUrl) {
+        try {
+          const sealRes = await getCertificateSealAction();
+          if (sealRes.success && sealRes.sealUrl) {
+            finalSealUrl = sealRes.sealUrl;
+          }
+        } catch {
+          // Ignorar y continuar con fallback predeterminado
+        }
+      }
+
+      const { download } = await generateCertificatePdf({
+        ...data,
+        certificateSealUrl: finalSealUrl,
+      });
       download();
       toast.success("Certificado descargado exitosamente");
     } catch (error) {

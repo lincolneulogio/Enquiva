@@ -105,6 +105,8 @@ export interface SystemSettings {
   impactCard2Subtitle: string;
   impactCard2ImageUrl: string;
   impactSatisfactionRate: string;
+  /** URL del sello oficial para certificados (Enquiva Verified). */
+  certificateSealUrl: string;
 }
 
 const SETTINGS_ROW_ID = "default";
@@ -166,6 +168,7 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   impactCard2Subtitle: "Ya patrocinan y reclutan talento activamente en nuestros eventos.",
   impactCard2ImageUrl: "",
   impactSatisfactionRate: "99.8%",
+  certificateSealUrl: "/images/enquiva-verified-seal.png",
 };
 
 function rowToSettings(row: typeof platformSettings.$inferSelect): SystemSettings {
@@ -229,6 +232,7 @@ function rowToSettings(row: typeof platformSettings.$inferSelect): SystemSetting
     impactCard2Subtitle: row.impactCard2Subtitle || DEFAULT_SETTINGS.impactCard2Subtitle,
     impactCard2ImageUrl: row.impactCard2ImageUrl || DEFAULT_SETTINGS.impactCard2ImageUrl,
     impactSatisfactionRate: row.impactSatisfactionRate || DEFAULT_SETTINGS.impactSatisfactionRate,
+    certificateSealUrl: row.certificateSealUrl || DEFAULT_SETTINGS.certificateSealUrl,
   };
 }
 
@@ -370,6 +374,9 @@ function sanitizeSettingsPatch(settings: Partial<SystemSettings>): Partial<Syste
   if (typeof next.impactSatisfactionRate === "string") {
     next.impactSatisfactionRate = next.impactSatisfactionRate.trim().slice(0, 20);
   }
+  if (typeof next.certificateSealUrl === "string") {
+    next.certificateSealUrl = next.certificateSealUrl.trim();
+  }
 
   return next;
 }
@@ -441,6 +448,7 @@ function toDbRow(
     impactCard2Subtitle: settings.impactCard2Subtitle,
     impactCard2ImageUrl: settings.impactCard2ImageUrl,
     impactSatisfactionRate: settings.impactSatisfactionRate,
+    certificateSealUrl: settings.certificateSealUrl || DEFAULT_SETTINGS.certificateSealUrl,
   };
 }
 

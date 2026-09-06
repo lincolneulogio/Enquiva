@@ -108,7 +108,7 @@ export function UpcomingLaunchesSection({ dbEvents = [] }: UpcomingLaunchesSecti
           {displayItems.map((item, idx) => (
             <div
               key={item.id}
-              className="group flex flex-col items-start justify-between gap-4 rounded-2xl border border-border/80 bg-card p-4 shadow-sm transition-all duration-300 hover:border-primary/50 hover:shadow-md sm:flex-row sm:items-center sm:p-5"
+              className="group flex flex-col items-start justify-between gap-4 rounded-2xl border border-border/80 bg-card p-4 shadow-sm transition-colors duration-200 hover:border-primary/50 sm:flex-row sm:items-center sm:p-5"
               data-aos="fade-up"
               data-aos-delay={String(60 + idx * 50)}
             >
@@ -120,7 +120,7 @@ export function UpcomingLaunchesSection({ dbEvents = [] }: UpcomingLaunchesSecti
                     alt={item.title}
                     fill
                     sizes="112px"
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="object-cover"
                   />
                 </div>
 

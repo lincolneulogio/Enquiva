@@ -10,7 +10,7 @@ import {
     Wifi, WifiOff, RefreshCw, Users, Copy, Server, Palette,
     Wrench, Megaphone, Clock, Check,
     CreditCard, Bus, Wallet, Ticket, UserPlus, CalendarDays, AlertTriangle,
-    Sparkles, Flame, Zap, Eye, Star,
+    Sparkles, Flame, Zap, Eye, Star, Award,
 } from "lucide-react";
 import {
     saveSystemSettingsAction,
@@ -27,6 +27,7 @@ import type { EventSpotlightData } from "@/services/events/event-spotlight.servi
 import { saveEntitySettingsAction } from "@/actions/organizations";
 import { OrgBrandingForm } from "@/components/dashboard/admin/OrgBrandingForm";
 import { ImpactImageUploadField } from "@/components/dashboard/admin/ImpactImageUploadField";
+import { CertificateSealCard } from "@/components/dashboard/admin/CertificateSealCard";
 import type { SystemSettings } from "@/lib/settings";
 import type { AnnouncementSeverity } from "@/lib/settings/platform-ops";
 import {
@@ -57,7 +58,7 @@ import {
 } from "@/lib/datetime/zoned-day";
 
 type EntitySubTab = "profile" | "entity" | "appearance";
-type PlatformSubTab = "identity" | "preferences" | "impact" | "smtp" | "notifications";
+type PlatformSubTab = "identity" | "preferences" | "impact" | "certificates" | "smtp" | "notifications";
 type SettingsSection = "entity" | "platform";
 
 interface SettingsTabsProps {
@@ -756,6 +757,7 @@ export function SettingsTabs({
         { id: "identity", icon: Building, labelEs: "Identidad global", labelEn: "Global identity" },
         { id: "preferences", icon: Palette, labelEs: "Preferencias", labelEn: "Preferences" },
         { id: "impact", icon: Sparkles, labelEs: "Métricas de portada", labelEn: "Landing metrics" },
+        { id: "certificates", icon: Award, labelEs: "Sello de certificados", labelEn: "Certificate seal" },
         { id: "smtp", icon: Send, labelEs: "Correo SMTP", labelEn: "SMTP mail" },
         { id: "notifications", icon: Bell, labelEs: "Alertas del sistema", labelEn: "System alerts" },
     ];
@@ -2205,6 +2207,13 @@ export function SettingsTabs({
                                 </div>
                             </div>
                         </div>
+                    )}
+
+                    {section === "platform" && platformSubTab === "certificates" && (
+                        <CertificateSealCard
+                            initialSealUrl={initialPlatformSettings?.certificateSealUrl}
+                            locale={locale as "es" | "en"}
+                        />
                     )}
 
                     {section === "platform" && platformSubTab === "smtp" && (

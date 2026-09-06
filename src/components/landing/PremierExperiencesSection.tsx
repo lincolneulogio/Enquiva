@@ -122,7 +122,7 @@ export function PremierExperiencesSection({
                 <Link
                   key={item.id}
                   href={item.link}
-                  className="group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-all  hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10"
+                  className="group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-colors duration-200 hover:border-primary/50"
                   data-aos="fade-up"
                   data-aos-delay={String(60 + idx * 50)}
                 >
@@ -132,7 +132,7 @@ export function PremierExperiencesSection({
                       alt={item.title}
                       fill
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                     <span className="absolute right-3 top-3 rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur-md">
@@ -158,7 +158,7 @@ export function PremierExperiencesSection({
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Card 1: Organización Top 1 o Invitar */}
           <div
-            className="flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-6 shadow-sm transition-all hover:border-primary/40"
+            className="flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-6 shadow-sm transition-colors duration-200 hover:border-primary/40"
             data-aos="fade-up"
             data-aos-delay="80"
           >
@@ -205,7 +205,7 @@ export function PremierExperiencesSection({
 
           {/* Card 2: Organización Top 2 o Invitar Organizador */}
           <div
-            className="flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-6 shadow-sm transition-all hover:border-primary/40"
+            className="flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-6 shadow-sm transition-colors duration-200 hover:border-primary/40"
             data-aos="fade-up"
             data-aos-delay="120"
           >
@@ -252,7 +252,7 @@ export function PremierExperiencesSection({
 
           {/* Card 3: Tarjeta oscura de captura de organizadores */}
           <div
-            className="flex flex-col justify-between rounded-2xl border border-zinc-800 bg-[#121216] p-6 text-white shadow-xl transition-all hover:border-primary/60"
+            className="flex flex-col justify-between rounded-2xl border border-zinc-800 bg-[#121216] p-6 text-white shadow-xl transition-colors duration-200 hover:border-primary/60"
             data-aos="fade-up"
             data-aos-delay="160"
           >

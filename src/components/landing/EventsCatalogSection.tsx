@@ -126,7 +126,7 @@ export function EventsCatalogSection({
             {displayList.map((event, idx) => (
               <div
                 key={event.id}
-                className="group flex flex-col overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm  hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10"
+                className="group flex flex-col overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm transition-colors duration-200 hover:border-primary/50"
                 data-aos="fade-up"
                 data-aos-delay={String(60 + idx * 50)}
               >
@@ -137,7 +137,7 @@ export function EventsCatalogSection({
                     alt={event.title}
                     fill
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
 
@@ -159,12 +159,12 @@ export function EventsCatalogSection({
 
                 {/* Contenido de la tarjeta */}
                 <div className="flex flex-1 flex-col p-5">
-                  <div className="flex justify-between items-center">
-                    <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-primary">
+                  <div className="flex items-baseline justify-between gap-3 mb-2.5">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-primary truncate">
                       {event.categoryLabel}
                     </p>
 
-                    <span className="font-semibold text-primary text-xl mb-4">
+                    <span className="shrink-0 font-extrabold text-primary text-xl sm:text-2xl tracking-tight">
                       {event.priceStr}
                     </span>
                   </div>

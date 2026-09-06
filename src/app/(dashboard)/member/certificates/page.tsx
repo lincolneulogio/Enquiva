@@ -1,5 +1,6 @@
 import { getUserRegistrations } from "@/actions/registrations";
 import { getI18n } from "@/lib/i18n/server";
+import { getSystemSettings } from "@/lib/settings";
 import { getRequestSession } from "@/lib/request-context";
 import { db } from "@/lib/db";
 import { organizations, users } from "@/lib/db/schema";
@@ -19,6 +20,7 @@ export default async function MemberCertificatesPage() {
   const { locale } = await getI18n();
   const session = await getRequestSession();
   const userName = session?.user?.name ?? "Asistente";
+  const platformSettings = await getSystemSettings().catch(() => null);
 
   const registrations = await getUserRegistrations(100);
 
@@ -111,6 +113,7 @@ export default async function MemberCertificatesPage() {
       organizerImage: organizerInfo?.image ?? null,
       organizerTitle: organizerInfo?.title ?? null,
       attendeeName: userName,
+      certificateSealUrl: platformSettings?.certificateSealUrl,
     };
   });
 

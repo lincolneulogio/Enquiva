@@ -75,7 +75,7 @@ export function ImpactCommunitySection({ metrics }: ImpactCommunitySectionProps)
                   alt={card1Title}
                   fill
                   sizes="(max-width: 768px) 100vw, 50vw"
-                  className="object-cover transition-transform duration-700 group-hover:scale-105 opacity-85"
+                  className="object-cover opacity-85"
                 />
               ) : (
                 <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-950 to-primary/15">
@@ -102,7 +102,7 @@ export function ImpactCommunitySection({ metrics }: ImpactCommunitySectionProps)
                   alt={card2Title}
                   fill
                   sizes="(max-width: 768px) 100vw, 50vw"
-                  className="object-cover transition-transform duration-700 group-hover:scale-105 opacity-85"
+                  className="object-cover opacity-85"
                 />
               ) : (
                 <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-950 to-primary/10">

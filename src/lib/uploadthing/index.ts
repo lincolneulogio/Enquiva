@@ -118,6 +118,20 @@ export const uploadRouter = {
     .onUploadComplete(async ({ metadata, file }) => {
       return { uploadedBy: metadata.userId, url: file.url };
     }),
+
+  // Certificate seal (SuperAdmin only)
+  certificateSealImage: f({ image: { maxFileSize: "4MB", maxFileCount: 1 } })
+    .middleware(async () => {
+      const user = await getUser();
+      if (!user) throw new Error("Unauthorized");
+      if (user.role !== "super_admin") {
+        throw new Error("Only super admins can upload certificate seal");
+      }
+      return { userId: user.id };
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      return { uploadedBy: metadata.userId, url: file.url };
+    }),
 } satisfies FileRouter;
 
 export type OurFileRouter = typeof uploadRouter;

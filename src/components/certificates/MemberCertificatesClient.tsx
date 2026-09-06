@@ -45,6 +45,7 @@ export interface MemberCertificateItem {
   organizerImage?: string | null;
   organizerTitle?: string | null;
   attendeeName: string;
+  certificateSealUrl?: string | null;
 }
 
 interface MemberCertificatesClientProps {
@@ -375,6 +376,7 @@ export function MemberCertificatesClient({
                           organizerName: item.organizerName,
                           organizerImage: item.organizerImage,
                           organizerTitle: item.organizerTitle,
+                          certificateSealUrl: item.certificateSealUrl,
                         }}
                         className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 text-xs font-bold transition flex items-center gap-2 cursor-pointer shadow-xs"
                         label={
