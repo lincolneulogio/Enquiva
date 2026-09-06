@@ -134,7 +134,7 @@ export default async function OrganizerEventsPage({ searchParams }: OrganizerEve
                     <p className="mt-1 text-muted-foreground">
                         {t("dashboard.organizer.createdByYou", {
                             count: total,
-                            label: total === 1 ? "evento" : "eventos",
+                            label: total === 1 ? (locale === "en" ? "event" : "evento") : (locale === "en" ? "events" : "eventos"),
                         })}
                     </p>
                 </div>

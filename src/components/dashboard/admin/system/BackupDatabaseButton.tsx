@@ -4,8 +4,10 @@ import { exportFullDatabase } from "@/actions/admin";
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { Download } from "lucide-react";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 
 export function BackupDatabaseButton() {
+  const t = useTranslations();
   const [isPending, startTransition] = useTransition();
 
   const handleBackup = () => {
@@ -35,9 +37,9 @@ export function BackupDatabaseButton() {
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
         
-        toast.success("Copia de seguridad de la base de datos descargada con éxito.");
+        toast.success(t("dashboard.admin.backupDownloaded"));
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "No se pudo exportar la base de datos.");
+        toast.error(error instanceof Error ? error.message : t("dashboard.admin.backupExportError"));
       }
     });
   };
@@ -53,7 +55,7 @@ export function BackupDatabaseButton() {
       ) : (
         <Download className="h-4 w-4" />
       )}
-      {isPending ? "Generando copia..." : "Descargar copia de seguridad"}
+      {isPending ? t("dashboard.admin.backupGenerating") : t("dashboard.admin.backupDownloadButton")}
     </button>
   );
 }

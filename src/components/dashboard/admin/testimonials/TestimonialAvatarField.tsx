@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Upload, X } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 import { UploadButton } from "@/lib/uploadthing/components";
 
 interface TestimonialAvatarFieldProps {
@@ -12,6 +13,8 @@ export function TestimonialAvatarField({
   avatarUrl,
   onAvatarChange,
 }: TestimonialAvatarFieldProps) {
+  const t = useTranslations();
+
   return (
     <div>
       <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">
@@ -29,14 +32,16 @@ export function TestimonialAvatarField({
             />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-foreground truncate">Imagen cargada</p>
+            <p className="text-xs font-medium text-foreground truncate">
+              {t("dashboard.admin.testimonialImageLoaded")}
+            </p>
             <p className="text-[11px] text-muted-foreground truncate">{avatarUrl.split("/").pop()}</p>
           </div>
           <button
             type="button"
             onClick={() => onAvatarChange("")}
             className="shrink-0 rounded-lg p-1 text-muted-foreground hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950/30 transition-colors"
-            title="Quitar imagen"
+            title={t("dashboard.admin.testimonialRemoveImage")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -49,11 +54,11 @@ export function TestimonialAvatarField({
               const url = res?.[0]?.url;
               if (url) {
                 onAvatarChange(url);
-                toast.success("Imagen subida correctamente.");
+                toast.success(t("dashboard.admin.testimonialImageUploaded"));
               }
             }}
             onUploadError={(err) => {
-              toast.error(`Error al subir imagen: ${err.message}`);
+              toast.error(`${t("dashboard.admin.testimonialImageUploadError")}: ${err.message}`);
             }}
             appearance={{
               button:
@@ -65,10 +70,10 @@ export function TestimonialAvatarField({
               button: (
                 <span className="inline-flex items-center gap-1.5">
                   <Upload className="h-3.5 w-3.5" />
-                  Subir foto
+                  {t("dashboard.admin.testimonialUploadPhoto")}
                 </span>
               ),
-              allowedContent: "PNG, JPG, WEBP · máx. 2MB",
+              allowedContent: t("dashboard.admin.testimonialUploadLimit"),
             }}
           />
         </div>

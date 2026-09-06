@@ -7,9 +7,11 @@ import {
   toggleTestimonialFeaturedAction,
 } from "@/actions/admin/testimonials";
 import { toast } from "sonner";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 import { useTestimonialForm } from "./useTestimonialForm";
 
 export function useTestimonialsManager(initialTestimonials: Testimonial[]) {
+  const t = useTranslations();
   const [items, setItems] = useState<Testimonial[]>(initialTestimonials);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
@@ -64,20 +66,20 @@ export function useTestimonialsManager(initialTestimonials: Testimonial[]) {
         if (res.success) {
           toast.success(
             nextState
-              ? "Testimonio destacado en portada."
-              : "Testimonio retirado de la portada."
+              ? t("dashboard.admin.testimonialFeaturedOn")
+              : t("dashboard.admin.testimonialFeaturedOff")
           );
         } else {
           setItems((prev) =>
             prev.map((t) => (t.id === item.id ? { ...t, isFeatured: !nextState } : t))
           );
-          toast.error("No se pudo cambiar el estado destacado.");
+          toast.error(t("dashboard.admin.testimonialFeaturedError"));
         }
       } catch {
         setItems((prev) =>
           prev.map((t) => (t.id === item.id ? { ...t, isFeatured: !nextState } : t))
         );
-        toast.error("Error al actualizar testimonio.");
+        toast.error(t("dashboard.admin.testimonialRequestError"));
       }
     });
   };
@@ -88,13 +90,13 @@ export function useTestimonialsManager(initialTestimonials: Testimonial[]) {
         const res = await deleteTestimonialAction(id);
         if (res.success) {
           setItems((prev) => prev.filter((t) => t.id !== id));
-          toast.success("Testimonio eliminado.");
+          toast.success(t("dashboard.admin.testimonialDeleted"));
           setDeleteConfirmId(null);
         } else {
-          toast.error("No se pudo eliminar el testimonio.");
+          toast.error(t("dashboard.admin.testimonialDeleteError"));
         }
       } catch {
-        toast.error("Error al eliminar testimonio.");
+        toast.error(t("dashboard.admin.testimonialDeleteError"));
       }
     });
   };

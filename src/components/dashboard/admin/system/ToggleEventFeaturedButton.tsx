@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Star, Loader2 } from "lucide-react";
 import { toggleEventFeaturedAction } from "@/actions/admin/featured-events";
 import { toast } from "sonner";
+import { useLocale } from "@/components/providers/LocaleProvider";
 
 export interface ToggleEventFeaturedButtonProps {
   eventId: string;
@@ -16,13 +17,22 @@ export function ToggleEventFeaturedButton({
   isFeatured: initialFeatured,
   canMutate = true,
 }: ToggleEventFeaturedButtonProps) {
+  const { t, locale } = useLocale();
   const [isFeatured, setIsFeatured] = useState(initialFeatured);
   const [isPending, startTransition] = useTransition();
 
   if (!canMutate) {
     return (
       <span
-        title={isFeatured ? "Destacado en portada" : "No destacado"}
+        title={
+          isFeatured
+            ? locale === "en"
+              ? "Featured on homepage"
+              : "Destacado en portada"
+            : locale === "en"
+              ? "Not featured"
+              : "No destacado"
+        }
         className={`inline-flex items-center justify-center p-1.5 rounded-lg border ${
           isFeatured
             ? "border-amber-500/30 bg-amber-500/10 text-amber-500"
@@ -44,16 +54,16 @@ export function ToggleEventFeaturedButton({
         if (res.success) {
           toast.success(
             nextState
-              ? "Evento destacado en portada exitosamente."
-              : "Evento retirado de los destacados de portada."
+              ? t("dashboard.admin.featuredEventOn")
+              : t("dashboard.admin.featuredEventOff")
           );
         } else {
           setIsFeatured(!nextState);
-          toast.error("No se pudo actualizar el estado destacado.");
+          toast.error(t("dashboard.admin.featuredEventError"));
         }
       } catch {
         setIsFeatured(!nextState);
-        toast.error("Error al comunicarse con el servidor.");
+        toast.error(t("dashboard.admin.serverCommunicationError"));
       }
     });
   };
@@ -65,8 +75,8 @@ export function ToggleEventFeaturedButton({
       disabled={isPending}
       title={
         isFeatured
-          ? "Destacado en Portada (Clic para desmarcar)"
-          : "Marcar como Destacado en Portada (Clic para activar)"
+          ? t("dashboard.admin.featuredToggleTitleOn")
+          : t("dashboard.admin.featuredToggleTitleOff")
       }
       className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs font-medium transition-all ${
         isFeatured
@@ -84,7 +94,13 @@ export function ToggleEventFeaturedButton({
         />
       )}
       <span className="hidden xl:inline">
-        {isFeatured ? "Destacado" : "Destacar"}
+        {isFeatured
+          ? locale === "en"
+            ? "Featured"
+            : "Destacado"
+          : locale === "en"
+            ? "Feature"
+            : "Destacar"}
       </span>
     </button>
   );

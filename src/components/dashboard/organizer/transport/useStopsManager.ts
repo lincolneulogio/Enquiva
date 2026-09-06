@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 import {
   getStopsByRoute,
   createTransportStop,
@@ -12,6 +13,7 @@ import type { StopRow } from "./types";
 import { combineDateAndTime, isPastCombined } from "./utils";
 
 export function useStopsManager() {
+  const t = useTranslations();
   const [expandedRouteId, setExpandedRouteId] = useState<string | null>(null);
   const [stopsByRoute, setStopsByRoute] = useState<Record<string, StopRow[]>>({});
   const [newStopName, setNewStopName] = useState("");
@@ -38,23 +40,23 @@ export function useStopsManager() {
           [routeId]: stopsData,
         }));
       } catch {
-        toast.error("Error al cargar los paraderos.");
+        toast.error(t("transport.manager.stopLoadError"));
       }
     }
   };
 
   const handleAddStop = async (routeId: string) => {
     if (!newStopName.trim()) {
-      toast.error("Por favor, ingresa un nombre para el paradero.");
+      toast.error(t("transport.manager.stopNameRequired"));
       return;
     }
     if (newStopEtaDate || newStopEtaClock) {
       if (!newStopEtaDate || !newStopEtaClock) {
-        toast.error("Completa día y hora estimada del paradero, o déjalos vacíos.");
+        toast.error(t("transport.manager.stopEtaIncomplete"));
         return;
       }
       if (isPastCombined(newStopEtaDate, newStopEtaClock)) {
-        toast.error("La hora estimada del paradero no puede ser en el pasado.");
+        toast.error(t("transport.manager.stopEtaPast"));
         return;
       }
     }
@@ -82,10 +84,10 @@ export function useStopsManager() {
         setNewStopEtaDate("");
         setNewStopEtaClock("");
         setNewStopMaxSeats("");
-        toast.success("Paradero agregado con éxito.");
+        toast.success(t("transport.manager.stopSaveSuccess"));
       }
     } catch {
-      toast.error("Ocurrió un error al guardar el paradero.");
+      toast.error(t("transport.manager.stopSaveError"));
     } finally {
       setStopPending(false);
     }
@@ -99,10 +101,10 @@ export function useStopsManager() {
           ...prev,
           [routeId]: (prev[routeId] || []).filter((s) => s.id !== stopId),
         }));
-        toast.success("Paradero eliminado con éxito.");
+        toast.success(t("transport.manager.stopDeleteSuccess"));
       }
     } catch {
-      toast.error("Error al eliminar el paradero.");
+      toast.error(t("transport.manager.stopDeleteError"));
     }
   };
 

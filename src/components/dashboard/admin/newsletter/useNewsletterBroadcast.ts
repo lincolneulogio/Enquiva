@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 import { deleteOrphanUploadAction } from "@/actions/admin/upload-cleanup";
 import { sendNewsletterBroadcastAction } from "@/actions/admin/newsletter";
 
 export function useNewsletterBroadcast(startTransition: (cb: () => Promise<void>) => void) {
+  const t = useTranslations();
   const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
   const [broadcastSubject, setBroadcastSubject] = useState("");
   const [broadcastMessage, setBroadcastMessage] = useState("");
@@ -24,7 +26,7 @@ export function useNewsletterBroadcast(startTransition: (cb: () => Promise<void>
   const handleSendBroadcast = (e: React.FormEvent) => {
     e.preventDefault();
     if (!broadcastSubject.trim() || !broadcastMessage.trim()) {
-      toast.error("Por favor completa el asunto y el mensaje.");
+      toast.error(t("dashboard.admin.newsletterRequiredFields"));
       return;
     }
 
@@ -37,13 +39,17 @@ export function useNewsletterBroadcast(startTransition: (cb: () => Promise<void>
         });
 
         if (res.success) {
-          toast.success(`Comunicado enviado a ${res.recipientCount} suscriptores activos.`);
+          toast.success(
+            t("dashboard.admin.newsletterBroadcastSent", {
+              count: res.recipientCount ?? 0,
+            })
+          );
           closeBroadcastModal();
         } else {
-          toast.error(res.error ?? "No se pudo enviar el comunicado.");
+          toast.error(res.error ?? t("dashboard.admin.newsletterBroadcastError"));
         }
       } catch {
-        toast.error("Error inesperado al enviar comunicado.");
+        toast.error(t("dashboard.admin.newsletterBroadcastUnexpectedError"));
       }
     });
   };

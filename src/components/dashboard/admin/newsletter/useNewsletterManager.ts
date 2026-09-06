@@ -9,6 +9,7 @@ import {
   type NewsletterStats,
 } from "@/actions/admin/newsletter";
 import { toast } from "sonner";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 import type { StatusFilter } from "./types";
 import { useNewsletterBroadcast } from "./useNewsletterBroadcast";
 
@@ -21,6 +22,7 @@ export function useNewsletterManager({
   initialSubscribers,
   initialStats,
 }: UseNewsletterManagerProps) {
+  const t = useTranslations();
   const [subscribers, setSubscribers] = useState<NewsletterSubscriber[]>(initialSubscribers);
   const [stats, setStats] = useState<NewsletterStats>(initialStats);
   const [searchTerm, setSearchTerm] = useState("");
@@ -85,9 +87,9 @@ export function useNewsletterManager({
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        toast.success("Archivo CSV exportado exitosamente.");
+        toast.success(t("dashboard.admin.newsletterCsvExported"));
       } catch {
-        toast.error("Error al exportar los datos.");
+        toast.error(t("dashboard.admin.newsletterCsvError"));
       }
     });
   };
@@ -108,14 +110,14 @@ export function useNewsletterManager({
         await toggleSubscriberStatusAction(sub.id, nextStatus);
         toast.success(
           nextStatus === "active"
-            ? "Suscriptor activado."
-            : "Suscriptor dado de baja."
+            ? t("dashboard.admin.newsletterSubscriberActivated")
+            : t("dashboard.admin.newsletterSubscriberUnsubscribed")
         );
       } catch {
         setSubscribers((prev) =>
           prev.map((s) => (s.id === sub.id ? { ...s, status: sub.status } : s))
         );
-        toast.error("Error al cambiar el estado del suscriptor.");
+        toast.error(t("dashboard.admin.newsletterStatusError"));
       }
     });
   };
@@ -134,13 +136,13 @@ export function useNewsletterManager({
               unsubscribed: removed.status === "unsubscribed" ? Math.max(0, prev.unsubscribed - 1) : prev.unsubscribed,
             }));
           }
-          toast.success("Suscriptor eliminado.");
+          toast.success(t("dashboard.admin.newsletterSubscriberDeleted"));
           setDeleteConfirmId(null);
         } else {
-          toast.error("No se pudo eliminar el suscriptor.");
+          toast.error(t("dashboard.admin.newsletterDeleteError"));
         }
       } catch {
-        toast.error("Error al eliminar suscriptor.");
+        toast.error(t("dashboard.admin.newsletterDeleteError"));
       }
     });
   };

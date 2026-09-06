@@ -17,6 +17,7 @@ import { resolveAdminScopeForUser } from "@/lib/organizations/admin-scope";
 import { OrganizationService } from "@/lib/organizations/organization.service";
 import { OrganizationSwitcher } from "./OrganizationSwitcher";
 import { normalizeRole } from "@/lib/auth/rbac";
+import { getI18n } from "@/lib/i18n/server";
 
 interface DashboardTopbarProps {
   user: {
@@ -29,6 +30,7 @@ interface DashboardTopbarProps {
 }
 
 export async function DashboardTopbar({ user }: DashboardTopbarProps) {
+  const { t } = await getI18n();
   const role = normalizeRole(user.role);
 
   return (
@@ -50,11 +52,11 @@ export async function DashboardTopbar({ user }: DashboardTopbarProps) {
         {/* Link directo a la web (visible en pantallas amplias) */}
         <Link
           href="/"
-          title="Ir a web"
+          title={t("common.visitWebsite")}
           className="hidden h-10 items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-3 text-sm font-medium text-primary transition-colors hover:bg-primary/20 xl:inline-flex"
         >
           <Globe className="h-4 w-4" />
-          <span>Ir a web</span>
+          <span>{t("common.visitWebsite")}</span>
         </Link>
 
         {/* Toggles de apariencia (en tablet vertical y móvil están integrados en el menú de usuario) */}

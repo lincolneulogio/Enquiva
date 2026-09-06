@@ -9,6 +9,7 @@ import {
   resetCertificateSealAction,
 } from "@/actions/admin/certificate-seal";
 import { DEFAULT_CERTIFICATE_SEAL_URL } from "@/lib/certificates/constants";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 import type { CertificateSealCardProps } from "./types";
 import {
   SealCardHeader,
@@ -21,6 +22,7 @@ export function CertificateSealCard({
   initialSealUrl,
   locale = "es",
 }: CertificateSealCardProps) {
+  const t = useTranslations();
   const isEn = locale === "en";
   const [sealUrl, setSealUrl] = useState<string>(
     initialSealUrl || DEFAULT_CERTIFICATE_SEAL_URL
@@ -89,16 +91,12 @@ export function CertificateSealCard({
       try {
         const res = await saveCertificateSealAction(sealUrl);
         if (res.success) {
-          toast.success(
-            isEn
-              ? "Certificate seal updated globally for all issued diplomas!"
-              : "¡Sello oficial actualizado en todos los certificados de la plataforma!"
-          );
+          toast.success(t("dashboard.admin.sealSaved"));
         } else {
-          toast.error(res.error || "No se pudo guardar el sello.");
+          toast.error(res.error || t("dashboard.admin.sealSaveError"));
         }
       } catch {
-        toast.error("Ocurrió un error inesperado al guardar el sello.");
+        toast.error(t("dashboard.admin.sealSaveUnexpectedError"));
       }
     });
   };
@@ -109,16 +107,12 @@ export function CertificateSealCard({
         const res = await resetCertificateSealAction();
         if (res.success && res.sealUrl) {
           setSealUrl(res.sealUrl);
-          toast.success(
-            isEn
-              ? "Reset to Enquiva default official seal."
-              : "Se restableció el sello predeterminado oficial de Enquiva."
-          );
+          toast.success(t("dashboard.admin.sealResetSuccess"));
         } else {
-          toast.error(res.error || "Error al restablecer el sello.");
+          toast.error(res.error || t("dashboard.admin.sealResetError"));
         }
       } catch {
-        toast.error("Ocurrió un error al restablecer el sello.");
+        toast.error(t("dashboard.admin.sealResetUnexpectedError"));
       }
     });
   };

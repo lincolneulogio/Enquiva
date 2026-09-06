@@ -7,6 +7,7 @@ import {
   updateTestimonialAction,
 } from "@/actions/admin/testimonials";
 import { toast } from "sonner";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 import { deleteOrphanUploadAction } from "@/actions/admin/upload-cleanup";
 import type { TestimonialFormData } from "./types";
 
@@ -27,6 +28,7 @@ export function useTestimonialForm(
   setItems: React.Dispatch<React.SetStateAction<Testimonial[]>>,
   startTransition: (cb: () => Promise<void>) => void,
 ) {
+  const t = useTranslations();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<TestimonialFormData>(DEFAULT_FORM_DATA);
@@ -79,7 +81,7 @@ export function useTestimonialForm(
     e.preventDefault();
     const { name, role, company, quote, avatarUrl, rating, isFeatured, sortOrder } = formData;
     if (!name.trim() || !role.trim() || !company.trim() || !quote.trim()) {
-      toast.error("Por favor completa los campos obligatorios.");
+      toast.error(t("dashboard.admin.testimonialRequiredFields"));
       return;
     }
 
@@ -101,10 +103,10 @@ export function useTestimonialForm(
             setItems((prev) =>
               prev.map((t) => (t.id === editingId ? res.testimonial! : t))
             );
-            toast.success("Testimonio actualizado correctamente.");
+            toast.success(t("dashboard.admin.testimonialUpdated"));
             setIsModalOpen(false);
           } else {
-            toast.error("No se pudo actualizar el testimonio.");
+            toast.error(t("dashboard.admin.testimonialUpdateError"));
           }
         } else {
           const res = await createTestimonialAction({
@@ -120,14 +122,14 @@ export function useTestimonialForm(
 
           if (res.success && res.testimonial) {
             setItems((prev) => [...prev, res.testimonial!]);
-            toast.success("Testimonio creado exitosamente.");
+            toast.success(t("dashboard.admin.testimonialCreated"));
             setIsModalOpen(false);
           } else {
-            toast.error(res.error ?? "No se pudo crear el testimonio.");
+            toast.error(res.error ?? t("dashboard.admin.testimonialCreateError"));
           }
         }
       } catch {
-        toast.error("Ocurrió un error al procesar la solicitud.");
+        toast.error(t("dashboard.admin.testimonialRequestError"));
       }
     });
   };

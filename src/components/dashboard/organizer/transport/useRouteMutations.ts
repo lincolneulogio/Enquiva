@@ -105,29 +105,29 @@ export function useRouteMutations({
       return;
     }
     if (form.departureDate < minDate) {
-      toast.error("No puedes seleccionar un día anterior al de hoy.");
+      toast.error(t("transport.manager.departureDatePast"));
       return;
     }
     if (isPastCombined(form.departureDate, form.departureClock)) {
-      toast.error("La salida no puede ser en el pasado. Elige día y hora futuros.");
+      toast.error(t("transport.manager.departureTimePast"));
       return;
     }
     if (form.isRoundTrip) {
       if ((form.returnDate && !form.returnClock) || (!form.returnDate && form.returnClock)) {
-        toast.error("Completa día y hora de retorno, o déjalos vacíos.");
+        toast.error(t("transport.manager.returnDateTimeIncomplete"));
         return;
       }
       if (returnTime) {
         if (form.returnDate < minDate) {
-          toast.error("El retorno no puede ser un día anterior al de hoy.");
+          toast.error(t("transport.manager.returnDatePast"));
           return;
         }
         if (isPastDatetimeLocal(returnTime)) {
-          toast.error("El retorno no puede ser en el pasado.");
+          toast.error(t("transport.manager.returnTimePast"));
           return;
         }
         if (new Date(returnTime).getTime() < new Date(departureTime).getTime()) {
-          toast.error("El retorno debe ser igual o posterior a la salida.");
+          toast.error(t("transport.manager.returnBeforeDeparture"));
           return;
         }
       }
@@ -143,7 +143,7 @@ export function useRouteMutations({
 
     const holdHours = parseInt(form.pendingHoldHours, 10);
     if (isNaN(holdHours) || holdHours < 1) {
-      toast.error("Las horas de retención de cupo deben ser al menos 1.");
+      toast.error(t("transport.manager.holdHoursMin"));
       return;
     }
 

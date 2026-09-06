@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "@/components/providers/LocaleProvider";
 import {
   getWebPushPublicKeyAction,
   subscribeWebPushAction,
@@ -16,6 +17,7 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 export function WebPushToggle() {
+  const t = useTranslations();
   const [enabled, setEnabled] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const [supported, setSupported] = useState(false);
@@ -49,8 +51,7 @@ export function WebPushToggle() {
   if (!enabled) {
     return (
       <p className="rounded-xl border border-dashed border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground leading-relaxed">
-        Notificaciones push no configuradas en el servidor (faltan claves VAPID). Las alertas in-app
-        siguen disponibles.
+        {t("common.pushServerNotConfigured")}
       </p>
     );
   }
@@ -60,7 +61,7 @@ export function WebPushToggle() {
       try {
         const config = await getWebPushPublicKeyAction();
         if (!config.enabled || !config.publicKey) {
-          toast.error("Web Push no está disponible");
+          toast.error(t("common.webPushNotAvailable"));
           return;
         }
 
@@ -77,13 +78,13 @@ export function WebPushToggle() {
             await current.unsubscribe();
           }
           setSubscribed(false);
-          toast.success("Notificaciones push desactivadas");
+          toast.success(t("common.pushDisabled"));
           return;
         }
 
         const permission = await Notification.requestPermission();
         if (permission !== "granted") {
-          toast.error("Permiso de notificaciones denegado");
+          toast.error(t("common.pushPermissionDenied"));
           return;
         }
 
@@ -94,7 +95,7 @@ export function WebPushToggle() {
 
         const json = subscription.toJSON();
         if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
-          throw new Error("Suscripción push incompleta");
+          throw new Error(t("common.pushSubscriptionIncomplete"));
         }
 
         await subscribeWebPushAction({
@@ -105,9 +106,9 @@ export function WebPushToggle() {
           },
         });
         setSubscribed(true);
-        toast.success("Notificaciones push activadas");
+        toast.success(t("common.pushEnabled"));
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "No se pudo actualizar Web Push");
+        toast.error(error instanceof Error ? error.message : t("common.couldNotUpdateWebPush"));
       }
     });
   };
@@ -120,10 +121,10 @@ export function WebPushToggle() {
       className="rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary disabled:opacity-60"
     >
       {pending
-        ? "Guardando…"
+        ? t("common.saving")
         : subscribed
-          ? "Desactivar notificaciones push"
-          : "Activar notificaciones push"}
+          ? t("common.disablePush")
+          : t("common.enablePush")}
     </button>
   );
 }

@@ -10,7 +10,7 @@ export async function generateMetadata() {
 }
 
 export default async function ScannerScanPage() {
-  const { t } = await getI18n();
+  const { locale, t } = await getI18n();
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
@@ -20,7 +20,7 @@ export default async function ScannerScanPage() {
         </h1>
         <p className="mt-1 text-muted-foreground">{t("dashboard.organizer.scanPageIntro")}</p>
         <p className="mt-2 text-sm text-amber-700 dark:text-amber-300">
-          Staff scanner: solo check-in de asistentes.
+          {locale === "en" ? "Staff scanner: attendee check-in only." : "Staff scanner: solo check-in de asistentes."}
         </p>
       </div>
 

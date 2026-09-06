@@ -150,7 +150,7 @@ export function TopbarUserMenu({ user }: TopbarUserMenuProps) {
               >
                 <span className="flex items-center gap-1.5">
                   {isDark ? <Sun className="h-3.5 w-3.5 text-amber-500" /> : <Moon className="h-3.5 w-3.5 text-indigo-500" />}
-                  <span>{isDark ? "Claro" : "Oscuro"}</span>
+                  <span>{isDark ? (locale === "en" ? "Light" : "Claro") : (locale === "en" ? "Dark" : "Oscuro")}</span>
                 </span>
               </button>
 
@@ -179,7 +179,7 @@ export function TopbarUserMenu({ user }: TopbarUserMenuProps) {
             <div className="flex items-center justify-between rounded-xl border border-border/70 bg-secondary/30 px-3 py-2 text-xs">
               <span className="flex items-center gap-1.5 font-medium text-muted-foreground">
                 <Palette className="h-3.5 w-3.5 text-primary" />
-                <span>Color</span>
+                <span>{t("common.accent")}</span>
               </span>
               <div className="flex items-center gap-1.5">
                 {ACCENT_ORDER.map((color) => {

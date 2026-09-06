@@ -6,7 +6,7 @@ import { isPlatformCulqiConfigured } from "@/lib/culqi/client";
 import { getI18n } from "@/lib/i18n/server";
 
 export default async function OrganizerBillingPage() {
-  const { t } = await getI18n();
+  const { locale, t } = await getI18n();
   const session = await getRequestSession();
   const [subscription, availablePlans, platformMethods, pendingPayment, paymentHistory] = await Promise.all([
     getMySubscription(),
@@ -22,7 +22,9 @@ export default async function OrganizerBillingPage() {
         <h1 className="font-display text-3xl font-semibold text-foreground">{t("billing.organizer.pageTitle")}</h1>
         <p className="mt-1 text-muted-foreground">
           {subscription.billingScope === "platform"
-            ? "Tu acceso de superadmin usa el plan especial interno (ilimitado). No es un plan comercial."
+            ? (locale === "en"
+                ? "Your superadmin access uses the internal special plan (unlimited). It is not a commercial plan."
+                : "Tu acceso de superadmin usa el plan especial interno (ilimitado). No es un plan comercial.")
             : subscription.canManageBilling
               ? t("billing.organizer.pageIntroManage")
               : t("billing.organizer.pageIntroReadOnly")}
