@@ -55,7 +55,7 @@ export const ACCENT_COLORS: Record<
       sidebarAccent: "20 90% 32%",
       sidebarBorder: "27 61% 20%",
       sidebarForeground: "34 44% 93%",
-      sidebarFooter: "20 85% 30%",
+      sidebarFooter: "25 60% 16%",
     },
     dark: {
       primary: "20 100% 50%",
@@ -72,7 +72,7 @@ export const ACCENT_COLORS: Record<
       sidebarAccent: "20 80% 25%",
       sidebarBorder: "21 11% 14%",
       sidebarForeground: "34 44% 93%",
-      sidebarFooter: "20 60% 25%",
+      sidebarFooter: "300 7% 4%",
     },
   },
   emerald: {
