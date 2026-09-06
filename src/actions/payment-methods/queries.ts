@@ -21,8 +21,8 @@ import {
 import {
   type PaymentMethodScope,
   sanitizeMethodsForClient,
-  isLegacyWalletType,
 } from "./helpers";
+import { isLegacyWalletType } from "@/lib/payments/allowed-types";
 
 export async function getPaymentMethodsPageContext(scope: PaymentMethodScope) {
   if (scope === "platform") {

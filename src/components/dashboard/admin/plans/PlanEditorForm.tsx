@@ -1,9 +1,10 @@
 import { Crown, Loader2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/components/providers/LocaleProvider";
-import { FeatureToggle } from "./FeatureToggle";
 import { cardClass, inputClass, type PlanFormData } from "./types";
 import { planSlugFromName } from "./utils";
+import { PlanLimitsFields } from "./PlanLimitsFields";
+import { PlanFeaturesFields } from "./PlanFeaturesFields";
 
 interface PlanEditorFormProps {
   editingId: string | null;
@@ -147,125 +148,20 @@ export function PlanEditorForm({
             Enquiva gana este monto por cada inscrito (titular + invitados) al aprobar el pago, además del %.
           </p>
         </div>
-        <div className="space-y-1.5">
-          <label htmlFor="plan-max-events" className="text-sm font-medium text-foreground">
-            {t("dashboard.admin.plansLabelMaxEvents")}
-          </label>
-          <input
-            id="plan-max-events"
-            type="number"
-            min={0}
-            className={inputClass}
-            placeholder={t("dashboard.admin.plansPlaceholderMaxEvents")}
-            value={form.maxActiveEvents}
-            onChange={(e) => onFormChange({ ...form, maxActiveEvents: e.target.value })}
-            disabled={editingSpecial}
-          />
-          <p className="text-xs text-muted-foreground">{t("dashboard.admin.plansHintUnlimited")}</p>
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="plan-max-attendees" className="text-sm font-medium text-foreground">
-            {t("dashboard.admin.plansLabelMaxAttendees")}
-          </label>
-          <input
-            id="plan-max-attendees"
-            type="number"
-            min={0}
-            className={inputClass}
-            placeholder={t("dashboard.admin.plansPlaceholderMaxAttendees")}
-            value={form.maxAttendeesPerEvent}
-            onChange={(e) => onFormChange({ ...form, maxAttendeesPerEvent: e.target.value })}
-            disabled={editingSpecial}
-          />
-          <p className="text-xs text-muted-foreground">{t("dashboard.admin.plansHintUnlimited")}</p>
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="plan-max-broadcasts" className="text-sm font-medium text-foreground">
-            {t("dashboard.admin.plansLabelMaxBroadcasts")}
-          </label>
-          <input
-            id="plan-max-broadcasts"
-            type="number"
-            min={0}
-            className={inputClass}
-            placeholder={t("dashboard.admin.plansPlaceholderMaxBroadcasts")}
-            value={form.maxBroadcastsPerMonth}
-            onChange={(e) => onFormChange({ ...form, maxBroadcastsPerMonth: e.target.value })}
-            disabled={editingSpecial}
-          />
-          <p className="text-xs text-muted-foreground">{t("dashboard.admin.plansHintUnlimited")}</p>
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="plan-max-ai" className="text-sm font-medium text-foreground">
-            {t("dashboard.admin.plansLabelMaxAi")}
-          </label>
-          <input
-            id="plan-max-ai"
-            type="number"
-            min={0}
-            className={inputClass}
-            placeholder={t("dashboard.admin.plansPlaceholderMaxAi")}
-            value={form.maxAiMessagesPerMonth}
-            onChange={(e) => onFormChange({ ...form, maxAiMessagesPerMonth: e.target.value })}
-            disabled={editingSpecial}
-          />
-          <p className="text-xs text-muted-foreground">{t("dashboard.admin.plansHintUnlimited")}</p>
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="plan-max-organizers" className="text-sm font-medium text-foreground">
-            {t("dashboard.admin.plansLabelMaxOrganizers")}
-          </label>
-          <input
-            id="plan-max-organizers"
-            type="number"
-            min={0}
-            className={inputClass}
-            placeholder={t("dashboard.admin.plansPlaceholderMaxOrganizers")}
-            value={form.maxOrganizers}
-            onChange={(e) => onFormChange({ ...form, maxOrganizers: e.target.value })}
-            disabled={editingSpecial}
-          />
-          <p className="text-xs text-muted-foreground">{t("dashboard.admin.plansHintUnlimited")}</p>
-        </div>
+
+        <PlanLimitsFields
+          form={form}
+          editingSpecial={editingSpecial}
+          onFormChange={onFormChange}
+        />
       </div>
-      <div className="mt-4 space-y-2">
-        <p className="text-sm font-medium text-foreground">{t("dashboard.admin.plansLabelFeatures")}</p>
-        <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
-          <FeatureToggle
-            label={t("dashboard.admin.plansFeatureCulqi")}
-            checked={form.featureCulqi}
-            onChange={(v) => onFormChange({ ...form, featureCulqi: v })}
-            disabled={editingSpecial}
-          />
-          <FeatureToggle
-            label={t("dashboard.admin.plansFeatureTransport")}
-            checked={form.featureTransport}
-            onChange={(v) => onFormChange({ ...form, featureTransport: v })}
-            disabled={editingSpecial}
-          />
-          <FeatureToggle
-            label={t("dashboard.admin.plansFeatureAi")}
-            checked={form.featureAi}
-            onChange={(v) => onFormChange({ ...form, featureAi: v })}
-            disabled={editingSpecial}
-          />
-          <FeatureToggle
-            label={t("dashboard.admin.plansFeatureExports")}
-            checked={form.featureExports}
-            onChange={(v) => onFormChange({ ...form, featureExports: v })}
-            disabled={editingSpecial}
-          />
-          <FeatureToggle
-            label={t("dashboard.admin.plansFeatureBranding")}
-            checked={form.featureCustomBranding}
-            onChange={(v) => onFormChange({ ...form, featureCustomBranding: v })}
-            disabled={editingSpecial}
-          />
-        </div>
-        <p className="text-xs text-muted-foreground">
-          {t("dashboard.admin.plansFeatureBrandingHint")}
-        </p>
-      </div>
+
+      <PlanFeaturesFields
+        form={form}
+        editingSpecial={editingSpecial}
+        onFormChange={onFormChange}
+      />
+
       <div className="mt-5 flex flex-wrap gap-2 border-t border-border/40 pt-4">
         <button
           type="button"

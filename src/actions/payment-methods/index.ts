@@ -1,5 +1,4 @@
-export type { PaymentMethodScope } from "./helpers";
-export { isLegacyWalletType } from "./helpers";
+export type { PaymentMethodScope } from "@/lib/payments/allowed-types";
 
 export {
   getPaymentMethodsPageContext,

@@ -3,11 +3,13 @@ import { paymentMethods, type PaymentMethod } from "@/lib/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { isPlatformCulqiConfigured } from "@/lib/culqi/client";
-import { assertAllowedPaymentMethodType, isLegacyWalletType } from "@/lib/payments/allowed-types";
+import {
+  assertAllowedPaymentMethodType,
+  isLegacyWalletType,
+  type PaymentMethodScope,
+} from "@/lib/payments/allowed-types";
 
-export type PaymentMethodScope = "platform" | "organizer";
-
-export { isLegacyWalletType };
+export type { PaymentMethodScope };
 
 export function sanitizeMethodsForClient(methods: PaymentMethod[]): PaymentMethod[] {
   return methods.map(({ culqiSecretKey: _secret, ...method }) => ({
