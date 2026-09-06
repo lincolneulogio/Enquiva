@@ -115,6 +115,10 @@ export async function updateEvent(eventId: string, input: UpdateEventInput) {
   });
 
   revalidatePath(`/events/${event.slug}`);
+  revalidatePath(`/events/${event.id}`);
+  revalidatePath("/events");
+  revalidatePath("/organizer/events");
+  revalidatePath(`/organizer/events/${event.id}`);
 
   return { success: true, event };
 }

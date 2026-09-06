@@ -247,7 +247,10 @@ export function RichTextEditor({
   const lastEmittedValueRef = useRef(value);
 
   const extensions = useMemo(() => [
-    StarterKit,
+    StarterKit.configure({
+      link: false,
+      underline: false,
+    }),
     Underline,
     Link.configure({
       openOnClick: false,
@@ -261,6 +264,10 @@ export function RichTextEditor({
   const editorProps = useMemo(() => ({
     attributes: {
       class: "prose prose-sm dark:prose-invert max-w-none focus:outline-none px-4 py-3",
+      spellcheck: "false",
+      "data-gramm": "false",
+      "data-enable-grammarly": "false",
+      translate: "no",
       ...(id ? { id } : {}),
     },
   }), [id]);

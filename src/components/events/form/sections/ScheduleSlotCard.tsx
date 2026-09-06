@@ -7,8 +7,8 @@ import type { CreateEventInput } from "@/lib/validations";
 import type { ScheduleSlotState } from "../types";
 
 const PRESET_LABELS = {
-  en: ["Morning", "Afternoon", "Night", "Shift 1", "Shift 2", "Shift 3"],
-  es: ["Turno Mañana", "Turno Tarde", "Turno Noche", "1er Turno", "2do Turno", "3er Turno"],
+  en: ["Morning", "Afternoon", "Night"],
+  es: ["Turno Mañana", "Turno Tarde", "Turno Noche"],
 };
 
 interface ScheduleSlotCardProps {
@@ -93,7 +93,7 @@ export function ScheduleSlotCard({
             {locale === "en" ? "Shift presets:" : "Preajustes de turno:"}
           </label>
           <div className="flex flex-wrap gap-1.5">
-            {presets.slice(0, 4).map((preset) => (
+            {presets.map((preset) => (
               <button
                 key={preset}
                 type="button"
@@ -119,7 +119,7 @@ export function ScheduleSlotCard({
             type="text"
             value={slot.label}
             onChange={(e) => handleSlotFieldChange(index, "label", e.target.value)}
-            placeholder={locale === "en" ? "e.g. Morning Shift, Workshop Room A" : "ej. 1er Turno, Mañana, Sala A"}
+            placeholder={locale === "en" ? "e.g. Morning Shift, Workshop Room A" : "ej. Turno Mañana, Taller Principal, Sala A"}
             className="w-full rounded-xl border border-border/80 bg-background px-3.5 py-2.5 text-sm font-medium text-foreground transition-all hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
