@@ -1,0 +1,158 @@
+import { PlatformModule } from "./types";
+
+export const EXTENDED_MODULES: PlatformModule[] = [
+  {
+    id: 6,
+    name: "Transporte",
+    summary:
+      "Rutas, paradas, asientos y reservas de buses asociados a un evento.",
+    details: "Rutas: /member/transport , /organizer/transport , /admin/transport.",
+    synonyms: [
+      "transporte",
+      "bus",
+      "buses",
+      "ruta",
+      "rutas",
+      "parada",
+      "paradas",
+      "asiento",
+      "asientos",
+      "pasaje",
+      "movilidad",
+    ],
+    faqs: [
+      "Cada evento puede tener rutas de bus con punto de partida, hora, asientos y precio.",
+      "El asistente reserva transporte después de estar inscrito, según la configuración del evento.",
+      "Organizador y admin gestionan rutas en sus paneles de transporte.",
+    ],
+  },
+  {
+    id: 7,
+    name: "Organizaciones",
+    summary:
+      "Entidades, códigos de invitación, onboarding, equipo y alcance de datos por organización.",
+    synonyms: [
+      "organizacion",
+      "organización",
+      "entidad",
+      "entidades",
+      "equipo",
+      "invite",
+      "invitacion",
+      "invitación",
+      "onboarding",
+      "tenant",
+    ],
+    faqs: [
+      "Una organización (entidad) agrupa admins, organizadores y datos con alcance propio.",
+      "Se puede unir o invitar miembros con código de invitación.",
+      "El admin de entidad solo ve usuarios, eventos e inscripciones de su organización.",
+    ],
+  },
+  {
+    id: 8,
+    name: "Planes y billing SaaS",
+    summary:
+      "Suscripciones, límites del plan (Culqi, transporte, IA, exportaciones) y renovaciones.",
+    details: "Rutas: /organizer/billing , /admin/plan , planes en superadmin.",
+    synonyms: [
+      "plan",
+      "planes",
+      "suscripcion",
+      "suscripción",
+      "saas",
+      "renovacion",
+      "renovación",
+      "billing",
+      "limites",
+      "límites",
+      "features",
+    ],
+    faqs: [
+      "Los planes SaaS habilitan o limitan funciones: Culqi, transporte, IA Copilot y exportaciones.",
+      "El cobro de suscripción usa Culqi de plataforma en /organizer/billing o /admin/plan.",
+      "El superadmin define los planes disponibles en la plataforma.",
+    ],
+  },
+  {
+    id: 9,
+    name: "Comunicaciones",
+    summary:
+      "Notificaciones in-app, broadcasts, correo y push web cuando está configurado.",
+    details:
+      "Staff puede usar previewMassNotification y luego sendMassNotification.",
+    synonyms: [
+      "notificacion",
+      "notificación",
+      "notificaciones",
+      "broadcast",
+      "comunicado",
+      "correo",
+      "email",
+      "push",
+      "mensaje masivo",
+      "avisos",
+    ],
+    faqs: [
+      "Las notificaciones pueden llegar in-app, por correo y por push web si VAPID está configurado.",
+      "Los broadcasts permiten comunicados a grupos de destinatarios.",
+      "Desde el Copilot, el staff debe hacer preview de una notificación masiva antes de enviarla.",
+    ],
+  },
+  {
+    id: 10,
+    name: "Admin y operaciones",
+    summary:
+      "Paneles por rol, auditoría, analítica, exportaciones y mantenimiento.",
+    details:
+      "Auditoría: /admin/audit , /superadmin/audit. Escáner: /organizer/scan , /admin/scan.",
+    synonyms: [
+      "admin",
+      "panel",
+      "auditoria",
+      "auditoría",
+      "analytics",
+      "analitica",
+      "analítica",
+      "export",
+      "exportacion",
+      "exportación",
+      "scanner",
+      "escaner",
+      "escáner",
+      "mantenimiento",
+      "operaciones",
+    ],
+    faqs: [
+      "Cada rol tiene su dashboard: superadmin, admin, organizer y member.",
+      "La auditoría registra acciones relevantes del sistema.",
+      "El escáner de QR en /organizer/scan o /admin/scan valida tickets en puerta.",
+      "Las exportaciones permiten descargar datos operativos según permisos y plan.",
+    ],
+  },
+  {
+    id: 11,
+    name: "IA y extras",
+    summary:
+      "EnquivaBot (copilot), idiomas ES/EN, almacenamiento de archivos, Redis, Docker, CI y tareas programadas.",
+    synonyms: [
+      "ia",
+      "ai",
+      "copilot",
+      "enquivabot",
+      "bot",
+      "asistente",
+      "i18n",
+      "idioma",
+      "redis",
+      "docker",
+      "cron",
+      "upload",
+    ],
+    faqs: [
+      "EnquivaBot responde con conocimiento de módulos y consulta datos reales mediante herramientas.",
+      "La plataforma soporta español e inglés.",
+      "Hay almacenamiento de archivos, Redis para rate limits/caché, Docker y crons de mantenimiento.",
+    ],
+  },
+];

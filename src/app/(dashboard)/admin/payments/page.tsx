@@ -10,19 +10,15 @@ import {
   paymentStatusEnum,
 } from "@/lib/db/schema";
 import { eq, desc, and, gte, lte, count, type SQL } from "drizzle-orm";
-import { PaymentStatusBadge } from "@/components/payments/PaymentStatusBadge";
-import { PaymentStatusSelect } from "@/components/payments/PaymentStatusSelect";
-import { formatCurrency } from "@/lib/utils";
 import { Calendar, CreditCard } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
-import { getIntlLocale, getPaymentStatusLabel } from "@/lib/i18n/core";
+import { getPaymentStatusLabel } from "@/lib/i18n/core";
 import { TablePagination } from "@/components/dashboard/shared/TablePagination";
 import { ExportDataPanel } from "@/components/dashboard/admin/ExportDataPanel";
 import { getExportEventOptions } from "@/actions/exports";
 import { getCategories } from "@/actions/events";
 import { categoryLabel } from "@/lib/utils";
 import { Suspense } from "react";
-import { PaymentNotesButton } from "@/components/payments/PaymentNotesButton";
 import { resolveAdminScope, scopeEventCondition, canMutateEventRecord } from "@/lib/organizations/admin-scope";
 import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
 import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
@@ -33,6 +29,7 @@ import { PaymentEarningsReportView } from "@/components/payments/PaymentEarnings
 import { getPaymentEarningsReport } from "@/lib/payments/earnings-report";
 
 import { countGuestsFromNotes } from "@/lib/registrations/guests";
+import { PaymentTableRow } from "./PaymentTableRow";
 
 function getPaymentDynamicCaption(
   notes: string | null,
@@ -377,161 +374,30 @@ export default async function AdminPaymentsPage({
                         role,
                         entityOrgId,
                       );
+                      const dynamicCaption = getPaymentDynamicCaption(
+                        payment.notes,
+                        registration.notes,
+                        transportBooking?.seats ?? null,
+                        locale,
+                      );
 
                       return (
-                      <tr
-                        key={payment.id}
-                        className="hover:bg-muted/30 transition-colors"
-                      >
-                        <td className="px-4 py-4 text-muted-foreground">
-                          {rowStart + index + 1}
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="text-foreground text-sm font-medium">
-                            {new Date(payment.createdAt).toLocaleDateString(
-                              getIntlLocale(locale),
-                              {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              },
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="text-foreground text-sm font-medium whitespace-nowrap">
-                            {new Date(payment.createdAt).toLocaleTimeString(
-                              getIntlLocale(locale),
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                second: "2-digit",
-                                hour12: true,
-                              },
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <Link
-                            href={`/events/${event.slug}`}
-                            className="font-medium text-foreground hover:text-primary transition-colors block truncate"
-                            title={event.title}
-                          >
-                            {event.title}
-                          </Link>
-                        </td>
-                        <td className="px-4 py-4 text-sm text-muted-foreground">
-                          <div
-                            className="font-medium text-foreground truncate"
-                            title={attendee.name ?? ""}
-                          >
-                            {attendee.name ?? t("common.guest")}
-                          </div>
-                          <div
-                            className="text-xs text-muted-foreground truncate"
-                            title={attendee.email ?? ""}
-                          >
-                            {attendee.email}
-                          </div>
-                          {registration.contactPhone && (
-                            <div className="text-[10px] text-muted-foreground font-semibold mt-0.5">
-                              {registration.contactPhone}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 text-right text-sm">
-                          <div className="font-semibold text-foreground">
-                            {formatCurrency(
-                              Number(payment.amount),
-                              payment.currency,
-                              locale,
-                            )}
-                          </div>
-                          {getPaymentDynamicCaption(
-                            payment.notes,
-                            registration.notes,
-                            transportBooking?.seats ?? null,
-                            locale,
-                          ) && (
-                            <div
-                              className="text-[10px] text-muted-foreground/80 mt-0.5 truncate"
-                              title={
-                                getPaymentDynamicCaption(
-                                  payment.notes,
-                                  registration.notes,
-                                  transportBooking?.seats ?? null,
-                                  locale,
-                                )!
-                              }
-                            >
-                              {getPaymentDynamicCaption(
-                                payment.notes,
-                                registration.notes,
-                                transportBooking?.seats ?? null,
-                                locale,
-                              )}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 text-sm text-muted-foreground uppercase font-mono">
-                          {payment.method}
-                        </td>
-                        <td
-                          className="px-4 py-4 text-sm text-muted-foreground font-mono truncate"
-                          title={payment.reference ?? ""}
-                        >
-                          {payment.reference || (
-                            <span className="text-muted-foreground/40">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-4">
-                          <PaymentStatusBadge status={payment.status} />
-                        </td>
-                        <td className="px-4 py-4 max-w-[170px]">
-                          {canUpdateStatus ? (
-                            <PaymentStatusSelect
-                              paymentId={payment.id}
-                              currentStatus={payment.status}
-                            />
-                          ) : (
-                            <span className="text-xs text-muted-foreground">
-                              {locale === "en" ? "View only" : "Solo lectura"}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="flex flex-col gap-1 items-start">
-                            {payment.receiptUrl ? (
-                              <a
-                                href={payment.receiptUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-xs font-semibold text-primary hover:underline"
-                              >
-                                {t("common.viewReceipt")}
-                              </a>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">
-                                {t("common.noReceipt")}
-                              </span>
-                            )}
-                            {payment.notes && (
-                              <PaymentNotesButton
-                                notes={payment.notes}
-                                eventName={event.title}
-                                attendeeName={attendee.name ?? undefined}
-                                amountFormatted={formatCurrency(
-                                  Number(payment.amount),
-                                  payment.currency,
-                                  locale,
-                                )}
-                                receiptUrl={payment.receiptUrl}
-                                receiptFileName={payment.receiptFileName}
-                              />
-                            )}
-                          </div>
-                        </td>
-                      </tr>
+                        <PaymentTableRow
+                          key={payment.id}
+                          payment={payment}
+                          registration={registration}
+                          event={event}
+                          attendee={attendee}
+                          transportBooking={transportBooking}
+                          index={index}
+                          rowStart={rowStart}
+                          locale={locale}
+                          canUpdateStatus={canUpdateStatus}
+                          dynamicCaption={dynamicCaption}
+                          viewReceiptLabel={t("common.viewReceipt")}
+                          noReceiptLabel={t("common.noReceipt")}
+                          guestLabel={t("common.guest")}
+                        />
                       );
                     },
                   )}

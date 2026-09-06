@@ -1,22 +1,20 @@
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { and, count, desc, eq, ilike, or } from "drizzle-orm";
-import { UserCog, Crown, ShieldCheck, Briefcase, UserRound, Search, X, QrCode, Phone, Calendar, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { UserCog, Search, X } from "lucide-react";
 import { getRequestSession } from "@/lib/request-context";
-import { RoleSelector } from "./RoleSelector";
-import { DeleteUserButton } from "./DeleteUserButton";
-import { ToggleUserActiveButton } from "./ToggleUserActiveButton";
 import { getI18n } from "@/lib/i18n/server";
-import { getIntlLocale, getRoleLabel } from "@/lib/i18n/core";
+import { getRoleLabel, getIntlLocale } from "@/lib/i18n/core";
+import { normalizeRole, isEntityAssignableRole, ROLE_BADGE_STYLES } from "@/lib/auth/rbac";
 import { TablePagination } from "@/components/dashboard/shared/TablePagination";
-import { ROLE_BADGE_STYLES, normalizeRole, isEntityAssignableRole } from "@/lib/auth/rbac";
 import { resolveAdminScope, scopeUserCondition } from "@/lib/organizations/admin-scope";
 import { OrganizationService } from "@/lib/organizations/organization.service";
 import { hasSuperAdmin } from "@/lib/auth/platform-bootstrap";
 import Link from "next/link";
 import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
 import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
-import { OrganizerApprovalButtons } from "./OrganizerApprovalButtons";
+import { UserMobileCard } from "./UserMobileCard";
+import { UserTableRow } from "./UserTableRow";
 
 interface AdminUsersPageProps {
     searchParams: Promise<{
@@ -28,17 +26,9 @@ interface AdminUsersPageProps {
 
 const PAGE_SIZE = 10;
 
-const roleIcons = {
-    super_admin: Crown,
-    admin: ShieldCheck,
-    organizer: Briefcase,
-    member: UserRound,
-    scanner: QrCode,
-};
-
 export default async function AdminUsersPage({ searchParams }: AdminUsersPageProps) {
     const { locale, t } = await getI18n();
-  const staffBase = await getStaffBaseFromRequest();
+    const staffBase = await getStaffBaseFromRequest();
     const session = await getRequestSession();
     const currentUserId = session!.user.id;
     const currentRole = normalizeRole(session!.user.role);
@@ -86,7 +76,6 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
         const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
         const safePage = Math.min(currentPage, totalPages);
         const offset = (safePage - 1) * PAGE_SIZE;
-
         allUsers = await OrganizationService.listOrganizationUsersForAdmin({
             organizationId: adminScope.organizationId,
             ...orgFilters,
@@ -95,9 +84,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
         });
     } else {
         const conditions = [];
-        if (scopeFilter) {
-            conditions.push(scopeFilter);
-        }
+        if (scopeFilter) conditions.push(scopeFilter);
         if (searchQuery) {
             conditions.push(
                 or(
@@ -167,11 +154,24 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
     }
 
     const getMembershipForUser = (userId: string) => membershipMap.get(userId);
-
     const isPendingOrganizerUser = (user: (typeof allUsers)[number]) => {
         const membership = getMembershipForUser(user.id);
         return membership?.role === "organizer" && membership?.status === "pending";
     };
+
+    const tableHeaders = [
+        "N°",
+        t("common.name"),
+        t("common.email"),
+        locale === "en" ? "Phone" : "Teléfono",
+        locale === "en" ? "Verified" : "Verificado",
+        t("common.role"),
+        locale === "en" ? "Status" : "Estado",
+        t("common.joined"),
+        locale === "en" ? "Last Active" : "Última Conexión",
+        roleColumnLabel,
+        t("common.actions"),
+    ];
 
     return (
         <div className="space-y-6">
@@ -181,34 +181,22 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                     {isOrgScope
                         ? t("dashboard.admin.usersEntityIntro", {
                               count: total,
-                              label:
-                                  total === 1
-                                      ? locale === "en"
-                                          ? "user"
-                                          : "usuario"
-                                      : locale === "en"
-                                        ? "users"
-                                        : "usuarios",
+                              label: total === 1
+                                  ? (locale === "en" ? "user" : "usuario")
+                                  : (locale === "en" ? "users" : "usuarios"),
                           })
                         : t("dashboard.admin.usersRegistered", {
                               count: total,
-                              label:
-                                  total === 1
-                                      ? locale === "en"
-                                          ? "user"
-                                          : "usuario"
-                                      : locale === "en"
-                                        ? "users"
-                                        : "usuarios",
+                              label: total === 1
+                                  ? (locale === "en" ? "user" : "usuario")
+                                  : (locale === "en" ? "users" : "usuarios"),
                           })}
                 </p>
             </div>
 
-            {/* Search and Filters Panel */}
+            {/* Search and Filters */}
             <div className="bg-card border border-border/60 rounded-3xl p-6 shadow-sm">
                 <form method="GET" action={staffDashboardPath(staffBase, "/users")} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-                    
-                    {/* Text Search */}
                     <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-muted-foreground block">
                             {locale === "en" ? "Search" : "Buscar"}
@@ -225,7 +213,6 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                         </div>
                     </div>
 
-                    {/* Role Filter */}
                     <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-muted-foreground block">
                             {t("common.role")}
@@ -247,7 +234,6 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                         </select>
                     </div>
 
-                    {/* Action Buttons */}
                     <div className="flex gap-2 h-10">
                         <button
                             type="submit"
@@ -264,7 +250,6 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                             </Link>
                         )}
                     </div>
-
                 </form>
             </div>
 
@@ -287,292 +272,61 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                 </div>
             ) : (
                 <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-                    
-                    {/* Mobile Cards View */}
+                    {/* Mobile Cards */}
                     <div className="grid grid-cols-1 gap-4 p-3.5 sm:p-4 md:hidden bg-muted/20">
                         {allUsers.map((user, index) => {
-                            const normalizedRole = normalizeRole(user.role);
-                            const RoleIcon = roleIcons[normalizedRole];
                             const membership = getMembershipForUser(user.id);
-                            const isPendingOrganizer = isPendingOrganizerUser(user);
-                            const isSelf = user.id === currentUserId;
-
                             return (
-                                <div
+                                <UserMobileCard
                                     key={user.id}
-                                    className="group relative rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-xs transition-all hover:border-primary/30 hover:shadow-md space-y-4"
-                                >
-                                    {/* Cabecera: Avatar, Nombre, Email e Índice */}
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                                            <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 text-primary text-base font-bold shadow-xs ring-1 ring-primary/20">
-                                                {user.name?.[0]?.toUpperCase() ?? "U"}
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className="font-bold text-foreground text-sm sm:text-base leading-snug truncate">
-                                                        {user.name ?? "—"}
-                                                    </h3>
-                                                    {isSelf && (
-                                                        <span className="shrink-0 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
-                                                            {locale === "en" ? "You" : "Tú"}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <p className="text-xs text-muted-foreground truncate font-medium">
-                                                    {user.email}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <span className="shrink-0 rounded-lg border border-border/60 bg-secondary/50 px-2 py-0.5 text-[11px] font-mono font-semibold text-muted-foreground">
-                                            #{rowStart + index + 1}
-                                        </span>
-                                    </div>
-
-                                    {/* Barra de Badges (Rol, Estado, Verificación) */}
-                                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                                        {/* Rol */}
-                                        <span className={`inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-semibold shadow-xs ${ROLE_BADGE_STYLES[normalizedRole]}`}>
-                                            <RoleIcon className="h-3.5 w-3.5" />
-                                            {getDisplayRoleLabel(user.role ?? "member")}
-                                        </span>
-
-                                        {/* Solicitud pendiente de organizador */}
-                                        {isPendingOrganizer && (
-                                            <span className="inline-flex items-center gap-1 rounded-xl bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400 border border-amber-500/30">
-                                                {t("dashboard.admin.organizerPendingBadge")}
-                                            </span>
-                                        )}
-
-                                        {/* Estado Activo / Suspendido */}
-                                        {user.isActive ? (
-                                            <span className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
-                                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                                                {locale === "en" ? "Active" : "Activo"}
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-1.5 rounded-xl bg-rose-500/10 px-2.5 py-1 text-xs font-semibold text-rose-700 dark:text-rose-400 border border-rose-500/25">
-                                                <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-                                                {locale === "en" ? "Suspended" : "Suspendido"}
-                                            </span>
-                                        )}
-
-                                        {/* Email verificado */}
-                                        {user.emailVerified ? (
-                                            <span className="inline-flex items-center gap-1.5 rounded-xl bg-blue-500/10 px-2.5 py-1 text-xs font-semibold text-blue-700 dark:text-blue-400 border border-blue-500/25">
-                                                <CheckCircle2 className="h-3 w-3" />
-                                                {locale === "en" ? "Verified" : "Verificado"}
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-1.5 rounded-xl bg-secondary/80 px-2.5 py-1 text-xs font-semibold text-muted-foreground border border-border">
-                                                <AlertCircle className="h-3 w-3" />
-                                                {locale === "en" ? "Unverified" : "Sin verificar"}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* Cuadrícula de Metadatos con Iconos */}
-                                    <div className="grid grid-cols-2 gap-2.5 rounded-xl border border-border/50 bg-secondary/30 p-3 text-xs">
-                                        <div>
-                                            <span className="flex items-center gap-1 text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-                                                <Phone className="h-3 w-3" />
-                                                {locale === "en" ? "Phone" : "Teléfono"}
-                                            </span>
-                                            <span className="mt-0.5 block font-medium text-foreground truncate">
-                                                {user.phone ?? "—"}
-                                            </span>
-                                        </div>
-
-                                        <div>
-                                            <span className="flex items-center gap-1 text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-                                                <Calendar className="h-3 w-3" />
-                                                {t("common.joined")}
-                                            </span>
-                                            <span className="mt-0.5 block font-medium text-foreground truncate">
-                                                {user.createdAt ? new Date(user.createdAt).toLocaleDateString(locale === "en" ? "en-US" : "es-PE") : "—"}
-                                            </span>
-                                        </div>
-
-                                        <div className="col-span-2 border-t border-border/40 pt-2 flex items-center justify-between">
-                                            <span className="flex items-center gap-1 text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-                                                <Clock className="h-3 w-3" />
-                                                {locale === "en" ? "Last Active" : "Última Conexión"}
-                                            </span>
-                                            <span className="font-medium text-muted-foreground">
-                                                {user.lastSeenAt ? new Date(user.lastSeenAt).toLocaleDateString(locale === "en" ? "en-US" : "es-PE") : "—"}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* Zona de Acciones */}
-                                    <div className="space-y-3 pt-1 border-t border-border/60">
-                                        {/* Selector de rol */}
-                                        <div className="space-y-1.5">
-                                            <span className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                                                {roleColumnLabel}
-                                            </span>
-                                            <RoleSelector
-                                                userId={user.id}
-                                                currentRole={(user.role ?? "member") as "member" | "organizer" | "admin" | "super_admin"}
-                                                currentUserId={currentUserId}
-                                                scopeMode={isPlatformScope ? "platform" : "org"}
-                                                canEdit={canManageRoles}
-                                                superAdminTaken={superAdminTaken}
-                                            />
-                                            {canManageRoles && isPendingOrganizer && (
-                                                <div className="pt-1">
-                                                    <OrganizerApprovalButtons userId={user.id} />
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Botones de acción */}
-                                        <div className="flex items-center justify-end gap-2 pt-1">
-                                            {canManageRoles && (
-                                                <ToggleUserActiveButton
-                                                    userId={user.id}
-                                                    isActive={user.isActive}
-                                                    isSelf={user.id === currentUserId}
-                                                />
-                                            )}
-                                            {isPlatformScope && (
-                                                <DeleteUserButton userId={user.id} isSelf={user.id === currentUserId} />
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
+                                    user={user}
+                                    index={index}
+                                    rowStart={rowStart}
+                                    locale={locale}
+                                    currentUserId={currentUserId}
+                                    isPlatformScope={isPlatformScope}
+                                    canManageRoles={canManageRoles}
+                                    superAdminTaken={superAdminTaken}
+                                    roleColumnLabel={roleColumnLabel}
+                                    isPendingOrganizer={isPendingOrganizerUser(user)}
+                                    organizationName={membership?.organizationName}
+                                    getDisplayRoleLabel={getDisplayRoleLabel}
+                                />
                             );
                         })}
                     </div>
 
-                    {/* Desktop Table View */}
+                    {/* Desktop Table */}
                     <div className="hidden md:block overflow-x-auto">
                         <table className="w-full min-w-[1250px] text-sm">
                             <thead>
                                 <tr className="border-b border-border bg-muted/40">
-                                    <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground w-12">N°</th>
-                                    <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{t("common.name")}</th>
-                                    <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{t("common.email")}</th>
-                                    <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{locale === "en" ? "Phone" : "Teléfono"}</th>
-                                    <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{locale === "en" ? "Verified" : "Verificado"}</th>
-                                    <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{t("common.role")}</th>
-                                    <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{locale === "en" ? "Status" : "Estado"}</th>
-                                    <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{t("common.joined")}</th>
-                                    <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{locale === "en" ? "Last Active" : "Última Conexión"}</th>
-                                    <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{roleColumnLabel}</th>
-                                    <th className="px-4 py-3.5 text-left font-semibold text-muted-foreground">{t("common.actions")}</th>
+                                    {tableHeaders.map((header) => (
+                                        <th key={header} className="px-4 py-3.5 text-left font-semibold text-muted-foreground">
+                                            {header}
+                                        </th>
+                                    ))}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
                                 {allUsers.map((user, index) => {
-                                    const normalizedRole = normalizeRole(user.role);
-                                    const RoleIcon = roleIcons[normalizedRole];
                                     const membership = getMembershipForUser(user.id);
-                                    const isPendingOrganizer = isPendingOrganizerUser(user);
-
                                     return (
-                                        <tr key={user.id} className="hover:bg-muted/20 transition-colors">
-                                            <td className="px-4 py-3.5 text-muted-foreground">{rowStart + index + 1}</td>
-                                            <td className="px-4 py-3.5">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                                                        {user.name?.[0]?.toUpperCase() ?? "U"}
-                                                    </div>
-                                                    <span className="font-semibold text-foreground whitespace-nowrap">{user.name ?? "—"}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-3.5 text-muted-foreground break-all max-w-[200px]">{user.email}</td>
-                                            <td className="px-4 py-3.5 text-muted-foreground whitespace-nowrap">{user.phone ?? "—"}</td>
-                                            <td className="px-4 py-3.5">
-                                                {user.emailVerified ? (
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-semibold text-green-600 dark:bg-green-500/20 dark:text-green-400 border border-green-500/20">
-                                                        Verificado
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200/50">
-                                                        Pendiente
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-3.5">
-                                                <div className="flex flex-wrap items-center gap-1.5">
-                                                    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${ROLE_BADGE_STYLES[normalizedRole]}`}>
-                                                        <RoleIcon className="h-3.5 w-3.5" />
-                                                        {getDisplayRoleLabel(user.role ?? "member")}
-                                                    </span>
-                                                    {isPendingOrganizer && (
-                                                        <span className="inline-flex rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 border border-amber-500/20">
-                                                            {t("dashboard.admin.organizerPendingBadge")}
-                                                        </span>
-                                                    )}
-                                                    {isPlatformScope && membership?.organizationName && (
-                                                            <span className="text-xs text-muted-foreground">
-                                                                {membership.organizationName}
-                                                            </span>
-                                                        )}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-3.5">
-                                                {user.isActive ? (
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-500/20">
-                                                        Activo
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-xs font-semibold text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-500/20">
-                                                        Suspendido
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-3.5 text-muted-foreground whitespace-nowrap">
-                                                {user.createdAt
-                                                    ? new Date(user.createdAt).toLocaleDateString(getIntlLocale(locale), {
-                                                        month: "short",
-                                                        day: "numeric",
-                                                        year: "numeric",
-                                                    })
-                                                    : "—"}
-                                            </td>
-                                            <td className="px-4 py-3.5 text-muted-foreground whitespace-nowrap">
-                                                {user.lastSeenAt
-                                                    ? new Date(user.lastSeenAt).toLocaleDateString(getIntlLocale(locale), {
-                                                        month: "short",
-                                                        day: "numeric",
-                                                        hour: "2-digit",
-                                                        minute: "2-digit",
-                                                    })
-                                                    : "—"}
-                                            </td>
-                                            <td className="px-4 py-3.5">
-                                                <div className="space-y-2">
-                                                    <RoleSelector
-                                                        userId={user.id}
-                                                        currentRole={(user.role ?? "member") as "member" | "organizer" | "admin" | "super_admin"}
-                                                        currentUserId={currentUserId}
-                                                        scopeMode={isPlatformScope ? "platform" : "org"}
-                                                        canEdit={canManageRoles}
-                                                        superAdminTaken={superAdminTaken}
-                                                    />
-                                                    {canManageRoles && isPendingOrganizer && (
-                                                        <OrganizerApprovalButtons userId={user.id} />
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-3.5">
-                                                <div className="flex flex-wrap items-center gap-1.5">
-                                                    {canManageRoles && (
-                                                        <ToggleUserActiveButton
-                                                            userId={user.id}
-                                                            isActive={user.isActive}
-                                                            isSelf={user.id === currentUserId}
-                                                        />
-                                                    )}
-                                                    {isPlatformScope && (
-                                                        <DeleteUserButton userId={user.id} isSelf={user.id === currentUserId} />
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
+                                        <UserTableRow
+                                            key={user.id}
+                                            user={user}
+                                            index={index}
+                                            rowStart={rowStart}
+                                            locale={locale}
+                                            currentUserId={currentUserId}
+                                            isPlatformScope={isPlatformScope}
+                                            canManageRoles={canManageRoles}
+                                            superAdminTaken={superAdminTaken}
+                                            isPendingOrganizer={isPendingOrganizerUser(user)}
+                                            organizationName={membership?.organizationName}
+                                            getDisplayRoleLabel={getDisplayRoleLabel}
+                                            organizerPendingBadge={t("dashboard.admin.organizerPendingBadge")}
+                                        />
                                     );
                                 })}
                             </tbody>

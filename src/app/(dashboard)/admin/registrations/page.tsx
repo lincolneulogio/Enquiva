@@ -3,10 +3,10 @@ import { db } from "@/lib/db";
 import { registrations, events, users, payments, transportBookings, transportRoutes, registrationStatusEnum, registrationGuests } from "@/lib/db/schema";
 import { eq, desc, count, and, gte, lte, sql, inArray, type SQL } from "drizzle-orm";
 import { isGuestRegistration } from "@/lib/registrations/guests";
-import { ClipboardList, Bus, CreditCard, Award, ExternalLink } from "lucide-react";
+import { ClipboardList } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getIntlLocale } from "@/lib/i18n/core";
-import { categoryLabel, registrationStatusLabel, formatCurrency } from "@/lib/utils";
+import { categoryLabel, registrationStatusLabel } from "@/lib/utils";
 import { TablePagination } from "@/components/dashboard/shared/TablePagination";
 import { ExportDataPanel } from "@/components/dashboard/admin/ExportDataPanel";
 import { EventPresenceIndicator } from "@/components/events/EventPresenceIndicator";
@@ -16,6 +16,7 @@ import { Suspense } from "react";
 import { resolveAdminScope, scopeEventCondition } from "@/lib/organizations/admin-scope";
 import { staffDashboardPath } from "@/lib/navigation/dashboard-paths";
 import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server";
+import { RegistrationTableRow } from "./RegistrationTableRow";
 
 interface AdminRegistrationsPageProps {
   searchParams: Promise<{
@@ -345,213 +346,19 @@ export default async function AdminRegistrationsPage({ searchParams }: AdminRegi
                   const payment = paymentsMap.get(reg.id) || (parentRegId ? paymentsMap.get(parentRegId) : undefined);
                   const transport = transportMap.get(reg.id) || (parentRegId ? transportMap.get(parentRegId) : undefined);
                   return (
-                    <tr key={reg.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-4 text-muted-foreground">{rowStart + index + 1}</td>
-                      <td className="px-4 py-4">
-                        <p className="font-medium text-foreground">{reg.attendee?.name ?? "Asistente"}</p>
-                        <p className="text-xs text-muted-foreground">{reg.attendee?.email ?? "—"}</p>
-                      </td>
-                      <td className="px-4 py-4">
-                        <Link
-                          href={`/events/${reg.event.slug}`}
-                          className="font-medium text-foreground hover:text-primary transition-colors"
-                        >
-                          {reg.event.title}
-                        </Link>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(reg.event.date).toLocaleDateString(getIntlLocale(locale), {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </p>
-                      </td>
-                      <td className="px-4 py-4">
-                        {isGuestRegistration({
-                          guestId: reg.guestId,
-                          parentRegistrationId: reg.parentRegistrationId,
-                          email: reg.attendee?.email,
-                        }) ? (
-                          <div className="space-y-1">
-                            <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-400 border border-amber-500/20">
-                              {locale === "en" ? "Guest" : "Invitado"}
-                            </span>
-                            {invitersMap.get(reg.id) && (
-                              <p className="text-[11px] text-muted-foreground leading-none">
-                                {locale === "en" ? "by " : "de "}<span className="font-medium text-foreground">{invitersMap.get(reg.id)!.name}</span>
-                              </p>
-                            )}
-                          </div>
-                        ) : reg.attendee?.email?.startsWith("offline_") ? (
-                          <span className="inline-flex items-center rounded-full bg-indigo-500/10 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 dark:text-indigo-400 border border-indigo-500/20">
-                            {locale === "en" ? "Manual Reg" : "Reg. Manual"}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                            {locale === "en" ? "Primary" : "Titular"}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-4">
-                        {payment ? (
-                          <div className="space-y-1">
-                            <p className="font-semibold text-foreground">
-                              {formatCurrency(Number(payment.amount), payment.currency, locale)}
-                            </p>
-                            <div className="flex flex-wrap items-center gap-1">
-                              <span className="text-[9px] text-muted-foreground uppercase bg-secondary px-1 py-0.5 rounded font-medium">
-                                {payment.method}
-                              </span>
-                              <span className={`text-[9px] px-1 py-0.5 rounded font-semibold border ${
-                                payment.status === "approved"
-                                  ? "bg-green-500/10 text-green-700 border-green-500/20"
-                                  : payment.status === "pending"
-                                    ? "bg-amber-500/10 text-amber-700 border-amber-500/20"
-                                    : "bg-red-500/10 text-red-700 border-red-500/20"
-                              }`}>
-                                {payment.status === "approved" 
-                                  ? (locale === "en" ? "Paid" : "Pagado")
-                                  : payment.status === "pending"
-                                    ? (locale === "en" ? "Pending" : "Pendiente")
-                                    : (locale === "en" ? "Rejected" : "Rechazado")
-                                }
-                              </span>
-                              {parentRegId && paymentsMap.get(reg.id) === undefined && (
-                                <span className="text-[9px] text-muted-foreground/80 block italic">
-                                  {locale === "en" ? "(via sponsor)" : "(vía titular)"}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground/55 italic">
-                            {locale === "en" ? "No payment" : "Sin pago"}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-4">
-                        {transport ? (
-                          <div className="space-y-1">
-                            <p className="font-medium text-foreground text-xs truncate max-w-[220px]" title={transport.routeName ?? ""}>
-                              {transport.routeName ?? (locale === "en" ? "Booked" : "Reservado")}
-                            </p>
-                            <p className="text-[11px] text-muted-foreground leading-none flex items-center gap-1">
-                              <Bus className="h-3 w-3 text-primary shrink-0" />
-                              {locale === "en" ? (
-                                <>
-                                  {transport.seats} {transport.seats === 1 ? "seat booked" : "seats booked"}{" "}
-                                  of {transport.totalSeats ?? 0} available
-                                  {parentRegId && transportMap.get(reg.id) === undefined && (
-                                    <span className="text-[9px] text-muted-foreground/80 block italic mt-0.5">
-                                      (via sponsor)
-                                    </span>
-                                  )}
-                                </>
-                              ) : (
-                                <>
-                                  {transport.seats} {transport.seats === 1 ? "asiento ocupado" : "asientos ocupados"}{" "}
-                                  de {transport.totalSeats ?? 0} disponibles
-                                  {parentRegId && transportMap.get(reg.id) === undefined && (
-                                    <span className="text-[9px] text-muted-foreground/80 block italic mt-0.5">
-                                      (vía titular)
-                                    </span>
-                                  )}
-                                </>
-                              )}
-                            </p>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground/55 italic">
-                            {locale === "en" ? "No transport" : "Sin transporte"}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-4">
-                        {reg.event.hasCertificate ? (
-                          <div className="space-y-1">
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-                              <Award className="h-3 w-3" />
-                              <span>{locale === "en" ? "Yes" : "Sí"}</span>
-                            </span>
-                            <p className="text-xs font-medium text-foreground truncate max-w-[170px]" title={reg.event.certificateTitle || "Certificado Oficial"}>
-                              {reg.event.certificateTitle || "Certificado Oficial"}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground">
-                              {reg.event.certificatePrice && Number(reg.event.certificatePrice) > 0
-                                ? `+ S/ ${Number(reg.event.certificatePrice).toFixed(2)}`
-                                : (locale === "en" ? "Included (Free)" : "Incluido (Gratis)")}
-                            </p>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground/50 italic">
-                            {locale === "en" ? "No" : "No ofrece"}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-4">
-                        {!reg.event.hasCertificate ? (
-                          <span className="text-xs text-muted-foreground/40">—</span>
-                        ) : !reg.wantsCertificate ? (
-                          <span className="inline-flex items-center rounded-md bg-muted/60 px-2 py-0.5 text-[11px] font-medium text-muted-foreground border border-border">
-                            {locale === "en" ? "Not requested" : "No lo solicitó"}
-                          </span>
-                        ) : (
-                          <div className="space-y-1.5">
-                            <div className="flex flex-wrap items-center gap-1">
-                              {reg.status === "checked_in" ? (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-                                  ✓ {locale === "en" ? "Checked-in / Issued" : "Asistió / Emitido"}
-                                </span>
-                              ) : payment?.status === "approved" || !payment ? (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold text-blue-700 dark:text-blue-300 border border-blue-500/20">
-                                  ✓ {locale === "en" ? "Paid / Requested" : "Pagado y Solicitado"}
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300 border border-amber-500/20">
-                                  ⏳ {locale === "en" ? "Payment Pending" : "Pago Pendiente"}
-                                </span>
-                              )}
-                            </div>
-                            {reg.certificateCode && (
-                              <div className="flex items-center gap-1.5">
-                                <Link
-                                  href={`/verify/${reg.certificateCode}`}
-                                  target="_blank"
-                                  className="text-[10px] font-mono font-bold text-primary hover:underline flex items-center gap-0.5"
-                                  title="Verificar certificado públicamente"
-                                >
-                                  <span>{reg.certificateCode}</span>
-                                  <ExternalLink className="h-2.5 w-2.5 opacity-70" />
-                                </Link>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-4">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor[reg.status] ?? "bg-secondary text-foreground"}`}
-                        >
-                          {registrationStatusLabel(reg.status, locale)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 text-muted-foreground">
-                        {new Date(reg.registeredAt).toLocaleDateString(getIntlLocale(locale), {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </td>
-                      <td className="px-4 py-4 text-muted-foreground">
-                        {reg.checkedInAt
-                          ? new Date(reg.checkedInAt).toLocaleDateString(getIntlLocale(locale), {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })
-                          : <span className="text-muted-foreground/40">—</span>}
-                      </td>
-                    </tr>
+                    <RegistrationTableRow
+                      key={reg.id}
+                      reg={reg}
+                      index={index}
+                      rowStart={rowStart}
+                      locale={locale}
+                      inviter={invitersMap.get(reg.id)}
+                      parentRegId={parentRegId}
+                      payment={payment}
+                      transport={transport}
+                      hasOwnPayment={paymentsMap.has(reg.id)}
+                      hasOwnTransport={transportMap.has(reg.id)}
+                    />
                   );
                 })}
               </tbody>
