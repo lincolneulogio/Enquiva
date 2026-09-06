@@ -1,5 +1,3 @@
-"use server";
-
 export * from "./mutations";
 export * from "./queries";
 export * from "./broadcasts";

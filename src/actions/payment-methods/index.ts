@@ -1,5 +1,3 @@
-"use server";
-
 export type { PaymentMethodScope } from "./helpers";
 export { isLegacyWalletType } from "./helpers";
 
