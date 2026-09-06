@@ -12,7 +12,8 @@ import { EventDetailSchedules } from "@/components/events/EventDetailSchedules";
 import { EventDetailMetrics } from "@/components/events/EventDetailMetrics";
 import { EventDetailSidebar } from "@/components/events/EventDetailSidebar";
 import { EventLocationMapDynamic } from "@/components/events/EventLocationMapDynamic";
-import { categoryLabel } from "@/lib/utils";
+import { categoryLabel, stripHtml } from "@/lib/utils";
+import { RichTextContent } from "@/components/ui/RichTextContent";
 import { getI18n } from "@/lib/i18n/server";
 import { recordEventView } from "@/lib/analytics/event-views";
 import { getEventCapacitySnapshot } from "@/lib/events/capacity-snapshot";
@@ -152,11 +153,12 @@ export default async function EventDetailPage({ params }: EventPageProps) {
               isVirtual={Boolean(event.isVirtual)}
             />
 
-            <div className="space-y-2 rounded-2xl border border-border/80 bg-white p-6 shadow-xs dark:bg-card">
+            <div className="space-y-3 rounded-2xl border border-border/80 bg-white p-6 shadow-xs dark:bg-card">
               <h2 className="text-base font-bold text-foreground sm:text-lg">Acerca de esta conferencia</h2>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                {event.description || "Un encuentro dirigido a emprendedores, estudiantes y profesionales interesados en desarrollar nuevas ideas de negocio."}
-              </p>
+              <RichTextContent
+                content={event.description}
+                fallback="Un encuentro dirigido a emprendedores, estudiantes y profesionales interesados en desarrollar nuevas ideas de negocio."
+              />
             </div>
 
             <div className="space-y-6 rounded-2xl border border-border/80 bg-white p-6 shadow-xs sm:p-8 dark:bg-card">

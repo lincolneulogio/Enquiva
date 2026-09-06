@@ -76,9 +76,27 @@ export function isEventUpcoming(date: Date | string): boolean {
   return isAfter(new Date(date), new Date());
 }
 
+export function stripHtml(html?: string | null): string {
+  if (!html) return "";
+  return html
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function truncate(text: string, length: number): string {
-  if (text.length <= length) return text;
-  return text.slice(0, length) + "...";
+  if (!text) return "";
+  const cleaned = stripHtml(text);
+  if (cleaned.length <= length) return cleaned;
+  return cleaned.slice(0, length) + "...";
 }
 
 export function categoryLabel(category: string, locale: Locale = defaultLocale): string {

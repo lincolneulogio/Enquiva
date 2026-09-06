@@ -3,6 +3,7 @@
 import { useLocale } from "@/components/providers/LocaleProvider";
 import { toast } from "sonner";
 import { Calendar, Link as LinkIcon, Download } from "lucide-react";
+import { stripHtml } from "@/lib/utils";
 
 interface Stop {
   id: string;
@@ -42,7 +43,7 @@ export function CalendarSyncButtons({ event, className = "" }: CalendarSyncButto
         `DTSTART:${start}`,
         `DTEND:${end}`,
         `SUMMARY:${event.title}`,
-        `DESCRIPTION:${(event.description ?? "").replace(/\n/g, "\\n")}`,
+        `DESCRIPTION:${stripHtml(event.description ?? "").replace(/\n/g, "\\n")}`,
         `LOCATION:${event.location ?? (event.isVirtual ? "Virtual" : "")}`,
         "END:VEVENT",
         "END:VCALENDAR"
@@ -71,7 +72,7 @@ export function CalendarSyncButtons({ event, className = "" }: CalendarSyncButto
     const start = eventDate.toISOString().replace(/-|:|\.\d\d\d/g, "");
     const end = new Date(eventDate.getTime() + 2 * 60 * 60 * 1000).toISOString().replace(/-|:|\.\d\d\d/g, "");
     const title = encodeURIComponent(event.title);
-    const details = encodeURIComponent(event.description ?? "");
+    const details = encodeURIComponent(stripHtml(event.description ?? ""));
     const location = encodeURIComponent(event.location ?? (event.isVirtual ? "Virtual" : ""));
 
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=${location}`;

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Calendar, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, stripHtml } from "@/lib/utils";
 
 export interface EventScheduleOption {
   id: string;
@@ -60,7 +60,7 @@ export function EventDetailSchedules({
 
   const handleAddToCalendar = () => {
     const text = encodeURIComponent(eventTitle);
-    const details = encodeURIComponent(eventDescription || eventTitle);
+    const details = encodeURIComponent(stripHtml(eventDescription || eventTitle));
     const location = encodeURIComponent(eventLocation || "Huánuco, Perú");
     // Google Calendar template URL
     const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&details=${details}&location=${location}`;

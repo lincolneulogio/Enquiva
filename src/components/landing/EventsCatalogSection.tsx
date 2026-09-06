@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowRight, MapPin, Calendar, Sparkles, Users } from "lucide-react";
 import type { Event, Category } from "@/lib/db/schema";
 import type { Locale } from "@/lib/i18n/core";
+import { stripHtml } from "@/lib/utils";
 
 export interface DisplayEvent {
   id: string;
@@ -63,7 +64,7 @@ export function EventsCatalogSection({
       category: e.category?.toLowerCase() || "general",
       categoryLabel: e.category ? e.category.replace(/_/g, " ") : "Evento",
       description:
-        e.description || "Descubre todos los detalles e inscríbete hoy.",
+        stripHtml(e.description) || "Descubre todos los detalles e inscríbete hoy.",
       dateStr: `${dateFormatted} • ${timeFormatted}`,
       locationStr: e.location || (e.isVirtual ? "Online" : "Lima, PE"),
       priceStr: priceFormatted,
