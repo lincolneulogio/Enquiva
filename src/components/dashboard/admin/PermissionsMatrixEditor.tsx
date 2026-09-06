@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Save, Undo2 } from "lucide-react";
 import {
   ROLE_ORDER,
   ROLE_BADGE_STYLES,
@@ -13,48 +12,15 @@ import {
   type PermissionMatrix,
 } from "@/lib/auth/rbac";
 import { batchUpdateRolePermissions, resetRolePermissions } from "@/actions/admin";
-import { PermissionToggleCell } from "@/components/dashboard/admin/PermissionToggleCell";
 import { ResetRolePermissionsButton } from "@/components/dashboard/admin/ResetRolePermissionsButton";
 import { useTranslations, useLocale } from "@/components/providers/LocaleProvider";
+import { getPermissionGroupLabel, getRoleLabel } from "@/lib/i18n/core";
 import {
-  getPermissionLabel,
-  getPermissionDescription,
-  getPermissionGroupLabel,
-  getRoleLabel,
-} from "@/lib/i18n/core";
-import { cn } from "@/lib/utils";
-
-function cloneMatrix(matrix: PermissionMatrix): PermissionMatrix {
-  return {
-    super_admin: { ...matrix.super_admin },
-    admin: { ...matrix.admin },
-    organizer: { ...matrix.organizer },
-    member: { ...matrix.member },
-    scanner: { ...matrix.scanner },
-  };
-}
-
-function diffPermissionChanges(
-  baseline: PermissionMatrix,
-  draft: PermissionMatrix,
-): { role: AppRole; permission: Permission; allowed: boolean }[] {
-  const changes: { role: AppRole; permission: Permission; allowed: boolean }[] = [];
-  for (const role of ROLE_ORDER) {
-    if (role === "super_admin") continue;
-    for (const group of PERMISSION_GROUPS) {
-      for (const permission of group.permissions) {
-        if (draft[role][permission] !== baseline[role][permission]) {
-          changes.push({
-            role,
-            permission,
-            allowed: draft[role][permission],
-          });
-        }
-      }
-    }
-  }
-  return changes;
-}
+  cloneMatrix,
+  diffPermissionChanges,
+  PermissionGroupRows,
+  PermissionsFloatingBar,
+} from "./permissions";
 
 interface PermissionsMatrixEditorProps {
   initialMatrix: PermissionMatrix;
@@ -111,13 +77,9 @@ export function PermissionsMatrixEditor({
 
   const onToggle = (role: AppRole, permission: Permission, next: boolean) => {
     if (role === "super_admin") return;
-
     setDraft((prev) => ({
       ...prev,
-      [role]: {
-        ...prev[role],
-        [permission]: next,
-      },
+      [role]: { ...prev[role], [permission]: next },
     }));
   };
 
@@ -128,22 +90,17 @@ export function PermissionsMatrixEditor({
 
   const onSave = () => {
     if (!pendingChanges.length) return;
-
     startTransition(async () => {
       try {
         const result = await batchUpdateRolePermissions({ changes: pendingChanges });
         const next = cloneMatrix(draft);
         setBaseline(next);
         setDraft(next);
-        toast.success(
-          t("dashboard.admin.permissionsSaved", { count: result.saved }),
-        );
+        toast.success(t("dashboard.admin.permissionsSaved", { count: result.saved }));
         router.refresh();
       } catch (error) {
         toast.error(
-          error instanceof Error
-            ? error.message
-            : t("dashboard.admin.unableToUpdateStatus"),
+          error instanceof Error ? error.message : t("dashboard.admin.unableToUpdateStatus"),
         );
       }
     });
@@ -167,9 +124,7 @@ export function PermissionsMatrixEditor({
         router.refresh();
       } catch (error) {
         toast.error(
-          error instanceof Error
-            ? error.message
-            : t("dashboard.admin.unableToUpdateStatus"),
+          error instanceof Error ? error.message : t("dashboard.admin.unableToUpdateStatus"),
         );
       }
     });
@@ -178,9 +133,7 @@ export function PermissionsMatrixEditor({
   return (
     <div className="relative space-y-6 pb-24">
       <div className="rounded-xl border border-border bg-card p-4">
-        <p className="text-xs text-muted-foreground">
-          {t("dashboard.admin.canEditPermissions")}
-        </p>
+        <p className="text-xs text-muted-foreground">{t("dashboard.admin.canEditPermissions")}</p>
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-2">
             <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
@@ -203,10 +156,7 @@ export function PermissionsMatrixEditor({
                   {t("dashboard.admin.permission")}
                 </th>
                 {ROLE_ORDER.map((role) => (
-                  <th
-                    key={role}
-                    className="px-4 py-3 text-center font-medium text-muted-foreground"
-                  >
+                  <th key={role} className="px-4 py-3 text-center font-medium text-muted-foreground">
                     <div className="flex flex-col items-center gap-1.5">
                       <span
                         className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${ROLE_BADGE_STYLES[role]}`}
@@ -246,132 +196,13 @@ export function PermissionsMatrixEditor({
         </div>
       </div>
 
-      <div
-        className={cn(
-          "pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-4 transition-all duration-300",
-          dirty ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0",
-        )}
-        aria-hidden={!dirty}
-      >
-        <div
-          className={cn(
-            "pointer-events-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card/95 px-4 py-3 shadow-lg backdrop-blur-md",
-            !dirty && "invisible",
-          )}
-        >
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-foreground">
-              {t("dashboard.admin.permissionsPending", {
-                count: pendingChanges.length,
-              })}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {t("dashboard.admin.permissionsPendingHint")}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onDiscard}
-              disabled={isPending || !dirty}
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-border bg-background px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
-            >
-              <Undo2 className="h-4 w-4" />
-              {t("dashboard.admin.permissionsDiscard")}
-            </button>
-            <button
-              type="button"
-              onClick={onSave}
-              disabled={isPending || !dirty}
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-primary px-3.5 text-sm font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-            >
-              {isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              {t("dashboard.admin.permissionsSave")}
-            </button>
-          </div>
-        </div>
-      </div>
+      <PermissionsFloatingBar
+        dirty={dirty}
+        pendingCount={pendingChanges.length}
+        isPending={isPending}
+        onDiscard={onDiscard}
+        onSave={onSave}
+      />
     </div>
-  );
-}
-
-function PermissionGroupRows({
-  group,
-  draft,
-  baseline,
-  defaults,
-  locale,
-  groupLabel,
-  disabled,
-  onToggle,
-}: {
-  group: (typeof PERMISSION_GROUPS)[number];
-  draft: PermissionMatrix;
-  baseline: PermissionMatrix;
-  defaults: PermissionMatrix;
-  locale: Parameters<typeof getPermissionLabel>[1];
-  groupLabel: string;
-  disabled: boolean;
-  onToggle: (role: AppRole, permission: Permission, next: boolean) => void;
-}) {
-  const t = useTranslations();
-
-  return (
-    <>
-      <tr className="bg-muted/30">
-        <td
-          colSpan={ROLE_ORDER.length + 1}
-          className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
-        >
-          {groupLabel}
-        </td>
-      </tr>
-      {group.permissions.map((permission) => {
-        const description = getPermissionDescription(permission, locale);
-        return (
-          <tr key={permission} className="transition-colors hover:bg-muted/20">
-            <td className="px-4 py-3">
-              <div className="font-medium text-foreground">
-                {getPermissionLabel(permission, locale)}
-              </div>
-              {description && (
-                <div className="mt-0.5 text-xs text-muted-foreground">{description}</div>
-              )}
-            </td>
-            {ROLE_ORDER.map((role) => {
-              const allowed = draft[role][permission];
-              const canEdit = role !== "super_admin";
-              const isModified = allowed !== defaults[role][permission];
-              const isUnsaved = allowed !== baseline[role][permission];
-
-              return (
-                <td key={`${permission}:${role}`} className="px-4 py-3 text-center">
-                  <PermissionToggleCell
-                    allowed={allowed}
-                    canEdit={canEdit && !disabled}
-                    isModified={isModified}
-                    isUnsaved={isUnsaved}
-                    title={
-                      !canEdit
-                        ? t("dashboard.admin.readOnlyPermissions")
-                        : isUnsaved
-                          ? t("dashboard.admin.permissionsLegendUnsaved")
-                          : isModified
-                            ? t("dashboard.admin.permissionsLegendModified")
-                            : undefined
-                    }
-                    onToggle={() => onToggle(role, permission, !allowed)}
-                  />
-                </td>
-              );
-            })}
-          </tr>
-        );
-      })}
-    </>
   );
 }

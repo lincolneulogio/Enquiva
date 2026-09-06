@@ -1,16 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { Marker as LeafletMarker } from "leaflet";
 import {
   MapContainer,
   Marker,
   Popup,
   TileLayer,
-  useMap,
-  useMapEvents,
 } from "react-leaflet";
-import { Check, Crosshair, Loader2, MapPinned, Pencil, Search } from "lucide-react";
+import { Loader2, MapPinned } from "lucide-react";
 import { toast } from "sonner";
 import "leaflet/dist/leaflet.css";
 import { DEFAULT_MAP_CENTER, type LatLng } from "@/lib/geo";
@@ -24,6 +22,13 @@ import {
   useLeafletDefaultIcons,
 } from "@/components/events/leaflet-icons";
 import { cn } from "@/lib/utils";
+import {
+  MapClickHandler,
+  MapInteractionGuard,
+  Recenter,
+  LocationPickerToolbar,
+  LocationConfirmBanner,
+} from "./picker";
 
 type EventLocationPickerProps = {
   address: string;
@@ -35,38 +40,6 @@ type EventLocationPickerProps = {
   onRequestEditAddress?: () => void;
   className?: string;
 };
-
-function MapClickHandler({ onPick }: { onPick: (coords: LatLng) => void }) {
-  useMapEvents({
-    click(e) {
-      onPick({ lat: e.latlng.lat, lng: e.latlng.lng });
-    },
-  });
-  return null;
-}
-
-function MapInteractionGuard() {
-  const map = useMap();
-  useEffect(() => {
-    const container = map.getContainer();
-    const stopPageScroll = (e: WheelEvent) => {
-      e.preventDefault();
-    };
-    container.addEventListener("wheel", stopPageScroll, { passive: false });
-    return () => container.removeEventListener("wheel", stopPageScroll);
-  }, [map]);
-  return null;
-}
-
-function Recenter({ center }: { center: LatLng }) {
-  const map = useMap();
-  useEffect(() => {
-    map.setView([center.lat, center.lng], Math.max(map.getZoom(), 15), {
-      animate: true,
-    });
-  }, [center.lat, center.lng, map]);
-  return null;
-}
 
 export function EventLocationPicker({
   address,
@@ -114,7 +87,6 @@ export function EventLocationPicker({
           setNearbyPoi(resolved.poi);
           setConfirmOpen(true);
         } else if (address.trim()) {
-          // Keep previous text; still ask confirmation
           setNearbyPoi(null);
           setConfirmOpen(true);
         }
@@ -197,48 +169,19 @@ export function EventLocationPicker({
 
   return (
     <div className={cn("space-y-2", className)}>
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={handleGeocode}
-          disabled={geocoding}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-60"
-        >
-          {geocoding ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Search className="h-3.5 w-3.5" />
-          )}
-          Buscar en mapa
-        </button>
-        <button
-          type="button"
-          onClick={handleMyLocation}
-          disabled={locating}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-60"
-        >
-          {locating ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Crosshair className="h-3.5 w-3.5" />
-          )}
-          Usar mi ubicación
-        </button>
-        {pin && (
-          <button
-            type="button"
-            onClick={() => {
-              onChange(null);
-              setNearbyPoi(null);
-              setConfirmOpen(false);
-              setAddressConfirmed(false);
-            }}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
-          >
-            Quitar pin
-          </button>
-        )}
-      </div>
+      <LocationPickerToolbar
+        geocoding={geocoding}
+        locating={locating}
+        hasPin={Boolean(pin)}
+        onGeocode={handleGeocode}
+        onMyLocation={handleMyLocation}
+        onRemovePin={() => {
+          onChange(null);
+          setNearbyPoi(null);
+          setConfirmOpen(false);
+          setAddressConfirmed(false);
+        }}
+      />
 
       <div className="overflow-hidden rounded-xl border border-border">
         <MapContainer
@@ -272,10 +215,7 @@ export function EventLocationPicker({
                 <Popup>Pin del evento</Popup>
               </Marker>
               {showPoiMarker && nearbyPoi && (
-                <Marker
-                  position={[nearbyPoi.lat, nearbyPoi.lng]}
-                  icon={poiIcon}
-                >
+                <Marker position={[nearbyPoi.lat, nearbyPoi.lng]} icon={poiIcon}>
                   <Popup>
                     {nearbyPoi.name}
                     {nearbyPoi.category ? ` (${nearbyPoi.category})` : ""}
@@ -287,59 +227,21 @@ export function EventLocationPicker({
         </MapContainer>
       </div>
 
-      {confirmOpen && address.trim() && !addressConfirmed && (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 space-y-2">
-          <p className="text-xs font-medium text-foreground">
-            ¿Es correcta esta ubicación?
-          </p>
-          <p className="text-[11px] leading-relaxed text-muted-foreground">
-            {address}
-            {nearbyPoi ? (
-              <>
-                {" "}
-                · Lugar detectado: <strong className="text-foreground">{nearbyPoi.name}</strong>
-                {nearbyPoi.distanceM > 0
-                  ? ` (~${Math.round(nearbyPoi.distanceM)} m)`
-                  : ""}
-              </>
-            ) : null}
-          </p>
-          <p className="text-[10px] text-muted-foreground">
-            Los datos vienen de OpenStreetMap; en Perú a veces falta el número o el nombre del local. Puedes editar el texto a mano.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setAddressConfirmed(true);
-                setConfirmOpen(false);
-                toast.success("Ubicación confirmada.");
-              }}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
-            >
-              <Check className="h-3.5 w-3.5" />
-              Sí, es correcto
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setConfirmOpen(false);
-                onRequestEditAddress?.();
-              }}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-              Editar dirección
-            </button>
-          </div>
-        </div>
-      )}
-
-      {addressConfirmed && (
-        <p className="text-[11px] text-emerald-700 dark:text-emerald-400">
-          Dirección confirmada. Puedes seguir editándola si hace falta.
-        </p>
-      )}
+      <LocationConfirmBanner
+        address={address}
+        nearbyPoi={nearbyPoi}
+        confirmOpen={confirmOpen}
+        addressConfirmed={addressConfirmed}
+        onConfirm={() => {
+          setAddressConfirmed(true);
+          setConfirmOpen(false);
+          toast.success("Ubicación confirmada.");
+        }}
+        onEditAddress={() => {
+          setConfirmOpen(false);
+          onRequestEditAddress?.();
+        }}
+      />
 
       <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
         <MapPinned className="mt-0.5 h-3.5 w-3.5 shrink-0" />

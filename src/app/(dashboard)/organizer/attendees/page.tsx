@@ -1,33 +1,18 @@
-import Link from "next/link";
-import { db } from "@/lib/db";
-import { getCertificateStatusDetails } from "@/lib/certificates/eligibility";
-import { registrations, events, users, registrationStatusEnum, registrationGuests } from "@/lib/db/schema";
-import { getRequestSession } from "@/lib/request-context";
-import { eq, desc, and, gte, lte, count, sql } from "drizzle-orm";
-import { Users, Clock, Award, ExternalLink } from "lucide-react";
-import { ManualCheckInButton } from "@/components/events/ManualCheckInButton";
+import { Users } from "lucide-react";
 import { ManualRegistrationDialog } from "@/components/events/ManualRegistrationDialog";
 import { ExpressCheckInConsole } from "@/components/events/ExpressCheckInConsole";
 import { getI18n } from "@/lib/i18n/server";
+import { getPluralLabel } from "@/lib/i18n/core";
+import { getRequestSession } from "@/lib/request-context";
 import {
-  getIntlLocale,
-  getPluralLabel,
-  getRegistrationStatusLabel,
-} from "@/lib/i18n/core";
-import { TablePagination } from "@/components/dashboard/shared/TablePagination";
-import { getExportEventOptions } from "@/actions/exports";
-
-const PAGE_SIZE = 10;
+  getOrganizerAttendees,
+  ATTENDEES_PAGE_SIZE,
+  type AttendeeQueryParams,
+} from "./attendees-query";
+import { AttendeesTable } from "./AttendeesTable";
 
 interface PageProps {
-  searchParams: Promise<{
-    page?: string;
-    eventId?: string;
-    category?: string;
-    status?: string;
-    fromDate?: string;
-    toDate?: string;
-  }>;
+  searchParams: Promise<AttendeeQueryParams>;
 }
 
 export default async function OrganizerAttendeesPage({
@@ -38,89 +23,8 @@ export default async function OrganizerAttendeesPage({
   const session = await getRequestSession();
   const organizerId = session!.user.id;
 
-  const requestedPage = Number(params.page ?? "1");
-  const currentPage =
-    Number.isFinite(requestedPage) && requestedPage > 0
-      ? Math.floor(requestedPage)
-      : 1;
-
-  const eventOptions = await getExportEventOptions("organizer");
-
-  const conditions = [eq(events.organizerId, organizerId)];
-
-  if (params.eventId) {
-    conditions.push(eq(events.id, params.eventId));
-  }
-  if (params.category) {
-    conditions.push(eq(events.category, params.category));
-  }
-  if (params.status && params.status !== "all") {
-    const status = registrationStatusEnum.enumValues.find((value) => value === params.status);
-    if (status) {
-      conditions.push(eq(registrations.status, status));
-    }
-  }
-  if (params.fromDate) {
-    conditions.push(
-      gte(
-        registrations.registeredAt,
-        new Date(`${params.fromDate}T00:00:00.000`),
-      ),
-    );
-  }
-  if (params.toDate) {
-    conditions.push(
-      lte(
-        registrations.registeredAt,
-        new Date(`${params.toDate}T23:59:59.999`),
-      ),
-    );
-  }
-
-  const whereClause = and(...conditions);
-
-  const [{ total }] = await db
-    .select({ total: count() })
-    .from(registrations)
-    .innerJoin(events, eq(registrations.eventId, events.id))
-    .leftJoin(users, eq(registrations.userId, users.id))
-    .leftJoin(registrationGuests, eq(registrations.guestId, registrationGuests.id))
-    .where(whereClause);
-
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const safePage = Math.min(currentPage, totalPages);
-  const offset = (safePage - 1) * PAGE_SIZE;
-
-  const rows = await db
-    .select({
-      registrationId: registrations.id,
-      eventId: events.id,
-      status: registrations.status,
-      registeredAt: registrations.registeredAt,
-      checkedInAt: registrations.checkedInAt,
-      selectedScheduleLabel: registrations.selectedScheduleLabel,
-      wantsCertificate: registrations.wantsCertificate,
-      certificateCode: registrations.certificateCode,
-      eventTitle: events.title,
-      eventDate: events.date,
-      eventSlug: events.slug,
-      eventLocation: events.location,
-      isVirtual: events.isVirtual,
-      hasCertificate: events.hasCertificate,
-      certificateTitle: events.certificateTitle,
-      certificatePrice: events.certificatePrice,
-      eventEndDate: events.endDate,
-      userName: sql<string>`coalesce(${registrationGuests.name}, ${users.name}, 'Asistente')`,
-      userEmail: users.email,
-    })
-    .from(registrations)
-    .innerJoin(events, eq(registrations.eventId, events.id))
-    .leftJoin(users, eq(registrations.userId, users.id))
-    .leftJoin(registrationGuests, eq(registrations.guestId, registrationGuests.id))
-    .where(whereClause)
-    .orderBy(desc(registrations.registeredAt))
-    .limit(PAGE_SIZE)
-    .offset(offset);
+  const { total, totalPages, safePage, rows, eventOptions } =
+    await getOrganizerAttendees(organizerId, params);
 
   const registrationWord = getPluralLabel(
     locale,
@@ -128,6 +32,11 @@ export default async function OrganizerAttendeesPage({
     "registrations",
     total,
   );
+
+  const eventSelectOptions = eventOptions.map((e) => ({
+    value: e.id,
+    label: e.title,
+  }));
 
   return (
     <div className="space-y-6">
@@ -144,21 +53,11 @@ export default async function OrganizerAttendeesPage({
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
-          <ManualRegistrationDialog
-            events={eventOptions.map((e) => ({
-              value: e.id,
-              label: e.title,
-            }))}
-          />
+          <ManualRegistrationDialog events={eventSelectOptions} />
         </div>
       </div>
 
-      <ExpressCheckInConsole
-        events={eventOptions.map((e) => ({
-          value: e.id,
-          label: e.title,
-        }))}
-      />
+      <ExpressCheckInConsole events={eventSelectOptions} />
 
       {rows.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
@@ -171,196 +70,16 @@ export default async function OrganizerAttendeesPage({
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border bg-card">
-          <p className="px-3 pt-2 text-[11px] text-muted-foreground sm:hidden">
-            ↔ Scroll
-          </p>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1320px] text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/50">
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    {t("common.name")}
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    {t("common.email")}
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    {t("common.event")}
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    {t("common.date")}
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    {locale === "en" ? "Offers Cert.?" : "¿Ofrece Cert.?"}
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    {locale === "en" ? "Cert. Status" : "Certificado"}
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    {t("common.status")}
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    {t("dashboard.organizer.checkedInAt")}
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    {t("common.actions")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {rows.map((row) => (
-                  <tr
-                    key={row.registrationId}
-                    className="hover:bg-muted/30 transition-colors"
-                  >
-                    <td className="px-4 py-3 font-medium text-foreground">
-                      {row.userName ?? "—"}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {row.userEmail}
-                    </td>
-                    <td className="px-4 py-3 text-foreground">
-                      <div className="font-medium">{row.eventTitle}</div>
-                      {row.selectedScheduleLabel && (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary mt-0.5 border border-primary/20">
-                          <Clock className="h-3 w-3 shrink-0" />
-                          <span>{row.selectedScheduleLabel}</span>
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {new Date(row.eventDate).toLocaleDateString(
-                        getIntlLocale(locale),
-                        {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        },
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {row.hasCertificate ? (
-                        <div className="space-y-0.5">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-                            <Award className="h-3 w-3" />
-                            <span>{locale === "en" ? "Yes" : "Sí"}</span>
-                          </span>
-                          <p className="text-xs font-medium text-foreground truncate max-w-[150px]" title={row.certificateTitle || "Certificado Oficial"}>
-                            {row.certificateTitle || "Certificado Oficial"}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {row.certificatePrice && Number(row.certificatePrice) > 0
-                              ? `+ S/ ${Number(row.certificatePrice).toFixed(2)}`
-                              : (locale === "en" ? "Included" : "Incluido")}
-                          </p>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground/40">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {!row.hasCertificate ? (
-                        <span className="text-xs text-muted-foreground/40">—</span>
-                      ) : !row.wantsCertificate ? (
-                        <span className="inline-flex items-center rounded-md bg-muted/60 px-2 py-0.5 text-[11px] font-medium text-muted-foreground border border-border">
-                          {locale === "en" ? "No" : "No solicitado"}
-                        </span>
-                      ) : (() => {
-                        const certInfo = getCertificateStatusDetails(
-                          {
-                            wantsCertificate: row.wantsCertificate,
-                            registrationStatus: row.status,
-                            certificateCode: row.certificateCode,
-                            eventDate: row.eventDate,
-                            eventEndDate: row.eventEndDate,
-                          },
-                          locale as "es" | "en"
-                        );
-                        return (
-                          <div className="space-y-1">
-                            <span
-                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border ${certInfo.badgeClass}`}
-                              title={certInfo.unlockMessage}
-                            >
-                              {certInfo.badgeLabel}
-                            </span>
-                            {row.certificateCode && (
-                              <Link
-                                href={`/verify/${row.certificateCode}`}
-                                target="_blank"
-                                className="text-[10px] font-mono font-bold text-primary hover:underline flex items-center gap-0.5"
-                                title="Verificar certificado públicamente"
-                              >
-                                <span>{row.certificateCode}</span>
-                                <ExternalLink className="h-2.5 w-2.5 opacity-70" />
-                              </Link>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          row.status === "checked_in"
-                            ? "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400"
-                            : row.status === "registered"
-                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
-                              : "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400"
-                        }`}
-                      >
-                        {getRegistrationStatusLabel(row.status, locale)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {row.checkedInAt ? (
-                        new Date(row.checkedInAt).toLocaleString(
-                          getIntlLocale(locale),
-                          {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          },
-                        )
-                      ) : (
-                        <span className="text-muted-foreground/40">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {row.status === "registered" ? (
-                        <ManualCheckInButton
-                          registrationId={row.registrationId}
-                          eventId={row.eventId}
-                        />
-                      ) : (
-                        <span className="text-xs text-muted-foreground/60">
-                          {t("dashboard.organizer.noAction")}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <TablePagination
-            basePath="/organizer/attendees"
-            currentPage={safePage}
-            totalPages={totalPages}
-            totalItems={total}
-            pageSize={PAGE_SIZE}
-            query={{
-              eventId: params.eventId,
-              category: params.category,
-              status: params.status,
-              fromDate: params.fromDate,
-              toDate: params.toDate,
-            }}
-          />
-        </div>
+        <AttendeesTable
+          rows={rows}
+          locale={locale}
+          t={t}
+          safePage={safePage}
+          totalPages={totalPages}
+          total={total}
+          pageSize={ATTENDEES_PAGE_SIZE}
+          params={params}
+        />
       )}
     </div>
   );

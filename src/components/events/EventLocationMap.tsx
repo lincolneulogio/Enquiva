@@ -7,16 +7,7 @@ import {
   Polyline,
   Popup,
   TileLayer,
-  useMap,
 } from "react-leaflet";
-import {
-  Crosshair,
-  ExternalLink,
-  Loader2,
-  MapPin,
-  Navigation,
-  LocateFixed,
-} from "lucide-react";
 import { toast } from "sonner";
 import "leaflet/dist/leaflet.css";
 import {
@@ -30,6 +21,13 @@ import {
   useLeafletDefaultIcons,
 } from "@/components/events/leaflet-icons";
 import { cn } from "@/lib/utils";
+import {
+  FitBounds,
+  FollowUser,
+  FlyTo,
+  MapInteractionGuard,
+  EventMapControls,
+} from "./map";
 
 type EventLocationMapProps = {
   latitude: number;
@@ -37,71 +35,6 @@ type EventLocationMapProps = {
   locationLabel?: string | null;
   className?: string;
 };
-
-function FitBounds({
-  event,
-  user,
-  enabled,
-}: {
-  event: LatLng;
-  user: LatLng | null;
-  enabled: boolean;
-}) {
-  const map = useMap();
-  useEffect(() => {
-    if (!enabled) return;
-    if (user) {
-      map.fitBounds(
-        [
-          [event.lat, event.lng],
-          [user.lat, user.lng],
-        ],
-        { padding: [48, 48], maxZoom: 16, animate: true },
-      );
-    } else {
-      map.setView([event.lat, event.lng], 15, { animate: true });
-    }
-  }, [event.lat, event.lng, user?.lat, user?.lng, map, user, enabled]);
-  return null;
-}
-
-function MapInteractionGuard() {
-  const map = useMap();
-  useEffect(() => {
-    const container = map.getContainer();
-    const stopPageScroll = (e: WheelEvent) => {
-      e.preventDefault();
-    };
-    container.addEventListener("wheel", stopPageScroll, { passive: false });
-    return () => container.removeEventListener("wheel", stopPageScroll);
-  }, [map]);
-  return null;
-}
-
-function FlyTo({ target, zoom = 16 }: { target: LatLng | null; zoom?: number }) {
-  const map = useMap();
-  useEffect(() => {
-    if (!target) return;
-    map.flyTo([target.lat, target.lng], zoom, { duration: 0.6 });
-  }, [target, zoom, map]);
-  return null;
-}
-
-/** Keep map centered on the user while follow-me is active. */
-function FollowUser({
-  user,
-  active,
-}: {
-  user: LatLng | null;
-  active: boolean;
-}) {
-  const map = useMap();
-  useEffect(() => {
-    if (!active || !user) return;
-    map.panTo([user.lat, user.lng], { animate: true, duration: 0.4 });
-  }, [active, user?.lat, user?.lng, map, user]);
-  return null;
-}
 
 export function EventLocationMap({
   latitude,
@@ -154,29 +87,22 @@ export function EventLocationMap({
       clearWatch();
       watchIdRef.current = navigator.geolocation.watchPosition(
         (pos) => {
-          const next = {
+          setUserPoint({
             lat: pos.coords.latitude,
             lng: pos.coords.longitude,
-          };
-          setUserPoint(next);
+          });
           setGeoError(null);
         },
         (err) => {
           setTracking(false);
           setFollowMe(false);
           if (err.code === err.PERMISSION_DENIED) {
-            setGeoError(
-              "Permiso de ubicación denegado. El mapa del evento sigue disponible.",
-            );
+            setGeoError("Permiso de ubicación denegado. El mapa del evento sigue disponible.");
           } else {
             setGeoError("No se pudo obtener tu ubicación en tiempo real.");
           }
         },
-        {
-          enableHighAccuracy: true,
-          maximumAge: 3000,
-          timeout: 15000,
-        },
+        { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 },
       );
     },
     [clearWatch],
@@ -186,7 +112,6 @@ export function EventLocationMap({
     return () => clearWatch();
   }, [clearWatch]);
 
-  // After first GPS fix, fit both points once (unless follow-me owns the camera)
   useEffect(() => {
     if (userPoint && fitOnce && !followMe) {
       setFitOnce(false);
@@ -206,17 +131,10 @@ export function EventLocationMap({
     setDirectionsBusy(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const origin = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        };
+        const origin = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setUserPoint(origin);
         setDirectionsBusy(false);
-        window.open(
-          googleMapsDirectionsUrl(eventPoint, origin),
-          "_blank",
-          "noopener,noreferrer",
-        );
+        window.open(googleMapsDirectionsUrl(eventPoint, origin), "_blank", "noopener,noreferrer");
       },
       () => {
         setDirectionsBusy(false);
@@ -231,90 +149,23 @@ export function EventLocationMap({
 
   return (
     <div className={cn("space-y-3", className)}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <MapPin className="h-3.5 w-3.5" />
-          </span>
-          <h4 className="text-sm font-bold text-foreground">
-            Mapa del lugar
-          </h4>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-1.5">
-          {!tracking ? (
-            <button
-              type="button"
-              onClick={() => startTracking()}
-              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-2xs hover:bg-primary/90 transition-colors cursor-pointer"
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-              Mi ubicación en vivo
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={stopTracking}
-              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted cursor-pointer"
-            >
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-              Detener
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={() => {
-              if (!tracking) {
-                startTracking({ follow: true });
-              } else {
-                setFollowMe((v) => !v);
-              }
-            }}
-            className={cn(
-              "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer",
-              followMe
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border/80 bg-white dark:bg-card text-foreground/80 hover:bg-muted",
-            )}
-          >
-            <LocateFixed className="h-3 w-3" />
-            {followMe ? "Siguiéndote…" : "Seguirme"}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setFollowMe(false);
-              setFlyTarget({ ...eventPoint });
-            }}
-            className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-white dark:bg-card px-3 py-1.5 text-xs font-medium text-foreground/80 hover:bg-muted transition-colors cursor-pointer"
-          >
-            <Crosshair className="h-3 w-3" />
-            Centrar evento
-          </button>
-
-          <button
-            type="button"
-            onClick={openDirectionsWithGps}
-            disabled={directionsBusy}
-            className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-white dark:bg-card px-3 py-1.5 text-xs font-medium text-foreground/80 hover:bg-muted transition-colors cursor-pointer disabled:opacity-60"
-          >
-            {directionsBusy ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <ExternalLink className="h-3 w-3" />
-            )}
-            Cómo llegar
-          </button>
-
-          {distanceLabel && (
-            <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
-              A {distanceLabel}
-            </span>
-          )}
-        </div>
-      </div>
+      <EventMapControls
+        tracking={tracking}
+        followMe={followMe}
+        directionsBusy={directionsBusy}
+        distanceLabel={distanceLabel}
+        onStartTracking={startTracking}
+        onStopTracking={stopTracking}
+        onToggleFollow={() => {
+          if (!tracking) startTracking({ follow: true });
+          else setFollowMe((v) => !v);
+        }}
+        onCenterEvent={() => {
+          setFollowMe(false);
+          setFlyTarget({ ...eventPoint });
+        }}
+        onOpenDirections={openDirectionsWithGps}
+      />
 
       {geoError && (
         <p className="text-xs text-amber-700 dark:text-amber-400">{geoError}</p>
