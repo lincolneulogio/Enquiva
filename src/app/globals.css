@@ -72,6 +72,11 @@
   100% { background-position: 200% 0; }
 }
 
+@utility text-2xs {
+  font-size: 0.6875rem;
+  line-height: 0.875rem;
+}
+
 @layer base {
   :root {
     --enquiva-banner-offset: 0px;
