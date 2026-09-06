@@ -488,6 +488,7 @@ const memberSections: NavSection[] = compactSections([
     titleKey: "dashboard.sidebar.groups.account",
     items: [
       { labelKey: "dashboard.sidebar.member.profile", href: "/member/profile", icon: User },
+      { labelKey: "dashboard.sidebar.member.settings", href: "/member/settings", icon: Settings },
     ],
   },
 ]);

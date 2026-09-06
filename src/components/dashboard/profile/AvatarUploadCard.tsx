@@ -1,122 +1,356 @@
 "use client";
 
-import { UploadDropzone } from "@/lib/uploadthing/components";
+import { useRef, useState } from "react";
+import { useUploadThing } from "@/lib/uploadthing/components";
 import { toast } from "sonner";
-import { Camera, ImageIcon } from "lucide-react";
-import { useTranslations } from "@/components/providers/LocaleProvider";
+import {
+  Camera,
+  Upload,
+  Trash2,
+  Link2,
+  Loader2,
+  Check,
+  AlertCircle,
+  X,
+} from "lucide-react";
+import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { optimizeAvatarFiles } from "./avatar-utils";
+import { cn } from "@/lib/utils";
 
 interface AvatarUploadCardProps {
   previewImage: string | null;
   onUploadSuccess: (url: string) => void;
   onRemove: () => void;
+  onChangeUrl?: (url: string) => void;
+  error?: string;
 }
 
 export function AvatarUploadCard({
   previewImage,
   onUploadSuccess,
   onRemove,
+  onChangeUrl,
+  error,
 }: AvatarUploadCardProps) {
   const t = useTranslations();
+  const { locale } = useLocale();
+  const isEn = locale === "en";
 
-  const uploadDropzoneAppearance = {
-    container:
-      "h-full w-full rounded-2xl border border-dashed border-primary/25 bg-gradient-to-br from-primary/5 via-muted/10 to-transparent p-4 transition-all duration-300 hover:border-primary/40 hover:from-primary/10 hover:shadow-sm hover:shadow-primary/5 cursor-pointer",
-    uploadIcon:
-      "h-7 w-7 text-primary/70 transition-transform duration-300 hover:scale-110",
-    label: "text-xs font-semibold text-foreground tracking-wide mt-1.5",
-    allowedContent: "text-[10px] text-muted-foreground/80 mt-0.5 font-medium",
-    button:
-      "mt-3 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-md shadow-primary/15 transition-all duration-300 hover:bg-primary/95 hover:shadow-lg hover:shadow-primary/25 active:scale-95",
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [manualUrl, setManualUrl] = useState(previewImage ?? "");
+
+  const { startUpload, isUploading } = useUploadThing("profileAvatar", {
+    onUploadProgress: (p) => {
+      setUploadProgress(p);
+    },
+    onClientUploadComplete: (res) => {
+      const newUrl = res?.[0]?.url;
+      if (newUrl) {
+        onUploadSuccess(newUrl);
+        setManualUrl(newUrl);
+        toast.success(
+          isEn ? "Profile photo updated successfully!" : "¡Foto de perfil actualizada con éxito!"
+        );
+      }
+      setUploadProgress(0);
+    },
+    onUploadError: (err) => {
+      setUploadProgress(0);
+      toast.error(
+        isEn
+          ? `Upload error: ${err.message}`
+          : `Error al subir la imagen: ${err.message}`
+      );
+    },
+  });
+
+  const handleProcessFiles = async (files: FileList | File[] | null) => {
+    if (!files || files.length === 0) return;
+    const file = files[0];
+
+    if (!file.type.startsWith("image/")) {
+      toast.error(
+        isEn
+          ? "Please select a valid image file (PNG, JPG, WEBP)"
+          : "Por favor selecciona un archivo de imagen válido (PNG, JPG, WEBP)"
+      );
+      return;
+    }
+
+    if (file.size > 4 * 1024 * 1024) {
+      toast.error(
+        isEn
+          ? "The original image exceeds 4MB"
+          : "La imagen original no debe superar los 4MB"
+      );
+      return;
+    }
+
+    try {
+      const optimized = await optimizeAvatarFiles([file]);
+      await startUpload(optimized);
+    } catch {
+      await startUpload([file]);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (isUploading) return;
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      await handleProcessFiles(e.dataTransfer.files);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (!isUploading) {
+      setIsDragOver(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleApplyUrl = () => {
+    const trimmed = manualUrl.trim();
+    if (onChangeUrl) {
+      onChangeUrl(trimmed);
+      toast.success(
+        isEn ? "Image link updated!" : "¡Enlace de imagen actualizado!"
+      );
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    onRemove();
+    setManualUrl("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    toast.success(
+      isEn ? "Profile photo removed" : "Foto de perfil eliminada"
+    );
   };
 
   return (
-    <div className="rounded-2xl border border-border/80 bg-background/60 backdrop-blur-sm p-4 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300">
-      <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start sm:justify-start">
-        {/* Glow and Image Ring */}
-        <div className="shrink-0 group relative">
-          <div className="absolute -inset-1.5 rounded-[2rem] bg-gradient-to-tr from-primary via-violet-500 to-accent opacity-20 blur-md group-hover:opacity-40 transition duration-500 pointer-events-none" />
+    <div className="rounded-2xl border border-border/80 bg-card/70 backdrop-blur-md p-4 sm:p-6 shadow-xs transition-all duration-300">
+      {/* Header Label */}
+      <div className="mb-4 flex items-center justify-between gap-2 border-b border-border/60 pb-3">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Camera className="h-4 w-4" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">
+              {t("dashboard.profile.profilePhoto")}
+            </h3>
+          </div>
+        </div>
+        <span className="hidden sm:inline-flex rounded-full border border-border/60 bg-muted/40 px-2.5 py-0.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+          PNG, JPG, WEBP • 2MB
+        </span>
+      </div>
 
-          <div className="relative h-40 w-40 overflow-hidden rounded-3xl border border-primary/20 bg-card sm:h-44 sm:w-44 shadow-lg shadow-primary/5 transition-all duration-500 group-hover:border-primary/40 group-hover:shadow-primary/10 flex flex-col items-center justify-center p-4">
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:14px_24px] pointer-events-none" />
-            <div className="absolute -top-10 -right-10 h-24 w-24 rounded-full bg-primary/8 blur-xl pointer-events-none" />
-            <div className="absolute -bottom-10 -left-10 h-24 w-24 rounded-full bg-violet-500/8 blur-xl pointer-events-none" />
-
+      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 sm:gap-6">
+        {/* Avatar Visualizer */}
+        <div className="relative shrink-0 group">
+          <div
+            onClick={() => !isUploading && fileInputRef.current?.click()}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                fileInputRef.current?.click();
+              }
+            }}
+            className="relative h-28 w-28 sm:h-32 sm:w-32 rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-border/70 bg-muted/30 shadow-md ring-4 ring-primary/10 transition-all duration-300 group-hover:ring-primary/25 group-hover:border-primary/50 cursor-pointer select-none"
+            title={isEn ? "Click to change photo" : "Haz clic para cambiar foto"}
+          >
             {previewImage ? (
-              <div className="relative h-full w-full overflow-hidden rounded-2xl group/image">
+              <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={previewImage}
                   alt={t("dashboard.profile.profilePhoto")}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover/image:scale-110"
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
-                <div className="absolute inset-0 bg-black/60 backdrop-blur-[3px] opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-2 text-white">
-                  <div className="rounded-full bg-white/20 p-2.5 border border-white/30 shadow-inner transform scale-90 group-hover/image:scale-100 transition-transform duration-300">
-                    <Camera className="h-5 w-5 text-white" />
+                <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-1.5 text-white">
+                  <div className="rounded-full bg-white/20 p-2 border border-white/30 shadow-inner">
+                    <Camera className="h-4 w-4 text-white" />
                   </div>
-                  <span className="text-xs font-semibold tracking-wider uppercase text-[10px]">
-                    {t("dashboard.profile.uploadButton")}
+                  <span className="text-[10px] font-semibold tracking-wider uppercase">
+                    {isEn ? "Change" : "Cambiar"}
                   </span>
                 </div>
-              </div>
+              </>
             ) : (
-              <div className="relative flex h-full w-full flex-col items-center justify-center text-center">
-                <div className="relative mb-3.5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-primary/10 to-violet-500/10 border border-primary/20 shadow-md shadow-primary/5 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6">
-                  <div className="absolute inset-0.5 rounded-xl bg-background/80 backdrop-blur-sm flex items-center justify-center">
-                    <ImageIcon className="h-7 w-7 text-primary animate-pulse" />
-                  </div>
-                  <span className="absolute -inset-2 rounded-2xl border border-dashed border-primary/25 animate-[spin_20s_linear_infinite]" />
+              <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-muted/50 to-primary/5 p-3 text-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary mb-1 transition-transform group-hover:scale-110">
+                  <Camera className="h-5 w-5" />
                 </div>
-
-                <span className="text-[11px] font-bold text-foreground/90 tracking-wide leading-snug max-w-[130px] px-1">
-                  {t("dashboard.profile.uploadProfilePhoto")}
-                </span>
-                <span className="mt-2 text-[9px] font-semibold text-muted-foreground/80 uppercase tracking-widest bg-muted/60 px-2 py-0.5 rounded-full border border-border/40">
-                  {t("dashboard.profile.uploadAllowedContent")}
+                <span className="text-[11px] font-medium text-muted-foreground">
+                  {isEn ? "No photo" : "Sin foto"}
                 </span>
               </div>
             )}
           </div>
+
+          {/* Floating Action Badge */}
+          <button
+            type="button"
+            onClick={() => !isUploading && fileInputRef.current?.click()}
+            className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-xl border border-border bg-card shadow-sm text-primary transition-all duration-200 hover:scale-110 hover:bg-primary hover:text-primary-foreground"
+            aria-label={isEn ? "Upload photo" : "Subir foto"}
+          >
+            <Camera className="h-4 w-4" />
+          </button>
         </div>
 
-        {/* Dropzone Actions */}
-        <div className="w-full max-w-[320px] self-stretch flex flex-col justify-between py-1 gap-4">
-          <div className="w-full flex-1">
-            <div className="h-full min-h-[140px]">
-              <UploadDropzone
-                endpoint="profileAvatar"
-                onBeforeUploadBegin={optimizeAvatarFiles}
-                onClientUploadComplete={(res) => {
-                  if (res?.[0]?.url) {
-                    onUploadSuccess(res[0].url);
-                    toast.success(t("dashboard.profile.avatarUploaded"));
-                  }
-                }}
-                onUploadError={(err) => {
-                  toast.error(err.message);
-                }}
-                content={{
-                  label: t("dashboard.profile.uploadDragDrop"),
-                  allowedContent: t("dashboard.profile.uploadAllowedContent"),
-                  button({ ready, isUploading }) {
-                    if (isUploading) return t("common.loading");
-                    return t("dashboard.profile.uploadButton");
-                  },
-                }}
-                appearance={uploadDropzoneAppearance}
-              />
-            </div>
+        {/* Dropzone & Action Controls */}
+        <div className="min-w-0 flex-1 w-full space-y-3">
+          {/* Interactive Dropzone */}
+          <div
+            onClick={() => !isUploading && fileInputRef.current?.click()}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            className={cn(
+              "relative rounded-xl border-2 border-dashed p-4 transition-all duration-200 cursor-pointer text-center select-none",
+              isDragOver
+                ? "border-primary bg-primary/10 ring-4 ring-primary/15 scale-[1.01]"
+                : "border-border/80 hover:border-primary/50 bg-muted/15 hover:bg-muted/30",
+              isUploading && "pointer-events-none opacity-85"
+            )}
+          >
+            {isUploading ? (
+              <div className="py-2 flex flex-col items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
+                <p className="text-xs font-semibold text-foreground">
+                  {isEn ? "Optimizing & uploading..." : "Optimizando y subiendo imagen..."}
+                </p>
+                <div className="mx-auto mt-2 h-1.5 w-44 max-w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all duration-300 rounded-full"
+                    style={{ width: `${Math.max(uploadProgress, 20)}%` }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="py-1">
+                <Upload className="h-5 w-5 text-primary/80 mx-auto mb-1.5 transition-transform duration-200 group-hover:-translate-y-0.5" />
+                <p className="text-xs font-semibold text-foreground">
+                  {isDragOver
+                    ? (isEn ? "Drop your photo here!" : "¡Suelta tu foto aquí!")
+                    : (isEn ? "Click to browse or drag and drop" : "Haz clic para buscar o arrastra tu foto aquí")}
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {isEn
+                    ? "PNG, JPG or WebP up to 2MB • Automatically optimized to 512×512"
+                    : "PNG, JPG o WebP hasta 2MB • Recorte automático a 512×512"}
+                </p>
+              </div>
+            )}
           </div>
 
-          {previewImage ? (
+          {/* Action Buttons Toolbar */}
+          <div className="flex flex-wrap items-center gap-2 pt-0.5">
             <button
               type="button"
-              onClick={onRemove}
-              className="w-full rounded-xl border border-destructive/20 bg-destructive/5 text-destructive px-3 py-2.5 text-xs font-semibold tracking-wider uppercase transition-all duration-200 hover:bg-destructive hover:text-white hover:border-destructive shadow-sm hover:shadow-md hover:shadow-destructive/10"
+              disabled={isUploading}
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground shadow-xs hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
             >
-              {t("dashboard.profile.removeAvatar")}
+              <Upload className="h-3.5 w-3.5" />
+              <span>
+                {previewImage
+                  ? (isEn ? "Change photo" : "Cambiar foto")
+                  : (isEn ? "Select file" : "Elegir archivo")}
+              </span>
             </button>
-          ) : null}
+
+            {previewImage ? (
+              <button
+                type="button"
+                disabled={isUploading}
+                onClick={handleRemoveAvatar}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-destructive/25 bg-destructive/5 px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive hover:text-white transition-all duration-200 disabled:opacity-50 cursor-pointer"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>{isEn ? "Remove photo" : "Eliminar foto"}</span>
+              </button>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={() => setShowUrlInput(!showUrlInput)}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium transition-all duration-200 cursor-pointer",
+                showUrlInput
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-border bg-background/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+              )}
+            >
+              <Link2 className="h-3.5 w-3.5" />
+              <span>{isEn ? "Direct URL" : "URL directa"}</span>
+            </button>
+          </div>
+
+          {/* Expandable Manual URL input */}
+          {showUrlInput && (
+            <div className="flex items-center gap-2 pt-1 animate-in fade-in slide-in-from-top-1 duration-200">
+              <div className="relative flex-1">
+                <input
+                  type="url"
+                  value={manualUrl}
+                  onChange={(e) => setManualUrl(e.target.value)}
+                  placeholder="https://ejemplo.com/mi-avatar.jpg"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                />
+                {manualUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setManualUrl("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={handleApplyUrl}
+                className="inline-flex items-center gap-1 rounded-xl bg-secondary px-3 py-2 text-xs font-semibold text-secondary-foreground hover:bg-secondary/80 transition-colors"
+              >
+                <Check className="h-3.5 w-3.5 text-primary" />
+                <span>{isEn ? "Apply" : "Aplicar"}</span>
+              </button>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {error && (
+            <p className="text-xs text-destructive flex items-center gap-1.5 pt-1">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              <span>{error}</span>
+            </p>
+          )}
+
+          {/* Hidden File Input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/jpg"
+            className="hidden"
+            onChange={(e) => handleProcessFiles(e.target.files)}
+          />
         </div>
       </div>
     </div>

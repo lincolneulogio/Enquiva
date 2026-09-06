@@ -1,5 +1,5 @@
 import { getRequestSession } from "@/lib/request-context";
-import { User, Mail, Shield, Crown, ShieldCheck, Briefcase, UserRound, Building2, QrCode } from "lucide-react";
+import { Crown, ShieldCheck, Briefcase, UserRound, Building2, QrCode } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
 import { getRoleLabel } from "@/lib/i18n/core";
 import { ROLE_BADGE_STYLES, normalizeRole } from "@/lib/auth/rbac";
@@ -98,36 +98,6 @@ export default async function OrganizerSettingsPage() {
                 ) : normalizedRole === "organizer" ? (
                     <JoinEntityForm />
                 ) : null}
-
-                <div className="rounded-xl border border-border bg-card divide-y divide-border">
-                    <div className="flex items-center gap-4 p-4">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground">{t("common.fullName")}</p>
-                            <p className="font-medium text-foreground">{user.name ?? "—"}</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-4 p-4">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-                            <Mail className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground">{t("common.email")}</p>
-                            <p className="font-medium text-foreground">{user.email}</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-4 p-4">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-                            <Shield className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground">{t("common.role")}</p>
-                            <p className="font-medium text-foreground capitalize">{getRoleLabel(user.role ?? "organizer", locale)}</p>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     );

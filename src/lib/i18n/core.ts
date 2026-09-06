@@ -384,6 +384,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                     tickets: "Entradas",
                     certificates: "Mis Certificados",
                     profile: "Perfil",
+                    settings: "Configuración",
                 },
             },
             admin: {
@@ -2490,6 +2491,7 @@ const translations: Record<Locale, TranslationDictionary> = {
                     tickets: "Tickets",
                     certificates: "My Certificates",
                     profile: "Profile",
+                    settings: "Settings",
                 },
             },
             admin: {

@@ -48,7 +48,7 @@ function getSettingsPath(role: AppRole): string {
   if (role === "admin") return "/admin/settings";
   if (role === "organizer") return "/organizer/settings";
   if (role === "scanner") return "/scanner";
-  return "/member/profile";
+  return "/member/settings";
 }
 
 export function PublicUserMenu({

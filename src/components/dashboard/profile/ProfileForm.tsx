@@ -143,26 +143,32 @@ export function ProfileForm({ user }: ProfileFormProps) {
         )}
       </div>
 
-      <div className="space-y-3">
-        <label className="block text-sm font-semibold tracking-wide text-foreground">
-          {t("dashboard.profile.profilePhoto")}
-        </label>
-        
+      <div>
         <AvatarUploadCard
           previewImage={previewImage}
-          onUploadSuccess={(url) => setValue("image", url, { shouldDirty: true, shouldTouch: true, shouldValidate: true })}
-          onRemove={() => setValue("image", "", { shouldDirty: true, shouldTouch: true, shouldValidate: true })}
+          onUploadSuccess={(url) =>
+            setValue("image", url, {
+              shouldDirty: true,
+              shouldTouch: true,
+              shouldValidate: true,
+            })
+          }
+          onRemove={() =>
+            setValue("image", "", {
+              shouldDirty: true,
+              shouldTouch: true,
+              shouldValidate: true,
+            })
+          }
+          onChangeUrl={(url) =>
+            setValue("image", url, {
+              shouldDirty: true,
+              shouldTouch: true,
+              shouldValidate: true,
+            })
+          }
+          error={errors.image?.message}
         />
-
-        <p className="text-xs text-muted-foreground">{t("dashboard.profile.optionalManualUrl")}</p>
-        <input
-          {...register("image")}
-          placeholder={t("profile.avatarUrlPlaceholder")}
-          className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
-        />
-        {errors.image && (
-          <p className="mt-1 text-xs text-destructive">{errors.image.message}</p>
-        )}
       </div>
 
       <div>

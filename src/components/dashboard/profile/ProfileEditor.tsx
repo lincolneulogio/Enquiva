@@ -6,7 +6,6 @@ import { ProfileForm } from "./ProfileForm";
 import { PasswordForm } from "./PasswordForm";
 import { Crown, ShieldCheck, Briefcase, UserRound, QrCode } from "lucide-react";
 import { ROLE_BADGE_STYLES, normalizeRole } from "@/lib/auth/rbac";
-import { PersonalAppearancePreferences } from "@/components/dashboard/appearance/PersonalAppearancePreferences";
 import { TwoFactorSettings } from "@/components/auth/TwoFactorSettings";
 import type { AccentColor } from "@/lib/brand/accent";
 
@@ -21,7 +20,7 @@ interface ProfileEditorProps {
     image: string | null;
     twoFactorEnabled?: boolean | null;
   };
-  /** Acento por defecto de plataforma (para seguir o personalizar). */
+  /** Acento por defecto de plataforma (opcional, reservado para compatibilidad). */
   platformDefaultAccent?: AccentColor | string;
 }
 
@@ -33,7 +32,7 @@ const roleIcons = {
   scanner: QrCode,
 };
 
-export function ProfileEditor({ user, platformDefaultAccent }: ProfileEditorProps) {
+export function ProfileEditor({ user }: ProfileEditorProps) {
   const t = useTranslations();
   const { locale } = useLocale();
   const initials = (user.name || "U").charAt(0).toUpperCase();
@@ -68,10 +67,6 @@ export function ProfileEditor({ user, platformDefaultAccent }: ProfileEditorProp
           </span>
         </div>
       </div>
-
-      {platformDefaultAccent ? (
-        <PersonalAppearancePreferences platformDefaultAccent={platformDefaultAccent} />
-      ) : null}
 
       {/* Formulario de Información de Perfil */}
       <ProfileForm user={user} />
