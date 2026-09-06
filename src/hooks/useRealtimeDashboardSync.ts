@@ -11,6 +11,8 @@ import {
 import type { AttendeeCountUpdatedPayload, NewRegistrationPayload } from "@/lib/pusher/shared";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { shouldRefreshRealtimePath } from "@/lib/pusher/refresh-policy";
+import { playSuccessChime, playNotificationBlip } from "@/lib/audio/sound-effects";
+import { toast } from "sonner";
 
 const NOTIFICATION_TYPES_REFRESH_ALL_PAGES = new Set([
   "registration_confirmed",
@@ -89,6 +91,14 @@ export function useRealtimeDashboardSync({
       scheduleRefresh(data);
     });
     channel.bind(PUSHER_EVENTS.newRegistration, (data: NewRegistrationPayload) => {
+      playSuccessChime();
+      toast.success("🎉 ¡Nueva inscripción recibida!", {
+        description:
+          data.status === "waitlisted"
+            ? "Un usuario se ha unido a la lista de espera."
+            : "Un nuevo asistente acaba de asegurar su entrada.",
+        duration: 4500,
+      });
       scheduleRefresh({
         resource: ["registrations", "attendees", "events"],
         eventId: data.eventId,
@@ -101,12 +111,24 @@ export function useRealtimeDashboardSync({
       });
     });
     channel.bind(PUSHER_EVENTS.paymentUpdated, () => {
+      playNotificationBlip();
+      toast.info("💳 Comprobante o pago actualizado", {
+        description: "Se ha registrado un movimiento en los pagos del evento.",
+        duration: 4000,
+      });
       scheduleRefresh({ resource: "payments" });
     });
     channel.bind(PUSHER_EVENTS.eventUpdated, () => {
+      toast.info("✏️ Evento sincronizado en vivo", {
+        duration: 3000,
+      });
       scheduleRefresh({ resource: "events" });
     });
     channel.bind(PUSHER_EVENTS.checkIn, () => {
+      playNotificationBlip();
+      toast.success("🎟️ Asistencia confirmada (Check-in en puerta)", {
+        duration: 3500,
+      });
       scheduleRefresh({ resource: ["registrations", "attendees"] });
     });
 

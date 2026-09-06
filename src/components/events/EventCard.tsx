@@ -37,6 +37,8 @@ export function EventCard({
   const capacity = event.capacity ?? 100;
   const isFull = capacity != null && attendeeCount >= capacity;
   const isEventExpired = new Date(event.date).getTime() <= Date.now();
+  const remaining = capacity != null ? Math.max(0, capacity - attendeeCount) : 100;
+  const isScarce = !isFull && !isEventExpired && capacity != null && (remaining <= 10 || remaining / capacity <= 0.15);
   const categoryMeta = categoryMap?.[event.category];
 
   const hasRegistration =
@@ -72,6 +74,11 @@ export function EventCard({
             <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
               <BadgeCheck className="h-3 w-3" />
               <span>Te has registrado</span>
+            </span>
+          ) : !isEventExpired && isScarce ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-300 animate-pulse">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+              <span>⚡ ¡Solo {remaining} cupos!</span>
             </span>
           ) : !isEventExpired && !isFull ? (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">

@@ -68,18 +68,15 @@ export function EventDetailSidebar({
   waContactUrl,
 }: EventDetailSidebarProps) {
   const { data: session } = useSession();
-  const { count: presenceCount } = useEventPresence(
-    eventId,
-    Boolean(isAuthenticated),
-  );
+  const { count: presenceCount } = useEventPresence(eventId, true);
 
   const userName = session?.user?.name;
   const userImage = session?.user?.image;
   const userInitials = getUserInitials(userName);
 
-  // Cantidad de navegantes en tiempo real con fallback realista
-  const otherCount = presenceCount > 1 ? presenceCount - 1 : 3;
-  const totalCount = presenceCount > 0 ? presenceCount : 4;
+  // Cantidad de navegantes en tiempo real con presencia viva
+  const otherCount = presenceCount > 1 ? presenceCount - 1 : 1;
+  const totalCount = Math.max(1, presenceCount);
 
   return (
     <div id="registro" className="space-y-4 scroll-mt-24">
@@ -107,7 +104,7 @@ export function EventDetailSidebar({
       />
 
       {/* 2. Tarjeta ASISTENTES */}
-      <EventAttendeesCountCard occupied={occupied} />
+      <EventAttendeesCountCard eventId={eventId} occupied={occupied} capacity={capacity} />
 
       {/* 3. Tarjeta Viendo ahora (Social Proof en vivo) */}
       <EventPresenceCard

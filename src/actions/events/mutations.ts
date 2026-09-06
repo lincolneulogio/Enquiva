@@ -44,7 +44,10 @@ export async function createEvent(input: CreateEventInput) {
   });
 
   revalidatePath("/events");
-  revalidatePath("/(dashboard)/organizer");
+  revalidatePath("/organizer");
+  revalidatePath("/organizer/events");
+  revalidatePath("/admin/events");
+  revalidatePath("/admin");
 
   return { success: true, event };
 }
@@ -55,6 +58,7 @@ export async function updateEvent(eventId: string, input: UpdateEventInput) {
   const [existing] = await db
     .select({
       status: events.status,
+      slug: events.slug,
       hasTransport: events.hasTransport,
       organizerId: events.organizerId,
       organizationId: events.organizationId,
@@ -116,9 +120,15 @@ export async function updateEvent(eventId: string, input: UpdateEventInput) {
 
   revalidatePath(`/events/${event.slug}`);
   revalidatePath(`/events/${event.id}`);
+  if (existing.slug && existing.slug !== event.slug) {
+    revalidatePath(`/events/${existing.slug}`);
+  }
   revalidatePath("/events");
+  revalidatePath("/organizer");
   revalidatePath("/organizer/events");
   revalidatePath(`/organizer/events/${event.id}`);
+  revalidatePath("/admin/events");
+  revalidatePath("/admin");
 
   return { success: true, event };
 }
@@ -155,6 +165,10 @@ export async function deleteEvent(eventId: string, password: string) {
   });
 
   revalidatePath("/events");
+  revalidatePath("/organizer");
+  revalidatePath("/organizer/events");
+  revalidatePath("/admin/events");
+  revalidatePath("/admin");
 
   return { success: true };
 }

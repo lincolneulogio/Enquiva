@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar, ChevronRight } from "lucide-react";
-import { cn, stripHtml } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { CalendarExportDropdown } from "./CalendarExportDropdown";
 
 export interface EventScheduleOption {
   id: string;
@@ -19,6 +20,9 @@ interface EventDetailSchedulesProps {
   eventTitle: string;
   eventDescription?: string | null;
   eventLocation?: string | null;
+  eventDate?: Date | string;
+  eventEndDate?: Date | string | null;
+  isVirtual?: boolean;
   schedules?: EventScheduleOption[];
 }
 
@@ -54,18 +58,21 @@ export function EventDetailSchedules({
   eventTitle,
   eventDescription,
   eventLocation,
+  eventDate,
+  eventEndDate,
+  isVirtual = false,
   schedules = DEFAULT_SCHEDULES,
 }: EventDetailSchedulesProps) {
   const [selectedId, setSelectedId] = useState<string>(schedules[0]?.id ?? "slot-morning");
 
-  const handleAddToCalendar = () => {
-    const text = encodeURIComponent(eventTitle);
-    const details = encodeURIComponent(stripHtml(eventDescription || eventTitle));
-    const location = encodeURIComponent(eventLocation || "Huánuco, Perú");
-    // Google Calendar template URL
-    const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&details=${details}&location=${location}`;
-    window.open(gCalUrl, "_blank", "noopener,noreferrer");
-  };
+  useEffect(() => {
+    if (!schedules.some((s) => s.id === selectedId) && schedules.length > 0) {
+      setSelectedId(schedules[0].id);
+    }
+  }, [schedules, selectedId]);
+
+  const selectedSlot = schedules.find((s) => s.id === selectedId);
+  const effectiveDate = selectedSlot?.date ?? eventDate ?? new Date();
 
   return (
     <div className="rounded-2xl border border-border/80 bg-[#FCFAF6] dark:bg-card/60 p-4 sm:p-5 space-y-4">
@@ -85,14 +92,15 @@ export function EventDetailSchedules({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleAddToCalendar}
-          className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary/90 transition-colors cursor-pointer self-start sm:self-center"
-        >
-          <span>Añadir a mi calendario</span>
-          <ChevronRight className="h-3.5 w-3.5" />
-        </button>
+        <CalendarExportDropdown
+          eventTitle={selectedSlot?.label ? `${eventTitle} (${selectedSlot.label})` : eventTitle}
+          eventDescription={eventDescription}
+          eventLocation={eventLocation}
+          eventDate={effectiveDate}
+          eventEndDate={eventEndDate}
+          isVirtual={isVirtual}
+          buttonLabel="Añadir a mi calendario"
+        />
       </div>
 
       {/* 3 Tarjetas de selección de turnos */}

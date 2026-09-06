@@ -10,6 +10,8 @@ import { resolveAdminScopeForUser } from "@/lib/organizations/admin-scope";
 import { canAccessEventRealtime } from "@/lib/organizations/event-access-policy";
 import { decidePusherChannelAccess } from "@/lib/pusher/channel-policy";
 
+import { getRequestSession } from "@/lib/request-context";
+
 async function canAccessEventChannel(
   eventId: string,
   user: { id: string; role?: string | null },
@@ -60,8 +62,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Pusher not configured" }, { status: 503 });
     }
 
-    const { user } = await requireApiSession();
-
     const body = await request.text();
     const params = new URLSearchParams(body);
     const socketId = params.get("socket_id");
@@ -73,6 +73,37 @@ export async function POST(request: NextRequest) {
 
     if (!/^\d+\.\d+$/.test(socketId)) {
       return NextResponse.json({ error: "socket_id inválido" }, { status: 400 });
+    }
+
+    const session = await getRequestSession();
+    const user = session?.user;
+
+    // Si es un visitante anónimo en el canal de presencia de un evento público
+    if (!user) {
+      if (channelName.startsWith("presence-event-")) {
+        const eventId = channelName.replace("presence-event-", "");
+        const [event] = await db
+          .select({ id: events.id, status: events.status })
+          .from(events)
+          .where(eq(events.id, eventId))
+          .limit(1);
+
+        if (event && event.status === "published") {
+          const anonId = "guest_" + socketId.replace(".", "_");
+          const presenceData = {
+            user_id: anonId,
+            user_info: {
+              name: "Visitante",
+              image: null,
+              role: "guest",
+            },
+          };
+          const authResponse = pusherServer.authorizeChannel(socketId, channelName, presenceData);
+          return NextResponse.json(authResponse);
+        }
+      }
+
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const role = normalizeRole(user.role);

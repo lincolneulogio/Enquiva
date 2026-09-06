@@ -6,6 +6,7 @@ export const PUSHER_CHANNELS = {
      * El payload debe ser solo números (sin PII). Datos sensibles van por `private-event-*`.
      */
     publicEventCount: (eventId: string) => `event-count-${eventId}`,
+    publicEventsCatalog: "events-catalog",
     userNotifications: (userId: string) => `private-user-${userId}`,
     presence: (eventId: string) => `presence-event-${eventId}`,
     platformDashboard: "private-admin-dashboard",

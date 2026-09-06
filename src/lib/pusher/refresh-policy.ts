@@ -16,9 +16,11 @@ export function matchesRealtimeResource(pathname: string, resource: TableResourc
       );
     case "events":
       return (
+        /^\/(admin|superadmin|organizer|member)\/?$/.test(pathname) ||
         /\/(admin|superadmin|organizer)\/events/.test(pathname) ||
         /\/member\/events/.test(pathname) ||
-        /\/superadmin\/my-events/.test(pathname)
+        /\/superadmin\/my-events/.test(pathname) ||
+        /^\/events(\/.*)?$/.test(pathname)
       );
     case "payments":
       return /\/(admin|superadmin|organizer|member)\/payments/.test(pathname);

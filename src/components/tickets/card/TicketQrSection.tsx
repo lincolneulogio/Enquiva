@@ -7,9 +7,11 @@ import {
   Clock,
   XCircle,
   AlertTriangle,
+  Download,
 } from "lucide-react";
 import { Ticket, Event, Registration } from "@/lib/db/schema";
 import { formatEventDate, registrationStatusLabel } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface TicketQrSectionProps {
   ticket?: Ticket | null;
@@ -32,6 +34,21 @@ export function TicketQrSection({
   locale,
   t,
 }: TicketQrSectionProps) {
+  const handleDownloadQrImage = () => {
+    if (!qrDataUrl) return;
+    const link = document.createElement("a");
+    link.href = qrDataUrl;
+    link.download = `ticket-qr-${ticket?.code || event.id}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success(
+      locale === "en"
+        ? "QR Code image saved to your downloads. Ready to use offline!"
+        : "Código QR guardado en tus descargas. ¡Listo para presentar sin internet!",
+    );
+  };
+
   return (
     <div className="space-y-4">
       <h4 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2 border-b border-border/30 pb-2">
@@ -41,15 +58,34 @@ export function TicketQrSection({
 
       <div className="grid gap-4 rounded-2xl border border-dashed border-border bg-background/50 p-4">
         {qrDataUrl && primaryStatus !== "cancelled" ? (
-          <div className="mx-auto w-36 relative group transition duration-300">
-            <Image
-              src={qrDataUrl}
-              alt={t("ticket.yourTicket")}
-              width={200}
-              height={200}
-              className="mx-auto rounded-xl shadow-sm bg-white p-1"
-              unoptimized
-            />
+          <div className="flex flex-col items-center gap-2.5">
+            <div className="w-36 relative group transition duration-300">
+              <Image
+                src={qrDataUrl}
+                alt={t("ticket.yourTicket")}
+                width={200}
+                height={200}
+                className="mx-auto rounded-xl shadow-sm bg-white p-1"
+                unoptimized
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleDownloadQrImage}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 hover:bg-primary/20 px-3 py-1.5 text-xs font-bold text-primary transition-all shadow-2xs cursor-pointer active:scale-95 select-none"
+              title={
+                locale === "en"
+                  ? "Save this QR image to your phone for offline entry"
+                  : "Guarda este código en tu galería para ingresar sin conexión a internet"
+              }
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span>{locale === "en" ? "Save QR for Offline Use" : "Guardar QR para uso offline"}</span>
+            </button>
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              <span>{locale === "en" ? "Valid without internet connection" : "Válido sin conexión a internet"}</span>
+            </div>
           </div>
         ) : primaryStatus === "cancelled" ? (
           <div className="flex flex-col h-36 items-center justify-center rounded-xl bg-destructive/10 border border-destructive/20 text-xs text-destructive font-semibold p-3 text-center space-y-1">

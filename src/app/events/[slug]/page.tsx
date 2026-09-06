@@ -24,6 +24,7 @@ import { getRequestSession } from "@/lib/request-context";
 import { fetchEventTransportData } from "./event-transport-query";
 import { EventTransportSection } from "./EventTransportSection";
 import { EventHeroHeader } from "./EventHeroHeader";
+import { EventPublicRealtimeSync } from "@/components/events/EventPublicRealtimeSync";
 import {
   splitLocation,
   formatDisplayDate,
@@ -142,6 +143,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
       style={orgBrand?.active && orgBrand.accentColor ? ({ ["--primary"]: orgBrand.accentColor } as Record<string, string>) : undefined}
     >
       <PublicHeader />
+      <EventPublicRealtimeSync eventId={event.id} />
 
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-[1fr_320px] lg:grid-cols-[1fr_360px] lg:gap-8 xl:grid-cols-[1fr_380px]">
@@ -169,7 +171,10 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                   </span>
                   <h3 className="font-display text-lg font-bold text-foreground sm:text-xl">Información del Evento</h3>
                 </div>
-                <span className="text-xs font-medium text-muted-foreground">Valores actualizados en vivo</span>
+                <div className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Actualizado en vivo</span>
+                </div>
               </div>
 
               <EventDetailSchedules
@@ -177,6 +182,9 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                 eventTitle={event.title}
                 eventDescription={event.description}
                 eventLocation={rawLocation}
+                eventDate={event.date}
+                eventEndDate={event.endDate}
+                isVirtual={Boolean(event.isVirtual)}
                 schedules={schedulesForDisplay}
               />
 

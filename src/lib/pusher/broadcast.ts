@@ -119,6 +119,7 @@ export async function broadcastEventUpdated(
     ...context,
     eventId: payload.eventId,
     includePrivateEvent: true,
+    includePublicCount: true,
   });
 }
 

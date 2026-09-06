@@ -199,7 +199,7 @@ export class EventMutationsService {
 
     await broadcastEventUpdated(
       { eventId, title: updated.title, status: updated.status },
-      { eventId, organizationId: updated.organizationId },
+      { eventId, organizationId: updated.organizationId, organizerId: updated.organizerId },
     );
     await broadcastTableRefresh({
       resource: "events",
@@ -208,6 +208,9 @@ export class EventMutationsService {
     });
 
     await invalidateCache(CACHE_KEYS.eventBySlug(updated.slug));
+    if (existing.slug !== updated.slug) {
+      await invalidateCache(CACHE_KEYS.eventBySlug(existing.slug));
+    }
     await invalidateCachePattern("events:public*");
 
     if (oldCoverImage && oldCoverImage !== updated.coverImage) {
@@ -254,6 +257,10 @@ export class EventMutationsService {
       eventId,
       organizationId: existing.organizationId ?? undefined,
     });
+    await broadcastEventUpdated(
+      { eventId, title: existing.title, status: "cancelled" },
+      { eventId, organizationId: existing.organizationId, organizerId: existing.organizerId },
+    );
 
     if (oldCoverImage) {
       const { deleteUploadThingFile } = await import("@/lib/uploadthing/delete");

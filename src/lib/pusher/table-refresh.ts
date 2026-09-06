@@ -1,7 +1,7 @@
 import "server-only";
 
 import { triggerPusher } from "./server";
-import { PUSHER_EVENTS, type TableRefreshPayload } from "./shared";
+import { PUSHER_CHANNELS, PUSHER_EVENTS, type TableRefreshPayload } from "./shared";
 import { collectEventRealtimeChannels } from "./channels";
 import { resolveEventBroadcastContext } from "./broadcast";
 
@@ -25,6 +25,11 @@ export async function broadcastTableRefresh(payload: TableRefreshPayload) {
     ...context,
     includePrivateEvent: Boolean(payload.eventId),
   });
+
+  const resources = Array.isArray(payload.resource) ? payload.resource : [payload.resource];
+  if (resources.includes("events")) {
+    channels.push(PUSHER_CHANNELS.publicEventsCatalog);
+  }
 
   await triggerPusher(channels, PUSHER_EVENTS.tableRefresh, data);
 }

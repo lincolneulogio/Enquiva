@@ -10,6 +10,7 @@ import { PublicHeader } from "@/components/shared/PublicHeader";
 import { EventsCatalogHero } from "@/components/events/EventsCatalogHero";
 import { EventsTopFilterBar } from "@/components/events/EventsTopFilterBar";
 import { EventsFooter } from "@/components/events/EventsFooter";
+import { EventsCatalogRealtimeSync } from "@/components/events/EventsCatalogRealtimeSync";
 import { ScrollToTopButton } from "@/components/shared/ScrollToTopButton";
 import { getStaticI18n } from "@/lib/i18n/server";
 import type { EventModality, EventDateFilter, EventPriceFilter, EventAccessFilter, EventStatusFilter } from "@/lib/events/taxonomy";
@@ -186,6 +187,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
     <div className="min-h-screen bg-background">
       {/* 1. Header público de navegación */}
       <PublicHeader />
+      <EventsCatalogRealtimeSync />
 
       {/* 2. Hero con badge, titular cálido, píldoras y 3 tarjetas de beneficios dinámicas */}
       <EventsCatalogHero

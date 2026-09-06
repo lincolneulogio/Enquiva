@@ -29,6 +29,7 @@ export function EventDetailMetrics({
   const maxCapacity = capacity && capacity > 0 ? capacity : 10;
   const available = Math.max(0, maxCapacity - occupied);
   const percentage = Math.min(100, Math.round((occupied / maxCapacity) * 100));
+  const isScarce = available > 0 && (available <= 10 || available / maxCapacity <= 0.15);
 
   const parsedPrice = price != null ? Number(price) : 1;
   const formattedPrice =
@@ -76,9 +77,20 @@ export function EventDetailMetrics({
                 CAPACIDAD
               </span>
             </div>
-            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary border border-primary/25">
-              {available} disponibles
-            </span>
+            {isScarce ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 dark:bg-amber-950/40 px-2.5 py-0.5 text-[11px] font-black text-amber-700 dark:text-amber-300 border border-amber-500/30 animate-pulse">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                ¡Solo {available} cupos!
+              </span>
+            ) : available === 0 ? (
+              <span className="inline-flex items-center rounded-full bg-destructive/10 px-2.5 py-0.5 text-[11px] font-bold text-destructive border border-destructive/25">
+                Agotado
+              </span>
+            ) : (
+              <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary border border-primary/25">
+                {available} disponibles
+              </span>
+            )}
           </div>
 
           <div className="flex items-baseline gap-1 mt-1">
@@ -91,13 +103,15 @@ export function EventDetailMetrics({
           </div>
 
           {/* Barra de progreso de cupos */}
-          <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-primary/15 dark:bg-primary/20">
+          <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-muted/60 dark:bg-muted/40">
             <div
               className={cn(
                 "h-full rounded-full transition-all duration-500",
                 percentage >= 100
                   ? "bg-destructive"
-                  : "bg-primary shadow-2xs shadow-primary/30"
+                  : isScarce
+                    ? "bg-gradient-to-r from-amber-500 to-rose-500 shadow-2xs shadow-amber-500/30"
+                    : "bg-primary shadow-2xs shadow-primary/30",
               )}
               style={{ width: `${Math.min(100, Math.max(6, percentage))}%` }}
             />
