@@ -1,7 +1,16 @@
 import { db } from "@/lib/db";
-import { users, organizations } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { users, organizations, subscriptions } from "@/lib/db/schema";
+import { and, eq, isNull, sql, type SQL } from "drizzle-orm";
 import { normalizeRole } from "@/lib/auth/rbac";
+import { addBillingMonth } from "./plan-change-policy";
+
+export function isPaidPlanRow(plan: { slug: string; priceMonthly: string | number }) {
+  return plan.slug !== "free" && Number(plan.priceMonthly) > 0;
+}
+
+export function addOneMonth(from = new Date()) {
+  return addBillingMonth(from);
+}
 
 export type SubscriptionBillingContext =
   | { mode: "platform_unlimited" }
@@ -70,3 +79,14 @@ export function getBillingUserId(ctx: SubscriptionBillingContext): string | null
   if (ctx.mode === "user") return ctx.userId;
   return null;
 }
+
+export function subscriptionWhere(ctx: SubscriptionBillingContext): SQL {
+  if (ctx.mode === "organization") {
+    return eq(subscriptions.organizationId, ctx.organizationId);
+  }
+  if (ctx.mode === "user") {
+    return and(eq(subscriptions.userId, ctx.userId), isNull(subscriptions.organizationId))!;
+  }
+  return sql`1 = 0`;
+}
+

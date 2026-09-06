@@ -2,68 +2,31 @@ import { db, type DBTransaction } from "@/lib/db";
 import {
   plans,
   subscriptions,
-  subscriptionPayments,
-  platformTransactions,
-  events,
-  broadcastLogs,
-  users,
-  organizationMembers,
   type Plan,
 } from "@/lib/db/schema";
+import { eq, type SQL } from "drizzle-orm";
 import {
-  and,
-  count,
-  desc,
-  eq,
-  gt,
-  gte,
-  inArray,
-  isNull,
-  lt,
-  lte,
-  ne,
-  notInArray,
-  or,
-  sql,
-  type SQL,
-} from "drizzle-orm";
-import {
-  CANONICAL_PLAN_SLUGS,
-  FREE_PLAN_DEFINITION,
   mapPlanRow,
   PENDING_PLATFORM_SETUP_PLAN,
-  PLATFORM_SPECIAL_PLAN_DEFINITION,
-  PLATFORM_SPECIAL_PLAN_SLUG,
-  UNLIMITED_PLAN,
-  filterPublicBillingPlans,
   isPendingPlatformSetupPlan,
-  isPlatformSpecialPlan,
-  type PlanDefinitionSeed,
 } from "./plans";
-import { eventOccupiesPlanSlotSql } from "./active-events";
 import type { PlanUsage, PlanChangePreview, ResolvedPlan, SubscriptionInfo } from "./types";
 import { isOrganizerSubscriptionBlocked } from "./subscription-auto-renew.service";
-import { clearRenewalTrackingFields } from "./subscription-renewal.service";
-import {
-  addBillingMonth,
-  decidePlanChangeTiming,
-  purchasedPeriodEnd,
-} from "./plan-change-policy";
 import { normalizeRole } from "@/lib/auth/rbac";
 import {
   resolveSubscriptionBillingContext,
   canManageSubscriptionBilling,
   getBillingUserId,
+  subscriptionWhere,
+  isPaidPlanRow,
+  addOneMonth,
   type SubscriptionBillingContext,
 } from "./subscription-context";
-
-function isPaidPlanRow(plan: { slug: string; priceMonthly: string | number }) {
-  return plan.slug !== "free" && Number(plan.priceMonthly) > 0;
-}
-
-function addOneMonth(from = new Date()) {
-  return addBillingMonth(from);
-}
+import { SubscriptionPlansService } from "./subscription-plans.service";
+import { SubscriptionLifecycleService } from "./subscription-lifecycle.service";
+import { SubscriptionAssignmentService } from "./subscription-assignment.service";
+import { SubscriptionUsageService } from "./subscription-usage.service";
+import { PlatformTransactionsService } from "./platform-transactions.service";
 
 export class SubscriptionService {
   /** Solo super_admin de plataforma tiene plan ilimitado sin facturación. */
@@ -72,13 +35,7 @@ export class SubscriptionService {
   }
 
   static subscriptionWhere(ctx: SubscriptionBillingContext): SQL {
-    if (ctx.mode === "organization") {
-      return eq(subscriptions.organizationId, ctx.organizationId);
-    }
-    if (ctx.mode === "user") {
-      return and(eq(subscriptions.userId, ctx.userId), isNull(subscriptions.organizationId))!;
-    }
-    return sql`1 = 0`;
+    return subscriptionWhere(ctx);
   }
 
   static async ensureOrganizationSubscription(organizationId: string, billingUserId: string) {
@@ -114,259 +71,67 @@ export class SubscriptionService {
   }
 
   static async getOrganizationPlan(organizationId: string): Promise<ResolvedPlan> {
-    const [row] = await db
-      .select({ plan: plans, status: subscriptions.status })
+    const [existing] = await db
+      .select({ plan: plans })
       .from(subscriptions)
       .innerJoin(plans, eq(subscriptions.planId, plans.id))
       .where(eq(subscriptions.organizationId, organizationId))
       .limit(1);
 
-    if (!row || row.status !== "active") {
-      return (
-        (await this.getPlanBySlug("free")) ??
-        (await this.ensureFreePlanExists()) ??
-        PENDING_PLATFORM_SETUP_PLAN
-      );
-    }
-    return mapPlanRow(row.plan);
-  }
-
-  private static planUpsertFields(definition: PlanDefinitionSeed) {
-    return {
-      name: definition.name,
-      description: definition.description,
-      priceMonthly: definition.priceMonthly,
-      maxActiveEvents: definition.maxActiveEvents,
-      maxAttendeesPerEvent: definition.maxAttendeesPerEvent,
-      commissionPercent: definition.commissionPercent,
-      commissionPerRegistration: definition.commissionPerRegistration,
-      maxBroadcastsPerMonth: definition.maxBroadcastsPerMonth,
-      maxAiMessagesPerMonth: definition.maxAiMessagesPerMonth,
-      maxOrganizers: definition.maxOrganizers,
-      featureCulqi: definition.featureCulqi,
-      featureTransport: definition.featureTransport,
-      featureAi: definition.featureAi,
-      featureExports: definition.featureExports,
-      featureCustomBranding: definition.featureCustomBranding,
-      sortOrder: definition.sortOrder,
-      updatedAt: new Date(),
-    };
-  }
-
-  /**
-   * Si el slug canónico `free` desapareció (p. ej. "Gratis" → slugify → "gratis"),
-   * lo recupera sin perder límites/features personalizados por el superadmin.
-   */
-  static async reclaimFreePlanSlug() {
-    const [canonical] = await db.select({ id: plans.id }).from(plans).where(eq(plans.slug, "free")).limit(1);
-    if (canonical) return;
-
-    const [drifted] = await db
-      .select({ id: plans.id })
-      .from(plans)
-      .where(
-        and(
-          ne(plans.slug, PLATFORM_SPECIAL_PLAN_SLUG),
-          or(eq(plans.slug, "gratis"), and(eq(plans.priceMonthly, "0"), eq(plans.name, "Gratis"))),
-        ),
-      )
-      .limit(1);
-
-    if (!drifted) return;
-
-    await db
-      .update(plans)
-      .set({ slug: "free", updatedAt: new Date() })
-      .where(eq(plans.id, drifted.id));
-  }
-
-  /** Sincroniza la definición canónica del plan free (scripts de bootstrap / deploy). */
-  static async syncFreePlanDefinition() {
-    await this.reclaimFreePlanSlug();
-    await db
-      .insert(plans)
-      .values(FREE_PLAN_DEFINITION)
-      .onConflictDoUpdate({
-        target: plans.slug,
-        set: this.planUpsertFields(FREE_PLAN_DEFINITION),
-      });
-  }
-
-  /**
-   * Crea el plan free solo si no existe (no pisa personalizaciones del superadmin).
-   * Auto-cura BDs sin seed o con el plan borrado por error.
-   */
-  static async ensureFreePlanExists(): Promise<ResolvedPlan | null> {
-    await this.reclaimFreePlanSlug();
-    const existing = await this.getPlanBySlug("free");
-    if (existing) return existing;
-
-    await db.insert(plans).values(FREE_PLAN_DEFINITION).onConflictDoNothing();
-    return this.getPlanBySlug("free");
-  }
-
-  /**
-   * Plan especial solo-superadmin: siempre ilimitado, se repara solo si alguien lo tocó.
-   */
-  static async ensurePlatformSpecialPlanExists(): Promise<ResolvedPlan> {
-    const fields = {
-      name: PLATFORM_SPECIAL_PLAN_DEFINITION.name,
-      description: PLATFORM_SPECIAL_PLAN_DEFINITION.description,
-      priceMonthly: PLATFORM_SPECIAL_PLAN_DEFINITION.priceMonthly,
-      maxActiveEvents: PLATFORM_SPECIAL_PLAN_DEFINITION.maxActiveEvents,
-      maxAttendeesPerEvent: PLATFORM_SPECIAL_PLAN_DEFINITION.maxAttendeesPerEvent,
-      commissionPercent: PLATFORM_SPECIAL_PLAN_DEFINITION.commissionPercent,
-      commissionPerRegistration: PLATFORM_SPECIAL_PLAN_DEFINITION.commissionPerRegistration,
-      maxBroadcastsPerMonth: PLATFORM_SPECIAL_PLAN_DEFINITION.maxBroadcastsPerMonth,
-      maxAiMessagesPerMonth: PLATFORM_SPECIAL_PLAN_DEFINITION.maxAiMessagesPerMonth,
-      maxOrganizers: PLATFORM_SPECIAL_PLAN_DEFINITION.maxOrganizers,
-      featureCulqi: PLATFORM_SPECIAL_PLAN_DEFINITION.featureCulqi,
-      featureTransport: PLATFORM_SPECIAL_PLAN_DEFINITION.featureTransport,
-      featureAi: PLATFORM_SPECIAL_PLAN_DEFINITION.featureAi,
-      featureExports: PLATFORM_SPECIAL_PLAN_DEFINITION.featureExports,
-      featureCustomBranding: PLATFORM_SPECIAL_PLAN_DEFINITION.featureCustomBranding,
-      sortOrder: PLATFORM_SPECIAL_PLAN_DEFINITION.sortOrder,
-      // Nunca público: no debe aparecer para admin/organizer/member.
-      isActive: false,
-      updatedAt: new Date(),
-    };
-
-    await db
-      .insert(plans)
-      .values({
-        slug: PLATFORM_SPECIAL_PLAN_SLUG,
-        ...fields,
-      })
-      .onConflictDoUpdate({
-        target: plans.slug,
-        set: fields,
-      });
-
-    return (await this.getPlanBySlug(PLATFORM_SPECIAL_PLAN_SLUG)) ?? UNLIMITED_PLAN;
-  }
-
-  /**
-   * Tras reset/sync: deja solo Free (público) + Plan Plataforma (superadmin).
-   * Cualquier otro plan se elimina; suscripciones/pagos asociados pasan a Free.
-   */
-  static async ensureDefaultPlans() {
-    await this.syncFreePlanDefinition();
-    await this.ensurePlatformSpecialPlanExists();
-
-    const [freeRow] = await db.select().from(plans).where(eq(plans.slug, "free")).limit(1);
-    if (!freeRow) {
-      throw new Error("No se pudo sincronizar el plan free.");
+    if (existing?.plan) {
+      return mapPlanRow(existing.plan);
     }
 
-    const extras = await db
-      .select({ id: plans.id, slug: plans.slug, name: plans.name })
-      .from(plans)
-      .where(notInArray(plans.slug, [...CANONICAL_PLAN_SLUGS]));
-
-    for (const extra of extras) {
-      await db
-        .update(subscriptions)
-        .set({ planId: freeRow.id, updatedAt: new Date() })
-        .where(eq(subscriptions.planId, extra.id));
-
-      await db
-        .update(subscriptionPayments)
-        .set({ planId: freeRow.id })
-        .where(eq(subscriptionPayments.planId, extra.id));
-
-      await db.delete(plans).where(eq(plans.id, extra.id));
-    }
+    return this.getFreePlan();
   }
 
-  static async getPlanBySlug(slug: string): Promise<ResolvedPlan | null> {
-    const [plan] = await db.select().from(plans).where(eq(plans.slug, slug)).limit(1);
-    return plan ? mapPlanRow(plan) : null;
+  // Delegated plan management
+  static reclaimFreePlanSlug() {
+    return SubscriptionPlansService.reclaimFreePlanSlug();
   }
 
-  static async getFreePlan(): Promise<ResolvedPlan> {
-    const plan =
-      (await this.getPlanBySlug("free")) ?? (await this.ensureFreePlanExists());
-    if (!plan) {
-      throw new Error(
-        "Plan free no encontrado. Ejecuta pnpm db:seed:bootstrap o pnpm db:sync:plans.",
-      );
-    }
-    return plan;
+  static syncFreePlanDefinition() {
+    return SubscriptionPlansService.syncFreePlanDefinition();
   }
 
-  static async getUsage(userId: string, ctx?: SubscriptionBillingContext): Promise<PlanUsage> {
-    const billingCtx = ctx ?? (await resolveSubscriptionBillingContext(userId, null));
-    const monthStart = new Date();
-    monthStart.setDate(1);
-    monthStart.setHours(0, 0, 0, 0);
-
-    if (billingCtx.mode === "organization") {
-      const memberRows = await db
-        .select({ userId: organizationMembers.userId })
-        .from(organizationMembers)
-        .where(eq(organizationMembers.organizationId, billingCtx.organizationId));
-
-      const memberIds = memberRows.map((row) => row.userId);
-      if (memberIds.length === 0) {
-        return { activeEvents: 0, broadcastsThisMonth: 0, aiMessagesThisMonth: 0 };
-      }
-
-      const [[eventsRow], [broadcastRow]] = await Promise.all([
-        db
-          .select({ total: count() })
-          .from(events)
-          .where(
-            and(
-              eq(events.organizationId, billingCtx.organizationId),
-              eventOccupiesPlanSlotSql(),
-            ),
-          ),
-        db
-          .select({ total: count() })
-          .from(broadcastLogs)
-          .where(
-            and(
-              inArray(broadcastLogs.senderId, memberIds),
-              gte(broadcastLogs.createdAt, monthStart),
-            ),
-          ),
-      ]);
-
-      return {
-        activeEvents: eventsRow?.total ?? 0,
-        broadcastsThisMonth: broadcastRow?.total ?? 0,
-        aiMessagesThisMonth: 0,
-      };
-    }
-
-    const [[eventsRow], [broadcastRow]] = await Promise.all([
-      db
-        .select({ total: count() })
-        .from(events)
-        .where(
-          and(
-            eq(events.organizerId, userId),
-            eventOccupiesPlanSlotSql(),
-          ),
-        ),
-      db
-        .select({ total: count() })
-        .from(broadcastLogs)
-        .where(and(eq(broadcastLogs.senderId, userId), gte(broadcastLogs.createdAt, monthStart))),
-    ]);
-
-    return {
-      activeEvents: eventsRow?.total ?? 0,
-      broadcastsThisMonth: broadcastRow?.total ?? 0,
-      aiMessagesThisMonth: 0,
-    };
+  static ensureFreePlanExists(): Promise<ResolvedPlan | null> {
+    return SubscriptionPlansService.ensureFreePlanExists();
   }
 
+  static ensurePlatformSpecialPlanExists(): Promise<ResolvedPlan> {
+    return SubscriptionPlansService.ensurePlatformSpecialPlanExists();
+  }
+
+  static ensureDefaultPlans() {
+    return SubscriptionPlansService.ensureDefaultPlans();
+  }
+
+  static getPlanBySlug(slug: string): Promise<ResolvedPlan | null> {
+    return SubscriptionPlansService.getPlanBySlug(slug);
+  }
+
+  static getFreePlan(): Promise<ResolvedPlan> {
+    return SubscriptionPlansService.getFreePlan();
+  }
+
+  static listAllPlans(): Promise<Plan[]> {
+    return SubscriptionPlansService.listAllPlans();
+  }
+
+  static listPublicPlans(): Promise<Plan[]> {
+    return SubscriptionPlansService.listPublicPlans();
+  }
+
+  // Usage
+  static getUsage(userId: string, ctx?: SubscriptionBillingContext): Promise<PlanUsage> {
+    return SubscriptionUsageService.getUsage(userId, ctx);
+  }
+
+  // Subscription retrieval / creation
   static async getOrCreateSubscription(userId: string, role?: string | null): Promise<SubscriptionInfo> {
     const ctx = await resolveSubscriptionBillingContext(userId, role);
 
     if (ctx.mode === "platform_unlimited") {
-      // Superadmin: plan especial interno (ilimitado), nunca el catálogo comercial.
       const specialPlan = await this.ensurePlatformSpecialPlanExists();
       return {
         id: "platform",
@@ -405,7 +170,6 @@ export class SubscriptionService {
     const freePlan =
       (await this.getPlanBySlug("free")) ?? (await this.ensureFreePlanExists());
     if (!freePlan) {
-      // Último recurso: panel usable sin tumbar el layout (p. ej. fallo de BD).
       return {
         id: "pending-setup",
         status: "pending_setup",
@@ -518,242 +282,20 @@ export class SubscriptionService {
     };
   }
 
-  /** Sincroniza vencimiento según contexto de facturación (org o usuario). */
-  static async syncSubscriptionForContext(ctx: SubscriptionBillingContext) {
-    if (ctx.mode === "platform_unlimited") return;
-
-    const billingUserId = getBillingUserId(ctx);
-    if (!billingUserId) return;
-
-    await this.applyDuePendingPlanForContext(ctx);
-
-    const [row] = await db
-      .select({
-        subscription: subscriptions,
-        plan: plans,
-      })
-      .from(subscriptions)
-      .innerJoin(plans, eq(subscriptions.planId, plans.id))
-      .where(this.subscriptionWhere(ctx))
-      .limit(1);
-
-    if (!row) return;
-
-    const now = new Date();
-    const { subscription, plan } = row;
-
-    if (!isPaidPlanRow(plan)) {
-      if (subscription.status === "active" && subscription.currentPeriodEnd < now) {
-        await db
-          .update(subscriptions)
-          .set({
-            currentPeriodStart: now,
-            currentPeriodEnd: addOneMonth(now),
-            updatedAt: now,
-          })
-          .where(eq(subscriptions.id, subscription.id));
-      }
-      return;
-    }
-
-    if (subscription.currentPeriodEnd >= now) return;
-
-    if (subscription.status === "active") {
-      const daysOver = Math.floor(
-        (now.getTime() - subscription.currentPeriodEnd.getTime()) / (1000 * 60 * 60 * 24),
-      );
-
-      if (subscription.autoRenewEnabled && subscription.culqiCardId) {
-        const { AUTO_RENEW_RETRY_DAYS, AUTO_RENEW_BLOCK_AFTER_DAYS } = await import(
-          "./subscription-renewal.service",
-        );
-        const shouldRetry = (AUTO_RENEW_RETRY_DAYS as readonly number[]).includes(daysOver);
-        const attemptedToday =
-          subscription.autoRenewLastAttemptAt &&
-          subscription.autoRenewLastAttemptAt.getUTCFullYear() === now.getUTCFullYear() &&
-          subscription.autoRenewLastAttemptAt.getUTCMonth() === now.getUTCMonth() &&
-          subscription.autoRenewLastAttemptAt.getUTCDate() === now.getUTCDate();
-
-        if (shouldRetry && !attemptedToday) {
-          const [user] = await db
-            .select({ email: users.email, name: users.name, phone: users.phone, address: users.address })
-            .from(users)
-            .where(eq(users.id, billingUserId))
-            .limit(1);
-
-          if (user?.email) {
-            const { SubscriptionAutoRenewService } = await import("./subscription-auto-renew.service");
-            const renewed = await SubscriptionAutoRenewService.tryAutoRenewForUser(billingUserId, {
-              name: user.name,
-              email: user.email,
-              phone: user.phone,
-              address: user.address,
-            });
-            await db
-              .update(subscriptions)
-              .set({ autoRenewLastAttemptAt: now, updatedAt: now })
-              .where(eq(subscriptions.id, subscription.id));
-            if (renewed) return;
-          }
-        }
-
-        if (daysOver < AUTO_RENEW_BLOCK_AFTER_DAYS) return;
-      } else {
-        const { MANUAL_PAYMENT_GRACE_DAYS } = await import("./subscription-renewal.service");
-        if (daysOver < MANUAL_PAYMENT_GRACE_DAYS) return;
-      }
-
-      await db
-        .update(subscriptions)
-        .set({ status: "past_due", updatedAt: now })
-        .where(eq(subscriptions.id, subscription.id));
-    }
+  // Lifecycle
+  static syncSubscriptionForContext(ctx: SubscriptionBillingContext) {
+    return SubscriptionLifecycleService.syncSubscriptionForContext(ctx);
   }
 
-  private static async applyDuePendingPlanForContext(ctx: SubscriptionBillingContext) {
-    const now = new Date();
-    const [subscription] = await db
-      .select()
-      .from(subscriptions)
-      .where(
-        and(
-          this.subscriptionWhere(ctx),
-          sql`${subscriptions.pendingPlanId} IS NOT NULL`,
-          lte(subscriptions.pendingPlanEffectiveAt, now),
-        ),
-      )
-      .limit(1);
-
-    if (!subscription?.pendingPlanId || !subscription.pendingPlanEffectiveAt) return false;
-    return this.applyPendingPlanChange(subscription, now);
+  static syncSubscriptionForUser(userId: string) {
+    return SubscriptionLifecycleService.syncSubscriptionForUser(userId);
   }
 
-  private static async applyPendingPlanChange(
-    subscription: typeof subscriptions.$inferSelect,
-    now: Date,
-  ) {
-    if (!subscription.pendingPlanId || !subscription.pendingPlanEffectiveAt) return false;
-
-    const [targetPlan] = await db
-      .select()
-      .from(plans)
-      .where(eq(plans.id, subscription.pendingPlanId))
-      .limit(1);
-    if (!targetPlan) return false;
-
-    const effectiveAt = subscription.pendingPlanEffectiveAt;
-    const periodEnd =
-      subscription.currentPeriodEnd > effectiveAt
-        ? subscription.currentPeriodEnd
-        : addOneMonth(effectiveAt);
-
-    const [updated] = await db
-      .update(subscriptions)
-      .set({
-        planId: targetPlan.id,
-        pendingPlanId: null,
-        pendingPlanEffectiveAt: null,
-        status: "active",
-        currentPeriodStart: effectiveAt,
-        currentPeriodEnd: periodEnd,
-        cancelledAt: null,
-        ...(isPaidPlanRow(targetPlan)
-          ? {}
-          : { autoRenewEnabled: false }),
-        ...clearRenewalTrackingFields(),
-        updatedAt: now,
-      })
-      .where(
-        and(
-          eq(subscriptions.id, subscription.id),
-          eq(subscriptions.pendingPlanId, targetPlan.id),
-          lte(subscriptions.pendingPlanEffectiveAt, now),
-        ),
-      )
-      .returning({ id: subscriptions.id });
-
-    return Boolean(updated);
+  static processSubscriptionLifecycle() {
+    return SubscriptionLifecycleService.processSubscriptionLifecycle();
   }
 
-  /** @deprecated Usar syncSubscriptionForContext */
-  static async syncSubscriptionForUser(userId: string) {
-    const [user] = await db
-      .select({ role: users.role })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-    const ctx = await resolveSubscriptionBillingContext(userId, user?.role);
-    return this.syncSubscriptionForContext(ctx);
-  }
-
-  /**
-   * Job batch: marca past_due al vencer y hace downgrade a Free.
-   * Ejecutar diariamente vía cron o script.
-   */
-  static async processSubscriptionLifecycle() {
-    const now = new Date();
-
-    const duePlanChanges = await db
-      .select()
-      .from(subscriptions)
-      .where(
-        and(
-          sql`${subscriptions.pendingPlanId} IS NOT NULL`,
-          lte(subscriptions.pendingPlanEffectiveAt, now),
-        ),
-      );
-    let appliedPlanChanges = 0;
-    for (const subscription of duePlanChanges) {
-      if (await this.applyPendingPlanChange(subscription, now)) {
-        appliedPlanChanges += 1;
-      }
-    }
-
-    const { SubscriptionRenewalService } = await import("./subscription-renewal.service");
-    const remindersSent = await SubscriptionRenewalService.sendUpcomingRenewalReminders();
-    const expiredResult = await SubscriptionRenewalService.processExpiredPaidSubscriptions();
-
-    let renewedFree = 0;
-
-    const expiredFree = await db
-      .select({ id: subscriptions.id })
-      .from(subscriptions)
-      .innerJoin(plans, eq(subscriptions.planId, plans.id))
-      .where(
-        and(
-          eq(subscriptions.status, "active"),
-          or(eq(plans.slug, "free"), eq(plans.priceMonthly, "0")),
-          lt(subscriptions.currentPeriodEnd, now),
-        ),
-      );
-
-    for (const row of expiredFree) {
-      await db
-        .update(subscriptions)
-        .set({
-          currentPeriodStart: now,
-          currentPeriodEnd: addOneMonth(now),
-          updatedAt: now,
-        })
-        .where(eq(subscriptions.id, row.id));
-      renewedFree += 1;
-    }
-
-    return {
-      remindersSent,
-      autoRenewed: expiredResult.autoRenewed,
-      autoRenewAttempts: expiredResult.autoRenewAttempts,
-      markedPastDue: expiredResult.markedPastDue,
-      appliedPlanChanges,
-      renewedFree,
-      processed:
-        expiredResult.markedPastDue +
-        expiredResult.autoRenewed +
-        renewedFree +
-        appliedPlanChanges,
-    };
-  }
-
+  // Plan Assignment
   static async getSubscriptionPlanForUserId(
     userId: string,
     role?: string | null,
@@ -762,254 +304,54 @@ export class SubscriptionService {
     return info.plan;
   }
 
-  /** Vista previa para confirmar cambio de plan (organizador o admin de entidad). */
-  static async getPlanChangePreview(
+  static getPlanChangePreview(
     userId: string,
     targetPlanSlug: string,
     role?: string | null,
   ): Promise<PlanChangePreview | null> {
-    const [targetPlan] = await db
-      .select()
-      .from(plans)
-      .where(eq(plans.slug, targetPlanSlug))
-      .limit(1);
-    if (!targetPlan) return null;
-
-    const ctx = await resolveSubscriptionBillingContext(userId, role);
-
-    const [row] = await db
-      .select({
-        subscription: subscriptions,
-        plan: plans,
-      })
-      .from(subscriptions)
-      .innerJoin(plans, eq(subscriptions.planId, plans.id))
-      .where(this.subscriptionWhere(ctx))
-      .limit(1);
-
-    const now = new Date();
-    const currentPlan = row?.plan ?? (await db.select().from(plans).where(eq(plans.slug, "free")).limit(1))[0];
-    if (!currentPlan) return null;
-
-    const daysRemaining = row
-      ? Math.max(
-          0,
-          Math.ceil(
-            (row.subscription.currentPeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-          ),
-        )
-      : 0;
-
-    const isDifferentPlan = currentPlan.slug !== targetPlanSlug;
-    const decision = row
-      ? decidePlanChangeTiming({
-          currentPrice: Number(currentPlan.priceMonthly),
-          targetPrice: Number(targetPlan.priceMonthly),
-          currentPlanId: currentPlan.id,
-          targetPlanId: targetPlan.id,
-          currentStatus: row.subscription.status,
-          currentPeriodEnd: row.subscription.currentPeriodEnd,
-          now,
-        })
-      : {
-          timing: "immediate" as const,
-          isDowngrade: false,
-          hasActivePaidPeriod: false,
-        };
-    const targetIsPaid = Number(targetPlan.priceMonthly) > 0;
-    const newPeriodEnd =
-      decision.hasActivePaidPeriod && targetIsPaid
-        ? addOneMonth(row!.subscription.currentPeriodEnd)
-        : decision.timing === "scheduled"
-          ? row!.subscription.currentPeriodEnd
-          : addOneMonth(now);
-
-    return {
-      requiresConfirmation: Boolean(
-        decision.hasActivePaidPeriod && isDifferentPlan && daysRemaining > 0,
-      ),
-      currentPlanName: currentPlan.name,
-      targetPlanName: targetPlan.name,
-      daysRemaining,
-      newPeriodEnd: newPeriodEnd.toISOString(),
-      effectiveAt:
-        decision.timing === "scheduled" && row
-          ? row.subscription.currentPeriodEnd.toISOString()
-          : now.toISOString(),
-      isDowngrade: decision.isDowngrade,
-      timing: decision.timing,
-      preservesRemainingDays: decision.hasActivePaidPeriod,
-    };
+    return SubscriptionAssignmentService.getPlanChangePreview(userId, targetPlanSlug, role);
   }
 
-  static async assignPlanFromOrganizerPayment(
+  static assignPlanFromOrganizerPayment(
     actorUserId: string,
     actorRole: string | null | undefined,
     planId: string,
     options: { paymentReceived?: boolean } = {},
   ) {
-    const ctx = await resolveSubscriptionBillingContext(actorUserId, actorRole);
-    if (!canManageSubscriptionBilling(actorUserId, actorRole, ctx)) {
-      throw new Error("No puedes gestionar el plan de esta entidad.");
-    }
-    const billingUserId = getBillingUserId(ctx);
-    if (!billingUserId) throw new Error("Contexto de facturación inválido");
-
-    return db.transaction(async (tx) =>
-      this.assignPlanToContextTx(tx, ctx, planId, billingUserId, {
-        paymentReceived: options.paymentReceived ?? true,
-      }),
+    return SubscriptionAssignmentService.assignPlanFromOrganizerPayment(
+      actorUserId,
+      actorRole,
+      planId,
+      options,
     );
   }
 
-  static async assignPlanForPaymentUserTx(
+  static assignPlanForPaymentUserTx(
     tx: DBTransaction,
     paymentUserId: string,
     planId: string,
   ) {
-    const [user] = await tx
-      .select({ role: users.role })
-      .from(users)
-      .where(eq(users.id, paymentUserId))
-      .limit(1);
-    const ctx = await resolveSubscriptionBillingContext(paymentUserId, user?.role);
-    const billingUserId = getBillingUserId(ctx);
-    if (!billingUserId) throw new Error("Contexto de facturación inválido");
-
-    return this.assignPlanToContextTx(tx, ctx, planId, billingUserId, {
-      paymentReceived: true,
-    });
+    return SubscriptionAssignmentService.assignPlanForPaymentUserTx(tx, paymentUserId, planId);
   }
 
-  /** @deprecated Usar assignPlanToContextTx */
-  static async assignPlanToUserTx(tx: DBTransaction, userId: string, planId: string) {
-    return this.assignPlanForPaymentUserTx(tx, userId, planId);
+  static assignPlanToUserTx(tx: DBTransaction, userId: string, planId: string) {
+    return SubscriptionAssignmentService.assignPlanToUserTx(tx, userId, planId);
   }
 
-  static async assignPlanToContextTx(
+  static assignPlanToContextTx(
     tx: DBTransaction,
     ctx: SubscriptionBillingContext,
     planId: string,
     billingUserId: string,
     options: { paymentReceived: boolean },
   ) {
-    if (ctx.mode === "platform_unlimited") {
-      throw new Error("El plan del superadministrador no se asigna por suscripción.");
-    }
-
-    const [plan] = await tx.select().from(plans).where(eq(plans.id, planId)).limit(1);
-    if (!plan) throw new Error("Plan no encontrado");
-    if (isPlatformSpecialPlan(plan)) {
-      throw new Error("Este plan es interno y solo aplica al superadministrador");
-    }
-
-    const now = new Date();
-
-    const [existingRow] = await tx
-      .select({
-        subscription: subscriptions,
-        plan: plans,
-      })
-      .from(subscriptions)
-      .innerJoin(plans, eq(subscriptions.planId, plans.id))
-      .where(this.subscriptionWhere(ctx))
-      .limit(1);
-    const existing = existingRow?.subscription;
-    const currentPlan = existingRow?.plan;
-
-    const stillActive =
-      existing &&
-      existing.status === "active" &&
-      existing.currentPeriodEnd > now;
-
-    const isSamePlan = existing?.planId === planId;
-    const decision =
-      existing && currentPlan
-        ? decidePlanChangeTiming({
-            currentPrice: Number(currentPlan.priceMonthly),
-            targetPrice: Number(plan.priceMonthly),
-            currentPlanId: currentPlan.id,
-            targetPlanId: plan.id,
-            currentStatus: existing.status,
-            currentPeriodEnd: existing.currentPeriodEnd,
-            now,
-          })
-        : {
-            timing: "immediate" as const,
-            isDowngrade: false,
-            hasActivePaidPeriod: false,
-          };
-
-    if (existing) {
-      if (existing.pendingPlanId) {
-        if (existing.pendingPlanId === planId) return existing.id;
-        throw new Error("Ya existe un cambio de plan programado para esta suscripción.");
-      }
-
-      if (decision.timing === "scheduled") {
-        const paidFuturePeriod =
-          options.paymentReceived && Number(plan.priceMonthly) > 0;
-        const periodEnd = paidFuturePeriod
-          ? purchasedPeriodEnd({
-              currentPeriodEnd: existing.currentPeriodEnd,
-              now,
-              hasActivePaidPeriod: decision.hasActivePaidPeriod,
-              paymentReceived: true,
-            })
-          : existing.currentPeriodEnd;
-
-        await tx
-          .update(subscriptions)
-          .set({
-            pendingPlanId: planId,
-            pendingPlanEffectiveAt: existing.currentPeriodEnd,
-            currentPeriodEnd: periodEnd,
-            updatedAt: now,
-          })
-          .where(eq(subscriptions.id, existing.id));
-
-        return existing.id;
-      }
-
-      const periodEnd = purchasedPeriodEnd({
-        currentPeriodEnd: existing.currentPeriodEnd,
-        now,
-        hasActivePaidPeriod: decision.hasActivePaidPeriod,
-        paymentReceived: options.paymentReceived,
-      });
-      await tx
-        .update(subscriptions)
-        .set({
-          planId,
-          pendingPlanId: null,
-          pendingPlanEffectiveAt: null,
-          userId: billingUserId,
-          status: "active",
-          currentPeriodStart:
-            isSamePlan && stillActive ? existing.currentPeriodStart : now,
-          currentPeriodEnd: periodEnd,
-          cancelledAt: null,
-          ...clearRenewalTrackingFields(),
-          updatedAt: now,
-        })
-        .where(eq(subscriptions.id, existing.id));
-
-      return existing.id;
-    }
-
-    const [created] = await tx
-      .insert(subscriptions)
-      .values({
-        userId: billingUserId,
-        organizationId: ctx.mode === "organization" ? ctx.organizationId : null,
-        planId,
-        status: "active",
-        currentPeriodStart: now,
-        currentPeriodEnd: addOneMonth(now),
-      })
-      .returning({ id: subscriptions.id });
-
-    return created.id;
+    return SubscriptionAssignmentService.assignPlanToContextTx(
+      tx,
+      ctx,
+      planId,
+      billingUserId,
+      options,
+    );
   }
 
   static async findSubscriptionRow(ctx: SubscriptionBillingContext) {
@@ -1027,91 +369,12 @@ export class SubscriptionService {
     return this.findSubscriptionRow(ctx);
   }
 
-  static async listAllPlans(): Promise<Plan[]> {
-    return db.select().from(plans).orderBy(plans.sortOrder);
+  // Platform transactions & Revenue
+  static getRevenueSummary(options?: { page?: number; pageSize?: number }) {
+    return PlatformTransactionsService.getRevenueSummary(options);
   }
 
-  /** Planes activos que pueden elegir organizadores / entidades. */
-  static async listPublicPlans(): Promise<Plan[]> {
-    const all = await db
-      .select()
-      .from(plans)
-      .where(eq(plans.isActive, true))
-      .orderBy(plans.sortOrder);
-    return filterPublicBillingPlans(all);
-  }
-
-  static async getRevenueSummary(options?: { page?: number; pageSize?: number }) {
-    const pageSize = options?.pageSize && options.pageSize > 0 ? Math.floor(options.pageSize) : 10;
-    const requestedPage = Number(options?.page ?? 1);
-    const page =
-      Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
-    const offset = (page - 1) * pageSize;
-
-    const rows = await db
-      .select({
-        type: platformTransactions.type,
-        total: sql<string>`coalesce(sum(${platformTransactions.amount}), 0)`,
-      })
-      .from(platformTransactions)
-      .groupBy(platformTransactions.type);
-
-    const [recent, [recentCount]] = await Promise.all([
-      db
-        .select()
-        .from(platformTransactions)
-        .orderBy(desc(platformTransactions.createdAt))
-        .limit(pageSize)
-        .offset(offset),
-      db.select({ total: count() }).from(platformTransactions),
-    ]);
-
-    const organizerActive = and(
-      eq(subscriptions.status, "active"),
-      eq(users.role, "organizer"),
-    );
-
-    const paidPlan = and(
-      ne(plans.slug, "free"),
-      gt(sql`cast(${plans.priceMonthly} as numeric)`, sql`0`),
-    );
-
-    const freePlan = or(eq(plans.slug, "free"), eq(plans.priceMonthly, "0"));
-
-    const [[paidOrganizers], [freeOrganizers], [totalOrganizers]] = await Promise.all([
-      db
-        .select({ total: count() })
-        .from(subscriptions)
-        .innerJoin(users, eq(subscriptions.userId, users.id))
-        .innerJoin(plans, eq(subscriptions.planId, plans.id))
-        .where(and(organizerActive, paidPlan)),
-      db
-        .select({ total: count() })
-        .from(subscriptions)
-        .innerJoin(users, eq(subscriptions.userId, users.id))
-        .innerJoin(plans, eq(subscriptions.planId, plans.id))
-        .where(and(organizerActive, freePlan)),
-      db
-        .select({ total: count() })
-        .from(subscriptions)
-        .innerJoin(users, eq(subscriptions.userId, users.id))
-        .innerJoin(plans, eq(subscriptions.planId, plans.id))
-        .where(organizerActive),
-    ]);
-
-    return {
-      totals: rows,
-      recent,
-      recentTotal: recentCount?.total ?? 0,
-      recentPage: page,
-      recentPageSize: pageSize,
-      paidOrganizerSubscriptions: paidOrganizers?.total ?? 0,
-      freeOrganizerSubscriptions: freeOrganizers?.total ?? 0,
-      activeSubscriptions: totalOrganizers?.total ?? 0,
-    };
-  }
-
-  static async recordPlatformTransaction(input: {
+  static recordPlatformTransaction(input: {
     type: "subscription" | "commission" | "adjustment";
     amount: number;
     currency?: string;
@@ -1122,10 +385,10 @@ export class SubscriptionService {
     description?: string;
     metadata?: Record<string, unknown>;
   }) {
-    await db.transaction(async (tx) => this.recordPlatformTransactionTx(tx, input));
+    return PlatformTransactionsService.recordPlatformTransaction(input);
   }
 
-  static async recordPlatformTransactionTx(
+  static recordPlatformTransactionTx(
     tx: DBTransaction,
     input: {
       type: "subscription" | "commission" | "adjustment";
@@ -1139,46 +402,6 @@ export class SubscriptionService {
       metadata?: Record<string, unknown>;
     },
   ) {
-    if (input.subscriptionPaymentId) {
-      const [existing] = await tx
-        .select({ id: platformTransactions.id })
-        .from(platformTransactions)
-        .where(eq(platformTransactions.subscriptionPaymentId, input.subscriptionPaymentId))
-        .limit(1);
-
-      if (existing) return existing.id;
-    }
-
-    if (input.type === "commission" && input.paymentId) {
-      const [existing] = await tx
-        .select({ id: platformTransactions.id })
-        .from(platformTransactions)
-        .where(
-          and(
-            eq(platformTransactions.type, "commission"),
-            eq(platformTransactions.paymentId, input.paymentId),
-          ),
-        )
-        .limit(1);
-
-      if (existing) return existing.id;
-    }
-
-    const [created] = await tx
-      .insert(platformTransactions)
-      .values({
-        type: input.type,
-        amount: String(input.amount),
-        currency: input.currency ?? "PEN",
-        userId: input.userId,
-        paymentId: input.paymentId,
-        subscriptionId: input.subscriptionId,
-        subscriptionPaymentId: input.subscriptionPaymentId,
-        description: input.description,
-        metadata: input.metadata,
-      })
-      .returning({ id: platformTransactions.id });
-
-    return created.id;
+    return PlatformTransactionsService.recordPlatformTransactionTx(tx, input);
   }
 }
