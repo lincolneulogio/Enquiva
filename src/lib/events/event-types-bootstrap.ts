@@ -10,7 +10,7 @@ import { eq, and } from "drizzle-orm";
  * Solo inserta los que no existan aún (idempotente).
  * Se llama al arrancar el panel superadmin y al ejecutar la sincronización.
  */
-export async function ensureDefaultEventTypes(): Promise<{
+export async function ensureDefaultEventTypes(options?: { fillMissing?: boolean }): Promise<{
   inserted: number;
   total: number;
 }> {
@@ -29,6 +29,12 @@ export async function ensureDefaultEventTypes(): Promise<{
   }
 
   let inserted = 0;
+
+  const [existingType] = await db.select({ id: eventTypes.id }).from(eventTypes).limit(1);
+  // Evita restaurar automáticamente un slug que el administrador haya cambiado.
+  if (existingType && !options?.fillMissing) {
+    return { inserted, total: allTypes.length };
+  }
 
   for (const type of allTypes) {
     const [existing] = await db

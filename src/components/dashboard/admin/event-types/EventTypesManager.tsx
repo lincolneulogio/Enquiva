@@ -26,7 +26,7 @@ import {
 } from "@/actions/admin";
 import type { EventTypeItem, EventTypesManagerProps } from "./types";
 
-export function EventTypesManager({ initialEventTypes, categories }: EventTypesManagerProps) {
+export function EventTypesManager({ initialEventTypes, categories, eventCounts }: EventTypesManagerProps) {
   const { locale } = useLocale();
   const t = useTranslations();
   const [items, setItems] = useState<EventTypeItem[]>(initialEventTypes);
@@ -169,17 +169,30 @@ export function EventTypesManager({ initialEventTypes, categories }: EventTypesM
   };
 
   const handlePatchLocal = (id: string, patch: Partial<EventTypeItem>) => {
-    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
+    setItems((prev) => prev.map((it) => (
+      it.id === id
+        ? {
+            ...it,
+            ...patch,
+            ...(patch.label !== undefined && { slug: normalizeCategorySlug(patch.label) }),
+          }
+        : it
+    )));
   };
 
   const handleBlurSave = (item: EventTypeItem) => {
     startTransition(async () => {
       try {
-        await updateEventType(item.id, {
+        const result = await updateEventType(item.id, {
           label: item.label,
           description: item.description ?? undefined,
           sortOrder: item.sortOrder,
         });
+        if (result.eventType) {
+          setItems((prev) => prev.map((current) => (
+            current.id === item.id ? result.eventType as EventTypeItem : current
+          )));
+        }
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Error al guardar cambios");
       }
@@ -502,6 +515,7 @@ export function EventTypesManager({ initialEventTypes, categories }: EventTypesM
                 <th className="w-48 px-4 py-3">Slug</th>
                 <th className="px-4 py-3">{locale === "en" ? "Description" : "Descripción"}</th>
                 <th className="w-24 px-4 py-3 text-center">{locale === "en" ? "Order" : "Orden"}</th>
+                <th className="w-20 px-4 py-3 text-center">{locale === "en" ? "Events" : "Eventos"}</th>
                 <th className="w-24 px-4 py-3 text-center">{locale === "en" ? "Active" : "Activo"}</th>
                 <th className="w-24 px-4 py-3 text-right">{t("common.actions")}</th>
               </tr>
@@ -509,7 +523,7 @@ export function EventTypesManager({ initialEventTypes, categories }: EventTypesM
             <tbody className="divide-y divide-border">
               {filteredItems.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
+                  <td colSpan={9} className="px-4 py-12 text-center text-muted-foreground">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Layers className="h-8 w-8 text-muted-foreground/50" />
                       <p className="font-medium text-foreground">
@@ -578,6 +592,20 @@ export function EventTypesManager({ initialEventTypes, categories }: EventTypesM
                         onBlur={() => handleBlurSave(item)}
                         className="w-16 rounded-lg border border-border bg-background/50 text-center px-2 py-1 text-xs font-mono font-medium focus:border-primary focus:ring-1 focus:ring-primary"
                       />
+                    </td>
+
+                    {/* Event Count (Impact Preview) */}
+                    <td className="px-4 py-3.5 text-center">
+                      <span
+                        className={cn(
+                          "inline-flex min-w-8 items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold",
+                          (eventCounts?.[item.id] ?? 0) > 0
+                            ? "bg-primary/10 text-primary border border-primary/20"
+                            : "bg-muted text-muted-foreground border border-border/60",
+                        )}
+                      >
+                        {eventCounts?.[item.id] ?? 0}
+                      </span>
                     </td>
 
                     {/* Active Checkbox */}

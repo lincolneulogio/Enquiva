@@ -1,4 +1,4 @@
-import { getAllCategories } from "@/actions/admin";
+import { getAllCategories, getTaxonomyStatsAction } from "@/actions/admin";
 import { getAllEventTypes } from "@/actions/admin/event-types";
 import { EventTypesManager } from "@/components/dashboard/admin/event-types";
 import { getI18n } from "@/lib/i18n/server";
@@ -14,9 +14,10 @@ export default async function AdminEventTypesPage() {
   }
 
   const { locale } = await getI18n();
-  const [categories, eventTypesList] = await Promise.all([
+  const [categories, eventTypesList, stats] = await Promise.all([
     getAllCategories(),
     getAllEventTypes(),
+    getTaxonomyStatsAction(),
   ]);
 
   const title = locale === "en" ? "Event Types" : "Tipos de Evento";
@@ -35,6 +36,7 @@ export default async function AdminEventTypesPage() {
       <EventTypesManager
         initialEventTypes={eventTypesList}
         categories={categories.map((c) => ({ slug: c.slug, label: c.label }))}
+        eventCounts={stats.byType}
       />
     </div>
   );

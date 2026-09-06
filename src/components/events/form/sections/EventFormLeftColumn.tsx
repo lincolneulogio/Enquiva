@@ -20,7 +20,7 @@ interface EventFormLeftColumnProps {
   setValue: UseFormSetValue<CreateEventInput>;
   currentDescription?: string;
   categoryOptions: CategoryOption[];
-  suggestedTypes: Array<{ slug: string; label: string }>;
+  suggestedTypes: Array<{ id: string; slug: string; label: string; labelEn?: string | null }>;
   currentEventType?: string;
   locale: "es" | "en";
   getFieldHighlightClass: (field: keyof CreateEventInput) => string;

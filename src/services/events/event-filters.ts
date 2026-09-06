@@ -16,7 +16,7 @@ import {
 import { canonicalCategorySlug, LEGACY_CATEGORY_MAP } from "@/lib/events/taxonomy";
 import type { EventFilterInput } from "@/lib/validations";
 
-export function buildPublicEventConditions(filter: EventFilterInput): SQL[] {
+export function buildPublicEventConditions(filter: EventFilterInput, eventTypeIds?: string[]): SQL[] {
   const conditions: SQL[] = [eq(events.status, "published")];
 
   // 1. Categoría (con compatibilidad de slugs legados)
@@ -34,14 +34,13 @@ export function buildPublicEventConditions(filter: EventFilterInput): SQL[] {
     conditions.push(inArray(events.category, matchingSlugs));
   }
 
-  // 2. Tipo específico de evento (subcategoría)
+  // 2. Tipo específico de evento. El catálogo resuelve el slug/ID a IDs reales
+  // antes de construir estas condiciones.
   if (filter.type && filter.type.trim() && filter.type !== "all") {
-    const typeClean = filter.type.trim();
     conditions.push(
-      or(
-        ilike(events.title, `%${typeClean}%`),
-        ilike(events.description, `%${typeClean}%`)
-      )!
+      eventTypeIds?.length
+        ? inArray(events.eventTypeId, eventTypeIds)
+        : sql`1 = 0`,
     );
   }
 

@@ -3,6 +3,11 @@ import { events, users, registrations, eventStatusEnum } from "@/lib/db/schema";
 import { count, desc, eq, and, gte, lte, inArray, type SQL } from "drizzle-orm";
 import { scopeEventCondition, type AdminScope } from "@/lib/organizations/admin-scope";
 import {
+  getEffectiveEventCapacity,
+  getOrganizerPlanForEvent,
+} from "@/lib/billing/enforce";
+import { occupyingStatusWithActiveHold } from "@/lib/registrations/capacity";
+import {
   getViewerEventStatuses,
   type ViewerEventStatus,
 } from "@/lib/events/viewer-event-status";
@@ -94,6 +99,16 @@ export async function fetchAdminEventsData({
     .offset(offset);
 
   const eventIds = allEvents.map((e) => e.id);
+  const allEventsWithEffectiveCapacity = await Promise.all(
+    allEvents.map(async (event) => {
+      const plan = await getOrganizerPlanForEvent({ organizerId: event.organizerId });
+
+      return {
+        ...event,
+        effectiveCapacity: getEffectiveEventCapacity(event.capacity, plan),
+      };
+    }),
+  );
   const regCountsMap = new Map<string, number>();
   const viewerStatuses = sessionUserId
     ? await getViewerEventStatuses(sessionUserId, eventIds)
@@ -106,7 +121,12 @@ export async function fetchAdminEventsData({
         regCount: count(registrations.id),
       })
       .from(registrations)
-      .where(inArray(registrations.eventId, eventIds))
+      .where(
+        and(
+          inArray(registrations.eventId, eventIds),
+          occupyingStatusWithActiveHold(),
+        ),
+      )
       .groupBy(registrations.eventId);
 
     for (const c of counts) {
@@ -120,7 +140,7 @@ export async function fetchAdminEventsData({
     totalPages,
     safePage,
     offset,
-    allEvents,
+    allEvents: allEventsWithEffectiveCapacity,
     regCountsMap,
     viewerStatuses,
   };

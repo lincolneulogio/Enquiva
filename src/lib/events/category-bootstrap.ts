@@ -7,7 +7,7 @@ import { isNull } from "drizzle-orm";
  * Asegura que todas las 18 categorías por defecto de la taxonomía de Enquiva
  * existan en la base de datos a nivel de plataforma (organizationId = null).
  */
-export async function ensureDefaultPlatformCategories(): Promise<{
+export async function ensureDefaultPlatformCategories(options?: { fillMissing?: boolean }): Promise<{
   inserted: number;
   total: number;
 }> {
@@ -18,7 +18,11 @@ export async function ensureDefaultPlatformCategories(): Promise<{
       .where(isNull(categories.organizationId));
 
     const existingSlugs = new Set(existing.map((c) => c.slug));
-    const missing = EVENT_CATEGORIES.filter((c) => !existingSlugs.has(c.slug));
+    // En uso normal solo inicializamos una instalación vacía. Así, renombrar una
+    // categoría no hace que el slug anterior reaparezca automáticamente.
+    const missing = existing.length === 0 || options?.fillMissing
+      ? EVENT_CATEGORIES.filter((c) => !existingSlugs.has(c.slug))
+      : [];
 
     if (missing.length > 0) {
       await db
@@ -28,6 +32,7 @@ export async function ensureDefaultPlatformCategories(): Promise<{
             organizationId: null,
             slug: cat.slug,
             label: cat.labelEs,
+            labelEn: cat.labelEn,
             description: cat.description,
             colorClass: cat.colorClass,
             isActive: true,

@@ -23,10 +23,15 @@ import { CategoriesTable } from "./CategoriesTable";
 import { TaxonomyNavTabs } from "./TaxonomyNavTabs";
 
 
-export function CategoriesManager({ initialCategories }: CategoriesManagerProps) {
+export function CategoriesManager({ initialCategories, eventCounts }: CategoriesManagerProps) {
     const { locale } = useLocale();
     const t = useTranslations();
-    const [items, setItems] = useState(initialCategories);
+    const [items, setItems] = useState<CategoryItem[]>(() =>
+        initialCategories.map((item) => ({
+            ...item,
+            eventCount: eventCounts?.[item.slug] ?? 0,
+        })),
+    );
     const [draggedId, setDraggedId] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
     const [newItem, setNewItem] = useState({
@@ -115,18 +120,31 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
     };
 
     const onPatchLocal = (id: string, patch: Partial<CategoryItem>) => {
-        setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
+        setItems((prev) => prev.map((it) => (
+            it.id === id
+                ? {
+                    ...it,
+                    ...patch,
+                    ...(patch.label !== undefined && { slug: normalizeCategorySlug(patch.label) }),
+                }
+                : it
+        )));
     };
 
     const onBlurSave = (item: CategoryItem) => {
         startTransition(async () => {
             try {
-                await updateCategory(item.id, {
+                const result = await updateCategory(item.id, {
                     label: item.label,
                     description: item.description ?? undefined,
                     colorClass: item.colorClass,
                     sortOrder: item.sortOrder,
                 });
+                if (result.category) {
+                    setItems((prev) => prev.map((current) => (
+                        current.id === item.id ? result.category : current
+                    )));
+                }
             } catch (e) {
                 toast.error(e instanceof Error ? e.message : t("dashboard.admin.failedToSaveCategory"));
             }

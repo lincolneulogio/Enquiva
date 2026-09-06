@@ -99,6 +99,20 @@ export function CategoryRow({
                 />
             </td>
 
+            {/* Event Count (Impact Preview) */}
+            <td className="px-4 py-4 whitespace-nowrap">
+                <span
+                    className={cn(
+                        "inline-flex min-w-8 items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold",
+                        item.eventCount
+                            ? "bg-primary/10 text-primary border border-primary/20"
+                            : "bg-muted text-muted-foreground border border-border/60",
+                    )}
+                >
+                    {item.eventCount ?? 0}
+                </span>
+            </td>
+
             {/* Actions (Delete Button) */}
             <td className="px-4 py-4 text-right whitespace-nowrap">
                 <button

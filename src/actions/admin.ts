@@ -31,3 +31,4 @@ export {
   deleteEventType,
   syncDefaultEventTypesAction,
 } from "./admin/event-types";
+export { getTaxonomyStatsAction } from "./admin/taxonomy-stats";

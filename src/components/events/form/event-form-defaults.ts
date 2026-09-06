@@ -8,6 +8,7 @@ export function getEventFormDefaultValues(event?: Event): Partial<CreateEventInp
       title: event.title,
       description: event.description,
       category: event.category,
+      eventTypeId: event.eventTypeId ?? undefined,
       date: toLocalDateTimeInputValue(event.date),
       endDate: event.endDate ? toLocalDateTimeInputValue(event.endDate) : undefined,
       schedules: event.schedules ?? undefined,

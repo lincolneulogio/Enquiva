@@ -65,7 +65,7 @@ export function CategoriesTable({
             </div>
 
             <div className="overflow-x-auto">
-                <table className="w-full min-w-[1000px] table-fixed text-sm">
+                <table className="w-full min-w-[1090px] table-fixed text-sm">
                     <thead>
                         <tr className="border-b border-border bg-muted/50">
                             <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[70px]">#</th>
@@ -73,6 +73,7 @@ export function CategoriesTable({
                             <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[200px]">{t("common.slug")}</th>
                             <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[240px]">{t("common.color")}</th>
                             <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[110px]">{t("common.active")}</th>
+                            <th className="px-4 py-3 text-left font-medium text-muted-foreground w-[110px]">{locale === "en" ? "Events" : "Eventos"}</th>
                             <th className="px-4 py-3.5 text-right font-medium text-muted-foreground w-[120px]">{locale === "en" ? "Actions" : "Acciones"}</th>
                         </tr>
                     </thead>

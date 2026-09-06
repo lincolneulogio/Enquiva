@@ -6,10 +6,13 @@ export type CategoryItem = {
     colorClass: string;
     isActive: boolean;
     sortOrder: number;
+    /** Cantidad de eventos que usan esta categoría (vista previa de impacto). */
+    eventCount?: number;
 };
 
 export interface CategoriesManagerProps {
     initialCategories: CategoryItem[];
+    eventCounts?: Record<string, number>;
 }
 
 export const COLOR_OPTIONS = [

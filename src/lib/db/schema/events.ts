@@ -26,6 +26,10 @@ export const events = pgTable(
     description: text("description").notNull(),
     coverImage: text("cover_image"),
     category: text("category").notNull().default("other"),
+    /** Tipo taxonómico seleccionado para el evento. Conserva el vínculo al renombrar slugs. */
+    eventTypeId: uuid("event_type_id").references(() => eventTypes.id, {
+      onDelete: "set null",
+    }),
     schedules: jsonb("schedules").$type<EventScheduleSlot[]>(),
     date: timestamp("date").notNull(),
     endDate: timestamp("end_date"),
@@ -63,6 +67,7 @@ export const events = pgTable(
     index("events_status_idx").on(t.status),
     index("events_date_idx").on(t.date),
     index("events_category_idx").on(t.category),
+    index("events_event_type_idx").on(t.eventTypeId),
     index("events_status_date_idx").on(t.status, t.date),
     index("events_featured_status_date_idx").on(t.isFeatured, t.status, t.date),
   ]
@@ -89,6 +94,8 @@ export const categories = pgTable(
     }),
     slug: text("slug").notNull(),
     label: text("label").notNull(),
+    /** Etiqueta en inglés (localización). null → usar label. */
+    labelEn: text("label_en"),
     description: text("description"),
     colorClass: text("color_class").notNull().default("bg-gray-100 text-gray-800"),
     isActive: boolean("is_active").notNull().default(true),
@@ -130,6 +137,8 @@ export const eventTypes = pgTable(
     categorySlug: text("category_slug").notNull(),
     slug: text("slug").notNull(),
     label: text("label").notNull(),
+    /** Etiqueta en inglés (localización). null → usar label. */
+    labelEn: text("label_en"),
     description: text("description"),
     isActive: boolean("is_active").notNull().default(true),
     sortOrder: integer("sort_order").notNull().default(0),
@@ -145,4 +154,51 @@ export const eventTypes = pgTable(
 
 export type EventType = typeof eventTypes.$inferSelect;
 export type NewEventType = typeof eventTypes.$inferInsert;
+
+/**
+ * Historial de slugs de categorías. Permite que los enlaces y filtros públicos
+ * sigan funcionando después de renombrar una categoría.
+ */
+export const categorySlugAliases = pgTable(
+  "category_slug_aliases",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    categoryId: uuid("category_id")
+      .notNull()
+      .references(() => categories.id, { onDelete: "cascade" }),
+    slug: text("slug").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("category_slug_aliases_slug_unique_idx").on(t.slug),
+    index("category_slug_aliases_category_idx").on(t.categoryId),
+  ],
+);
+
+export type CategorySlugAlias = typeof categorySlugAliases.$inferSelect;
+export type NewCategorySlugAlias = typeof categorySlugAliases.$inferInsert;
+
+/**
+ * Historial de slugs de tipos de evento, con el slug de categoría en el que
+ * eran válidos. Se usa para resolver filtros públicos tras renombrar tipos.
+ */
+export const eventTypeSlugAliases = pgTable(
+  "event_type_slug_aliases",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    eventTypeId: uuid("event_type_id")
+      .notNull()
+      .references(() => eventTypes.id, { onDelete: "cascade" }),
+    categorySlug: text("category_slug").notNull(),
+    slug: text("slug").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("event_type_slug_aliases_cat_slug_unique_idx").on(t.categorySlug, t.slug),
+    index("event_type_slug_aliases_type_idx").on(t.eventTypeId),
+  ],
+);
+
+export type EventTypeSlugAlias = typeof eventTypeSlugAliases.$inferSelect;
+export type NewEventTypeSlugAlias = typeof eventTypeSlugAliases.$inferInsert;
 

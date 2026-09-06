@@ -24,7 +24,7 @@ interface BasicInfoSectionProps {
   setValue: UseFormSetValue<CreateEventInput>;
   currentDescription?: string;
   categoryOptions: CategoryOption[];
-  suggestedTypes: Array<{ slug: string; label: string }>;
+  suggestedTypes: Array<{ id: string; slug: string; label: string; labelEn?: string | null }>;
   currentEventType?: string;
   locale: "es" | "en";
   getFieldHighlightClass: (field: keyof CreateEventInput) => string;
@@ -160,7 +160,9 @@ export function BasicInfoSection({
             >
               {categoryOptions.map((cat) => (
                 <option key={cat.slug} value={cat.slug}>
-                  {cat.label || categoryLabel(cat.slug, locale)}
+                  {locale === "en" && cat.labelEn
+                    ? cat.labelEn
+                    : cat.label || categoryLabel(cat.slug, locale)}
                 </option>
               ))}
             </select>

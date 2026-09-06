@@ -6,7 +6,7 @@ import type { CreateEventInput } from "@/lib/validations";
 interface EventTypeSelectorProps {
   register: UseFormRegister<CreateEventInput>;
   errors: FieldErrors<CreateEventInput>;
-  suggestedTypes: Array<{ slug: string; label: string }>;
+  suggestedTypes: Array<{ id: string; slug: string; label: string; labelEn?: string | null }>;
   currentValue?: string;
   getFieldHighlightClass: (field: keyof CreateEventInput) => string;
   getLocalizedValidationMessage: (message?: string) => string;
@@ -44,16 +44,16 @@ export function EventTypeSelector({
       <div className="relative">
         <select
           id="event-type"
-          {...register("eventType")}
+          {...register("eventTypeId")}
           disabled={!hasTypes}
-          aria-invalid={Boolean(errors.eventType)}
-          aria-describedby={errors.eventType ? "event-type-error" : undefined}
-          className={`w-full appearance-none rounded-xl border border-border/80 bg-background px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60 ${getFieldHighlightClass("eventType")}`}
+          aria-invalid={Boolean(errors.eventTypeId)}
+          aria-describedby={errors.eventTypeId ? "event-type-error" : undefined}
+          className={`w-full appearance-none rounded-xl border border-border/80 bg-background px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60 ${getFieldHighlightClass("eventTypeId")}`}
         >
           {hasTypes ? (
-            suggestedTypes.map((type) => (
-              <option key={type.slug} value={type.slug}>
-                {type.label}
+suggestedTypes.map((type) => (
+              <option key={type.id} value={type.id}>
+                {locale === "en" && type.labelEn ? type.labelEn : type.label}
               </option>
             ))
           ) : (
@@ -71,9 +71,9 @@ export function EventTypeSelector({
         </div>
       </div>
 
-      {errors.eventType && (
+      {errors.eventTypeId && (
         <p id="event-type-error" role="alert" className="mt-1 text-xs text-destructive">
-          {getLocalizedValidationMessage(errors.eventType.message)}
+          {getLocalizedValidationMessage(errors.eventTypeId.message)}
         </p>
       )}
     </div>

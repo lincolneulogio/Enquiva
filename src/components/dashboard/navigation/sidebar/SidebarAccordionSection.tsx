@@ -72,7 +72,7 @@ export function SidebarAccordionSection({
         onClick={onToggle}
         aria-expanded={isOpen}
         className={cn(
-          "group flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-xs font-semibold transition-all duration-200 select-none",
+          "group flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-sm font-semibold transition-all duration-200 select-none",
           isOpen
             ? "bg-sidebar-accent/50 text-sidebar-foreground"
             : isSectionActive

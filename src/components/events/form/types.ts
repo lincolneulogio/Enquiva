@@ -8,6 +8,7 @@ export type PlanSummary = Awaited<ReturnType<typeof getOrganizerPlanSummary>>;
 export interface CategoryOption {
     slug: string;
     label: string;
+    labelEn?: string | null;
     colorClass: string;
 }
 
@@ -17,7 +18,7 @@ export interface EventFormProps {
     categories: CategoryOption[];
     canFeature?: boolean;
     planSummary?: PlanSummary;
-    initialEventTypes?: Array<{ slug: string; label: string; categorySlug: string }>;
+    initialEventTypes?: Array<{ id: string; slug: string; label: string; labelEn?: string | null; categorySlug: string }>;
 }
 
 export interface ScheduleSlotState {

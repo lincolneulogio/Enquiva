@@ -18,4 +18,6 @@ export interface CategoryOption {
 export interface EventTypesManagerProps {
   initialEventTypes: EventTypeItem[];
   categories: CategoryOption[];
+  /** Eventos por id de tipo (vista previa de impacto antes de renombrar/borrar). */
+  eventCounts?: Record<string, number>;
 }

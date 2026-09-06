@@ -16,12 +16,13 @@ import {
   type EventWithAttendeeCount,
 } from "./event-shared";
 import { buildPublicEventConditions } from "./event-filters";
+import { resolveCategoryCurrentSlug, resolveEventTypeIds } from "@/lib/events/slug-resolution";
 
 export class EventCatalogService {
   /**
    * Obtiene la lista de categorías de eventos activas de la base de datos.
    */
-  static async getCategories(organizationId?: string | null): Promise<Pick<Category, "slug" | "label" | "colorClass">[]> {
+  static async getCategories(organizationId?: string | null): Promise<Pick<Category, "slug" | "label" | "labelEn" | "colorClass">[]> {
     try {
       await ensureDefaultPlatformCategories();
       const conditions = [eq(categories.isActive, true)];
@@ -31,7 +32,7 @@ export class EventCatalogService {
         conditions.push(isNull(categories.organizationId));
       }
       return await db
-        .select({ slug: categories.slug, label: categories.label, colorClass: categories.colorClass })
+        .select({ slug: categories.slug, label: categories.label, labelEn: categories.labelEn, colorClass: categories.colorClass })
         .from(categories)
         .where(and(...conditions))
         .orderBy(asc(categories.sortOrder));
@@ -45,13 +46,22 @@ export class EventCatalogService {
    * Obtiene eventos publicados paginados y filtrados para el público general (con caché Redis).
    */
   static async getPublicEvents(filterInput?: unknown) {
-    const filter = eventFilterSchema.parse(filterInput ?? {});
+const parsedFilter = eventFilterSchema.parse(filterInput ?? {});
+    // Resuelve slugs históricos/aliases a slugs actuales para que los filtros y
+    // la caché usen siempre el identificador canónico.
+    const resolvedCategory = await resolveCategoryCurrentSlug(parsedFilter.category);
+    const typeValue = parsedFilter.type?.trim();
+    const matchingTypeIds = await resolveEventTypeIds(typeValue, resolvedCategory);
+    const filter = resolvedCategory ? { ...parsedFilter, category: resolvedCategory } : parsedFilter;
     const cacheKey = `${CACHE_KEYS.publicEvents}:${JSON.stringify(filter)}`;
 
     const cached = await getCached<PublicEventsResult>(cacheKey);
     if (cached) return cached;
 
-    const conditions = buildPublicEventConditions(filter);
+    const conditions = buildPublicEventConditions(
+      filter,
+      matchingTypeIds,
+    );
     const offset = (filter.page - 1) * filter.limit;
 
     const [results, totalCount, totalRegistrations] = await Promise.all([

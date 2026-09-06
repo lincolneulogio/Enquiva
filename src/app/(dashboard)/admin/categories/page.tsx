@@ -1,4 +1,4 @@
-import { getAllCategories } from "@/actions/admin";
+import { getAllCategories, getTaxonomyStatsAction } from "@/actions/admin";
 import { CategoriesManager } from "@/components/dashboard/admin/CategoriesManager";
 import { getI18n } from "@/lib/i18n/server";
 import { getRequestSession } from "@/lib/request-context";
@@ -14,6 +14,7 @@ export default async function AdminCategoriesPage() {
 
     const { t } = await getI18n();
     const categories = await getAllCategories();
+    const stats = await getTaxonomyStatsAction();
 
     return (
         <div className="space-y-6">
@@ -24,7 +25,7 @@ export default async function AdminCategoriesPage() {
                 </p>
             </div>
 
-            <CategoriesManager initialCategories={categories} />
+            <CategoriesManager initialCategories={categories} eventCounts={stats.byCategory} />
         </div>
     );
 }

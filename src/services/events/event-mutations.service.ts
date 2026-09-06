@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { events, users, organizations, broadcastLogs, broadcastJobs } from "@/lib/db/schema";
+import { events, eventTypes, users, organizations, broadcastLogs, broadcastJobs } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import {
   invalidateCache,
@@ -21,11 +21,32 @@ import { runBackground } from "@/lib/background";
 import { NotificationService } from "@/lib/notifications/notification.service";
 
 export class EventMutationsService {
+  private static async assertEventTypeMatchesCategory(
+    eventTypeId: string | null | undefined,
+    categorySlug: string,
+  ) {
+    if (!eventTypeId) return;
+
+    const [eventType] = await db
+      .select({ id: eventTypes.id, categorySlug: eventTypes.categorySlug, isActive: eventTypes.isActive })
+      .from(eventTypes)
+      .where(eq(eventTypes.id, eventTypeId))
+      .limit(1);
+
+    if (!eventType || !eventType.isActive) {
+      throw new Error("El tipo de evento seleccionado no está disponible");
+    }
+    if (eventType.categorySlug !== categorySlug) {
+      throw new Error("El tipo de evento no pertenece a la categoría seleccionada");
+    }
+  }
+
   /**
    * Crea un nuevo evento.
    */
   static async createEvent(input: CreateEventInput, organizerId: string) {
     const validated = createEventSchema.parse(input);
+    await this.assertEventTypeMatchesCategory(validated.eventTypeId, validated.category);
     const slug = generateUniqueSlug(validated.title);
 
     const [organizer] = await db
@@ -94,6 +115,10 @@ export class EventMutationsService {
       .limit(1);
 
     if (!existing) throw new Error("Event not found");
+    await this.assertEventTypeMatchesCategory(
+      validated.eventTypeId !== undefined ? validated.eventTypeId : existing.eventTypeId,
+      validated.category ?? existing.category,
+    );
     await assertCanManageEvent(
       {
         id: existing.id,

@@ -1,15 +1,47 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { categories, events } from "@/lib/db/schema";
+import { categories, events, eventTypes, categorySlugAliases, eventTypeSlugAliases } from "@/lib/db/schema";
 import type { Category } from "@/lib/db/schema";
-import { eq, asc, sql as sqlExpr } from "drizzle-orm";
+import { and, asc, eq, isNull, ne, sql as sqlExpr } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireSuperAdmin } from "./users";
 import { assertAnyPermission } from "@/lib/auth/permission-guards";
 import { logAdminAction } from "@/lib/analytics/log-admin-action";
 import { normalizeCategorySlug } from "@/lib/utils";
 import { ensureDefaultPlatformCategories } from "@/lib/events/category-bootstrap";
+import { invalidateTaxonomyCache } from "@/lib/events/taxonomy-cache";
+
+async function nextAvailablePlatformCategorySlug(
+  baseSlug: string,
+  excludeId?: string,
+) {
+  for (let suffix = 1; suffix <= 100; suffix += 1) {
+    const slug = suffix === 1 ? baseSlug : `${baseSlug}_${suffix}`;
+    const conditions = [eq(categories.slug, slug), isNull(categories.organizationId)];
+    if (excludeId) conditions.push(ne(categories.id, excludeId));
+
+    const [existing] = await db
+      .select({ id: categories.id })
+      .from(categories)
+      .where(and(...conditions))
+      .limit(1);
+
+    if (existing) continue;
+
+    // Un slug histórico (alias) tampoco debe reutilizarse mientras siga activo:
+    // reintroducirlo haría ambiguas las URLs que apuntaban a la categoría anterior.
+    const [alias] = await db
+      .select({ id: categorySlugAliases.id })
+      .from(categorySlugAliases)
+      .where(eq(categorySlugAliases.slug, slug))
+      .limit(1);
+
+    if (!alias) return slug;
+  }
+
+  throw new Error("No se pudo generar un slug único para la categoría");
+}
 
 /**
  * Obtiene todas las categorías para administración de plataforma.
@@ -34,9 +66,10 @@ export async function syncDefaultCategoriesAction() {
   const user = await requireSuperAdmin();
   await assertAnyPermission(user, ["categories:manage:platform"]);
 
-  const stats = await ensureDefaultPlatformCategories();
+const stats = await ensureDefaultPlatformCategories({ fillMissing: true });
   revalidatePath("/admin/categories");
   revalidatePath("/superadmin/categories");
+  await invalidateTaxonomyCache();
 
   return {
     success: true,
@@ -60,27 +93,20 @@ export async function createCategory(input: {
   const user = await requireSuperAdmin();
   await assertAnyPermission(user, ["categories:manage:platform"]);
 
-  const slug = normalizeCategorySlug(input.slug);
+  const slug = normalizeCategorySlug(input.label) || normalizeCategorySlug(input.slug);
   if (!slug) {
     throw new Error("El slug es obligatorio y solo puede usar letras minúsculas, números y guiones bajos");
   }
-  if (!/^[a-z0-9_]+$/.test(slug)) {
-    throw new Error("El slug solo puede contener letras minúsculas, números y guiones bajos");
+  if (!input.label.trim()) {
+    throw new Error("La etiqueta es obligatoria");
   }
 
-  const [existing] = await db
-    .select({ id: categories.id })
-    .from(categories)
-    .where(eq(categories.slug, slug))
-    .limit(1);
-  if (existing) {
-    throw new Error("Ya existe una categoría con ese slug");
-  }
+  const uniqueSlug = await nextAvailablePlatformCategorySlug(slug);
 
   const [created] = await db
     .insert(categories)
     .values({
-      slug,
+      slug: uniqueSlug,
       label: input.label.trim(),
       description: input.description?.trim() ?? null,
       colorClass: input.colorClass ?? "bg-gray-100 text-gray-800",
@@ -102,6 +128,7 @@ export async function createCategory(input: {
 
   revalidatePath("/admin/categories");
   revalidatePath("/superadmin/categories");
+  await invalidateTaxonomyCache();
   return { success: true, category: created };
 }
 
@@ -129,17 +156,62 @@ export async function updateCategory(
     .limit(1);
   if (!cat) throw new Error("Category not found");
 
-  await db
-    .update(categories)
-    .set({
-      ...(input.label !== undefined && { label: input.label.trim() }),
-      ...(input.description !== undefined && { description: input.description.trim() }),
-      ...(input.colorClass !== undefined && { colorClass: input.colorClass }),
-      ...(input.sortOrder !== undefined && { sortOrder: input.sortOrder }),
-      ...(input.isActive !== undefined && { isActive: input.isActive }),
-      updatedAt: new Date(),
-    })
-    .where(eq(categories.id, id));
+  const nextLabel = input.label?.trim();
+  if (input.label !== undefined && !nextLabel) {
+    throw new Error("La etiqueta es obligatoria");
+  }
+
+  const shouldRenameSlug = nextLabel !== undefined && nextLabel !== cat.label;
+  const normalizedNextSlug = shouldRenameSlug ? normalizeCategorySlug(nextLabel) : cat.slug;
+  if (shouldRenameSlug && !normalizedNextSlug) {
+    throw new Error("La etiqueta debe incluir letras o números para generar el slug");
+  }
+  const nextSlug = shouldRenameSlug
+    ? await nextAvailablePlatformCategorySlug(normalizedNextSlug, id)
+    : cat.slug;
+
+  const [updated] = await db.transaction(async (tx) => {
+    const [updatedCategory] = await tx
+      .update(categories)
+      .set({
+        ...(nextLabel !== undefined && { label: nextLabel }),
+        ...(input.description !== undefined && { description: input.description.trim() }),
+        ...(input.colorClass !== undefined && { colorClass: input.colorClass }),
+        ...(input.sortOrder !== undefined && { sortOrder: input.sortOrder }),
+        ...(input.isActive !== undefined && { isActive: input.isActive }),
+        ...(shouldRenameSlug && { slug: nextSlug }),
+        updatedAt: new Date(),
+      })
+      .where(eq(categories.id, id))
+      .returning();
+
+if (shouldRenameSlug) {
+      await tx
+        .update(events)
+        .set({ category: nextSlug, updatedAt: new Date() })
+        .where(eq(events.category, cat.slug));
+      await tx
+        .update(eventTypes)
+        .set({ categorySlug: nextSlug, updatedAt: new Date() })
+        .where(eq(eventTypes.categorySlug, cat.slug));
+
+      // Historial: el slug anterior queda como alias para no romper enlaces/filtros.
+      if (cat.slug !== nextSlug) {
+        await tx
+          .insert(categorySlugAliases)
+          .values({ categoryId: id, slug: cat.slug })
+          .onConflictDoNothing();
+        // Los alias de tipos registrados bajo el slug anterior se re-encuadran
+        // en el slug actual de la categoría para que sigan resolviéndose.
+        await tx
+          .update(eventTypeSlugAliases)
+          .set({ categorySlug: nextSlug })
+          .where(eq(eventTypeSlugAliases.categorySlug, cat.slug));
+      }
+    }
+
+    return [updatedCategory];
+  });
 
   await logAdminAction({
     actorId: user.id,
@@ -147,12 +219,13 @@ export async function updateCategory(
     action: "category.update",
     entityType: "category",
     entityId: id,
-    details: `Categoría actualizada: ${cat.label} (${cat.slug})`,
+    details: `Categoría actualizada: ${updated.label} (${updated.slug})`,
   });
 
-  revalidatePath("/admin/categories");
+revalidatePath("/admin/categories");
   revalidatePath("/superadmin/categories");
-  return { success: true };
+  await invalidateTaxonomyCache();
+  return { success: true, category: updated };
 }
 
 /**
@@ -192,6 +265,7 @@ export async function deleteCategory(id: string) {
 
   revalidatePath("/admin/categories");
   revalidatePath("/superadmin/categories");
+  await invalidateTaxonomyCache();
   return { success: true };
 }
 
@@ -227,5 +301,6 @@ export async function reorderCategories(orderedIds: string[]) {
 
   revalidatePath("/admin/categories");
   revalidatePath("/superadmin/categories");
+  await invalidateTaxonomyCache();
   return { success: true };
 }

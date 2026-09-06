@@ -25,6 +25,8 @@ export interface AdminEventItem {
   date: Date;
   price: string | null;
   capacity: number | null;
+  /** Capacidad efectiva: respeta el aforo del evento y el máximo del plan. */
+  effectiveCapacity: number | null;
   isFeatured: boolean | null;
   organizerId: string;
   organizationId: string | null;
@@ -79,15 +81,15 @@ export function AdminEventTableRow({
       </td>
       <td className="px-2 py-3 text-muted-foreground text-xs leading-relaxed">
         <div className="flex items-center gap-1 font-semibold text-foreground">
-          <span className="text-primary">{regCount}</span>
+          <span>{event.effectiveCapacity ?? "∞"}</span>
           <span className="text-muted-foreground/60 font-normal">/</span>
-          <span>{event.capacity ? `${event.capacity}` : "∞"}</span>
+          <span className="text-primary">{regCount}</span>
         </div>
         <span className="mt-0.5 hidden text-[9px] text-muted-foreground/80 2xl:block">
-          {event.capacity
+          {event.effectiveCapacity !== null
             ? locale === "en"
-              ? `${event.capacity - regCount} remaining`
-              : `${event.capacity - regCount} vacantes libres`
+              ? `${Math.max(0, event.effectiveCapacity - regCount)} remaining`
+              : `${Math.max(0, event.effectiveCapacity - regCount)} vacantes libres`
             : locale === "en"
               ? "unlimited vacancies"
               : "vacantes ilimitadas"}

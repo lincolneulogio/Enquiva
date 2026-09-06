@@ -20,7 +20,7 @@ interface UseEventFormValuesProps {
   planSummary?: PlanSummary;
   locale: "es" | "en";
   t: (key: string, params?: Record<string, string | number>) => string;
-  initialEventTypes?: Array<{ slug: string; label: string; categorySlug: string }>;
+  initialEventTypes?: Array<{ id: string; slug: string; label: string; labelEn?: string | null; categorySlug: string }>;
 }
 
 export function useEventFormValues({
@@ -68,7 +68,7 @@ export function useEventFormValues({
   const { control, setValue, clearErrors } = form;
 
   const watchedCategory = useWatch({ control, name: "category" });
-  const watchedType = useWatch({ control, name: "eventType" });
+  const watchedType = useWatch({ control, name: "eventTypeId" });
   const isVirtual = useWatch({ control, name: "isVirtual" });
   const hasTransport = useWatch({ control, name: "hasTransport" });
   const hasCertificate = useWatch({ control, name: "hasCertificate" });
@@ -90,10 +90,10 @@ export function useEventFormValues({
 
   useEffect(() => {
     if (!watchedCategory) return;
-    if (suggestedTypes.length > 0 && !suggestedTypes.some((item: { slug: string }) => item.slug === watchedType)) {
-      setValue("eventType", suggestedTypes[0].slug, { shouldValidate: true, shouldDirty: true });
+    if (suggestedTypes.length > 0 && !suggestedTypes.some((item) => item.id === watchedType)) {
+      setValue("eventTypeId", suggestedTypes[0].id, { shouldValidate: true, shouldDirty: true });
     } else if (suggestedTypes.length === 0 && watchedType !== "") {
-      setValue("eventType", "", { shouldValidate: true, shouldDirty: true });
+      setValue("eventTypeId", null, { shouldValidate: true, shouldDirty: true });
     }
   }, [watchedCategory, suggestedTypes, watchedType, setValue]);
 

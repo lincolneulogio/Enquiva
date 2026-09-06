@@ -84,7 +84,7 @@ export const baseEventSchema = z.object({
       { message: "Description must be at least 20 characters" }
     ),
   category: z.string().min(1, "Category is required"),
-  eventType: z.string().max(100).optional().nullable(),
+  eventTypeId: z.string().uuid().optional().nullable(),
   modality: z.enum(eventModalityValues).optional().nullable(),
   tags: z.array(z.string()).optional().default([]),
   schedules: z
