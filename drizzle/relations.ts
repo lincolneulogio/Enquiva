@@ -1,40 +1,24 @@
 import { relations } from "drizzle-orm/relations";
-import { organizations, categories, users, sessions, twoFactor, events, eventAttachments, roles, rolePermissions, eventTypes, registrations, registrationGuests, notifications, tickets, ticketScanLogs, payments, transportBookings, transportRoutes, transportStops, activityLogs, eventPaymentMethods, paymentMethods, broadcastLogs, broadcastJobs, broadcastJobRecipients, pushSubscriptions, subscriptionPayments, platformTransactions, subscriptions, platformSettings, plans, organizationMembers, accounts, broadcastJobDeliveries, chatConversations, chatFeedback, chatMessages, commissionInvoices, categorySlugAliases, eventTypeSlugAliases } from "./schema";
+import { users, sessions, twoFactor, organizations, events, eventTypes, roles, rolePermissions, eventAttachments, categories, registrations, registrationGuests, notifications, tickets, payments, transportBookings, transportRoutes, transportStops, activityLogs, broadcastJobs, broadcastJobDeliveries, broadcastJobRecipients, eventPaymentMethods, paymentMethods, pushSubscriptions, platformTransactions, subscriptions, subscriptionPayments, organizationMembers, plans, platformSettings, broadcastLogs, ticketScanLogs, chatConversations, chatFeedback, chatMessages, commissionInvoices, accounts, categorySlugAliases, eventTypeSlugAliases } from "./schema";
 
-export const categoriesRelations = relations(categories, ({one, many}) => ({
-	organization: one(organizations, {
-		fields: [categories.organizationId],
-		references: [organizations.id]
-	}),
+export const sessionsRelations = relations(sessions, ({one}) => ({
 	user: one(users, {
-		fields: [categories.createdBy],
+		fields: [sessions.userId],
 		references: [users.id]
-	}),
-	categorySlugAliases: many(categorySlugAliases),
-}));
-
-export const organizationsRelations = relations(organizations, ({one, many}) => ({
-	categories: many(categories),
-	events: many(events),
-	subscriptions: many(subscriptions),
-	user: one(users, {
-		fields: [organizations.ownerId],
-		references: [users.id],
-		relationName: "organizations_ownerId_users_id"
-	}),
-	organizationMembers: many(organizationMembers),
-	commissionInvoices: many(commissionInvoices),
-	users: many(users, {
-		relationName: "users_organizationId_organizations_id"
 	}),
 }));
 
 export const usersRelations = relations(users, ({one, many}) => ({
-	categories: many(categories),
 	sessions: many(sessions),
 	twoFactors: many(twoFactor),
-	rolePermissions: many(rolePermissions),
+	organization: one(organizations, {
+		fields: [users.organizationId],
+		references: [organizations.id],
+		relationName: "users_organizationId_organizations_id"
+	}),
 	events: many(events),
+	rolePermissions: many(rolePermissions),
+	categories: many(categories),
 	registrations: many(registrations),
 	notifications: many(notifications),
 	payments_userId: many(payments, {
@@ -45,42 +29,30 @@ export const usersRelations = relations(users, ({one, many}) => ({
 	}),
 	transportBookings: many(transportBookings),
 	activityLogs: many(activityLogs),
-	paymentMethods: many(paymentMethods),
-	broadcastLogs: many(broadcastLogs),
+	broadcastJobDeliveries: many(broadcastJobDeliveries),
 	broadcastJobRecipients: many(broadcastJobRecipients),
+	paymentMethods: many(paymentMethods),
 	pushSubscriptions: many(pushSubscriptions),
 	platformTransactions: many(platformTransactions),
-	broadcastJobs: many(broadcastJobs),
-	platformSettings: many(platformSettings),
+	organizationMembers: many(organizationMembers),
+	subscriptions: many(subscriptions),
 	subscriptionPayments_userId: many(subscriptionPayments, {
 		relationName: "subscriptionPayments_userId_users_id"
 	}),
 	subscriptionPayments_verifiedBy: many(subscriptionPayments, {
 		relationName: "subscriptionPayments_verifiedBy_users_id"
 	}),
-	subscriptions: many(subscriptions),
+	platformSettings: many(platformSettings),
+	broadcastLogs: many(broadcastLogs),
 	organizations: many(organizations, {
 		relationName: "organizations_ownerId_users_id"
 	}),
-	organizationMembers: many(organizationMembers),
-	accounts: many(accounts),
-	broadcastJobDeliveries: many(broadcastJobDeliveries),
+	broadcastJobs: many(broadcastJobs),
 	chatConversations: many(chatConversations),
 	chatFeedbacks: many(chatFeedback),
 	commissionInvoices: many(commissionInvoices),
-	organization: one(organizations, {
-		fields: [users.organizationId],
-		references: [organizations.id],
-		relationName: "users_organizationId_organizations_id"
-	}),
+	accounts: many(accounts),
 	eventTypes: many(eventTypes),
-}));
-
-export const sessionsRelations = relations(sessions, ({one}) => ({
-	user: one(users, {
-		fields: [sessions.userId],
-		references: [users.id]
-	}),
 }));
 
 export const twoFactorRelations = relations(twoFactor, ({one}) => ({
@@ -90,19 +62,23 @@ export const twoFactorRelations = relations(twoFactor, ({one}) => ({
 	}),
 }));
 
-export const eventAttachmentsRelations = relations(eventAttachments, ({one}) => ({
-	event: one(events, {
-		fields: [eventAttachments.eventId],
-		references: [events.id]
+export const organizationsRelations = relations(organizations, ({one, many}) => ({
+	users: many(users, {
+		relationName: "users_organizationId_organizations_id"
 	}),
+	events: many(events),
+	categories: many(categories),
+	organizationMembers: many(organizationMembers),
+	subscriptions: many(subscriptions),
+	user: one(users, {
+		fields: [organizations.ownerId],
+		references: [users.id],
+		relationName: "organizations_ownerId_users_id"
+	}),
+	commissionInvoices: many(commissionInvoices),
 }));
 
 export const eventsRelations = relations(events, ({one, many}) => ({
-	eventAttachments: many(eventAttachments),
-	eventType: one(eventTypes, {
-		fields: [events.eventTypeId],
-		references: [eventTypes.id]
-	}),
 	user: one(users, {
 		fields: [events.organizerId],
 		references: [users.id]
@@ -111,12 +87,26 @@ export const eventsRelations = relations(events, ({one, many}) => ({
 		fields: [events.organizationId],
 		references: [organizations.id]
 	}),
+	eventType: one(eventTypes, {
+		fields: [events.eventTypeId],
+		references: [eventTypes.id]
+	}),
+	eventAttachments: many(eventAttachments),
 	registrations: many(registrations),
 	transportRoutes: many(transportRoutes),
 	eventPaymentMethods: many(eventPaymentMethods),
+	platformSettings: many(platformSettings),
 	broadcastLogs: many(broadcastLogs),
 	broadcastJobs: many(broadcastJobs),
-	platformSettings: many(platformSettings),
+}));
+
+export const eventTypesRelations = relations(eventTypes, ({one, many}) => ({
+	events: many(events),
+	user: one(users, {
+		fields: [eventTypes.createdBy],
+		references: [users.id]
+	}),
+	eventTypeSlugAliases: many(eventTypeSlugAliases),
 }));
 
 export const rolePermissionsRelations = relations(rolePermissions, ({one}) => ({
@@ -134,13 +124,23 @@ export const rolesRelations = relations(roles, ({many}) => ({
 	rolePermissions: many(rolePermissions),
 }));
 
-export const eventTypesRelations = relations(eventTypes, ({one, many}) => ({
-	events: many(events),
+export const eventAttachmentsRelations = relations(eventAttachments, ({one}) => ({
+	event: one(events, {
+		fields: [eventAttachments.eventId],
+		references: [events.id]
+	}),
+}));
+
+export const categoriesRelations = relations(categories, ({one, many}) => ({
+	organization: one(organizations, {
+		fields: [categories.organizationId],
+		references: [organizations.id]
+	}),
 	user: one(users, {
-		fields: [eventTypes.createdBy],
+		fields: [categories.createdBy],
 		references: [users.id]
 	}),
-	eventTypeSlugAliases: many(eventTypeSlugAliases),
+	categorySlugAliases: many(categorySlugAliases),
 }));
 
 export const registrationsRelations = relations(registrations, ({one, many}) => ({
@@ -165,9 +165,9 @@ export const registrationsRelations = relations(registrations, ({one, many}) => 
 	registrations: many(registrations, {
 		relationName: "registrations_parentRegistrationId_registrations_id"
 	}),
+	tickets: many(tickets),
 	payments: many(payments),
 	transportBookings: many(transportBookings),
-	tickets: many(tickets),
 	registrationGuests: many(registrationGuests, {
 		relationName: "registrationGuests_parentRegistrationId_registrations_id"
 	}),
@@ -191,19 +191,12 @@ export const notificationsRelations = relations(notifications, ({one}) => ({
 	}),
 }));
 
-export const ticketScanLogsRelations = relations(ticketScanLogs, ({one}) => ({
-	ticket: one(tickets, {
-		fields: [ticketScanLogs.ticketId],
-		references: [tickets.id]
-	}),
-}));
-
 export const ticketsRelations = relations(tickets, ({one, many}) => ({
-	ticketScanLogs: many(ticketScanLogs),
 	registration: one(registrations, {
 		fields: [tickets.registrationId],
 		references: [registrations.id]
 	}),
+	ticketScanLogs: many(ticketScanLogs),
 }));
 
 export const paymentsRelations = relations(payments, ({one, many}) => ({
@@ -272,6 +265,41 @@ export const activityLogsRelations = relations(activityLogs, ({one}) => ({
 	}),
 }));
 
+export const broadcastJobDeliveriesRelations = relations(broadcastJobDeliveries, ({one}) => ({
+	broadcastJob: one(broadcastJobs, {
+		fields: [broadcastJobDeliveries.jobId],
+		references: [broadcastJobs.id]
+	}),
+	user: one(users, {
+		fields: [broadcastJobDeliveries.recipientId],
+		references: [users.id]
+	}),
+}));
+
+export const broadcastJobsRelations = relations(broadcastJobs, ({one, many}) => ({
+	broadcastJobDeliveries: many(broadcastJobDeliveries),
+	broadcastJobRecipients: many(broadcastJobRecipients),
+	event: one(events, {
+		fields: [broadcastJobs.eventId],
+		references: [events.id]
+	}),
+	user: one(users, {
+		fields: [broadcastJobs.senderId],
+		references: [users.id]
+	}),
+}));
+
+export const broadcastJobRecipientsRelations = relations(broadcastJobRecipients, ({one}) => ({
+	broadcastJob: one(broadcastJobs, {
+		fields: [broadcastJobRecipients.jobId],
+		references: [broadcastJobs.id]
+	}),
+	user: one(users, {
+		fields: [broadcastJobRecipients.recipientId],
+		references: [users.id]
+	}),
+}));
+
 export const eventPaymentMethodsRelations = relations(eventPaymentMethods, ({one}) => ({
 	event: one(events, {
 		fields: [eventPaymentMethods.eventId],
@@ -291,41 +319,6 @@ export const paymentMethodsRelations = relations(paymentMethods, ({one, many}) =
 	}),
 }));
 
-export const broadcastLogsRelations = relations(broadcastLogs, ({one}) => ({
-	event: one(events, {
-		fields: [broadcastLogs.eventId],
-		references: [events.id]
-	}),
-	user: one(users, {
-		fields: [broadcastLogs.senderId],
-		references: [users.id]
-	}),
-}));
-
-export const broadcastJobRecipientsRelations = relations(broadcastJobRecipients, ({one}) => ({
-	broadcastJob: one(broadcastJobs, {
-		fields: [broadcastJobRecipients.jobId],
-		references: [broadcastJobs.id]
-	}),
-	user: one(users, {
-		fields: [broadcastJobRecipients.recipientId],
-		references: [users.id]
-	}),
-}));
-
-export const broadcastJobsRelations = relations(broadcastJobs, ({one, many}) => ({
-	broadcastJobRecipients: many(broadcastJobRecipients),
-	event: one(events, {
-		fields: [broadcastJobs.eventId],
-		references: [events.id]
-	}),
-	user: one(users, {
-		fields: [broadcastJobs.senderId],
-		references: [users.id]
-	}),
-	broadcastJobDeliveries: many(broadcastJobDeliveries),
-}));
-
 export const pushSubscriptionsRelations = relations(pushSubscriptions, ({one}) => ({
 	user: one(users, {
 		fields: [pushSubscriptions.userId],
@@ -334,10 +327,6 @@ export const pushSubscriptionsRelations = relations(pushSubscriptions, ({one}) =
 }));
 
 export const platformTransactionsRelations = relations(platformTransactions, ({one}) => ({
-	subscriptionPayment: one(subscriptionPayments, {
-		fields: [platformTransactions.subscriptionPaymentId],
-		references: [subscriptionPayments.id]
-	}),
 	user: one(users, {
 		fields: [platformTransactions.userId],
 		references: [users.id]
@@ -350,23 +339,9 @@ export const platformTransactionsRelations = relations(platformTransactions, ({o
 		fields: [platformTransactions.subscriptionId],
 		references: [subscriptions.id]
 	}),
-}));
-
-export const subscriptionPaymentsRelations = relations(subscriptionPayments, ({one, many}) => ({
-	platformTransactions: many(platformTransactions),
-	user_userId: one(users, {
-		fields: [subscriptionPayments.userId],
-		references: [users.id],
-		relationName: "subscriptionPayments_userId_users_id"
-	}),
-	plan: one(plans, {
-		fields: [subscriptionPayments.planId],
-		references: [plans.id]
-	}),
-	user_verifiedBy: one(users, {
-		fields: [subscriptionPayments.verifiedBy],
-		references: [users.id],
-		relationName: "subscriptionPayments_verifiedBy_users_id"
+	subscriptionPayment: one(subscriptionPayments, {
+		fields: [platformTransactions.subscriptionPaymentId],
+		references: [subscriptionPayments.id]
 	}),
 }));
 
@@ -392,24 +367,21 @@ export const subscriptionsRelations = relations(subscriptions, ({one, many}) => 
 	}),
 }));
 
-export const platformSettingsRelations = relations(platformSettings, ({one}) => ({
-	event: one(events, {
-		fields: [platformSettings.eventBannerPinnedEventId],
-		references: [events.id]
+export const subscriptionPaymentsRelations = relations(subscriptionPayments, ({one, many}) => ({
+	platformTransactions: many(platformTransactions),
+	user_userId: one(users, {
+		fields: [subscriptionPayments.userId],
+		references: [users.id],
+		relationName: "subscriptionPayments_userId_users_id"
 	}),
-	user: one(users, {
-		fields: [platformSettings.updatedBy],
-		references: [users.id]
+	plan: one(plans, {
+		fields: [subscriptionPayments.planId],
+		references: [plans.id]
 	}),
-}));
-
-export const plansRelations = relations(plans, ({many}) => ({
-	subscriptionPayments: many(subscriptionPayments),
-	subscriptions_planId: many(subscriptions, {
-		relationName: "subscriptions_planId_plans_id"
-	}),
-	subscriptions_pendingPlanId: many(subscriptions, {
-		relationName: "subscriptions_pendingPlanId_plans_id"
+	user_verifiedBy: one(users, {
+		fields: [subscriptionPayments.verifiedBy],
+		references: [users.id],
+		relationName: "subscriptionPayments_verifiedBy_users_id"
 	}),
 }));
 
@@ -424,21 +396,42 @@ export const organizationMembersRelations = relations(organizationMembers, ({one
 	}),
 }));
 
-export const accountsRelations = relations(accounts, ({one}) => ({
+export const plansRelations = relations(plans, ({many}) => ({
+	subscriptions_planId: many(subscriptions, {
+		relationName: "subscriptions_planId_plans_id"
+	}),
+	subscriptions_pendingPlanId: many(subscriptions, {
+		relationName: "subscriptions_pendingPlanId_plans_id"
+	}),
+	subscriptionPayments: many(subscriptionPayments),
+}));
+
+export const platformSettingsRelations = relations(platformSettings, ({one}) => ({
 	user: one(users, {
-		fields: [accounts.userId],
+		fields: [platformSettings.updatedBy],
+		references: [users.id]
+	}),
+	event: one(events, {
+		fields: [platformSettings.eventBannerPinnedEventId],
+		references: [events.id]
+	}),
+}));
+
+export const broadcastLogsRelations = relations(broadcastLogs, ({one}) => ({
+	event: one(events, {
+		fields: [broadcastLogs.eventId],
+		references: [events.id]
+	}),
+	user: one(users, {
+		fields: [broadcastLogs.senderId],
 		references: [users.id]
 	}),
 }));
 
-export const broadcastJobDeliveriesRelations = relations(broadcastJobDeliveries, ({one}) => ({
-	broadcastJob: one(broadcastJobs, {
-		fields: [broadcastJobDeliveries.jobId],
-		references: [broadcastJobs.id]
-	}),
-	user: one(users, {
-		fields: [broadcastJobDeliveries.recipientId],
-		references: [users.id]
+export const ticketScanLogsRelations = relations(ticketScanLogs, ({one}) => ({
+	ticket: one(tickets, {
+		fields: [ticketScanLogs.ticketId],
+		references: [tickets.id]
 	}),
 }));
 
@@ -477,6 +470,13 @@ export const commissionInvoicesRelations = relations(commissionInvoices, ({one})
 	organization: one(organizations, {
 		fields: [commissionInvoices.organizationId],
 		references: [organizations.id]
+	}),
+}));
+
+export const accountsRelations = relations(accounts, ({one}) => ({
+	user: one(users, {
+		fields: [accounts.userId],
+		references: [users.id]
 	}),
 }));
 
