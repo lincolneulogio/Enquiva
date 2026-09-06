@@ -25,6 +25,7 @@ export function SidebarNavItem({
   const link = (
     <Link
       href={href}
+      prefetch={true}
       onClick={onNavigate}
       aria-label={label}
       aria-current={isActive ? "page" : undefined}
