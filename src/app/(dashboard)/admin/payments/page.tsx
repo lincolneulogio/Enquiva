@@ -13,8 +13,8 @@ import { getStaffBaseFromRequest } from "@/lib/navigation/get-staff-base.server"
 import { getRequestSession } from "@/lib/request-context";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { PaymentEarningsReportView } from "@/components/payments/PaymentEarningsReport";
-import { PaymentsTable } from "./PaymentsTable";
-import { fetchAdminPaymentsData, type AdminPaymentsQueryParams } from "./payments-query";
+import { PaymentsTable } from "./table";
+import { fetchAdminPaymentsData, type AdminPaymentsQueryParams } from "./query";
 
 interface AdminPaymentsPageProps {
   searchParams: Promise<AdminPaymentsQueryParams & { page?: string }>;

@@ -7,14 +7,17 @@ import { formStorageKey } from "@/lib/form-persistence";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { useState } from "react";
 
-import { type EventFormProps, EVENT_DRAFT_STORAGE_KEY } from "./form/types";
-import { MediaSettingsSection } from "./form/MediaSettingsSection";
-import { EventFormBanner } from "./form/EventFormBanner";
-import { EventFormLeftColumn } from "./form/EventFormLeftColumn";
-import { useEventFormValues } from "./form/useEventFormValues";
-import { useEventScheduleSlots } from "./form/useEventScheduleSlots";
-import { useEventPaymentAndRoutes } from "./form/useEventPaymentAndRoutes";
-import { useEventSubmitHandler } from "./form/useEventSubmitHandler";
+import {
+  type EventFormProps,
+  EVENT_DRAFT_STORAGE_KEY,
+  MediaSettingsSection,
+  EventFormBanner,
+  EventFormLeftColumn,
+  useEventFormValues,
+  useEventScheduleSlots,
+  useEventPaymentAndRoutes,
+  useEventSubmitHandler,
+} from "./form";
 
 const COVER_DROPZONE_APPEARANCE = {
   container:
