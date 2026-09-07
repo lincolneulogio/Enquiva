@@ -48,15 +48,19 @@ export function getNotificationHref(
   }
 
   const staffBase = normalizedRole === "super_admin" ? "/superadmin" : "/admin";
+  const isSuperAdmin = normalizedRole === "super_admin";
 
   switch (type) {
     case "organizer_request":
-      return `${staffBase}/team`;
+      // La aprobación de organizadores vive en el listado de usuarios
+      // (OrganizerApprovalButtons); /team es solo de entidad (admin).
+      return `${staffBase}/users`;
     case "organizer_approved":
     case "organizer_rejected":
       return `${staffBase}/users`;
     case "subscription_alert":
-      return `${staffBase}/plan`;
+      // /plan (singular) es de entidad; superadmin usa /plans (plataforma).
+      return isSuperAdmin ? "/superadmin/plans" : `${staffBase}/plan`;
     case "finance_digest":
       return `${staffBase}/billing`;
     case "payment_submitted":
