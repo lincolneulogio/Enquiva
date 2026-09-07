@@ -45,11 +45,11 @@ export function isAuthPath(pathname: string | null | undefined): boolean {
 }
 
 function getBadgeIcon(variant?: string, type?: string) {
-  if (variant === "fire" || type === "popular") return Flame;
-  if (variant === "bolt") return Zap;
-  if (variant === "clock" || type === "upcoming") return Clock;
-  if (variant === "star" || type === "pinned") return Star;
-  return Sparkles;
+  if (variant === "fire" || type === "popular") return <Flame className="h-3 w-3" />;
+  if (variant === "bolt") return <Zap className="h-3 w-3" />;
+  if (variant === "clock" || type === "upcoming") return <Clock className="h-3 w-3" />;
+  if (variant === "star" || type === "pinned") return <Star className="h-3 w-3" />;
+  return <Sparkles className="h-3 w-3" />;
 }
 
 export function EventSpotlightBanner({
@@ -112,7 +112,7 @@ export function EventSpotlightBanner({
 
   if (!shouldShow || !event) return null;
 
-  const BadgeIcon = getBadgeIcon(event.badge?.variant, event.badge?.type);
+  const badgeIcon = getBadgeIcon(event.badge?.variant, event.badge?.type);
   const cleanBadgeLabel =
     event.badge?.label?.replace(/^[\p{Emoji}\s]+/u, "").trim() || "COMIENZA PRONTO";
 
@@ -153,7 +153,7 @@ export function EventSpotlightBanner({
         {/* Badge Dinámico en píldora con fondo oscuro translúcido */}
         <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-black/20 px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-white backdrop-blur-xs">
           <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-          <BadgeIcon className="h-3 w-3" />
+          {badgeIcon}
           <span className="uppercase">{cleanBadgeLabel}</span>
         </span>
 

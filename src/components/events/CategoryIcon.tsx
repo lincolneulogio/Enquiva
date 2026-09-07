@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import type { LucideIcon, LucideProps } from "lucide-react";
 import {
   Folder,
@@ -64,7 +65,7 @@ interface CategoryIconProps extends LucideProps {
 
 export function CategoryIcon({ slug, className, ...props }: CategoryIconProps) {
   const IconComponent = getCategoryLucideIcon(slug);
-  return <IconComponent className={className} aria-hidden="true" {...props} />;
+  return createElement(IconComponent, { className, "aria-hidden": "true", ...props });
 }
 
 

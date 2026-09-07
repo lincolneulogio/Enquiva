@@ -73,7 +73,7 @@ export function SuccessStoriesSection({ testimonials = [] }: SuccessStoriesSecti
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-bold text-foreground">{item.name}</h4>
+                  <p className="text-sm font-bold text-foreground">{item.name}</p>
                   <p className="text-xs text-muted-foreground">
                     {item.role} • {item.company}
                   </p>

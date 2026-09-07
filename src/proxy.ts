@@ -121,7 +121,13 @@ async function getSessionSafe(request: NextRequest) {
 }
 
 export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, protocol, host } = request.nextUrl;
+
+  // Redirige HTTP a HTTPS solo en despliegues Node.js / Docker.
+  // En Vercel el TLS se termina en el edge y este bloque no se activa.
+  if (protocol !== "https:" && (host === "enquiva.site" || host === "www.enquiva.site")) {
+    return NextResponse.redirect(`https://${host}${pathname}${request.nextUrl.search}`, 301);
+  }
 
   // Desarrollo rápido: las rutas públicas no necesitan consultar settings/BD
   // en cada HMR. Producción mantiene el gate de mantenimiento completo.

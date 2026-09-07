@@ -1,0 +1,20 @@
+# Enquiva
+
+Plataforma de gestión de eventos. Crea, gestiona y descubre eventos de todo tipo: inscripciones, tickets QR, pagos y transporte en un solo lugar.
+
+> Enquiva conecta organizadores y asistentes en Latinoamérica. Publica eventos, vende tickets con QR y gestiona tus inscripciones desde un solo lugar.
+
+## Public pages
+
+- [Inicio](https://enquiva.site/): Descubre, organiza y vive los mejores eventos hoy.
+- [Explorar eventos](https://enquiva.site/events): Explora el catálogo completo de eventos disponibles.
+- [Precios](https://enquiva.site/pricing): Planes y precios para organizadores.
+
+## Key resources
+
+- [API](https://enquiva.site/api/health): Estado del servicio.
+
+## Contact
+
+- [Soporte](mailto:soporte@enquiva.site): soporte@enquiva.site
+- [Contacto](mailto:contacto@enquiva.site): contacto@enquiva.site

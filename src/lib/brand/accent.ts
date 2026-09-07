@@ -39,11 +39,11 @@ export const ACCENT_COLORS: Record<
 > = {
   amber: {
     name: "Naranja Enquiva (Identidad)",
-    class: "bg-[#FF5500]",
+    class: "bg-[#CC4400]",
     light: {
-      primary: "20 100% 50%",
-      ring: "20 100% 50%",
-      accent: "20 100% 45%",
+      primary: "20 100% 40%",
+      ring: "20 100% 40%",
+      accent: "20 100% 40%",
       background: "34 44% 93%",
       foreground: "25 60% 16%",
       border: "34 15% 82%",
@@ -79,8 +79,8 @@ export const ACCENT_COLORS: Record<
     name: "Esmeralda",
     class: "bg-[#10b981]",
     light: {
-      primary: "142 70% 36%",
-      ring: "142 70% 36%",
+      primary: "142 70% 32%",
+      ring: "142 70% 32%",
       accent: "142 65% 28%",
       background: "140 30% 95%",
       foreground: "160 50% 12%",
@@ -117,8 +117,8 @@ export const ACCENT_COLORS: Record<
     name: "Rosado Premium",
     class: "bg-[#f43f5e]",
     light: {
-      primary: "330 81% 52%",
-      ring: "330 81% 52%",
+      primary: "330 81% 44%",
+      ring: "330 81% 44%",
       accent: "330 75% 44%",
       background: "330 30% 96%",
       foreground: "330 50% 14%",
@@ -155,8 +155,8 @@ export const ACCENT_COLORS: Record<
     name: "Azul Eléctrico",
     class: "bg-[#2563eb]",
     light: {
-      primary: "217 91% 56%",
-      ring: "217 91% 56%",
+      primary: "217 91% 44%",
+      ring: "217 91% 44%",
       accent: "217 80% 45%",
       background: "215 30% 95%",
       foreground: "222 47% 11%",

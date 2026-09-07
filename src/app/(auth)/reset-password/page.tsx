@@ -14,8 +14,8 @@ export default async function ResetPasswordPage({
   const email = params?.email ?? undefined;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-6">
-      <div className="pointer-events-none fixed inset-0">
+    <main className="flex min-h-screen items-center justify-center bg-background px-6">
+      <div aria-hidden className="pointer-events-none fixed inset-0">
         <div className="absolute left-1/4 top-1/4 h-72 w-72 rounded-full bg-primary/5 blur-3xl" />
         <div className="absolute bottom-1/4 right-1/4 h-72 w-72 rounded-full bg-accent/5 blur-3xl" />
       </div>
@@ -33,6 +33,6 @@ export default async function ResetPasswordPage({
           <ResetPasswordForm token={token} email={email} />
         </div>
       </div>
-    </div>
+    </main>
   );
 }

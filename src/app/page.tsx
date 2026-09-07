@@ -61,7 +61,7 @@ export default async function HomePage() {
 
   return (
     <MarketingMotionProvider>
-      <div id="top" className="relative min-h-screen overflow-x-clip bg-background">
+      <main id="top" className="relative min-h-screen overflow-x-clip bg-background">
         {/* 1. Header / Barra de Navegación */}
         <PublicHeader />
 
@@ -95,7 +95,7 @@ export default async function HomePage() {
 
         {/* 9. Botón flotante Scroll To Top */}
         <ScrollToTopButton />
-      </div>
+      </main>
     </MarketingMotionProvider>
   );
 }

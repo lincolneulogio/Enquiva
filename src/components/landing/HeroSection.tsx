@@ -64,10 +64,8 @@ export function HeroSection({ t, locale, copy, formattedRegistrations }: HeroSec
         {/* 2. Gran Titular con 'hoy' destacado en color primario naranja */}
         <h1
           className="mb-5 font-display text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl lg:leading-[1.1]"
-          data-aos="fade-up"
-          data-aos-delay="60"
         >
-          Descubre , organiza y vive los{" "}
+          Descubre, organiza y vive los{" "}
           <br className="hidden sm:inline" />
           mejores eventos{" "}
           <span className="text-primary underline decoration-primary/30 decoration-wavy underline-offset-8">

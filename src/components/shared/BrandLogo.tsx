@@ -47,8 +47,9 @@ export function BrandLogo({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={s.src}
-        alt={displayName}
+        alt={showText ? "" : displayName}
         height={s.height}
+        width={s.height}
         decoding="async"
         fetchPriority={priority ? "high" : "auto"}
         className="shrink-0 object-contain"

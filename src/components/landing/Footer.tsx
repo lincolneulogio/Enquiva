@@ -69,9 +69,9 @@ export function Footer({ copy }: FooterProps = {}) {
 
           {/* Columna 2: Descubre Enquiva */}
           <div>
-            <h4 className="mb-4 text-xs font-bold uppercase tracking-wider text-foreground">
+            <p className="mb-4 text-xs font-bold uppercase tracking-wider text-foreground">
               Descubre Enquiva
-            </h4>
+            </p>
             <ul className="space-y-2.5 text-xs text-muted-foreground sm:text-sm">
               <li>
                 <Link href="/events" className="transition-colors hover:text-primary">
@@ -103,9 +103,9 @@ export function Footer({ copy }: FooterProps = {}) {
 
           {/* Columna 3: Enquiva Institucional */}
           <div>
-            <h4 className="mb-4 text-xs font-bold uppercase tracking-wider text-foreground">
+            <p className="mb-4 text-xs font-bold uppercase tracking-wider text-foreground">
               Enquiva
-            </h4>
+            </p>
             <ul className="space-y-2.5 text-xs text-muted-foreground sm:text-sm">
               <li>
                 <Link href="/pricing" className="transition-colors hover:text-primary">
@@ -137,9 +137,9 @@ export function Footer({ copy }: FooterProps = {}) {
 
           {/* Columna 4: Organizadores */}
           <div>
-            <h4 className="mb-4 text-xs font-bold uppercase tracking-wider text-foreground">
+            <p className="mb-4 text-xs font-bold uppercase tracking-wider text-foreground">
               Organizadores
-            </h4>
+            </p>
             <ul className="space-y-2.5 text-xs text-muted-foreground sm:text-sm">
               <li>
                 <Link href="/dashboard" className="transition-colors hover:text-primary">
@@ -171,9 +171,9 @@ export function Footer({ copy }: FooterProps = {}) {
 
           {/* Columna 5: Suscripción a Boletín Dinámico */}
           <div>
-            <h4 className="mb-4 text-xs font-bold uppercase tracking-wider text-foreground">
+            <p className="mb-4 text-xs font-bold uppercase tracking-wider text-foreground">
               Boletín de Novedades
-            </h4>
+            </p>
             <p className="mb-3 text-xs leading-relaxed text-muted-foreground">
               Recibe invitaciones exclusivas, preventas tempranas y novedades cada semana.
             </p>

@@ -8,8 +8,8 @@ export default async function RegisterPage() {
   const { t } = await getI18n();
 
   return (
-    <div className="flex min-h-screen items-start justify-center bg-background px-4 py-6 sm:items-center sm:px-6 sm:py-10">
-      <div className="pointer-events-none fixed inset-0">
+    <main className="flex min-h-screen items-start justify-center bg-background px-4 py-6 sm:items-center sm:px-6 sm:py-10">
+      <div aria-hidden className="pointer-events-none fixed inset-0">
         <div className="absolute right-1/4 top-1/4 h-72 w-72 rounded-full bg-primary/5 blur-3xl" />
         <div className="absolute bottom-1/4 left-1/4 h-72 w-72 rounded-full bg-accent/5 blur-3xl" />
       </div>
@@ -40,6 +40,6 @@ export default async function RegisterPage() {
           </Link>
         </p>
       </div>
-    </div>
+    </main>
   );
 }

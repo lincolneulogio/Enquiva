@@ -181,9 +181,9 @@ export function PremierExperiencesSection({
                   </div>
                 )}
                 <div>
-                  <h4 className="text-base font-bold text-foreground">
+                  <h3 className="text-base font-bold text-foreground">
                     {org1 ? org1.name : "Organizaciones Destacadas"}
-                  </h4>
+                  </h3>
                   <p className="text-xs text-muted-foreground">Institución registrada</p>
                 </div>
               </div>
@@ -228,9 +228,9 @@ export function PremierExperiencesSection({
                   </div>
                 )}
                 <div>
-                  <h4 className="text-base font-bold text-foreground">
+                  <h3 className="text-base font-bold text-foreground">
                     {org2 ? org2.name : "Red de Creadores"}
-                  </h4>
+                  </h3>
                   <p className="text-xs text-muted-foreground">Productores y formadores</p>
                 </div>
               </div>
@@ -261,9 +261,9 @@ export function PremierExperiencesSection({
                 ¿Eres organizador de eventos?
               </span>
 
-              <h4 className="mb-3 text-lg font-bold leading-snug text-white">
+              <h3 className="mb-3 text-lg font-bold leading-snug text-white">
                 Gestiona tus inscripciones y cobra entradas con cero complicaciones
-              </h4>
+              </h3>
 
               <p className="mb-6 text-sm leading-relaxed text-zinc-300">
                 Publica en minutos, emite tickets con QR dinámico, controla accesos con nuestra app y recibe liquidaciones automáticas.
