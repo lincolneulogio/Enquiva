@@ -39,7 +39,9 @@ export default async function HomePage() {
       page: 1,
       limit: 6,
     })),
-    EventService.getCategories().catch(() => []),
+    // Solo las 4 categorías con mayor alcance/inscritos/visibilidad; el
+    // catálogo completo siempre está disponible en /events.
+    EventService.getTopCategories(4).catch(() => []),
     EventService.getUpcomingLaunches(4).catch(() => []),
     EventService.getPremierExperiences(4).catch(() => []),
     EventService.getTopOrganizations(2).catch(() => []),

@@ -17,6 +17,7 @@ import {
 } from "./event-shared";
 import { buildPublicEventConditions } from "./event-filters";
 import { resolveCategoryCurrentSlug, resolveEventTypeIds } from "@/lib/events/slug-resolution";
+import { canonicalCategorySlug } from "@/lib/events/taxonomy";
 
 export class EventCatalogService {
   /**
@@ -38,6 +39,88 @@ export class EventCatalogService {
         .orderBy(asc(categories.sortOrder));
     } catch (error) {
       console.error("Error al cargar categorías desde la base de datos:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Las 4 categorías con mayor alcance del home: rankeadas por inscritos
+   * confirmados, evento publicados y visitas acumuladas (slug legados
+   * normalizados a su categoría canónica). Fallback a sortOrder si no hay
+   * actividad para no dejar la sección vacía.
+   */
+  static async getTopCategories(limit = 4): Promise<Pick<Category, "slug" | "label" | "labelEn" | "colorClass">[]> {
+    try {
+      await ensureDefaultPlatformCategories();
+      const cacheKey = `${CACHE_KEYS.publicEvents}:top-categories:${limit}`;
+      const cached = await getCached<Pick<Category, "slug" | "label" | "labelEn" | "colorClass">[]>(cacheKey);
+      if (cached) return cached;
+
+      const [stats, cats] = await Promise.all([
+        db
+          .select({
+            category: events.category,
+            regCount: sql<number>`count(${registrations.id})::int`,
+            eventCount: sql<number>`count(distinct ${events.id})::int`,
+            viewCount: sql<number>`coalesce(sum(${events.viewCount}), 0)::int`,
+          })
+          .from(events)
+          .leftJoin(
+            registrations,
+            and(
+              eq(registrations.eventId, events.id),
+              confirmedAttendeeStatus,
+            ),
+          )
+          .where(eq(events.status, "published"))
+          .groupBy(events.category),
+        db
+          .select({
+            slug: categories.slug,
+            label: categories.label,
+            labelEn: categories.labelEn,
+            colorClass: categories.colorClass,
+            sortOrder: categories.sortOrder,
+          })
+          .from(categories)
+          .where(and(eq(categories.isActive, true), isNull(categories.organizationId))),
+      ]);
+
+      const statsByCanonical = new Map<string, { reg: number; events: number; views: number }>();
+      for (const row of stats) {
+        const canonical = canonicalCategorySlug(row.category);
+        const current = statsByCanonical.get(canonical) ?? { reg: 0, events: 0, views: 0 };
+        current.reg += row.regCount ?? 0;
+        current.events += row.eventCount ?? 0;
+        current.views += row.viewCount ?? 0;
+        statsByCanonical.set(canonical, current);
+      }
+
+      const result = cats
+        .map((c) => {
+          const s = statsByCanonical.get(c.slug);
+          const reg = s?.reg ?? 0;
+          const eventsCount = s?.events ?? 0;
+          const views = s?.views ?? 0;
+          // Inscritos > alcance (eventos publicados) > visibilidad (visitas)
+          const score = reg * 1_000_000_000 + eventsCount * 1_000_000 + views;
+          return {
+            slug: c.slug,
+            label: c.label,
+            labelEn: c.labelEn,
+            colorClass: c.colorClass,
+            score,
+            sortOrder: c.sortOrder,
+          };
+        })
+        .sort((a, b) => b.score - a.score || a.sortOrder - b.sortOrder)
+        .slice(0, limit)
+        .map(({ slug, label, labelEn, colorClass }) => ({ slug, label, labelEn, colorClass }));
+
+      await setCached(cacheKey, result, CACHE_TTL.publicEvents);
+      return result;
+    } catch (error) {
+      console.error("Error al cargar las top categorías desde la base de datos:", error);
       return [];
     }
   }

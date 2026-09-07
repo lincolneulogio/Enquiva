@@ -40,7 +40,6 @@ export async function generateMetadata(): Promise<Metadata> {
         { url: "/favicon.ico" },
         { url: "/images/favicon-16x16.png", sizes: "16x16", type: "image/png" },
         { url: "/images/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-        { url: "/images/favicon-48x48.png", sizes: "48x48", type: "image/png" },
       ],
       apple: [{ url: "/images/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
     },
