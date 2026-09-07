@@ -52,6 +52,14 @@ export const passwordVerifyRatelimit = new Ratelimit({
   prefix: "ratelimit:password_verify",
 });
 
+/** Formulario público de contacto (anti-spam, por IP). */
+export const contactRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(5, "10 m"),
+  analytics: true,
+  prefix: "ratelimit:contact",
+});
+
 export const CACHE_KEYS = {
   publicEvents: "events:public",
   eventBySlug: (slug: string) => `events:slug:${slug}`,

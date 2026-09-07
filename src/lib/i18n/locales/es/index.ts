@@ -353,6 +353,7 @@ export const es: TranslationDictionary = {
                     notifications: "Notificaciones",
                     newsletter: "Suscriptores",
                     testimonials: "Testimonios",
+                    aboutPage: "Sobre Nosotros",
                     permissions: "Permisos",
                     analytics: "Analítica",
                     analyticsGlobal: "Analítica global",

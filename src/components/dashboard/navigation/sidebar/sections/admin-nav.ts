@@ -22,6 +22,7 @@ import {
   Crown,
   LineChart,
   Layers,
+  Landmark,
 } from "lucide-react";
 import type { NavSection, AdminNavOptions } from "../types";
 import { compactSections } from "./helpers";
@@ -94,6 +95,7 @@ export const adminSections = (options: AdminNavOptions): NavSection[] => {
             items: [
               { labelKey: "dashboard.sidebar.admin.newsletter", href: "/superadmin/newsletter", icon: Mail, permissions: ["settings:manage"] as const },
               { labelKey: "dashboard.sidebar.admin.testimonials", href: "/superadmin/testimonials", icon: MessageSquareQuote, permissions: ["settings:manage"] as const },
+              { labelKey: "dashboard.sidebar.admin.aboutPage", href: "/superadmin/about", icon: Landmark, permissions: ["settings:manage"] as const },
               { labelKey: "dashboard.sidebar.admin.broadcasts", href: p("/broadcasts"), icon: Megaphone, permissions: ["broadcasts:send:org", "broadcasts:send:own"] as const },
             ],
           },

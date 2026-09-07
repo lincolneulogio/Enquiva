@@ -10,3 +10,4 @@ export * from "./platform-settings";
 export * from "./chat";
 export * from "./commission-invoices";
 export * from "./marketing";
+export * from "./pages";

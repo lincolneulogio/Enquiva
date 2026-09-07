@@ -88,9 +88,9 @@ export default async function OrganizerEditEventPage({ params }: OrganizerEditEv
                     </p>
                 </div>
 
-                {event.status === "published" && (
+                {event.status === "published" && event.slug && (
                     <Link
-                        href={`/events/${event.slug || event.id}`}
+                        href={`/events/${event.slug}`}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-xl border border-border/80 bg-background/80 px-3.5 py-2 text-xs font-semibold text-foreground shadow-2xs hover:border-primary/40 hover:bg-card hover:text-primary transition-all active:scale-95"
