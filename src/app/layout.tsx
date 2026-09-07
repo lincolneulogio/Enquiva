@@ -9,6 +9,11 @@ import { PlatformBrandProvider } from "@/components/providers/PlatformBrandProvi
 import { AccentColorInitializer } from "@/components/dashboard/admin/AccentColorInitializer";
 import { PlatformAnnouncementBannerHost } from "@/components/shared/PlatformAnnouncementBannerHost";
 import { getPlatformBrand } from "@/lib/brand/platform-brand";
+import {
+  buildOrganizationSchema,
+  buildSiteNavigationElementSchemas,
+  buildWebSiteSchema,
+} from "@/lib/seo/structured-data";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -35,6 +40,7 @@ export async function generateMetadata(): Promise<Metadata> {
         { url: "/favicon.ico" },
         { url: "/images/favicon-16x16.png", sizes: "16x16", type: "image/png" },
         { url: "/images/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+        { url: "/images/favicon-48x48.png", sizes: "48x48", type: "image/png" },
       ],
       apple: [{ url: "/images/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
     },
@@ -63,12 +69,23 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const brand = await getPlatformBrand();
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "https://enquiva.site";
+  const structuredData = [
+    buildOrganizationSchema(brand, baseUrl),
+    buildWebSiteSchema(brand, baseUrl),
+    ...buildSiteNavigationElementSchemas(baseUrl, brand.defaultLocale),
+  ];
 
   return (
     <html lang={brand.defaultLocale} suppressHydrationWarning className={outfit.variable}>
       <head>
         <ThemeInitScript platformDefaultAccent={brand.defaultAccentColor} />
         <SidebarCollapseBootScript />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
       </head>
       <body suppressHydrationWarning className="font-sans">
         <AccentColorInitializer platformDefault={brand.defaultAccentColor} />
