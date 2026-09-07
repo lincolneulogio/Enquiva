@@ -87,6 +87,7 @@ export async function sendMailViaResendApi(
     return {
       filename: att.filename || "attachment",
       content: contentBase64,
+      cid: att.cid,
     };
   });
 

@@ -5,6 +5,7 @@ export const newsletterSubscribers = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     email: text("email").notNull().unique(),
+    name: text("name"),
     source: text("source").notNull().default("footer"),
     status: text("status").notNull().default("active"),
     ipAddress: text("ip_address"),

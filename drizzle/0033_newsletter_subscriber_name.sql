@@ -1,0 +1,1 @@
+ALTER TABLE "newsletter_subscribers" ADD COLUMN "name" text;

@@ -1032,6 +1032,7 @@ export const commissionInvoices = pgTable("commission_invoices", {
 export const newsletterSubscribers = pgTable("newsletter_subscribers", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	email: text().notNull(),
+	name: text("name"),
 	source: text().default('footer').notNull(),
 	status: text().default('active').notNull(),
 	ipAddress: text("ip_address"),

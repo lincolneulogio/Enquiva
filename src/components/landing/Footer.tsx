@@ -186,6 +186,14 @@ export function Footer({ copy }: FooterProps = {}) {
             ) : (
               <form onSubmit={handleSubmit} className="space-y-2">
                 <input type="hidden" name="source" value="home_footer" />
+                <input
+                  type="text"
+                  name="name"
+                  maxLength={120}
+                  disabled={isPending}
+                  placeholder="Tu nombre y apellido (opcional)"
+                  className="w-full rounded-xl border border-border/90 bg-card px-3.5 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                />
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                   <input

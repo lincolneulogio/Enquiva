@@ -119,9 +119,10 @@ export async function exportNewsletterSubscribersCsvAction(): Promise<string> {
     .from(newsletterSubscribers)
     .orderBy(desc(newsletterSubscribers.createdAt));
 
-  const headers = ["ID", "Email", "Estado", "Origen", "Fecha de Registro"];
+  const headers = ["ID", "Nombre", "Email", "Estado", "Origen", "Fecha de Registro"];
   const rows = allSubscribers.map((s) => [
     s.id,
+    `"${(s.name ?? "").replace(/"/g, '""')}"`,
     `"${s.email.replace(/"/g, '""')}"`,
     s.status,
     s.source,
@@ -133,28 +134,27 @@ export async function exportNewsletterSubscribersCsvAction(): Promise<string> {
 
 // ─── Helpers privados para el broadcast personalizado ─────────────────────────
 
-/** Extrae el primer nombre de un nombre completo, o usa la parte local del email como fallback */
-function extractFirstName(fullName: string | null | undefined, email: string): string {
-  if (fullName?.trim()) {
-    return fullName.trim().split(" ")[0];
-  }
+/** Resuelve el nombre visible del suscriptor (nombre completo capturado o fallback al email) */
+function resolveRecipientDisplayName(fullName: string | null | undefined, email: string): string {
+  const trimmed = fullName?.trim();
+  if (trimmed) return trimmed;
   return email.split("@")[0];
 }
 
 /** Construye el HTML completo del boletín personalizado para un suscriptor */
 function buildNewsletterHtml(
   subject: string,
-  recipientFirstName: string,
+  recipientName: string,
   sanitizedMessage: string,
-  imageUrl?: string,
+  imageSrc?: string,
 ): string {
-  const greeting = `Hola, <strong>${recipientFirstName}</strong>:`;
+  const greeting = `Hola, <strong>${recipientName}</strong>:`;
 
-  const imageBlock = imageUrl
+  const imageBlock = imageSrc
     ? `
     <!-- Featured image -->
     <div style="margin-bottom: 24px; border-radius: 14px; overflow: hidden; line-height: 0;">
-      <img src="${imageUrl}" alt="Imagen del comunicado" width="100%" style="display: block; width: 100%; max-width: 600px; height: auto; border-radius: 14px;" />
+      <img src="${imageSrc}" alt="Imagen del comunicado" width="100%" style="display: block; width: 100%; max-width: 600px; height: auto; border-radius: 14px;" />
     </div>
 `
     : "";
@@ -224,17 +224,30 @@ export async function sendNewsletterBroadcastAction(input: {
     const config = await resolveMailConfig();
     const sender = await getMailSender();
 
-    // 2. Buscar nombres en la tabla users con una sola query (IN de emails)
+    // 2. Buscar nombres en la tabla users y en el propio suscriptor (IN de emails)
     const emailList = activeSubscribers.map((s) => s.email);
-    const registeredUsers = await db
-      .select({ email: users.email, name: users.name })
-      .from(users)
-      .where(inArray(users.email, emailList));
+    const [subscriberNames, registeredUsers] = await Promise.all([
+      db
+        .select({ email: newsletterSubscribers.email, name: newsletterSubscribers.name })
+        .from(newsletterSubscribers)
+        .where(inArray(newsletterSubscribers.email, emailList)),
+      db
+        .select({ email: users.email, name: users.name })
+        .from(users)
+        .where(inArray(users.email, emailList)),
+    ]);
 
-    // Mapa O(1): email → nombre completo
-    const nameByEmail = new Map<string, string>(
-      registeredUsers.map((u) => [u.email, u.name])
-    );
+    // Mapa O(1): email → nombre. Prioridad: nombre capturado en la suscripción,
+    // luego el nombre de la cuenta (si el email está registrado).
+    const nameByEmail = new Map<string, string>();
+    for (const s of subscriberNames) {
+      if (s.email && s.name?.trim()) nameByEmail.set(s.email, s.name.trim());
+    }
+    for (const u of registeredUsers) {
+      if (u.email && u.name?.trim() && !nameByEmail.has(u.email)) {
+        nameByEmail.set(u.email, u.name.trim());
+      }
+    }
 
     // 3. Sanitizar el mensaje una sola vez (es idéntico para todos)
     const sanitizedMessage = input.message
@@ -242,16 +255,47 @@ export async function sendNewsletterBroadcastAction(input: {
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
 
-    // 4. Función de envío individual con nombre personalizado
+    // 4. Incrustar la imagen del comunicado como adjunto inline (cid) para que
+    // se muestre sin depender de que el cliente cargue imágenes remotas.
+    let imageSource: string | undefined = input.imageUrl || undefined;
+    let imageAttachment:
+      | { cid: string; filename: string; contentType: string; content: Buffer }
+      | undefined;
+
+    if (input.imageUrl) {
+      try {
+        const res = await fetch(input.imageUrl, { signal: AbortSignal.timeout(10000) });
+        if (res.ok) {
+          const buffer = Buffer.from(await res.arrayBuffer());
+          if (buffer.byteLength > 0 && buffer.byteLength <= 4 * 1024 * 1024) {
+            imageAttachment = {
+              cid: "newsletter-image",
+              filename: "newsletter-image",
+              contentType: res.headers.get("content-type") || "image/png",
+              content: buffer,
+            };
+            imageSource = "cid:newsletter-image";
+          }
+        }
+      } catch (error) {
+        console.warn(
+          "[newsletter-broadcast] No se pudo incrustar la imagen; se usará la URL remota:",
+          error,
+        );
+      }
+    }
+
+    // 5. Función de envío individual con nombre personalizado
     const sendOne = async (email: string): Promise<void> => {
-      const firstName = extractFirstName(nameByEmail.get(email) ?? null, email);
-      const html = buildNewsletterHtml(input.subject, firstName, sanitizedMessage, input.imageUrl);
+      const recipientName = resolveRecipientDisplayName(nameByEmail.get(email) ?? null, email);
+      const html = buildNewsletterHtml(input.subject, recipientName, sanitizedMessage, imageSource);
 
       const mailOptions = {
         from: sender,
         to: email,
         subject: input.subject,
         html,
+        ...(imageAttachment ? { attachments: [imageAttachment] } : {}),
       };
 
       if (isResendConfig(config)) {

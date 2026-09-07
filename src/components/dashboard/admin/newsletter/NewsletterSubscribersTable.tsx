@@ -37,6 +37,7 @@ export function NewsletterSubscribersTable({
           <thead className="border-b border-border bg-muted/40 text-muted-foreground font-medium">
             <tr>
               <th className="px-4 py-3.5">N°</th>
+              <th className="px-4 py-3.5">Nombre</th>
               <th className="px-4 py-3.5">Correo Electrónico</th>
               <th className="px-4 py-3.5">Origen</th>
               <th className="px-4 py-3.5">Fecha de Suscripción</th>
@@ -50,6 +51,9 @@ export function NewsletterSubscribersTable({
               return (
                 <tr key={sub.id} className="hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3.5 text-muted-foreground font-mono">{index + 1}</td>
+                  <td className="px-4 py-3.5 font-medium text-foreground">
+                    {sub.name?.trim() || <span className="text-muted-foreground">—</span>}
+                  </td>
                   <td className="px-4 py-3.5 font-medium text-foreground">
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4 text-primary shrink-0" />

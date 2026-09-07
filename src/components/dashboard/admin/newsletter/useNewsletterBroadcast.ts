@@ -13,14 +13,21 @@ export function useNewsletterBroadcast(startTransition: (cb: () => Promise<void>
   const [broadcastMessage, setBroadcastMessage] = useState("");
   const [broadcastImageUrl, setBroadcastImageUrl] = useState<string | null>(null);
 
-  const closeBroadcastModal = () => {
-    if (broadcastImageUrl) {
-      deleteOrphanUploadAction(broadcastImageUrl).catch(() => {});
-    }
+  const resetBroadcastState = () => {
     setIsBroadcastModalOpen(false);
     setBroadcastSubject("");
     setBroadcastMessage("");
     setBroadcastImageUrl(null);
+  };
+
+  const closeBroadcastModal = () => {
+    // Solo se elimina la imagen si el envío fue cancelado (archivo huérfano).
+    // Tras un envío exitoso la imagen ya viaja en los correos (URL/CID) y
+    // borrarla rompería el renderizado en los buzones de los suscriptores.
+    if (broadcastImageUrl) {
+      deleteOrphanUploadAction(broadcastImageUrl).catch(() => {});
+    }
+    resetBroadcastState();
   };
 
   const handleSendBroadcast = (e: React.FormEvent) => {
@@ -44,7 +51,7 @@ export function useNewsletterBroadcast(startTransition: (cb: () => Promise<void>
               count: res.recipientCount ?? 0,
             })
           );
-          closeBroadcastModal();
+          resetBroadcastState();
         } else {
           toast.error(res.error ?? t("dashboard.admin.newsletterBroadcastError"));
         }

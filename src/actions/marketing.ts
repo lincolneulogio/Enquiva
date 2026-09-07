@@ -17,6 +17,7 @@ import { z } from "zod";
 
 const subscribeSchema = z.object({
   email: z.string().email("Por favor ingresa un correo electrónico válido."),
+  name: z.string().trim().max(120).optional(),
   source: z.string().optional().default("footer"),
 });
 
@@ -35,10 +36,12 @@ export async function subscribeToNewsletterAction(
 ): Promise<SubscribeResult> {
   try {
     const rawEmail = formData.get("email");
+    const rawName = formData.get("name");
     const rawSource = formData.get("source") || "footer";
 
     const parsed = subscribeSchema.safeParse({
       email: typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "",
+      name: typeof rawName === "string" ? rawName.trim() : "",
       source: typeof rawSource === "string" ? rawSource : "footer",
     });
 
@@ -69,7 +72,13 @@ export async function subscribeToNewsletterAction(
       if (existing.status !== "active") {
         await db
           .update(newsletterSubscribers)
-          .set({ status: "active", updatedAt: new Date() })
+          .set({
+            status: "active",
+            ...(parsed.data.name?.trim()
+              ? { name: parsed.data.name.trim() }
+              : {}),
+            updatedAt: new Date(),
+          })
           .where(eq(newsletterSubscribers.id, existing.id));
       }
       return {
@@ -80,6 +89,7 @@ export async function subscribeToNewsletterAction(
 
     await db.insert(newsletterSubscribers).values({
       email: parsed.data.email,
+      name: parsed.data.name?.trim() || null,
       source: parsed.data.source,
       status: "active",
       ipAddress: ipAddress ?? undefined,
