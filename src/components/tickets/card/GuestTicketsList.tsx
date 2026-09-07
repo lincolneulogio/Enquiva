@@ -6,6 +6,7 @@ import { Event } from "@/lib/db/schema";
 import { registrationStatusLabel } from "@/lib/utils";
 import { DownloadTicketButton } from "../DownloadTicketButton";
 import { GuestTicketItem } from "./types";
+import { absoluteUrl } from "@/lib/url";
 
 interface GuestTicketsListProps {
   guestsState: GuestTicketItem[];
@@ -27,12 +28,9 @@ export function GuestTicketsList({
   if (guestsState.length === 0) return null;
 
   const guestTicketShareUrl = (code: string, signature?: string | null) => {
-    const appUrl =
-      (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "") ||
-      (typeof window !== "undefined" ? window.location.origin : "");
     return signature
-      ? `${appUrl}/ticket/${code}?s=${signature}`
-      : `${appUrl}/ticket/${code}`;
+      ? absoluteUrl(`/ticket/${code}?s=${signature}`)
+      : absoluteUrl(`/ticket/${code}`);
   };
 
   return (

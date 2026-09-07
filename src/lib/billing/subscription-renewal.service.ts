@@ -1,8 +1,8 @@
 import { db } from "@/lib/db";
 import { plans, subscriptions, users } from "@/lib/db/schema";
 import { and, eq, gt, ne, sql } from "drizzle-orm";
-import { env } from "@/env";
 import { sendSubscriptionRenewalReminderEmail } from "@/lib/mail";
+import { absoluteUrl } from "@/lib/url";
 import { SubscriptionAutoRenewService } from "./subscription-auto-renew.service";
 
 /** Días después del vencimiento en los que se reintenta auto-renew. */
@@ -27,8 +27,7 @@ function isSameUtcDay(a: Date, b: Date): boolean {
 }
 
 function billingUrl(): string {
-  const base = env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  return `${base.replace(/\/$/, "")}/organizer/billing`;
+  return absoluteUrl("/organizer/billing");
 }
 
 export class SubscriptionRenewalService {

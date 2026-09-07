@@ -18,7 +18,7 @@ import { getI18n } from "@/lib/i18n/server";
 import { recordEventView } from "@/lib/analytics/event-views";
 import { getEventCapacitySnapshot } from "@/lib/events/capacity-snapshot";
 import { getOrgPublicBrand } from "@/lib/brand/org-brand";
-import { env } from "@/env";
+import { absoluteUrl } from "@/lib/url";
 import { Clock } from "lucide-react";
 import { getRequestSession } from "@/lib/request-context";
 import { fetchEventTransportData } from "./event-transport-query";
@@ -42,7 +42,7 @@ export async function generateMetadata({
   if (!event || event.status !== "published") {
     return { title: "Evento", robots: { index: false, follow: false } };
   }
-  const base = env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  const base = absoluteUrl();
   const url = `${base}/events/${event.slug}`;
   const description =
     (event.description ?? "")

@@ -2246,6 +2246,14 @@ export const en: TranslationDictionary = {
                 stopDeleteError: "Error deleting stop.",
             },
         },
+        notFound: {
+            code: "Error 404",
+            title: "Page not found",
+            description: "The page you're looking for doesn't exist, was moved, or is no longer available. Check the address or go back to the home page.",
+            backHome: "Back to home",
+            explore: "Explore events",
+            contact: "Need help? Get in touch",
+        },
         profile: {
             phoneLabel: "Phone (+51)",
             phonePlaceholder: "987654321",

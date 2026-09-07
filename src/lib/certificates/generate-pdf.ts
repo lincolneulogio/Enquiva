@@ -1,4 +1,4 @@
-import { BRAND } from "@/lib/brand";
+import { absoluteUrl } from "@/lib/url";
 import type { CertificatePdfData } from "./pdf/types";
 import { PAGE_WIDTH, PAGE_HEIGHT } from "./pdf/types";
 import { loadCertificateImages } from "./pdf/image-loader";
@@ -22,12 +22,7 @@ export async function generateCertificatePdf(data: CertificatePdfData) {
 
   const images = await loadCertificateImages(data);
 
-  const publicDomain =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
-    (typeof window !== "undefined" && !window.location.host.includes("localhost")
-      ? window.location.origin
-      : `https://${BRAND.domain}`);
-  const verifyUrl = `${publicDomain}/verify/${encodeURIComponent(data.certificateCode)}`;
+  const verifyUrl = absoluteUrl(`/verify/${encodeURIComponent(data.certificateCode)}`);
 
   const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
     width: 280,

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { usePlatformBrand } from "@/components/providers/PlatformBrandProvider";
 import { cn } from "@/lib/utils";
+import { absoluteUrl } from "@/lib/url";
 import {
   buildInviteShareMessage,
   buildInviteShareUrl,
@@ -90,7 +91,7 @@ const CHANNELS: {
 ];
 
 function getAppUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "https://enquiva.app";
+  return absoluteUrl();
 }
 
 export function InviteCodeShareButtons({

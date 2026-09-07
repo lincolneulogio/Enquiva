@@ -2245,6 +2245,14 @@ export const es: TranslationDictionary = {
                 stopDeleteError: "Error al eliminar el paradero.",
             },
         },
+        notFound: {
+            code: "Error 404",
+            title: "Página no encontrada",
+            description: "La página que buscas no existe, se movió o ya no está disponible. Revisa la dirección o vuelve al inicio.",
+            backHome: "Volver al inicio",
+            explore: "Explorar eventos",
+            contact: "¿Necesitas ayuda? Escríbenos",
+        },
         profile: {
             phoneLabel: "Teléfono (+51)",
             phonePlaceholder: "987654321",

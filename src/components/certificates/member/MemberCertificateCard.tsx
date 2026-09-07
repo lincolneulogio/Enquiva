@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { DownloadCertificateButton } from "../DownloadCertificateButton";
+import { absoluteUrl } from "@/lib/url";
 import type { ProcessedCertificateItem } from "./types";
 
 interface MemberCertificateCardProps {
@@ -45,10 +46,7 @@ export function MemberCertificateCard({
   };
 
   const getLinkedInShareUrl = () => {
-    const appUrl =
-      (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "") ||
-      (typeof window !== "undefined" ? window.location.origin : "https://enquiva.site");
-    const verifyUrl = `${appUrl}/verify/${encodeURIComponent(item.certificateCode)}`;
+    const verifyUrl = absoluteUrl(`/verify/${encodeURIComponent(item.certificateCode)}`);
     const eventYear = new Date(item.eventDate).getFullYear();
     const eventMonth = new Date(item.eventDate).getMonth() + 1;
     const certName = item.certificateTitle || `Certificado - ${item.eventTitle}`;

@@ -13,7 +13,7 @@ import { broadcastPaymentUpdated } from "@/lib/pusher/broadcast";
 import { broadcastTableRefresh } from "@/lib/pusher/table-refresh";
 import { generateTicketForRegistration, buildTicketPublicUrl, resolveTicketQrDataUrl } from "@/lib/tickets";
 import { sendTicketEmailWithPdf } from "@/lib/mail";
-import { env } from "@/env";
+import { absoluteUrl } from "@/lib/url";
 import { runBackground } from "@/lib/background";
 import { assertCanManageEvent } from "@/lib/organizations/admin-scope";
 import { NotificationService, type NotificationPayload } from "@/lib/notifications/notification.service";
@@ -238,7 +238,7 @@ export class PaymentStatusService {
               const ticketUrl =
                 ticket.signature != null
                   ? buildTicketPublicUrl(ticket.code, ticket.signature)
-                  : `${env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "")}/ticket/${ticket.code}`;
+                  : absoluteUrl(`/ticket/${ticket.code}`);
               const qrDataUrl = await resolveTicketQrDataUrl(ticket);
 
               await sendTicketEmailWithPdf({

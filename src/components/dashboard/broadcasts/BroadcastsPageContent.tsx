@@ -14,7 +14,7 @@ import Link from "next/link";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { SubscriptionService } from "@/lib/billing/subscription.service";
 import { OrganizationService } from "@/lib/organizations/organization.service";
-import { env } from "@/env";
+import { absoluteUrl } from "@/lib/url";
 
 type BroadcastsPageProps = {
   billingPath?: string;
@@ -54,9 +54,7 @@ export async function BroadcastsPageContent({ billingPath = "/organizer/billing"
   const dateLocale = locale === "en" ? "en-US" : "es-PE";
   const organization = await OrganizationService.getOrganizationForUser(session.user.id);
   const firstEvent = eventsForSelect[0];
-  const eventUrl = firstEvent
-    ? `${env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "")}/events`
-    : null;
+  const eventUrl = firstEvent ? absoluteUrl("/events") : null;
 
   return (
     <div className="space-y-8">

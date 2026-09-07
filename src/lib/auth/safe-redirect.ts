@@ -2,6 +2,8 @@
  * Resolves post-login redirects safely (open-redirect resistant).
  * Safe for client components: only uses NEXT_PUBLIC_* + static localhost allowlist.
  */
+import { getAppBaseUrl } from "@/lib/url";
+
 export function resolveSafeAuthRedirect(
   candidate: string | null | undefined,
   fallback = "/dashboard",
@@ -22,7 +24,7 @@ export function resolveSafeAuthRedirect(
 
     const allowed = new Set(
       [
-        process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, ""),
+        getAppBaseUrl(),
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:3001",

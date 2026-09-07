@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { env } from "@/env";
+import { absoluteUrl } from "@/lib/url";
 
 export function computeTicketSignature(
   code: string,
@@ -11,8 +12,7 @@ export function computeTicketSignature(
 }
 
 export function buildTicketPublicUrl(code: string, signature: string): string {
-  const appUrl = env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
-  return `${appUrl}/ticket/${code}?s=${signature}`;
+  return absoluteUrl(`/ticket/${code}?s=${signature}`);
 }
 
 type TicketSignatureFields = {

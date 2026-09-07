@@ -1,11 +1,10 @@
 import type { Attachment } from "nodemailer/lib/mailer";
 import { BRAND } from "@/lib/brand";
-import { env } from "@/env";
+import { absoluteUrl } from "@/lib/url";
 
 /** URL absoluta para assets en correos (alojados en el dominio público). */
 export function emailAssetUrl(assetPath: string) {
-  const base = env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
-  return `${base}${assetPath}`;
+  return absoluteUrl(assetPath);
 }
 
 /**

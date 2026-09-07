@@ -5,7 +5,7 @@ import { requireApiSession, apiAuthErrorResponse } from "@/lib/auth/api-guards";
 import { eq } from "drizzle-orm";
 import { sendTicketEmailWithPdf } from "@/lib/mail";
 import { buildTicketPublicUrl, resolveTicketQrDataUrl } from "@/lib/tickets";
-import { env } from "@/env";
+import { absoluteUrl } from "@/lib/url";
 import { z } from "zod";
 
 const resendSchema = z.object({
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
       const ticketUrl =
         ticket.signature != null
           ? buildTicketPublicUrl(ticket.code, ticket.signature)
-          : `${env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "")}/ticket/${ticket.code}`;
+          : absoluteUrl(`/ticket/${ticket.code}`);
       const qrDataUrl = await resolveTicketQrDataUrl(ticket);
 
       await sendTicketEmailWithPdf({

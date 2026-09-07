@@ -11,6 +11,7 @@ import {
 import { getRoleLabel } from "@/lib/i18n/core";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { getRegisterInviteUrl } from "@/lib/share/invite-code";
+import { absoluteUrl } from "@/lib/url";
 import type { Organization } from "@/lib/db/schema";
 import {
   type TeamRow,
@@ -47,7 +48,7 @@ export function AdminTeamPanel({
   };
 
   const copyLink = () => {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? (typeof window !== "undefined" ? window.location.origin : "https://enquiva.site");
+    const appUrl = absoluteUrl();
     const link = getRegisterInviteUrl(appUrl, organization.inviteCode);
     navigator.clipboard.writeText(link);
     setCopiedLink(true);
