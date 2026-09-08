@@ -83,6 +83,8 @@ function FormModal({
   editingId,
   isPending,
   formData,
+  allowedKinds,
+  pageLabel,
   onFormChange,
   onSubmit,
   onClose,
@@ -92,6 +94,8 @@ function FormModal({
   editingId: string | null;
   isPending: boolean;
   formData: FormData;
+  allowedKinds: string[];
+  pageLabel: string;
   onFormChange: <K extends keyof FormData>(field: K, value: FormData[K]) => void;
   onSubmit: (e: FormEvent) => void;
   onClose: () => void;
@@ -127,9 +131,9 @@ function FormModal({
                 onChange={(e) => onFormChange("kind", e.target.value)}
                 className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               >
-                <option value="hero">Hero (Portada)</option>
-                <option value="section">Sección de contenido</option>
-                <option value="team">Miembro del Equipo</option>
+                {allowedKinds.includes("hero") ? <option value="hero">Hero (Portada)</option> : null}
+                {allowedKinds.includes("section") ? <option value="section">Sección de contenido</option> : null}
+                {allowedKinds.includes("team") ? <option value="team">Miembro del Equipo</option> : null}
               </select>
             </div>
             <div>
@@ -213,7 +217,7 @@ function FormModal({
             <>
               {formData.kind === "hero" ? (
                 <p className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
-                  El contenido del hero se muestra en la parte superior de la página &quot;Sobre Nosotros&quot;. Puedes personalizar título y subtítulo en ambos idiomas.
+                  El contenido del hero se muestra en la parte superior de la página &quot;{pageLabel}&quot;. Puedes personalizar título y subtítulo en ambos idiomas.
                 </p>
               ) : null}
 
@@ -386,7 +390,21 @@ function DeleteModal({
   );
 }
 
-export function AboutSectionsManager({ initialSections }: { initialSections: PageSection[] }) {
+export function AboutSectionsManager({
+  initialSections,
+  pageKey = "about",
+  contextLabel = "Sobre Nosotros",
+  createLabel = "Nueva Sección / Miembro",
+  emptyCreateLabel = "Crear Primera Sección",
+  allowedKinds = ["hero", "section", "team"],
+}: {
+  initialSections: PageSection[];
+  pageKey?: string;
+  contextLabel?: string;
+  createLabel?: string;
+  emptyCreateLabel?: string;
+  allowedKinds?: string[];
+}) {
   const [sections, setSections] = useState(initialSections);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -398,12 +416,12 @@ export function AboutSectionsManager({ initialSections }: { initialSections: Pag
   const getPortal = useCallback(() => {
     if (!portalTargetRef.current) {
       const div = document.createElement("div");
-      div.id = "about-sections-portal";
+      div.id = `${pageKey}-sections-portal`;
       document.body.appendChild(div);
       portalTargetRef.current = div;
     }
     return portalTargetRef.current;
-  }, []);
+  }, [pageKey]);
 
   const openCreateModal = () => {
     setEditingId(null);
@@ -426,7 +444,7 @@ export function AboutSectionsManager({ initialSections }: { initialSections: Pag
     startTransition(async () => {
       try {
         if (editingId) {
-          const result = await updatePageSectionAction(editingId, formData);
+          const result = await updatePageSectionAction(editingId, formData, pageKey);
           if (result.success && "section" in result && result.section) {
             setSections((prev) =>
               prev.map((s) => (s.id === editingId ? result.section! : s)),
@@ -436,7 +454,7 @@ export function AboutSectionsManager({ initialSections }: { initialSections: Pag
             toast.error("Error al actualizar");
           }
         } else {
-          const result = await createPageSectionAction(formData);
+          const result = await createPageSectionAction(formData, pageKey);
           if (result.success && "section" in result && result.section) {
             setSections((prev) => [...prev, result.section!]);
             toast.success("Sección creada correctamente");
@@ -454,7 +472,7 @@ export function AboutSectionsManager({ initialSections }: { initialSections: Pag
   const handleToggleActive = (section: PageSection) => {
     const newActive = !section.isActive;
     startTransition(async () => {
-      const result = await togglePageSectionActiveAction(section.id, newActive);
+      const result = await togglePageSectionActiveAction(section.id, newActive, pageKey);
       if (result.success) {
         setSections((prev) =>
           prev.map((s) => (s.id === section.id ? { ...s, isActive: newActive } : s)),
@@ -467,7 +485,7 @@ export function AboutSectionsManager({ initialSections }: { initialSections: Pag
   const handleDelete = () => {
     if (!deleteId) return;
     startTransition(async () => {
-      const result = await deletePageSectionAction(deleteId);
+      const result = await deletePageSectionAction(deleteId, pageKey);
       if (result.success) {
         setSections((prev) => prev.filter((s) => s.id !== deleteId));
         toast.success("Sección eliminada");
@@ -489,7 +507,7 @@ export function AboutSectionsManager({ initialSections }: { initialSections: Pag
 
     const orderedIds = newSections.map((s) => s.id);
     startTransition(async () => {
-      const result = await reorderPageSectionsAction(orderedIds);
+      const result = await reorderPageSectionsAction(orderedIds, pageKey);
       if (!result.success) {
         setSections(sections);
         toast.error("Error al reordenar");
@@ -526,7 +544,7 @@ export function AboutSectionsManager({ initialSections }: { initialSections: Pag
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
           >
             <Plus className="h-4 w-4" />
-            Nueva Sección / Miembro
+            {createLabel}
           </button>
         </div>
       </div>
@@ -536,7 +554,7 @@ export function AboutSectionsManager({ initialSections }: { initialSections: Pag
           <Landmark className="mx-auto h-12 w-12 text-muted-foreground/40" />
           <h3 className="mt-4 font-semibold text-foreground">No hay secciones creadas</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Comienza creando la primera sección o miembro del equipo de la página &quot;Sobre Nosotros&quot;.
+            Comienza creando la primera sección de la página &quot;{contextLabel}&quot;.
           </p>
           <button
             type="button"
@@ -544,7 +562,7 @@ export function AboutSectionsManager({ initialSections }: { initialSections: Pag
             className="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             <Plus className="h-4 w-4" />
-            Crear Primera Sección
+            {emptyCreateLabel}
           </button>
         </div>
       ) : (
@@ -665,6 +683,8 @@ export function AboutSectionsManager({ initialSections }: { initialSections: Pag
         editingId={editingId}
         isPending={isPending}
         formData={formData}
+        allowedKinds={allowedKinds}
+        pageLabel={contextLabel}
         onFormChange={handleFormChange}
         onSubmit={handleSubmit}
         onClose={() => setIsModalOpen(false)}

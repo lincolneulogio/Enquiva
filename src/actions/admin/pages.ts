@@ -8,8 +8,22 @@ import { revalidatePath } from "next/cache";
 import { invalidateCache, setCached, getCached } from "@/lib/redis";
 import { z } from "zod";
 
-const CACHE_KEY = "page:sections:about";
 const CACHE_TTL = 120;
+
+function cacheKeyFor(pageKey: string): string {
+  return `page:sections:${pageKey}`;
+}
+
+const PAGE_REVALIDATE_PATHS: Record<string, string[]> = {
+  about: ["/about", "/superadmin/about"],
+  terms: ["/terms", "/superadmin/terms"],
+};
+
+function revalidatePageSections(pageKey: string) {
+  invalidateCache(cacheKeyFor(pageKey)).catch(() => {});
+  const paths = PAGE_REVALIDATE_PATHS[pageKey] ?? [`/${pageKey}`, `/superadmin/${pageKey}`];
+  for (const path of paths) revalidatePath(path);
+}
 
 const sectionSchema = z.object({
   kind: z.string().min(1).default("section"),
@@ -39,7 +53,8 @@ export async function getAdminPageSectionsAction(pageKey = "about"): Promise<Pag
 }
 
 export async function getPublicPageSectionsAction(pageKey = "about"): Promise<PageSection[]> {
-  const cached = await getCached<PageSection[]>(CACHE_KEY);
+  const cacheKey = cacheKeyFor(pageKey);
+  const cached = await getCached<PageSection[]>(cacheKey);
   if (cached) return cached;
 
   try {
@@ -50,7 +65,7 @@ export async function getPublicPageSectionsAction(pageKey = "about"): Promise<Pa
       .orderBy(asc(pageSections.sortOrder));
 
     if (sections.length > 0) {
-      await setCached(CACHE_KEY, sections, CACHE_TTL);
+      await setCached(cacheKey, sections, CACHE_TTL);
     }
     return sections;
   } catch (error) {
@@ -59,7 +74,7 @@ export async function getPublicPageSectionsAction(pageKey = "about"): Promise<Pa
   }
 }
 
-export async function createPageSectionAction(data: SectionInput) {
+export async function createPageSectionAction(data: SectionInput, pageKey = "about") {
   await requireSuperAdmin();
 
   const parsed = sectionSchema.safeParse(data);
@@ -68,7 +83,7 @@ export async function createPageSectionAction(data: SectionInput) {
   }
 
   const values: NewPageSection = {
-    pageKey: "about",
+    pageKey,
     kind: parsed.data.kind,
     titleEs: parsed.data.titleEs,
     titleEn: parsed.data.titleEn,
@@ -86,12 +101,12 @@ export async function createPageSectionAction(data: SectionInput) {
 
   const [created] = await db.insert(pageSections).values(values).returning();
 
-  revalidateAboutPages();
+  revalidatePageSections(pageKey);
 
   return { success: true, section: created };
 }
 
-export async function updatePageSectionAction(id: string, data: Partial<SectionInput>) {
+export async function updatePageSectionAction(id: string, data: Partial<SectionInput>, pageKey = "about") {
   await requireSuperAdmin();
 
   const updateValues: Partial<NewPageSection> = { updatedAt: new Date() };
@@ -116,12 +131,12 @@ export async function updatePageSectionAction(id: string, data: Partial<SectionI
     .where(eq(pageSections.id, id))
     .returning();
 
-  revalidateAboutPages();
+  revalidatePageSections(pageKey);
 
   return { success: true, section: updated };
 }
 
-export async function togglePageSectionActiveAction(id: string, isActive: boolean) {
+export async function togglePageSectionActiveAction(id: string, isActive: boolean, pageKey = "about") {
   await requireSuperAdmin();
 
   await db
@@ -129,22 +144,22 @@ export async function togglePageSectionActiveAction(id: string, isActive: boolea
     .set({ isActive, updatedAt: new Date() })
     .where(eq(pageSections.id, id));
 
-  revalidateAboutPages();
+  revalidatePageSections(pageKey);
 
   return { success: true, isActive };
 }
 
-export async function deletePageSectionAction(id: string) {
+export async function deletePageSectionAction(id: string, pageKey = "about") {
   await requireSuperAdmin();
 
   await db.delete(pageSections).where(eq(pageSections.id, id));
 
-  revalidateAboutPages();
+  revalidatePageSections(pageKey);
 
   return { success: true };
 }
 
-export async function reorderPageSectionsAction(orderedIds: string[]) {
+export async function reorderPageSectionsAction(orderedIds: string[], pageKey = "about") {
   await requireSuperAdmin();
 
   await Promise.all(
@@ -156,13 +171,7 @@ export async function reorderPageSectionsAction(orderedIds: string[]) {
     ),
   );
 
-  revalidateAboutPages();
+  revalidatePageSections(pageKey);
 
   return { success: true };
-}
-
-function revalidateAboutPages() {
-  invalidateCache(CACHE_KEY).catch(() => {});
-  revalidatePath("/about");
-  revalidatePath("/superadmin/about");
 }

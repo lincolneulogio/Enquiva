@@ -354,6 +354,7 @@ export const en: TranslationDictionary = {
                     newsletter: "Subscribers",
                     testimonials: "Testimonials",
                     aboutPage: "About Us",
+                    termsPage: "Terms",
                     permissions: "Permissions",
                     analytics: "Analytics",
                     analyticsGlobal: "Global analytics",
