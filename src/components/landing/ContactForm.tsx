@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { Send, CheckCircle2, AlertCircle } from "lucide-react";
 import { submitContactAction } from "@/actions/contact";
@@ -26,13 +27,13 @@ export function ContactForm({ isEn }: ContactFormProps) {
             name="name"
             required
             maxLength={120}
-            placeholder={isEn ? "Your name" : "Tu nombre"}
+            placeholder={isEn ? "E.g. Lincol Eulogio Huanca" : "Ej. Lincol Eulogio Huanca"}
             className={inputClass}
           />
         </div>
         <div>
           <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-foreground">
-            {isEn ? "Email" : "Correo electrónico"} *
+            {isEn ? "Email address" : "Correo electrónico"} *
           </label>
           <input
             type="email"
@@ -46,27 +47,32 @@ export function ContactForm({ isEn }: ContactFormProps) {
       </div>
 
       <div>
-        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-foreground">
-          {isEn ? "Subject" : "Asunto"} *
-        </label>
-        <input
-          type="text"
-          name="subject"
-          required
-          maxLength={160}
-          placeholder={
-            isEn
-              ? "e.g. Help with my ticket"
-              : "Ej. Ayuda con mi entrada"
-          }
-          className={inputClass}
-        />
-      </div>
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-foreground">
+            {isEn ? "Specific subject" : "Asunto específico"} *
+          </label>
+          <input
+            type="text"
+            name="subject"
+            required
+            maxLength={160}
+            placeholder={
+              isEn
+                ? "e.g. I did not receive my purchase confirmation"
+                : "Ej. No recibí mi confirmación de compra para el concierto"
+            }
+            className={inputClass}
+          />
+        </div>
 
-      <div>
-        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-foreground">
-          {isEn ? "Message" : "Mensaje"} *
-        </label>
+        <div>
+          <div className="mb-1.5 flex items-baseline justify-between gap-2">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-foreground">
+              {isEn ? "Detailed message" : "Mensaje detallado"} *
+            </label>
+            <span className="text-[11px] text-muted-foreground">
+              {isEn ? "Be as specific as possible" : "Sé lo más específico posible"}
+            </span>
+          </div>
         <textarea
           name="message"
           required
@@ -74,8 +80,8 @@ export function ContactForm({ isEn }: ContactFormProps) {
           maxLength={4000}
           placeholder={
             isEn
-              ? "Tell us how we can help you..."
-              : "Cuéntanos en qué podemos ayudarte..."
+              ? "Tell us how we can help. For ticket claims, include your order code or receipt..."
+              : "Cuéntanos en qué podemos ayudarte. Si es un reclamo sobre tickets, incluye tu código de orden o comprobante..."
           }
           className={`${inputClass} resize-none leading-relaxed`}
         />
@@ -108,10 +114,30 @@ export function ContactForm({ isEn }: ContactFormProps) {
         ) : (
           <>
             <Send className="h-4 w-4" />
-            {isEn ? "Send message" : "Enviar mensaje"}
+            {isEn ? "Send message directly" : "Enviar mensaje directo"}
           </>
         )}
       </button>
+
+      <p className="text-[11px] leading-relaxed text-muted-foreground">
+        {isEn ? (
+          <>
+            By sending you accept the data processing described in Enquiva&apos;s{" "}
+            <Link href="/privacy" className="font-medium text-primary hover:underline">
+              Privacy Policy
+            </Link>
+            .
+          </>
+        ) : (
+          <>
+            Acepto el tratamiento de mis datos según las{" "}
+            <Link href="/privacy" className="font-medium text-primary hover:underline">
+              Políticas de Privacidad
+            </Link>{" "}
+            de Enquiva y la Ley N° 29733 de Protección de Datos Personales del Perú.
+          </>
+        )}
+      </p>
     </form>
   );
 }
