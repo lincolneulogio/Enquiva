@@ -6,7 +6,7 @@ import { useLocale } from "@/components/providers/LocaleProvider";
 import { saveSystemSettingsAction } from "@/actions/admin/settings";
 import { useRouter } from "next/navigation";
 import type { SystemSettings } from "@/lib/settings";
-import { SocialLinksSection, LegalPagesSection } from "./identity";
+import { SocialLinksSection } from "./identity";
 
 export interface PlatformIdentityTabProps {
   initialPlatformSettings: SystemSettings;
@@ -30,9 +30,6 @@ export function PlatformIdentityTab({ initialPlatformSettings, corporateEmail = 
   const [socialLinkedIn, setSocialLinkedIn] = useState(initialPlatformSettings.socialLinkedIn ?? "");
   const [socialYoutube, setSocialYoutube] = useState(initialPlatformSettings.socialYoutube ?? "");
   const [socialWhatsApp, setSocialWhatsApp] = useState(initialPlatformSettings.socialWhatsApp ?? "");
-
-  const [termsUrl, setTermsUrl] = useState(initialPlatformSettings.termsUrl ?? "");
-  const [privacyUrl, setPrivacyUrl] = useState(initialPlatformSettings.privacyUrl ?? "");
 
   const handleSavePlatformIdentity = () => {
     if (!platformOrgName.trim()) {
@@ -61,14 +58,12 @@ export function PlatformIdentityTab({ initialPlatformSettings, corporateEmail = 
           socialLinkedIn: socialLinkedIn.trim() || undefined,
           socialWhatsApp: socialWhatsApp.trim() || undefined,
           socialYoutube: socialYoutube.trim() || undefined,
-          termsUrl: termsUrl.trim() || undefined,
-          privacyUrl: privacyUrl.trim() || undefined,
         });
         if (res.success) {
           toast.success(
             locale === "en"
-              ? "Platform identity, contact & legal URLs saved"
-              : "Identidad, contacto y URLs legales guardados"
+              ? "Platform identity and contact saved"
+              : "Identidad y contacto guardados"
           );
           router.refresh();
         } else {
@@ -190,24 +185,14 @@ export function PlatformIdentityTab({ initialPlatformSettings, corporateEmail = 
         />
       </div>
 
-      <LegalPagesSection
-        locale={locale}
-        termsUrl={termsUrl}
-        setTermsUrl={setTermsUrl}
-        privacyUrl={privacyUrl}
-        setPrivacyUrl={setPrivacyUrl}
-        isSaving={isSaving}
-        onSave={handleSavePlatformIdentity}
-      />
-
       <div className="rounded-xl border border-dashed border-border bg-muted/20 p-4 sm:p-5">
         <h3 className="text-sm font-semibold text-foreground">
           {locale === "en" ? "Platform settings status" : "Estado de la configuración"}
         </h3>
         <p className="mt-1 text-xs text-muted-foreground">
           {locale === "en"
-            ? "Identity, legal URLs, accent, locale & timezone, maintenance, SMTP, push branding, system alerts and DB backup are available."
-            : "Identidad, URLs legales, acento, idioma/zona horaria, mantenimiento, SMTP, marca push, alertas y backup BD están disponibles."}
+            ? "Identity, accent, locale & timezone, maintenance, SMTP, push branding, system alerts and DB backup are available."
+            : "Identidad, acento, idioma/zona horaria, mantenimiento, SMTP, marca push, alertas y backup BD están disponibles."}
         </p>
       </div>
     </div>

@@ -124,7 +124,7 @@ function legalHrefProps(href: string) {
     : { href };
 }
 
-/** Enlaces legales configurados por Superadmin (footer / registro). */
+/** Enlaces legales a /terms y /privacy (footer / registro). */
 export function LegalLinks({
   className,
   separator = "·",
@@ -137,10 +137,14 @@ export function LegalLinks({
   privacyLabel?: string;
 }) {
   const { termsUrl, privacyUrl } = usePlatformBrand();
-  const items: { href: string; label: string }[] = [];
-  if (termsUrl) items.push({ href: termsUrl, label: termsLabel });
-  if (privacyUrl) items.push({ href: privacyUrl, label: privacyLabel });
-  if (items.length === 0) return null;
+  // Las páginas /terms y /privacy se gestionan en Marketing & Portada;
+  // si no hay URL configurada, se enlaza a las rutas internas.
+  const termsHref = termsUrl || "/terms";
+  const privacyHref = privacyUrl || "/privacy";
+  const items: { href: string; label: string }[] = [
+    { href: termsHref, label: termsLabel },
+    { href: privacyHref, label: privacyLabel },
+  ];
 
   return (
     <nav
@@ -175,39 +179,27 @@ export function AuthTermsNotice({
   className?: string;
 }) {
   const { termsUrl, privacyUrl } = usePlatformBrand();
-  const hasTerms = Boolean(termsUrl);
-  const hasPrivacy = Boolean(privacyUrl);
+  const termsHref = termsUrl || "/terms";
+  const privacyHref = privacyUrl || "/privacy";
   const en = locale === "en";
 
-  if (!hasTerms && !hasPrivacy) {
-    return (
-      <p className={className}>
-        {en
-          ? "By creating an account, you agree to our terms of service and privacy policy."
-          : "Al crear una cuenta, aceptas nuestros términos de servicio y política de privacidad."}
-      </p>
-    );
-  }
-
-  const termsLink = hasTerms ? (
+  const termsLink = (
     <a
-      {...legalHrefProps(termsUrl)}
+      {...legalHrefProps(termsHref)}
       className="font-medium text-foreground underline-offset-2 hover:underline"
     >
       {en ? "terms of service" : "términos de servicio"}
     </a>
-  ) : (
-    <span>{en ? "terms of service" : "términos de servicio"}</span>
   );
 
-  const privacyLink = hasPrivacy ? (
+  const privacyLink = (
     <a
-      {...legalHrefProps(privacyUrl)}
+      {...legalHrefProps(privacyHref)}
       className="font-medium text-foreground underline-offset-2 hover:underline"
     >
       {en ? "privacy policy" : "política de privacidad"}
     </a>
-  ) : null;
+  );
 
   return (
     <p className={className}>
