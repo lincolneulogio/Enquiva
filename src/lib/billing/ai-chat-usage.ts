@@ -1,4 +1,4 @@
-import { redis } from "@/lib/redis";
+import { redis, nsKey } from "@/lib/redis";
 import { resolveSubscriptionBillingContext } from "@/lib/billing/subscription-context";
 import { SubscriptionService } from "@/lib/billing/subscription.service";
 import { getResolvedPlanForUser, PlanLimitError } from "@/lib/billing/enforce";
@@ -30,7 +30,7 @@ export async function getAiChatUsageScopeKey(userId: string, role?: string | nul
 }
 
 export function buildAiChatUsageRedisKey(scopeKey: string, monthKey = currentMonthKey()) {
-  return `ai:chat:usage:${scopeKey}:${monthKey}`;
+  return nsKey(`ai:chat:usage:${scopeKey}:${monthKey}`);
 }
 
 export async function getAiChatUsage(

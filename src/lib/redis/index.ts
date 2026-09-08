@@ -7,25 +7,46 @@ export const redis = new Redis({
   token: env.UPSTASH_REDIS_REST_TOKEN || "placeholder-token",
 });
 
+/**
+ * Namespace por entorno: local y producción comparten la misma instancia
+ * Upstash, así que cada key se prefija para que los datos no se filtren
+ * entre entornos (settings de prod visibles en local y viceversa).
+ * Orden: REDIS_KEY_PREFIX explícito > VERCEL_ENV > NODE_ENV.
+ */
+function resolveRedisKeyPrefix(): string {
+  const explicit = process.env.REDIS_KEY_PREFIX?.trim();
+  if (explicit) return explicit.endsWith(":") ? explicit : `${explicit}:`;
+  const vercelEnv = process.env.VERCEL_ENV?.trim();
+  if (vercelEnv) return `${vercelEnv}:`;
+  return process.env.NODE_ENV === "production" ? "prod:" : "dev:";
+}
+
+export const REDIS_KEY_PREFIX = resolveRedisKeyPrefix();
+
+/** Aplica el namespace del entorno a una key lógica (sin prefijo). */
+export function nsKey(key: string): string {
+  return `${REDIS_KEY_PREFIX}${key}`;
+}
+
 export const registrationRatelimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(10, "10 s"),
   analytics: true,
-  prefix: "ratelimit:registration",
+  prefix: nsKey("ratelimit:registration"),
 });
 
 export const ticketVerifyRatelimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(30, "1 m"),
   analytics: true,
-  prefix: "ratelimit:ticket_verify",
+  prefix: nsKey("ratelimit:ticket_verify"),
 });
 
 export const chatRatelimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(30, "10 m"),
   analytics: true,
-  prefix: "ratelimit:chat",
+  prefix: nsKey("ratelimit:chat"),
 });
 
 /** Login/registro: checks de identidad y reenvío OTP (por IP). */
@@ -33,7 +54,7 @@ export const authIdentityRatelimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(20, "1 m"),
   analytics: true,
-  prefix: "ratelimit:auth_identity",
+  prefix: nsKey("ratelimit:auth_identity"),
 });
 
 /** Confirmación OTP: limita fuerza bruta por IP y por identidad. */
@@ -41,7 +62,7 @@ export const otpVerificationRatelimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(8, "15 m"),
   analytics: true,
-  prefix: "ratelimit:otp_verification",
+  prefix: nsKey("ratelimit:otp_verification"),
 });
 
 /** Verificación de contraseña en acciones destructivas (por userId). */
@@ -49,7 +70,7 @@ export const passwordVerifyRatelimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(8, "15 m"),
   analytics: true,
-  prefix: "ratelimit:password_verify",
+  prefix: nsKey("ratelimit:password_verify"),
 });
 
 /** Formulario público de contacto (anti-spam, por IP). */
@@ -57,7 +78,7 @@ export const contactRatelimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(5, "10 m"),
   analytics: true,
-  prefix: "ratelimit:contact",
+  prefix: nsKey("ratelimit:contact"),
 });
 
 export const CACHE_KEYS = {
@@ -109,7 +130,7 @@ export function resetCacheStats(): void {
 
 export async function getCached<T>(key: string): Promise<T | null> {
   try {
-    const value = await redis.get<T>(key);
+    const value = await redis.get<T>(nsKey(key));
     if (value != null) {
       cacheStats.hits++;
     } else {
@@ -125,7 +146,7 @@ export async function getCached<T>(key: string): Promise<T | null> {
 
 export async function setCached<T>(key: string, value: T, ttl: number): Promise<void> {
   try {
-    await redis.setex(key, ttl, value);
+    await redis.setex(nsKey(key), ttl, value);
   } catch (error) {
     cacheStats.setErrors++;
     console.error(`[redis] SETEX failed key=${key} ttl=${ttl}:`, error);
@@ -134,7 +155,7 @@ export async function setCached<T>(key: string, value: T, ttl: number): Promise<
 
 export async function invalidateCache(key: string): Promise<void> {
   try {
-    await redis.del(key);
+    await redis.del(nsKey(key));
   } catch (error) {
     cacheStats.delErrors++;
     console.error(`[redis] DEL failed key=${key}:`, error);
@@ -144,8 +165,9 @@ export async function invalidateCache(key: string): Promise<void> {
 export async function invalidateCachePattern(pattern: string): Promise<void> {
   try {
     let cursor = "0";
+    const namespaced = nsKey(pattern);
     do {
-      const [nextCursor, keys] = await redis.scan(cursor, { match: pattern, count: 100 });
+      const [nextCursor, keys] = await redis.scan(cursor, { match: namespaced, count: 100 });
       cursor = nextCursor;
       if (keys.length > 0) {
         await redis.del(...keys);

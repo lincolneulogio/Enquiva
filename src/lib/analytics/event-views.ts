@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { events } from "@/lib/db/schema";
 import { eq, sql, and, gte, lte, type SQL } from "drizzle-orm";
 import { andWithScope } from "@/lib/organizations/admin-scope";
-import { redis } from "@/lib/redis";
+import { redis, nsKey } from "@/lib/redis";
 import { runBackground } from "@/lib/background";
 
 const VIEW_FLUSH_WINDOW_SECONDS = 60;
@@ -24,8 +24,8 @@ async function incrementEventViewCount(eventId: string, amount: number) {
  */
 export function recordEventView(eventId: string): void {
   runBackground(async () => {
-    const pendingKey = `metrics:event-views:pending:${eventId}`;
-    const flushLockKey = `metrics:event-views:flush:${eventId}`;
+    const pendingKey = nsKey(`metrics:event-views:pending:${eventId}`);
+    const flushLockKey = nsKey(`metrics:event-views:flush:${eventId}`);
 
     try {
       await redis.incr(pendingKey);

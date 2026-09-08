@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { redis } from "@/lib/redis";
+import { redis, nsKey } from "@/lib/redis";
 
-const CONFIRM_PREFIX = "chat:mass-confirm:";
+const CONFIRM_PREFIX = nsKey("chat:mass-confirm:");
 const CONFIRM_TTL_SECONDS = 10 * 60;
 
 export type MassNotificationConfirmPayload = {

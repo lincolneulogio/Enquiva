@@ -1,6 +1,6 @@
 import "server-only";
 
-import { redis, CACHE_KEYS } from "@/lib/redis";
+import { redis, CACHE_KEYS, nsKey } from "@/lib/redis";
 import { getEventCapacitySnapshot } from "@/lib/events/capacity-snapshot";
 import { broadcastTableRefresh } from "./table-refresh";
 import { broadcastAttendeeCountUpdated, broadcastNewRegistration } from "./broadcast";
@@ -17,7 +17,7 @@ export type PublishRegistrationRealtimeInput = {
 
 async function persistAttendeeCountCache(eventId: string, count: number) {
   try {
-    await redis.set(CACHE_KEYS.eventAttendeesCount(eventId), count);
+    await redis.set(nsKey(CACHE_KEYS.eventAttendeesCount(eventId)), count);
   } catch (error) {
     console.error("Fallo al actualizar contador de asistentes en Redis", error);
   }
