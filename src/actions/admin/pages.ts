@@ -17,6 +17,7 @@ function cacheKeyFor(pageKey: string): string {
 const PAGE_REVALIDATE_PATHS: Record<string, string[]> = {
   about: ["/about", "/superadmin/about"],
   terms: ["/terms", "/superadmin/terms"],
+  privacy: ["/privacy", "/superadmin/privacy"],
 };
 
 function revalidatePageSections(pageKey: string) {

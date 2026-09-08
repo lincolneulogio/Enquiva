@@ -19,10 +19,14 @@ export function TermsTabs({
   tabs,
   isEn,
   emptyLabel,
+  listLabelEs = "Índice del contrato",
+  listLabelEn = "Contract index",
 }: {
   tabs: TermsTabItem[];
   isEn: boolean;
   emptyLabel: string;
+  listLabelEs?: string;
+  listLabelEn?: string;
 }) {
   const [activeId, setActiveId] = useState(tabs[0]?.id ?? "");
   const current = tabs.find((t) => t.id === activeId) ?? tabs[0];
@@ -39,7 +43,7 @@ export function TermsTabs({
     <div>
       <div
         role="tablist"
-        aria-label={isEn ? "Contract index" : "Índice del contrato"}
+        aria-label={isEn ? listLabelEn : listLabelEs}
         className="flex gap-2 overflow-x-auto pb-2"
       >
         {tabs.map((tab) => {

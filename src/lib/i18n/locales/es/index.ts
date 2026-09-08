@@ -355,6 +355,7 @@ export const es: TranslationDictionary = {
                     testimonials: "Testimonios",
                     aboutPage: "Sobre Nosotros",
                     termsPage: "Términos",
+                    privacyPage: "Privacidad",
                     permissions: "Permisos",
                     analytics: "Analítica",
                     analyticsGlobal: "Analítica global",

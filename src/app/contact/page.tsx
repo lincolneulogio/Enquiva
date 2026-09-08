@@ -169,12 +169,8 @@ export default async function ContactPage() {
           <Eyebrow>{isEn ? HERO_COPY.badgeEn : HERO_COPY.badgeEs}</Eyebrow>
           <h1 className="mt-5 font-display text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
             {isEn ? HERO_COPY.titleAEn : HERO_COPY.titleAEs}{" "}
-            <span className="relative inline-block text-primary">
+            <span className="text-primary">
               {isEn ? HERO_COPY.titleAccentEn : HERO_COPY.titleAccentEs}
-              <span
-                className="absolute inset-x-0 -bottom-1 h-[3px] rounded-full bg-foreground/80"
-                aria-hidden
-              />
             </span>
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">

@@ -108,7 +108,7 @@ export function Footer({ copy }: FooterProps = {}) {
             </p>
             <ul className="space-y-2.5 text-xs text-muted-foreground sm:text-sm">
               <li>
-                <Link href="/pricing" className="transition-colors hover:text-primary">
+                <Link href="/about" className="transition-colors hover:text-primary">
                   Sobre nosotros
                 </Link>
               </li>
