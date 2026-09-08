@@ -2,15 +2,8 @@ import Link from "next/link";
 import {
   ArrowRight,
   BadgeCheck,
-  BookOpenCheck,
-  CalendarClock,
   Database,
   EyeOff,
-  FileCheck,
-  Mail,
-  MapPin,
-  MessageSquare,
-  Scale,
   type LucideIcon,
 } from "lucide-react";
 import { PublicHeader } from "@/components/shared/PublicHeader";
@@ -47,20 +40,6 @@ const HERO_COPY = {
     "Cómo Enquiva cuida, administra y protege la información confidencial de asistentes y organizadores, con estándares de seguridad y transparencia legal.",
   descEn:
     "How Enquiva cares for, manages and protects the confidential information of attendees and organizers, with security standards and legal transparency.",
-  updatedEs: "12 de octubre de 2026",
-  updatedEn: "October 12, 2026",
-  updatedLabelEs: "Última actualización:",
-  updatedLabelEn: "Last updated:",
-  versionEs: "Versión 4.0",
-  versionEn: "Version 4.0",
-  lawEs: "Ley N° 29733",
-  lawEn: "Law No. 29733",
-  cityEs: "Huánuco, Perú",
-  cityEn: "Huánuco, Peru",
-  deskEs: "Consultar DPO",
-  deskEn: "Consult DPO",
-  contactEs: "Contacto",
-  contactEn: "Contact",
 };
 
 const PRINCIPLES: Array<{
@@ -115,49 +94,6 @@ const TABS_COPY = {
   emptyEs: "Estamos publicando el articulado. Vuelve pronto.",
   emptyEn: "We are publishing the articles. Check back soon.",
 };
-
-const DPO_COPY = {
-  titleEs: "Oficial de Datos (DPO)",
-  titleEn: "Data Officer (DPO)",
-  descEs:
-    "Ejerce tus derechos ARCO o reporta un incidente de seguridad escribiendo a nuestro Oficial de Protección de Datos.",
-  descEn:
-    "Exercise your ARCO rights or report a security incident by writing to our Data Protection Officer.",
-  ctaEs: "Escribir al DPO",
-  ctaEn: "Write to the DPO",
-};
-
-const ARCO_ITEMS: Array<{
-  titleEs: string;
-  titleEn: string;
-  descEs: string;
-  descEn: string;
-}> = [
-  {
-    titleEs: "Acceso",
-    titleEn: "Access",
-    descEs: "Consulta qué datos personales tenemos sobre ti.",
-    descEn: "See what personal data we hold about you.",
-  },
-  {
-    titleEs: "Rectificación",
-    titleEn: "Rectification",
-    descEs: "Corrige datos inexactos o desactualizados.",
-    descEn: "Correct inaccurate or outdated data.",
-  },
-  {
-    titleEs: "Cancelación",
-    titleEn: "Erasure",
-    descEs: "Solicita la eliminación de tu cuenta y tus datos.",
-    descEn: "Request deletion of your account and data.",
-  },
-  {
-    titleEs: "Oposición",
-    titleEn: "Objection",
-    descEs: "Oponte a tratamientos específicos de tu información.",
-    descEn: "Object to specific processing of your information.",
-  },
-];
 
 const BANNER_COPY = {
   eyebrowEs: "Transparencia y seguridad total",
@@ -383,30 +319,6 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 }
 
 function HeroSection({ isEn }: { isEn: boolean }) {
-  const email = BRAND.contactEmail;
-  const meta = [
-    {
-      icon: CalendarClock,
-      label: isEn ? HERO_COPY.updatedLabelEn : HERO_COPY.updatedLabelEs,
-      value: isEn ? HERO_COPY.updatedEn : HERO_COPY.updatedEs,
-    },
-    {
-      icon: BookOpenCheck,
-      label: isEn ? "Version:" : "Versión:",
-      value: isEn ? HERO_COPY.versionEn : HERO_COPY.versionEs,
-    },
-    {
-      icon: Scale,
-      label: isEn ? "Framework:" : "Marco:",
-      value: isEn ? HERO_COPY.lawEn : HERO_COPY.lawEs,
-    },
-    {
-      icon: MapPin,
-      label: isEn ? "Jurisdiction:" : "Jurisdicción:",
-      value: isEn ? HERO_COPY.cityEn : HERO_COPY.cityEs,
-    },
-  ];
-
   return (
     <section className="relative overflow-hidden">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
@@ -423,33 +335,6 @@ function HeroSection({ isEn }: { isEn: boolean }) {
         <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
           {isEn ? HERO_COPY.descEn : HERO_COPY.descEs}
         </p>
-        <div className="mx-auto mt-6 flex max-w-2xl flex-wrap items-center justify-center gap-2">
-          {meta.map(({ icon: Icon, label, value }) => (
-            <p
-              key={label}
-              className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 bg-white px-3 py-1.5 text-[11px] font-medium text-muted-foreground dark:border-border dark:bg-card"
-            >
-              <Icon className="h-3.5 w-3.5 text-primary" />
-              {label} <span className="font-semibold text-foreground">{value}</span>
-            </p>
-          ))}
-        </div>
-        <div className="mt-6 flex flex-col justify-center gap-2.5 sm:flex-row">
-          <a
-            href={`mailto:${email}`}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-          >
-            <Mail className="h-4 w-4" />
-            {isEn ? HERO_COPY.deskEn : HERO_COPY.deskEs}
-          </a>
-          <Link
-            href="/contact"
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-primary/25 bg-card px-5 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-primary/5"
-          >
-            <MessageSquare className="h-4 w-4 text-primary" />
-            {isEn ? HERO_COPY.contactEn : HERO_COPY.contactEs}
-          </Link>
-        </div>
       </div>
     </section>
   );
@@ -500,49 +385,6 @@ function PrivacyTabs({ tabs, isEn }: { tabs: TermsTabItem[]; isEn: boolean }) {
           listLabelEs="Índice de privacidad"
           listLabelEn="Privacy index"
         />
-      </div>
-    </section>
-  );
-}
-
-function DpoArco({ isEn }: { isEn: boolean }) {
-  const email = BRAND.contactEmail;
-  return (
-    <section className="mx-auto max-w-6xl px-4 pb-2 pt-10 sm:px-6 sm:pt-12">
-      <div className="grid gap-4 lg:grid-cols-5">
-        <div className="rounded-2xl border border-primary/15 bg-white p-6 shadow-sm dark:border-border dark:bg-card lg:col-span-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <FileCheck className="h-4 w-4" />
-          </span>
-          <h2 className="mt-3 font-display text-base font-bold text-foreground">
-            {isEn ? DPO_COPY.titleEn : DPO_COPY.titleEs}
-          </h2>
-          <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
-            {isEn ? DPO_COPY.descEn : DPO_COPY.descEs}
-          </p>
-          <a
-            href={`mailto:${email}`}
-            className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            <Mail className="h-4 w-4" />
-            {isEn ? DPO_COPY.ctaEn : DPO_COPY.ctaEs}
-          </a>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:col-span-3">
-          {ARCO_ITEMS.map(({ titleEs, titleEn, descEs, descEn }) => (
-            <article
-              key={titleEn}
-              className="rounded-2xl border border-primary/15 bg-white p-5 shadow-sm dark:border-border dark:bg-card"
-            >
-              <h3 className="font-display text-sm font-bold text-foreground">
-                {isEn ? titleEn : titleEs}
-              </h3>
-              <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-                {isEn ? descEn : descEs}
-              </p>
-            </article>
-          ))}
-        </div>
       </div>
     </section>
   );
@@ -611,7 +453,6 @@ export default async function PrivacyPage() {
       <HeroSection isEn={isEn} />
       <PrinciplesSection isEn={isEn} />
       <PrivacyTabs tabs={tabs} isEn={isEn} />
-      <DpoArco isEn={isEn} />
       <CtaBanner isEn={isEn} />
       <Footer />
       <ScrollToTopButton />
