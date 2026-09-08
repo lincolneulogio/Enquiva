@@ -1,25 +1,11 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  BookOpenCheck,
-  CalendarClock,
-  CreditCard,
-  Landmark,
-  Mail,
-  MapPin,
-  MessageSquare,
-  QrCode,
-  Scale,
-  Cpu,
-  type LucideIcon,
-} from "lucide-react";
+import { CreditCard, QrCode, Cpu, type LucideIcon } from "lucide-react";
 import { PublicHeader } from "@/components/shared/PublicHeader";
 import { ScrollToTopButton } from "@/components/shared/ScrollToTopButton";
 import { Footer } from "@/components/landing/Footer";
 import { TermsTabs, type TermsTabItem } from "@/components/landing/TermsTabs";
 import { getStaticI18n } from "@/lib/i18n/server";
 import { getPublicPageSectionsAction } from "@/actions/admin/pages";
-import { BRAND } from "@/lib/brand";
 
 export const revalidate = 120;
 
@@ -47,18 +33,6 @@ const HERO_COPY = {
     "Conoce las pautas, derechos y responsabilidades que rigen el uso de nuestra plataforma de eventos. Operamos mediante pasarelas seguras y servicios especializados para organizaciones en Huánuco y todo el Perú.",
   descEn:
     "Learn the guidelines, rights and responsibilities governing the use of our event platform. We operate through secure gateways and specialized services for organizations in Huánuco and across Peru.",
-  updatedEs: "7 de septiembre de 2026",
-  updatedEn: "September 7, 2026",
-  updatedLabelEs: "Última actualización:",
-  updatedLabelEn: "Last updated:",
-  versionEs: "Versión 2 (Revisada)",
-  versionEn: "Version 2 (Revised)",
-  cityEs: "Huánuco, Perú",
-  cityEn: "Huánuco, Peru",
-  deskEs: "Mesa de Partes",
-  deskEn: "Front Desk",
-  contactEs: "Contacto",
-  contactEn: "Contact",
 };
 
 const SUMMARY_CARDS: Array<{
@@ -114,32 +88,12 @@ const TABS_COPY = {
   emptyEn: "We are publishing the articles. Check back soon.",
 };
 
-const LEGAL_HELP = {
-  titleEs: "Asesoría Legal",
-  titleEn: "Legal Counsel",
-  descEs:
-    "¿Tienes dudas sobre cómo estos términos aplican a tu organización? Consulta con nuestro equipo legal en Huánuco.",
-  descEn:
-    "Questions about how these terms apply to your organization? Consult our legal team in Huánuco.",
-  ctaEs: "Consultar",
-  ctaEn: "Consult",
-};
-
-const CHANNELS_COPY = {
-  titleEs: "Canales de Contacto y Mesa de Partes Legal",
-  titleEn: "Contact Channels & Legal Front Desk",
-  descEs:
-    "Para la recepción formal de cartas notariales, solicitudes de tratamiento de datos personales, consultas sobre el ECCP y consultas contractuales de organizaciones, ponemos a disposición los siguientes canales oficiales:",
-  descEn:
-    "For formal receipt of notarized letters, personal data requests, ECCP inquiries and organizational contract questions, we provide the following official channels:",
-};
-
 const CTA_COPY = {
   titleEs: "¿Listo para publicar o vivir tu próximo evento?",
   titleEn: "Ready to publish or experience your next event?",
   descEs: "Crea tu cuenta de organizador y vende tus entradas en la plataforma.",
   descEn: "Create your organizer account and sell your tickets on the platform.",
-  primaryEs: "Explorar Cartelera",
+  primaryEs: "Explorar Eventos",
   primaryEn: "Explore Events",
   secondaryEs: "Crear Evento Gratis",
   secondaryEn: "Create Free Event",
@@ -333,30 +287,6 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 }
 
 function HeroSection({ isEn }: { isEn: boolean }) {
-  const email = BRAND.contactEmail;
-  const meta = [
-    {
-      icon: CalendarClock,
-      label: isEn ? HERO_COPY.updatedLabelEn : HERO_COPY.updatedLabelEs,
-      value: isEn ? HERO_COPY.updatedEn : HERO_COPY.updatedEs,
-    },
-    {
-      icon: BookOpenCheck,
-      label: isEn ? "Version:" : "Versión:",
-      value: isEn ? HERO_COPY.versionEn : HERO_COPY.versionEs,
-    },
-    {
-      icon: MapPin,
-      label: isEn ? "Jurisdiction:" : "Jurisdicción:",
-      value: isEn ? HERO_COPY.cityEn : HERO_COPY.cityEs,
-    },
-    {
-      icon: Landmark,
-      label: isEn ? "Currency:" : "Moneda:",
-      value: "PEN (S/)",
-    },
-  ];
-
   return (
     <section className="relative overflow-hidden">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
@@ -373,33 +303,6 @@ function HeroSection({ isEn }: { isEn: boolean }) {
         <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
           {isEn ? HERO_COPY.descEn : HERO_COPY.descEs}
         </p>
-        <div className="mx-auto mt-6 flex max-w-2xl flex-wrap items-center justify-center gap-2">
-          {meta.map(({ icon: Icon, label, value }) => (
-            <p
-              key={label}
-              className="inline-flex items-center gap-1.5 rounded-full border border-primary/15 bg-white px-3 py-1.5 text-[11px] font-medium text-muted-foreground dark:border-border dark:bg-card"
-            >
-              <Icon className="h-3.5 w-3.5 text-primary" />
-              {label} <span className="font-semibold text-foreground">{value}</span>
-            </p>
-          ))}
-        </div>
-        <div className="mt-6 flex flex-col justify-center gap-2.5 sm:flex-row">
-          <a
-            href={`mailto:${email}`}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-          >
-            <Mail className="h-4 w-4" />
-            {isEn ? HERO_COPY.deskEn : HERO_COPY.deskEs}
-          </a>
-          <Link
-            href="/contact"
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-primary/25 bg-card px-5 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-primary/5"
-          >
-            <MessageSquare className="h-4 w-4 text-primary" />
-            {isEn ? HERO_COPY.contactEn : HERO_COPY.contactEs}
-          </Link>
-        </div>
       </div>
     </section>
   );
@@ -448,96 +351,6 @@ function ContractTabs({ tabs, isEn }: { tabs: TermsTabItem[]; isEn: boolean }) {
           isEn={isEn}
           emptyLabel={isEn ? TABS_COPY.emptyEn : TABS_COPY.emptyEs}
         />
-      </div>
-    </section>
-  );
-}
-
-function LegalChannels({ isEn }: { isEn: boolean }) {
-  const email = BRAND.contactEmail;
-  return (
-    <section className="mx-auto max-w-6xl px-4 pb-2 pt-10 sm:px-6 sm:pt-12">
-      <div className="grid gap-4 lg:grid-cols-5">
-        <div className="rounded-2xl border border-primary/15 bg-white p-6 shadow-sm dark:border-border dark:bg-card lg:col-span-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Scale className="h-4 w-4" />
-          </span>
-          <h2 className="mt-3 font-display text-base font-bold text-foreground">
-            {isEn ? LEGAL_HELP.titleEn : LEGAL_HELP.titleEs}
-          </h2>
-          <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
-            {isEn ? LEGAL_HELP.descEn : LEGAL_HELP.descEs}
-          </p>
-          <a
-            href={`mailto:${email}`}
-            className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            {isEn ? LEGAL_HELP.ctaEn : LEGAL_HELP.ctaEs}
-            <ArrowRight className="h-4 w-4" />
-          </a>
-        </div>
-        <div className="rounded-2xl border border-primary/15 bg-white p-6 shadow-sm dark:border-border dark:bg-card lg:col-span-3">
-          <h2 className="font-display text-base font-bold text-foreground">
-            {isEn ? CHANNELS_COPY.titleEn : CHANNELS_COPY.titleEs}
-          </h2>
-          <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
-            {isEn ? CHANNELS_COPY.descEn : CHANNELS_COPY.descEs}
-          </p>
-          <ul className="mt-4 space-y-3 text-sm">
-            <li className="flex items-start gap-3 rounded-xl bg-primary/5 p-3 dark:bg-primary/10">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Mail className="h-4 w-4" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  {isEn ? "Virtual front desk" : "Mesa de partes virtual"}
-                </p>
-                <a
-                  href={`mailto:${email}`}
-                  className="block truncate font-semibold text-foreground transition-colors hover:text-primary"
-                >
-                  {email}
-                </a>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  {isEn ? "Mon–Sat 08:00–22:00 (GMT-5)" : "Lun–Sáb 08:00–22:00 (GMT-5)"}
-                </p>
-              </div>
-            </li>
-            <li className="flex items-start gap-3 rounded-xl bg-primary/5 p-3 dark:bg-primary/10">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <MapPin className="h-4 w-4" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  {isEn ? "Administrative office" : "Sede administrativa"}
-                </p>
-                <p className="font-semibold text-foreground">Jr. Dámaso Beraún N° 845</p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  {isEn ? "Huánuco, Peru" : "Huánuco, Perú"}
-                </p>
-              </div>
-            </li>
-            <li className="flex items-start gap-3 rounded-xl bg-primary/5 p-3 dark:bg-primary/10">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <BookOpenCheck className="h-4 w-4" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  {isEn ? "Virtual complaints book" : "Libro de reclamaciones virtual"}
-                </p>
-                <Link
-                  href="/contact"
-                  className="font-semibold text-foreground transition-colors hover:text-primary"
-                >
-                  {isEn ? "File a complaint or claim" : "Registrar queja o reclamo"}
-                </Link>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  {isEn ? "Consumer protection (INDECOPI)" : "Protección al consumidor (INDECOPI)"}
-                </p>
-              </div>
-            </li>
-          </ul>
-        </div>
       </div>
     </section>
   );
@@ -601,7 +414,6 @@ export default async function TermsPage() {
       <HeroSection isEn={isEn} />
       <SummaryCards isEn={isEn} />
       <ContractTabs tabs={tabs} isEn={isEn} />
-      <LegalChannels isEn={isEn} />
       <CtaBanner isEn={isEn} />
       <Footer />
       <ScrollToTopButton />

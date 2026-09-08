@@ -40,11 +40,11 @@ export function TermsTabs({
   }
 
   return (
-    <div>
+    <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,340px)_1fr]">
       <div
         role="tablist"
         aria-label={isEn ? listLabelEn : listLabelEs}
-        className="flex gap-2 overflow-x-auto pb-2"
+        className="flex flex-col gap-1.5 lg:sticky lg:top-24"
       >
         {tabs.map((tab) => {
           const selected = tab.id === current.id;
@@ -56,7 +56,7 @@ export function TermsTabs({
               aria-selected={selected}
               onClick={() => setActiveId(tab.id)}
               className={cn(
-                "flex shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2.5 text-left text-[13px] font-semibold transition-colors",
+                "flex w-full items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-left text-[13px] font-semibold transition-colors",
                 selected
                   ? "border-primary bg-primary text-primary-foreground shadow-sm"
                   : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
@@ -70,7 +70,7 @@ export function TermsTabs({
               >
                 {tab.num}
               </span>
-              <span className="max-w-44 truncate sm:max-w-56">{tab.title}</span>
+              <span className="truncate">{tab.title}</span>
             </button>
           );
         })}
@@ -79,7 +79,7 @@ export function TermsTabs({
       <div
         key={current.id}
         role="tabpanel"
-        className="mt-4 rounded-2xl border border-primary/15 bg-white p-6 shadow-sm dark:border-border dark:bg-card sm:p-8"
+        className="rounded-2xl border border-primary/15 bg-white p-6 shadow-sm dark:border-border dark:bg-card sm:p-8"
       >
         <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary font-display text-sm font-bold text-primary-foreground">
