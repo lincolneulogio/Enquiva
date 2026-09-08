@@ -17,14 +17,14 @@ export default async function LoginPage({
     : "/register";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-6">
+    <main className="flex min-h-dvh justify-center bg-background px-6 py-8 sm:py-10">
       {/* Background decoration */}
       <div aria-hidden className="pointer-events-none fixed inset-0">
         <div className="absolute left-1/4 top-1/4 h-72 w-72 rounded-full bg-primary/5 blur-3xl" />
         <div className="absolute bottom-1/4 right-1/4 h-72 w-72 rounded-full bg-accent/5 blur-3xl" />
       </div>
 
-      <div className="relative w-full max-w-md">
+      <div className="relative m-auto w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mb-6 flex justify-center">
             <BrandLogo href="/" size="lg" priority />
