@@ -13,6 +13,7 @@ export function SettingsTabs({
   initialPlatformSettings,
   platformDefaultAccent: platformDefaultAccentProp,
   adminUser,
+  corporateEmail,
 }: SettingsTabsProps) {
   const t = useTranslations();
   const state = useSettingsTabsState({
@@ -85,6 +86,7 @@ export function SettingsTabs({
           entityContext={entityContext}
           initialPlatformSettings={initialPlatformSettings}
           adminUser={adminUser}
+          corporateEmail={corporateEmail}
         />
       </div>
     </div>

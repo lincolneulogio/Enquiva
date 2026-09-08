@@ -371,7 +371,7 @@ export const es: TranslationDictionary = {
                     roles: "Roles",
                     myEntity: "Mi entidad",
                     audit: "Auditoría de seguridad",
-                    broadcasts: "Comunicados",
+                    broadcasts: "Comunicados a eventos",
                     plans: "Planes SaaS",
                     platformBilling: "Suscripciones e ingresos SaaS",
                     entityPlan: "Plan de la entidad",

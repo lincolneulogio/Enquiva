@@ -122,6 +122,18 @@ function mapSectionToForm(section: PageSection): FormData {
   };
 }
 
+export type InheritedContactValues = {
+  email: string;
+  support: string;
+};
+
+function inheritedForRole(role: string | null, inherited?: InheritedContactValues): string {
+  if (!inherited) return "";
+  if (role === "support") return inherited.support;
+  if (role === "email" || role === "corporate") return inherited.email;
+  return "";
+}
+
 function FormModal({
   portalTarget,
   isOpen,
@@ -129,6 +141,7 @@ function FormModal({
   isPending,
   formData,
   pageKey,
+  inherited,
   onFormChange,
   onSubmit,
   onClose,
@@ -139,6 +152,7 @@ function FormModal({
   isPending: boolean;
   formData: FormData;
   pageKey: string;
+  inherited?: InheritedContactValues;
   onFormChange: <K extends keyof FormData>(field: K, value: FormData[K]) => void;
   onSubmit: (e: FormEvent) => void;
   onClose: () => void;
@@ -245,10 +259,20 @@ function FormModal({
                 type="text"
                 value={formData.subtitleEs}
                 onChange={(e) => onFormChange("subtitleEs", e.target.value)}
-                placeholder="Ej. contacto@enquiva.site"
+                placeholder={
+                  inheritedForRole(formData.role, inherited) ||
+                  "Ej. contacto@enquiva.site"
+                }
                 className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             )}
+            {formData.kind === "contact" && formData.role !== "address" ? (
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                {formData.role === "email" || formData.role === "support"
+                  ? `Al guardar, este correo se refleja en Identidad global (Configuración).${formData.subtitleEs.trim() ? "" : " Vacío = se muestra el valor actual de Identidad global."}`
+                  : "Visible en /contact y reflejado como lectura en Configuración → Identidad global."}
+              </p>
+            ) : null}
           </div>
 
           <div>
@@ -276,6 +300,11 @@ function FormModal({
                 className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
               />
             )}
+            {formData.kind === "contact" && formData.role === "address" ? (
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Al guardar, la dirección y la ciudad / referencia se combinan en Ubicación pública (Configuración → Identidad global).
+              </p>
+            ) : null}
           </div>
 
           <div className="flex items-center gap-2 border-t border-border pt-4">
@@ -376,10 +405,12 @@ export function ContactChannelsManager({
   initialSections,
   pageKey = "contact",
   isEn = false,
+  inherited,
 }: {
   initialSections: PageSection[];
   pageKey?: string;
   isEn?: boolean;
+  inherited?: InheritedContactValues;
 }) {
   const [sections, setSections] = useState(initialSections);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -611,7 +642,20 @@ export function ContactChannelsManager({
                         {section.titleEs || "—"}
                       </td>
                       <td className="px-4 py-4 font-medium text-foreground max-w-[200px] truncate">
-                        {isAttention ? stripHtml(section.subtitleEs) || "—" : section.subtitleEs || "—"}
+                        {isAttention ? (
+                          stripHtml(section.subtitleEs) || "—"
+                        ) : section.subtitleEs ? (
+                          section.subtitleEs
+                        ) : inheritedForRole(section.role, inherited) ? (
+                          <span title="Valor actual de Identidad global">
+                            {inheritedForRole(section.role, inherited)}{" "}
+                            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              Identidad global
+                            </span>
+                          </span>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                       <td className="px-4 py-4 max-w-xs">
                         <p className="line-clamp-2 text-xs text-muted-foreground">
@@ -671,6 +715,7 @@ export function ContactChannelsManager({
         isPending={isPending}
         formData={formData}
         pageKey={pageKey}
+        inherited={inherited}
         onFormChange={handleFormChange}
         onSubmit={handleSubmit}
         onClose={() => setIsModalOpen(false)}

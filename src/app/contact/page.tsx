@@ -14,6 +14,7 @@ import { Footer } from "@/components/landing/Footer";
 import { ContactForm } from "@/components/landing/ContactForm";
 import { getStaticI18n } from "@/lib/i18n/server";
 import { getPublicPageSectionsAction } from "@/actions/admin/pages";
+import { getSystemSettings } from "@/lib/settings";
 import { BRAND } from "@/lib/brand";
 
 export const revalidate = 120;
@@ -181,23 +182,35 @@ const DEFAULT_DIRECT_CHANNELS: DirectChannel[] = [
   },
 ];
 
-function sectionToDirectChannel(section: {
-  kind: string | null;
-  role: string | null;
-  titleEs: string | null;
-  titleEn: string | null;
-  subtitleEs: string | null;
-  subtitleEn: string | null;
-  bodyEs: string | null;
-  bodyEn: string | null;
-}): DirectChannel | null {
+function sectionToDirectChannel(
+  section: {
+    kind: string | null;
+    role: string | null;
+    titleEs: string | null;
+    titleEn: string | null;
+    subtitleEs: string | null;
+    subtitleEn: string | null;
+    bodyEs: string | null;
+    bodyEn: string | null;
+  },
+  settings: { publicContactEmail?: string | null; supportEmail?: string | null } | null,
+): DirectChannel | null {
   if (section.kind !== "contact") return null;
+  const role = section.role ?? "email";
+  // Fuente única: si el canal no trae valor propio, hereda de Identidad global.
+  // Solo los roles de correo heredan; la sede (address) siempre es manual.
+  const inherited =
+    role === "support"
+      ? settings?.supportEmail?.trim() || ""
+      : role === "email" || role === "corporate"
+        ? settings?.publicContactEmail?.trim() || ""
+        : "";
   return {
-    role: section.role ?? "email",
+    role,
     titleEs: section.titleEs ?? "",
     titleEn: section.titleEn ?? "",
-    valueEs: section.subtitleEs ?? "",
-    valueEn: section.subtitleEn ?? "",
+    valueEs: section.subtitleEs?.trim() || inherited,
+    valueEn: section.subtitleEn?.trim() || inherited,
     detailEs: section.bodyEs ?? "",
     detailEn: section.bodyEn ?? "",
   };
@@ -237,7 +250,6 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 export default async function ContactPage() {
   const { locale } = await getStaticI18n();
   const isEn = locale === "en";
-  const contactEmail = BRAND.contactEmail;
 
   let sections: Array<{
     kind: string | null;
@@ -254,9 +266,22 @@ export default async function ContactPage() {
   } catch {
     sections = [];
   }
+  const systemSettings = await getSystemSettings().catch(() => null);
+  const contactEmail = systemSettings?.publicContactEmail?.trim() || BRAND.contactEmail;
+  const supportEmail = systemSettings?.supportEmail?.trim() || BRAND.supportEmail;
 
-  const dbChannels = (sections ?? []).map(sectionToDirectChannel).filter((c): c is DirectChannel => c !== null);
-  const directChannels = dbChannels.length > 0 ? dbChannels : DEFAULT_DIRECT_CHANNELS;
+  const defaults: DirectChannel[] = DEFAULT_DIRECT_CHANNELS.map((c) =>
+    c.role === "support"
+      ? { ...c, valueEs: supportEmail, valueEn: supportEmail }
+      : c.role === "email" || c.role === "corporate"
+        ? { ...c, valueEs: contactEmail, valueEn: contactEmail }
+        : c,
+  );
+
+  const dbChannels = (sections ?? [])
+    .map((s) => sectionToDirectChannel(s, systemSettings))
+    .filter((c): c is DirectChannel => c !== null);
+  const directChannels = dbChannels.length > 0 ? dbChannels : defaults;
 
   const dbAttention = (sections ?? [])
     .map(sectionToAttentionCard)

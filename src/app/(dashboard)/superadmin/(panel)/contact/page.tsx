@@ -5,6 +5,7 @@ import { getAdminPageSectionsAction } from "@/actions/admin/pages";
 import { ContactChannelsManager } from "@/components/dashboard/admin/contact/ContactChannelsManager";
 import { Mail } from "lucide-react";
 import { getI18n } from "@/lib/i18n/server";
+import { getSystemSettings } from "@/lib/settings";
 
 export default async function SuperAdminContactPage() {
   const session = await getRequestSession();
@@ -15,12 +16,18 @@ export default async function SuperAdminContactPage() {
 
   const { locale } = await getI18n();
   const sections = await getAdminPageSectionsAction("contact");
+  const settings = await getSystemSettings().catch(() => null);
   const isEn = locale === "en";
+
+  const inherited = {
+    email: settings?.publicContactEmail?.trim() || "",
+    support: settings?.supportEmail?.trim() || "",
+  };
 
   const title = isEn ? "Contact" : "Contacto";
   const intro = isEn
-    ? "Manage the direct contact channels displayed on the public /contact page (emails, headquarters address). Reorder, edit, activate or deactivate channels to control the public experience. Leave it empty to show the default contact details."
-    : "Administra los canales de contacto directo que se muestran en la página pública /contact (correos, sede central). Reordena, edita, activa o desactiva canales para controlar la experiencia pública. Déjalo vacío para mostrar los datos de contacto por defecto.";
+    ? "Manage the direct contact channels displayed on the public /contact page (emails, headquarters address). Saving the general inbox or support email also updates Global identity in Settings. Reorder, edit, activate or deactivate channels to control the public experience."
+    : "Administra los canales de contacto directo que se muestran en la página pública /contact (correos, sede central). Al guardar el correo general o el de soporte, también se actualiza Identidad global en Configuración. Reordena, edita, activa o desactiva canales para controlar la experiencia pública.";
 
   return (
     <div className="space-y-6">
@@ -36,7 +43,7 @@ export default async function SuperAdminContactPage() {
         </p>
       </div>
 
-      <ContactChannelsManager initialSections={sections} pageKey="contact" isEn={isEn} />
+      <ContactChannelsManager initialSections={sections} pageKey="contact" isEn={isEn} inherited={inherited} />
     </div>
   );
 }

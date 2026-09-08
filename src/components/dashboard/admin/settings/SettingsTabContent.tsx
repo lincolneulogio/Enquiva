@@ -17,6 +17,7 @@ interface SettingsTabContentProps {
   entityContext: SettingsTabsProps["entityContext"];
   initialPlatformSettings: SettingsTabsProps["initialPlatformSettings"];
   adminUser: SettingsTabsProps["adminUser"];
+  corporateEmail?: SettingsTabsProps["corporateEmail"];
 }
 
 export function SettingsTabContent({
@@ -24,6 +25,7 @@ export function SettingsTabContent({
   entityContext,
   initialPlatformSettings,
   adminUser,
+  corporateEmail,
 }: SettingsTabContentProps) {
   const {
     locale,
@@ -92,7 +94,7 @@ export function SettingsTabContent({
       )}
 
       {section === "platform" && activeSubTab === "identity" && initialPlatformSettings && (
-        <PlatformIdentityTab initialPlatformSettings={initialPlatformSettings} />
+        <PlatformIdentityTab initialPlatformSettings={initialPlatformSettings} corporateEmail={corporateEmail} />
       )}
 
       {section === "platform" && activeSubTab === "preferences" && initialPlatformSettings && (

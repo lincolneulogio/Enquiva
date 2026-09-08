@@ -2,6 +2,7 @@ import { getRequestSession } from "@/lib/request-context";
 import { getI18n } from "@/lib/i18n/server";
 import { normalizeRole } from "@/lib/auth/rbac";
 import { getSystemSettings } from "@/lib/settings";
+import { getAdminPageSectionsAction } from "@/actions/admin/pages";
 import { SettingsTabs } from "@/components/dashboard/admin/SettingsTabs";
 import { BackupDatabaseButton } from "@/components/dashboard/admin/BackupDatabaseButton";
 import { resolveAdminScope } from "@/lib/organizations/admin-scope";
@@ -51,6 +52,19 @@ export default async function AdminSettingsPage() {
 
     const platformSettings = await getSystemSettings();
 
+    // Correo empresarial (canal corporate de Contacto): solo lectura en Identidad global.
+    let corporateEmail = "";
+    if (isSuperAdmin) {
+        try {
+            const contactSections = await getAdminPageSectionsAction("contact");
+            corporateEmail =
+                contactSections.find((s) => s.kind === "contact" && s.role === "corporate")
+                    ?.subtitleEs?.trim() ?? "";
+        } catch {
+            corporateEmail = "";
+        }
+    }
+
     const introKey =
         isSuperAdmin && entityContext
             ? "settingsIntroBoth"
@@ -71,6 +85,7 @@ export default async function AdminSettingsPage() {
                     entityContext={entityContext}
                     initialPlatformSettings={isSuperAdmin ? platformSettings : undefined}
                     platformDefaultAccent={platformSettings.defaultAccentColor}
+                    corporateEmail={corporateEmail}
                     adminUser={{
                         name: user.name ?? "—",
                         email: user.email,

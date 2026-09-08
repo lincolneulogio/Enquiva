@@ -6,6 +6,7 @@ import { eq, asc, desc, and } from "drizzle-orm";
 import { requireSuperAdmin } from "@/lib/auth/guards";
 import { revalidatePath } from "next/cache";
 import { invalidateCache, setCached, getCached } from "@/lib/redis";
+import { saveSystemSettings } from "@/lib/settings";
 import { z } from "zod";
 
 const CACHE_TTL = 120;
@@ -25,6 +26,37 @@ function revalidatePageSections(pageKey: string) {
   invalidateCache(cacheKeyFor(pageKey)).catch(() => {});
   const paths = PAGE_REVALIDATE_PATHS[pageKey] ?? [`/${pageKey}`, `/superadmin/${pageKey}`];
   for (const path of paths) revalidatePath(path);
+}
+
+/**
+ * Espejo Contacto → Identidad global: el panel Contacto manda.
+ * - rol `email` → correo público de contacto
+ * - rol `support` → correo de soporte
+ * - rol `address` → ubicación pública (dirección + ciudad / referencia de la sede)
+ * - rol `corporate` → solo display en /contact (settings no tiene casilla
+ *   propia; se muestra como lectura en Identidad global desde las secciones).
+ */
+async function mirrorContactChannelToSettings(
+  role: string | null | undefined,
+  subtitle: string | null | undefined,
+  body: string | null | undefined,
+) {
+  const value = subtitle?.trim() ?? "";
+  if (role === "support" && value.includes("@")) {
+    await saveSystemSettings({ supportEmail: value });
+  } else if (role === "email" && value.includes("@")) {
+    await saveSystemSettings({ publicContactEmail: value });
+  } else if (role === "address") {
+    const street = subtitle?.trim() ?? "";
+    const cityRef = body?.trim() ?? "";
+    const location = [street, cityRef].filter(Boolean).join(", ");
+    if (!location) return;
+    await saveSystemSettings({ publicLocation: location });
+  } else {
+    return;
+  }
+  revalidatePath("/superadmin/settings");
+  revalidatePath("/admin/settings");
 }
 
 const sectionSchema = z.object({
@@ -105,6 +137,14 @@ export async function createPageSectionAction(data: SectionInput, pageKey = "abo
 
   revalidatePageSections(pageKey);
 
+  if (pageKey === "contact" && created.kind === "contact") {
+    try {
+      await mirrorContactChannelToSettings(created.role, created.subtitleEs, created.bodyEs);
+    } catch (error) {
+      console.error("[pages] Error mirroring contact channel to settings:", error);
+    }
+  }
+
   return { success: true, section: created };
 }
 
@@ -134,6 +174,18 @@ export async function updatePageSectionAction(id: string, data: Partial<SectionI
     .returning();
 
   revalidatePageSections(pageKey);
+
+  if (
+    pageKey === "contact" &&
+    (data.subtitleEs !== undefined || data.bodyEs !== undefined || data.role !== undefined) &&
+    updated?.kind === "contact"
+  ) {
+    try {
+      await mirrorContactChannelToSettings(updated.role, updated.subtitleEs, updated.bodyEs);
+    } catch (error) {
+      console.error("[pages] Error mirroring contact channel to settings:", error);
+    }
+  }
 
   return { success: true, section: updated };
 }

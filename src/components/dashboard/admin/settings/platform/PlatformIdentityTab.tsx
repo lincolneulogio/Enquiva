@@ -10,17 +10,19 @@ import { SocialLinksSection, LegalPagesSection } from "./identity";
 
 export interface PlatformIdentityTabProps {
   initialPlatformSettings: SystemSettings;
+  /** Correo del canal "Eventos empresariales" (Contactos). Solo lectura: settings no tiene casilla propia. */
+  corporateEmail?: string;
 }
 
-export function PlatformIdentityTab({ initialPlatformSettings }: PlatformIdentityTabProps) {
+export function PlatformIdentityTab({ initialPlatformSettings, corporateEmail = "" }: PlatformIdentityTabProps) {
   const { locale } = useLocale();
   const router = useRouter();
   const [isSaving, startSaving] = useTransition();
 
   const [platformOrgName, setPlatformOrgName] = useState(initialPlatformSettings.organizationName ?? "");
-  const [platformSupportEmail, setPlatformSupportEmail] = useState(initialPlatformSettings.supportEmail ?? "");
-  const [platformContactEmail, setPlatformContactEmail] = useState(initialPlatformSettings.publicContactEmail ?? "");
-  const [platformLocation, setPlatformLocation] = useState(initialPlatformSettings.publicLocation ?? "");
+  const [platformSupportEmail] = useState(initialPlatformSettings.supportEmail ?? "");
+  const [platformContactEmail] = useState(initialPlatformSettings.publicContactEmail ?? "");
+  const [platformLocation] = useState(initialPlatformSettings.publicLocation ?? "");
 
   const [socialFacebook, setSocialFacebook] = useState(initialPlatformSettings.socialFacebook ?? "");
   const [socialInstagram, setSocialInstagram] = useState(initialPlatformSettings.socialInstagram ?? "");
@@ -91,6 +93,11 @@ export function PlatformIdentityTab({ initialPlatformSettings }: PlatformIdentit
               ? "Brand name and operational support email (system emails, tickets, sidebar)."
               : "Nombre de marca y correo operativo de soporte (correos del sistema, tickets, sidebar)."}
           </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {locale === "en"
+              ? "Support, contact and business emails plus public location are managed in Marketing & Portal → Contact and shown here read-only."
+              : "Los correos de soporte, contacto y empresarial más la ubicación pública se gestionan en Marketing & Portada → Contacto y aquí se muestran solo como lectura."}
+          </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -113,9 +120,11 @@ export function PlatformIdentityTab({ initialPlatformSettings }: PlatformIdentit
             <input
               type="email"
               value={platformSupportEmail}
-              onChange={(e) => setPlatformSupportEmail(e.target.value)}
+              disabled
+              readOnly
+              title={locale === "en" ? "Managed in Marketing & Portal → Contact" : "Se gestiona en Marketing & Portada → Contacto"}
               placeholder="soporte@tu-dominio.com"
-              className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+              className="w-full rounded-lg border border-border bg-muted/40 px-3.5 py-2 text-sm text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-80"
             />
           </div>
           <div className="space-y-1.5">
@@ -125,21 +134,39 @@ export function PlatformIdentityTab({ initialPlatformSettings }: PlatformIdentit
             <input
               type="email"
               value={platformContactEmail}
-              onChange={(e) => setPlatformContactEmail(e.target.value)}
+              disabled
+              readOnly
+              title={locale === "en" ? "Managed in Marketing & Portal → Contact" : "Se gestiona en Marketing & Portada → Contacto"}
               placeholder="contacto@tu-dominio.com"
-              className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+              className="w-full rounded-lg border border-border bg-muted/40 px-3.5 py-2 text-sm text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-80"
             />
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-foreground">
-              {locale === "en" ? "Public location" : "Ubicación pública"}
+              {locale === "en" ? "Business email (corporate events)" : "Correo empresarial (eventos)"}
             </label>
             <input
-              type="text"
+              type="email"
+              value={corporateEmail}
+              disabled
+              readOnly
+              title={locale === "en" ? "Managed in Marketing & Portal → Contact" : "Se gestiona en Marketing & Portada → Contacto"}
+              placeholder="empresas@tu-dominio.com"
+              className="w-full rounded-lg border border-border bg-muted/40 px-3.5 py-2 text-sm text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-80"
+            />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <label className="text-xs font-semibold text-foreground">
+              {locale === "en" ? "Public location" : "Ubicación pública"}
+            </label>
+            <textarea
+              rows={2}
               value={platformLocation}
-              onChange={(e) => setPlatformLocation(e.target.value)}
+              disabled
+              readOnly
+              title={locale === "en" ? "Managed in Marketing & Portal → Contact (headquarters)" : "Se gestiona en Marketing & Portada → Contacto (sede central)"}
               placeholder={locale === "en" ? "Lima, Peru" : "Lima, Perú"}
-              className="w-full rounded-lg border border-border bg-background px-3.5 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+              className="w-full resize-none rounded-lg border border-border bg-muted/40 px-3.5 py-2 text-sm leading-relaxed text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-80"
             />
           </div>
         </div>

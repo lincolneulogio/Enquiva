@@ -19,6 +19,8 @@ export interface SettingsTabsProps {
         canUseBranding?: boolean;
     };
     initialPlatformSettings?: SystemSettings;
+    /** Correo empresarial (canal corporate de Contacto). Solo lectura en Identidad global. */
+    corporateEmail?: string;
     /** Default de plataforma (también para roles sin acceso a settings globales). */
     platformDefaultAccent?: AccentColor;
     adminUser: {
