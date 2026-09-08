@@ -18,8 +18,8 @@ export const metadata = {
 type TermsSection = import("@/lib/db/schema").PageSection;
 
 /* ------------------------------------------------------------------ */
-/* Contenido curado por defecto (bilingüe, con acentos)                 */
-/* Se usa solo si el superadmin no publica cláusulas en /superadmin/terms */
+/* Textos estructurales (chrome). Todo el contenido viene de la DB      */
+/* (cláusulas en /superadmin/terms).                                    */
 /* ------------------------------------------------------------------ */
 
 const HERO_COPY = {
@@ -34,50 +34,6 @@ const HERO_COPY = {
   descEn:
     "Learn the guidelines, rights and responsibilities governing the use of our event platform. We operate through secure gateways and specialized services for organizations in Huánuco and across Peru.",
 };
-
-const SUMMARY_CARDS: Array<{
-  icon: LucideIcon;
-  titleEs: string;
-  titleEn: string;
-  descEs: string;
-  descEn: string;
-  footEs: string;
-  footEn: string;
-}> = [
-  {
-    icon: Cpu,
-    titleEs: "Intermediación Tecnológica",
-    titleEn: "Technology Brokerage",
-    descEs:
-      "Enquiva es la plataforma que conecta organizadores y asistentes: no organiza los eventos, los potencia con software.",
-    descEn:
-      "Enquiva is the platform connecting organizers and attendees: it does not run events, it powers them with software.",
-    footEs: "Artículo 2",
-    footEn: "Article 2",
-  },
-  {
-    icon: CreditCard,
-    titleEs: "Pagos Seguros en Soles",
-    titleEn: "Secure Payments in Soles",
-    descEs:
-      "Cobros procesados por pasarelas certificadas en moneda nacional (PEN), con comprobantes y trazabilidad total.",
-    descEn:
-      "Charges processed through certified gateways in national currency (PEN), with receipts and full traceability.",
-    footEs: "Artículo 4",
-    footEn: "Article 4",
-  },
-  {
-    icon: QrCode,
-    titleEs: "Entradas QR y Reembolsos",
-    titleEn: "QR Tickets & Refunds",
-    descEs:
-      "Cada entrada genera un QR único de acceso y las devoluciones siguen la política publicada de cada evento.",
-    descEn:
-      "Each ticket generates a unique access QR, and refunds follow each event's published policy.",
-    footEs: "Artículo 6",
-    footEn: "Article 6",
-  },
-];
 
 const TABS_COPY = {
   eyebrowEs: "Índice del Contrato",
@@ -98,162 +54,6 @@ const CTA_COPY = {
   secondaryEs: "Crear Evento Gratis",
   secondaryEn: "Create Free Event",
 };
-
-type TermsDefault = {
-  num: string;
-  titleEs: string;
-  titleEn: string;
-  paragraphsEs: string[];
-  paragraphsEn: string[];
-  listEs?: string[];
-  listEn?: string[];
-  contact?: boolean;
-};
-
-const DEFAULT_TERMS: TermsDefault[] = [
-  {
-    num: "01",
-    titleEs: "Aceptación de los términos",
-    titleEn: "Acceptance of terms",
-    paragraphsEs: [
-      "Al acceder o utilizar la plataforma <strong>Enquiva</strong>, confirmas que has leído, entendido y aceptado estos Términos y Condiciones. Si no estás de acuerdo, por favor no uses la plataforma.",
-    ],
-    paragraphsEn: [
-      "By accessing or using the <strong>Enquiva</strong> platform, you confirm that you have read, understood and accepted these Terms and Conditions. If you do not agree, please do not use the platform.",
-    ],
-  },
-  {
-    num: "02",
-    titleEs: "Cuentas de usuario",
-    titleEn: "User accounts",
-    paragraphsEs: [
-      "Para inscribirte en eventos u organizarlos, debes crear una cuenta con información veraz y actualizada. Eres responsable de mantener la confidencialidad de tus credenciales y de toda la actividad que ocurra en tu cuenta.",
-    ],
-    paragraphsEn: [
-      "To register for events or organize them, you must create an account with truthful and current information. You are responsible for keeping your credentials confidential and for all activity that occurs under your account.",
-    ],
-    listEs: [
-      "Debes tener al menos 18 años para crear una cuenta de organizador.",
-      "Debes proporcionar un correo electrónico válido.",
-      "Notifica de inmediato cualquier uso no autorizado de tu cuenta.",
-    ],
-    listEn: [
-      "You must be at least 18 years old to create an organizer account.",
-      "You must provide a valid email address.",
-      "Report any unauthorized use of your account immediately.",
-    ],
-  },
-  {
-    num: "03",
-    titleEs: "Uso de la plataforma",
-    titleEn: "Use of the platform",
-    paragraphsEs: [
-      "Te comprometes a usar la plataforma únicamente con fines legítimos y de acuerdo con la ley aplicable. Queda prohibido cualquier uso que pueda dañar, sobrecargar o interferir con el funcionamiento de la plataforma o de terceros.",
-    ],
-    paragraphsEn: [
-      "You agree to use the platform only for legitimate purposes and in accordance with applicable law. Any use that may damage, overload or interfere with the platform or third parties is prohibited.",
-    ],
-  },
-  {
-    num: "04",
-    titleEs: "Eventos e inscripciones",
-    titleEn: "Events and registrations",
-    paragraphsEs: [
-      "Los organizadores publican eventos en la plataforma bajo su propia responsabilidad. <strong>Enquiva</strong> actúa como intermediario tecnológico y no garantiza la realización del evento.",
-      "Al inscribirte, el cupo queda reservado según las condiciones del evento. La confirmación de asistencia puede requerir la emisión de un ticket.",
-    ],
-    paragraphsEn: [
-      "Organizers publish events on the platform under their own responsibility. <strong>Enquiva</strong> acts as a technological intermediary and does not guarantee the event will take place.",
-      "By registering, your spot is reserved according to the event conditions. Confirmation of attendance may require the issuance of a ticket.",
-    ],
-  },
-  {
-    num: "05",
-    titleEs: "Pagos y reembolsos",
-    titleEn: "Payments and refunds",
-    paragraphsEs: [
-      "Los pagos de inscripciones se procesan de forma segura en soles (PEN) a través de pasarelas certificadas. La política de reembolso de cada evento es establecida por su organizador y debe ser consultada antes de completar la compra.",
-    ],
-    paragraphsEn: [
-      "Registration payments are processed securely in soles (PEN) through certified gateways. Each event refund policy is set by its organizer and should be reviewed before completing a purchase.",
-    ],
-  },
-  {
-    num: "06",
-    titleEs: "Tickets y check-in",
-    titleEn: "Tickets and check-in",
-    paragraphsEs: [
-      "El ticket QR emitido es el comprobante de acceso al evento. Es de uso personal e intransferible salvo que el organizador indique lo contrario. El personal de acceso puede validar el ticket mediante escaneo en el momento del ingreso.",
-    ],
-    paragraphsEn: [
-      "The issued QR ticket is proof of access to the event. It is personal and non-transferable unless the organizer states otherwise. Access staff may validate the ticket by scanning at entry.",
-    ],
-  },
-  {
-    num: "07",
-    titleEs: "Propiedad intelectual",
-    titleEn: "Intellectual property",
-    paragraphsEs: [
-      "Todos los contenidos, marcas, logotipos y diseños de la plataforma son propiedad de <strong>Enquiva</strong> o de sus licenciantes y están protegidos por las leyes de propiedad intelectual. No se permite su reproducción sin autorización.",
-    ],
-    paragraphsEn: [
-      "All content, brands, logos and designs on the platform are the property of <strong>Enquiva</strong> or its licensors and are protected by intellectual property laws. Reproduction without authorization is not permitted.",
-    ],
-  },
-  {
-    num: "08",
-    titleEs: "Limitación de responsabilidad",
-    titleEn: "Limitation of liability",
-    paragraphsEs: [
-      "En la medida máxima permitida por la ley, <strong>Enquiva</strong> no será responsable por daños indirectos, incidentales o consecuentes derivados del uso de la plataforma o de la asistencia a eventos organizados por terceros.",
-    ],
-    paragraphsEn: [
-      "To the maximum extent permitted by law, <strong>Enquiva</strong> shall not be liable for indirect, incidental or consequential damages arising from the use of the platform or attendance at third-party events.",
-    ],
-  },
-  {
-    num: "09",
-    titleEs: "Modificaciones",
-    titleEn: "Changes",
-    paragraphsEs: [
-      "Podemos actualizar estos Términos y Condiciones en cualquier momento. La versión vigente estará publicada en esta página, y el uso continuado de la plataforma tras los cambios implica su aceptación.",
-    ],
-    paragraphsEn: [
-      "We may update these Terms and Conditions at any time. The current version will be published on this page, and continued use of the platform after changes implies acceptance.",
-    ],
-  },
-  {
-    num: "10",
-    titleEs: "Contacto",
-    titleEn: "Contact",
-    paragraphsEs: [
-      "Si tienes preguntas sobre estos términos, usa la página de contacto o escribe a soporte@enquiva.site y te responderemos a la brevedad.",
-    ],
-    paragraphsEn: [
-      "If you have questions about these terms, use the contact page or write to support@enquiva.site and we will reply shortly.",
-    ],
-    contact: true,
-  },
-];
-
-function defaultsToTabs(defs: TermsDefault[], isEn: boolean): TermsTabItem[] {
-  return defs.map((d, i) => {
-    const paragraphs = isEn ? d.paragraphsEn : d.paragraphsEs;
-    const list = isEn ? d.listEn : d.listEs;
-    const html =
-      paragraphs.map((p) => `<p>${p}</p>`).join("") +
-      (list && list.length > 0
-        ? `<ul>${list.map((item) => `<li>${item}</li>`).join("")}</ul>`
-        : "");
-    return {
-      id: `default-${i}`,
-      num: d.num,
-      title: isEn ? d.titleEn : d.titleEs,
-      html,
-      contact: d.contact,
-    };
-  });
-}
 
 function adminToTabs(sections: TermsSection[], isEn: boolean): TermsTabItem[] {
   return sections.map((s, i) => {
@@ -308,29 +108,47 @@ function HeroSection({ isEn }: { isEn: boolean }) {
   );
 }
 
-function SummaryCards({ isEn }: { isEn: boolean }) {
+const SUMMARY_ICONS: LucideIcon[] = [Cpu, CreditCard, QrCode];
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<\/(p|li|ul|ol|div|h\d)>/gi, " ")
+    .replace(/<[^>]*>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function SummaryCards({ tabs, isEn }: { tabs: TermsTabItem[]; isEn: boolean }) {
+  const cards = tabs.slice(0, 3);
+  if (cards.length === 0) return null;
   return (
     <section className="mx-auto max-w-6xl px-4 pb-2 pt-10 sm:px-6 sm:pt-12">
       <div className="grid gap-4 md:grid-cols-3">
-        {SUMMARY_CARDS.map(({ icon: Icon, titleEs, titleEn, descEs, descEn, footEs, footEn }) => (
-          <article
-            key={titleEn}
-            className="rounded-2xl border border-primary/15 bg-white p-5 shadow-sm dark:border-border dark:bg-card sm:p-6"
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Icon className="h-4 w-4" />
-            </span>
-            <h2 className="mt-4 font-display text-base font-bold text-foreground">
-              {isEn ? titleEn : titleEs}
-            </h2>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
-              {isEn ? descEn : descEs}
-            </p>
-            <p className="mt-4 text-[11px] font-semibold text-primary">
-              {isEn ? footEn : footEs} →
-            </p>
-          </article>
-        ))}
+        {cards.map((tab, i) => {
+          const Icon = SUMMARY_ICONS[i % SUMMARY_ICONS.length] ?? Cpu;
+          const plain = stripHtml(tab.html ?? "");
+          const desc = plain.length > 150 ? `${plain.slice(0, 150).trimEnd()}…` : plain;
+          return (
+            <article
+              key={tab.id}
+              className="rounded-2xl border border-primary/15 bg-white p-5 shadow-sm dark:border-border dark:bg-card sm:p-6"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Icon className="h-4 w-4" />
+              </span>
+              <h2 className="mt-4 font-display text-base font-bold text-foreground">
+                {tab.title}
+              </h2>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
+                {desc}
+              </p>
+              <p className="mt-4 text-[11px] font-semibold text-primary">
+                {isEn ? "Article" : "Artículo"} {tab.num} →
+              </p>
+            </article>
+          );
+        })}
       </div>
     </section>
   );
@@ -403,16 +221,13 @@ export default async function TermsPage() {
   }
 
   const adminSections = (sections ?? []).filter((s) => s.kind === "section");
-  const tabs =
-    adminSections.length > 0
-      ? adminToTabs(adminSections, isEn)
-      : defaultsToTabs(DEFAULT_TERMS, isEn);
+  const tabs = adminToTabs(adminSections, isEn);
 
   return (
     <div className="min-h-screen bg-background">
       <PublicHeader />
       <HeroSection isEn={isEn} />
-      <SummaryCards isEn={isEn} />
+      <SummaryCards tabs={tabs} isEn={isEn} />
       <ContractTabs tabs={tabs} isEn={isEn} />
       <CtaBanner isEn={isEn} />
       <Footer />

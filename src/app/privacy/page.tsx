@@ -25,8 +25,8 @@ export const metadata = {
 type PrivacySection = import("@/lib/db/schema").PageSection;
 
 /* ------------------------------------------------------------------ */
-/* Contenido curado por defecto (bilingüe, con acentos)                 */
-/* Se usa solo si el superadmin no publica cláusulas en /superadmin/privacy */
+/* Textos estructurales (chrome). Todo el contenido viene de la DB      */
+/* (cláusulas en /superadmin/privacy).                                  */
 /* ------------------------------------------------------------------ */
 
 const HERO_COPY = {
@@ -41,50 +41,6 @@ const HERO_COPY = {
   descEn:
     "How Enquiva cares for, manages and protects the confidential information of attendees and organizers, with security standards and legal transparency.",
 };
-
-const PRINCIPLES: Array<{
-  icon: LucideIcon;
-  titleEs: string;
-  titleEn: string;
-  descEs: string;
-  descEn: string;
-  footEs: string;
-  footEn: string;
-}> = [
-  {
-    icon: Database,
-    titleEs: "Mínimos Datos Necesarios",
-    titleEn: "Minimum Necessary Data",
-    descEs:
-      "Solo solicitamos la información indispensable para operar tu cuenta y validar tu acceso a los eventos.",
-    descEn:
-      "We only request the information essential to operate your account and validate your event access.",
-    footEs: "Principio de proporcionalidad",
-    footEn: "Proportionality principle",
-  },
-  {
-    icon: EyeOff,
-    titleEs: "Cero Venta de Información",
-    titleEn: "Zero Data Selling",
-    descEs:
-      "Nunca comercializamos, cedemos ni alquilamos tus datos personales a terceros con fines publicitarios.",
-    descEn:
-      "We never sell, share or rent your personal data to third parties for advertising purposes.",
-    footEs: "Prohibido por defecto",
-    footEn: "Forbidden by default",
-  },
-  {
-    icon: BadgeCheck,
-    titleEs: "Derechos ARCO Garantizados",
-    titleEn: "Guaranteed ARCO Rights",
-    descEs:
-      "Tienes derecho a Acceder, Rectificar, Cancelar u Oponerte al tratamiento de tus datos personales.",
-    descEn:
-      "You have the right to Access, Rectify, Erase or Object to the processing of your personal data.",
-    footEs: "Ley N° 29733 (Perú)",
-    footEn: "Law No. 29733 (Peru)",
-  },
-];
 
 const TABS_COPY = {
   eyebrowEs: "Índice de Privacidad",
@@ -107,185 +63,6 @@ const BANNER_COPY = {
   secondaryEs: "Ver Términos y Condiciones",
   secondaryEn: "See Terms & Conditions",
 };
-
-type PrivacyDefault = {
-  num: string;
-  titleEs: string;
-  titleEn: string;
-  paragraphsEs: string[];
-  paragraphsEn: string[];
-  listEs?: string[];
-  listEn?: string[];
-  contact?: boolean;
-};
-
-const DEFAULT_PRIVACY: PrivacyDefault[] = [
-  {
-    num: "01",
-    titleEs: "Información que recopilamos",
-    titleEn: "Information we collect",
-    paragraphsEs: [
-      "Recopilamos la información que nos proporcionas directamente, como tu nombre, correo electrónico y datos de contacto al crear una cuenta o inscribirte.",
-    ],
-    paragraphsEn: [
-      "We collect information you provide directly, such as your name, email address and contact details when creating an account or registering.",
-    ],
-    listEs: [
-      "Datos de cuenta: nombre, correo electrónico y preferencias.",
-      "Datos de inscripción y pago: información necesaria para procesar tu compra de entradas.",
-      "Datos técnicos: dirección IP, tipo de navegador y registros de actividad para mejorar el servicio y la seguridad.",
-    ],
-    listEn: [
-      "Account data: name, email address and preferences.",
-      "Registration and payment data: information needed to process your ticket purchase.",
-      "Technical data: IP address, browser type and activity logs to improve service and security.",
-    ],
-  },
-  {
-    num: "02",
-    titleEs: "Uso de la información",
-    titleEn: "How we use information",
-    paragraphsEs: [
-      "Utilizamos tu información para prestar los servicios de la plataforma, procesar inscripciones y pagos, enviarte comunicaciones relevantes y mejorar tu experiencia.",
-    ],
-    paragraphsEn: [
-      "We use your information to provide the platform services, process registrations and payments, send relevant communications and improve your experience.",
-    ],
-    listEs: [
-      "Gestionar tu cuenta, eventos e inscripciones.",
-      "Procesar pagos y emitir tickets.",
-      "Enviarte notificaciones sobre eventos a los que te has inscrito.",
-      "Enviarte el boletín de novedades si te suscribes (puedes darte de baja en cualquier momento).",
-      "Garantizar la seguridad y prevenir fraudes o usos abusivos.",
-    ],
-    listEn: [
-      "Manage your account, events and registrations.",
-      "Process payments and issue tickets.",
-      "Send you notifications about events you have registered for.",
-      "Send you the newsletter if you subscribe (you may unsubscribe at any time).",
-      "Ensure security and prevent fraud or abusive use.",
-    ],
-  },
-  {
-    num: "03",
-    titleEs: "Compartir información",
-    titleEn: "Sharing information",
-    paragraphsEs: [
-      "No vendemos tu información personal a terceros. Podemos compartirla únicamente en los siguientes casos:",
-    ],
-    paragraphsEn: [
-      "We do not sell your personal information to third parties. We may share it only in the following cases:",
-    ],
-    listEs: [
-      "Con los organizadores de los eventos a los que te inscribes, para la gestión del evento.",
-      "Con proveedores de pago y servicios técnicos necesarios para el funcionamiento de la plataforma.",
-      "Cuando la ley lo exija o para proteger derechos legales.",
-    ],
-    listEn: [
-      "With the organizers of the events you register for, to manage the event.",
-      "With payment providers and technical services necessary for the platform to function.",
-      "When required by law or to protect legal rights.",
-    ],
-  },
-  {
-    num: "04",
-    titleEs: "Seguridad de los datos",
-    titleEn: "Data security",
-    paragraphsEs: [
-      "Implementamos medidas técnicas y organizativas razonables para proteger tu información contra acceso no autorizado, pérdida o alteración. Los pagos se procesan a través de pasarelas seguras.",
-    ],
-    paragraphsEn: [
-      "We implement reasonable technical and organizational measures to protect your information from unauthorized access, loss or alteration. Payments are processed through secure gateways.",
-    ],
-  },
-  {
-    num: "05",
-    titleEs: "Cookies y tecnologías similares",
-    titleEn: "Cookies and similar technologies",
-    paragraphsEs: [
-      "Usamos cookies para recordar tu sesión, preferencias de idioma y tema, y para entender cómo se usa la plataforma. Puedes configurar tu navegador para rechazarlas, aunque algunas funciones podrían verse afectadas.",
-    ],
-    paragraphsEn: [
-      "We use cookies to remember your session, language and theme preferences, and to understand how the platform is used. You can configure your browser to reject them, although some features may be affected.",
-    ],
-  },
-  {
-    num: "06",
-    titleEs: "Tus derechos",
-    titleEn: "Your rights",
-    paragraphsEs: [
-      "Tienes derecho a acceder, corregir o eliminar tu información personal, y a oponerte al tratamiento de la misma en los casos previstos por la ley.",
-    ],
-    paragraphsEn: [
-      "You have the right to access, correct or delete your personal information, and to object to its processing where provided by law.",
-    ],
-    listEs: [
-      "Acceder a los datos que tenemos sobre ti.",
-      "Solicitar la corrección de datos inexactos.",
-      "Solicitar la eliminación de tu cuenta y datos.",
-      "Darte de baja del boletín en cualquier momento.",
-    ],
-    listEn: [
-      "Access the data we hold about you.",
-      "Request correction of inaccurate data.",
-      "Request deletion of your account and data.",
-      "Unsubscribe from the newsletter at any time.",
-    ],
-  },
-  {
-    num: "07",
-    titleEs: "Retención de datos",
-    titleEn: "Data retention",
-    paragraphsEs: [
-      "Conservamos tu información únicamente durante el tiempo necesario para las finalidades descritas en esta política y para cumplir con obligaciones legales.",
-    ],
-    paragraphsEn: [
-      "We retain your information only for as long as necessary for the purposes described in this policy and to comply with legal obligations.",
-    ],
-  },
-  {
-    num: "08",
-    titleEs: "Cambios en esta política",
-    titleEn: "Changes to this policy",
-    paragraphsEs: [
-      "Podemos actualizar esta Política de Privacidad. Publicaremos la versión vigente en esta página y te notificaremos los cambios relevantes.",
-    ],
-    paragraphsEn: [
-      "We may update this Privacy Policy. We will publish the current version on this page and notify you of relevant changes.",
-    ],
-  },
-  {
-    num: "09",
-    titleEs: "Contacto",
-    titleEn: "Contact",
-    paragraphsEs: [
-      "Para consultas sobre privacidad, usa la página de contacto o escribe a soporte@enquiva.site y te responderemos a la brevedad.",
-    ],
-    paragraphsEn: [
-      "For privacy questions, use the contact page or write to support@enquiva.site and we will reply shortly.",
-    ],
-    contact: true,
-  },
-];
-
-function defaultsToTabs(defs: PrivacyDefault[], isEn: boolean): TermsTabItem[] {
-  return defs.map((d, i) => {
-    const paragraphs = isEn ? d.paragraphsEn : d.paragraphsEs;
-    const list = isEn ? d.listEn : d.listEs;
-    const html =
-      paragraphs.map((p) => `<p>${p}</p>`).join("") +
-      (list && list.length > 0
-        ? `<ul>${list.map((item) => `<li>${item}</li>`).join("")}</ul>`
-        : "");
-    return {
-      id: `default-${i}`,
-      num: d.num,
-      title: isEn ? d.titleEn : d.titleEs,
-      html,
-      contact: d.contact,
-    };
-  });
-}
 
 function adminToTabs(sections: PrivacySection[], isEn: boolean): TermsTabItem[] {
   return sections.map((s, i) => {
@@ -340,29 +117,47 @@ function HeroSection({ isEn }: { isEn: boolean }) {
   );
 }
 
-function PrinciplesSection({ isEn }: { isEn: boolean }) {
+const PRINCIPLE_ICONS: LucideIcon[] = [Database, EyeOff, BadgeCheck];
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<\/(p|li|ul|ol|div|h\d)>/gi, " ")
+    .replace(/<[^>]*>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function PrinciplesSection({ tabs, isEn }: { tabs: TermsTabItem[]; isEn: boolean }) {
+  const cards = tabs.slice(0, 3);
+  if (cards.length === 0) return null;
   return (
     <section className="mx-auto max-w-6xl px-4 pb-2 pt-10 sm:px-6 sm:pt-12">
       <div className="grid gap-4 md:grid-cols-3">
-        {PRINCIPLES.map(({ icon: Icon, titleEs, titleEn, descEs, descEn, footEs, footEn }) => (
-          <article
-            key={titleEn}
-            className="rounded-2xl border border-primary/15 bg-white p-5 shadow-sm dark:border-border dark:bg-card sm:p-6"
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Icon className="h-4 w-4" />
-            </span>
-            <h2 className="mt-4 font-display text-base font-bold text-foreground">
-              {isEn ? titleEn : titleEs}
-            </h2>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
-              {isEn ? descEn : descEs}
-            </p>
-            <p className="mt-4 text-[11px] font-semibold text-primary">
-              {isEn ? footEn : footEs}
-            </p>
-          </article>
-        ))}
+        {cards.map((tab, i) => {
+          const Icon = PRINCIPLE_ICONS[i % PRINCIPLE_ICONS.length] ?? Database;
+          const plain = stripHtml(tab.html ?? "");
+          const desc = plain.length > 150 ? `${plain.slice(0, 150).trimEnd()}…` : plain;
+          return (
+            <article
+              key={tab.id}
+              className="rounded-2xl border border-primary/15 bg-white p-5 shadow-sm dark:border-border dark:bg-card sm:p-6"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Icon className="h-4 w-4" />
+              </span>
+              <h2 className="mt-4 font-display text-base font-bold text-foreground">
+                {tab.title}
+              </h2>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
+                {desc}
+              </p>
+              <p className="mt-4 text-[11px] font-semibold text-primary">
+                {isEn ? "Article" : "Artículo"} {tab.num}
+              </p>
+            </article>
+          );
+        })}
       </div>
     </section>
   );
@@ -442,16 +237,13 @@ export default async function PrivacyPage() {
   }
 
   const adminSections = (sections ?? []).filter((s) => s.kind === "section");
-  const tabs =
-    adminSections.length > 0
-      ? adminToTabs(adminSections, isEn)
-      : defaultsToTabs(DEFAULT_PRIVACY, isEn);
+  const tabs = adminToTabs(adminSections, isEn);
 
   return (
     <div className="min-h-screen bg-background">
       <PublicHeader />
       <HeroSection isEn={isEn} />
-      <PrinciplesSection isEn={isEn} />
+      <PrinciplesSection tabs={tabs} isEn={isEn} />
       <PrivacyTabs tabs={tabs} isEn={isEn} />
       <CtaBanner isEn={isEn} />
       <Footer />

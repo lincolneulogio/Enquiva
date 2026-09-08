@@ -39,67 +39,29 @@ export const metadata = {
 type AboutSection = import("@/lib/db/schema").PageSection;
 
 /* ------------------------------------------------------------------ */
-/* Contenido curado por defecto (bilingüe, con acentos)                 */
+/* Textos estructurales (chrome). Todo el contenido viene de la DB      */
+/* (secciones en /superadmin/about).                                    */
 /* ------------------------------------------------------------------ */
 
-const DEFAULT_HERO = {
+const HERO_BADGE = {
   badgeEs: "Conoce nuestra historia · Equipo Enquiva",
   badgeEn: "Meet our story · Enquiva team",
-  titleAEs: "Transformamos la forma de",
-  titleAEn: "We transform how you",
-  titleAccentEs: "descubrir y vivir eventos",
-  titleAccentEn: "discover and experience events",
-  titleBEs: "en Huánuco",
-  titleBEn: "in Huánuco",
-  descriptionEs:
-    "Enquiva nació de la convicción de que los mejores momentos suceden cuando las personas se reúnen en persona o virtualmente. Diseñamos tecnología accesible, transparente y de clase mundial para organizadores y asistentes.",
-  descriptionEn:
-    "Enquiva was born from the belief that the best moments happen when people gather in person or virtually. We design accessible, transparent, world-class technology for organizers and attendees.",
 };
 
-const DEFAULT_STATS: Array<{
+const STAT_ICONS: LucideIcon[] = [MapPin, Ticket, ShieldCheck, BadgeCheck];
+
+const PRINCIPLE_SLOTS: Array<{
+  key: string;
   icon: LucideIcon;
-  labelEs: string;
-  labelEn: string;
-  value: string;
-  textEs: string;
-  textEn: string;
+  eyebrowEs: string;
+  eyebrowEn: string;
 }> = [
-  {
-    icon: MapPin,
-    labelEs: "Identidad local",
-    labelEn: "Local identity",
-    value: "100%",
-    textEs: "Hecho en Huánuco, Perú: con proyección y despliegue a toda la región.",
-    textEn: "Made in Huánuco, Peru — expanding across the whole region.",
-  },
-  {
-    icon: Ticket,
-    labelEs: "Escala lograda",
-    labelEn: "Proven scale",
-    value: "+50,000",
-    textEs: "Asistentes gestionados con tickets QR criptográficos seguros.",
-    textEn: "Attendees managed with secure cryptographic QR tickets.",
-  },
-  {
-    icon: ShieldCheck,
-    labelEs: "Confianza",
-    labelEn: "Trust",
-    value: "+1,200",
-    textEs: "Eventos publicados con comisiones transparentes y sin cobros ocultos.",
-    textEn: "Published events with transparent fees and no hidden charges.",
-  },
-  {
-    icon: BadgeCheck,
-    labelEs: "Satisfacción",
-    labelEn: "Satisfaction",
-    value: "99.4%",
-    textEs: "Satisfacción de organizadores de cumbres y congresos.",
-    textEn: "Satisfaction of summit and congress organizers.",
-  },
+  { key: "mission", icon: Rocket, eyebrowEs: "Propósito central", eyebrowEn: "Core purpose" },
+  { key: "vision", icon: Eye, eyebrowEs: "Hacia el futuro", eyebrowEn: "Toward the future" },
+  { key: "values", icon: Heart, eyebrowEs: "Código de conducta", eyebrowEn: "Code of conduct" },
 ];
 
-const DEFAULT_PRINCIPLES = {
+const PRINCIPLES_HEADER = {
   eyebrowEs: "Nuestros cimientos",
   eyebrowEn: "Our foundations",
   titleEs: "Principios que impulsan nuestra arquitectura",
@@ -109,54 +71,6 @@ const DEFAULT_PRINCIPLES = {
   sideEn:
     "We design pragmatic solutions that give sovereignty and financial predictability back to event producers across the region.",
 };
-
-const DEFAULT_CARDS: Array<{
-  key: "mission" | "vision" | "values";
-  icon: LucideIcon;
-  eyebrowEs: string;
-  eyebrowEn: string;
-  titleEs: string;
-  titleEn: string;
-  bodyEs: string;
-  bodyEn: string;
-}> = [
-  {
-    key: "mission",
-    icon: Rocket,
-    eyebrowEs: "Propósito central",
-    eyebrowEn: "Core purpose",
-    titleEs: "Misión",
-    titleEn: "Mission",
-    bodyEs:
-      "<p>Empoderar a creadores, productores y comunidades con herramientas rápidas, transparentes y elegantes para gestionar inscripciones, cobros en moneda local y accesos biométricos de eventos masivos.</p>",
-    bodyEn:
-      "<p>To empower creators, producers, and communities with fast, transparent, elegant tools to manage registrations, local-currency payments, and biometric access for massive events.</p>",
-  },
-  {
-    key: "vision",
-    icon: Eye,
-    eyebrowEs: "Hacia el futuro",
-    eyebrowEn: "Toward the future",
-    titleEs: "Visión",
-    titleEn: "Vision",
-    bodyEs:
-      "<p>Convertirnos en el estándar líder de infraestructura SaaS para la producción de conferencias, meetups y congresos tecnológicos de alto impacto en Huánuco y todo el Perú regional.</p>",
-    bodyEn:
-      "<p>To become the leading SaaS infrastructure standard for producing high-impact conferences, meetups, and tech congresses in Huánuco and across regional Peru.</p>",
-  },
-  {
-    key: "values",
-    icon: Heart,
-    eyebrowEs: "Código de conducta",
-    eyebrowEn: "Code of conduct",
-    titleEs: "Nuestros Valores",
-    titleEn: "Our Values",
-    bodyEs:
-      "<p><strong>Innovación pragmática:</strong> soluciones sólidas que funcionan incluso sin internet en auditorios remotos.</p><p><strong>Transparencia total:</strong> tarifas claras y justas, sin comisiones sorpresa en eventos 24/7.</p><p><strong>Calor humano:</strong> soporte 24/7 por personas reales, no con respuestas automatizadas.</p>",
-    bodyEn:
-      "<p><strong>Pragmatic innovation:</strong> solid solutions that work even without internet in remote venues.</p><p><strong>Total transparency:</strong> clear, fair pricing with no surprise fees on 24/7 events.</p><p><strong>Human warmth:</strong> 24/7 support by real people, not automated replies.</p>",
-  },
-];
 
 const TEAM_COPY = {
   eyebrowEs: "Nuestra trayectoria y talento",
@@ -236,6 +150,8 @@ function HeroSection({
   const customTitle = isEn ? hero?.titleEn : hero?.titleEs;
   const customDesc = isEn ? hero?.subtitleEn : hero?.subtitleEs;
 
+  if (!hero || (!customTitle && !customDesc && !hero.imageUrl)) return null;
+
   return (
     <section className="relative overflow-hidden">
       <div className="pointer-events-none absolute inset-0" aria-hidden>
@@ -243,25 +159,18 @@ function HeroSection({
       </div>
       <div className="relative mx-auto max-w-3xl px-4 pb-4 pt-12 text-center sm:px-6 sm:pt-16">
         <Eyebrow icon={Sparkles}>
-          {isEn ? DEFAULT_HERO.badgeEn : DEFAULT_HERO.badgeEs}
+          {isEn ? HERO_BADGE.badgeEn : HERO_BADGE.badgeEs}
         </Eyebrow>
         {customTitle ? (
           <h1 className="mt-5 font-display text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
             {customTitle}
           </h1>
-        ) : (
-          <h1 className="mt-5 font-display text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-            {isEn ? DEFAULT_HERO.titleAEn : DEFAULT_HERO.titleAEs}{" "}
-            <span className="text-primary">
-              {isEn ? DEFAULT_HERO.titleAccentEn : DEFAULT_HERO.titleAccentEs}
-            </span>{" "}
-            {isEn ? DEFAULT_HERO.titleBEn : DEFAULT_HERO.titleBEs}
-          </h1>
-        )}
-        <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-          {customDesc ||
-            (isEn ? DEFAULT_HERO.descriptionEn : DEFAULT_HERO.descriptionEs)}
-        </p>
+        ) : null}
+        {customDesc ? (
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+            {customDesc}
+          </p>
+        ) : null}
         {hero?.imageUrl ? (
           <div className="mx-auto mt-8 max-w-2xl overflow-hidden rounded-2xl border border-primary/15 bg-white shadow-sm dark:border-border">
             <img
@@ -277,20 +186,13 @@ function HeroSection({
 }
 
 function StatsRow({ stats, isEn }: { stats: AboutSection[]; isEn: boolean }) {
-  const items =
-    stats.length > 0
-      ? stats.map((s, i) => ({
-          icon: DEFAULT_STATS[i % DEFAULT_STATS.length]?.icon ?? BadgeCheck,
-          label: (isEn ? s.titleEn : s.titleEs) ?? ((isEn ? s.titleEs : s.titleEn) ?? "—"),
-          value: (isEn ? s.subtitleEn : s.subtitleEs) ?? ((isEn ? s.subtitleEs : s.subtitleEn) ?? "—"),
-          text: (isEn ? s.bodyEn : s.bodyEs) ?? ((isEn ? s.bodyEs : s.bodyEn) ?? ""),
-        }))
-      : DEFAULT_STATS.map((d) => ({
-          icon: d.icon,
-          label: isEn ? d.labelEn : d.labelEs,
-          value: d.value,
-          text: isEn ? d.textEn : d.textEs,
-        }));
+  if (stats.length === 0) return null;
+  const items = stats.map((s, i) => ({
+    icon: STAT_ICONS[i % STAT_ICONS.length] ?? BadgeCheck,
+    label: (isEn ? s.titleEn : s.titleEs) ?? ((isEn ? s.titleEs : s.titleEn) ?? "—"),
+    value: (isEn ? s.subtitleEn : s.subtitleEs) ?? ((isEn ? s.subtitleEs : s.subtitleEn) ?? "—"),
+    text: (isEn ? s.bodyEn : s.bodyEs) ?? ((isEn ? s.bodyEs : s.bodyEn) ?? ""),
+  }));
 
   return (
     <section className="mx-auto max-w-5xl px-4 pb-2 pt-12 sm:px-6 sm:pt-14">
@@ -383,40 +285,43 @@ function PrinciplesSection({
   const leftovers = sections.filter((s) => !used.has(s.id));
 
   const cards = [
-    { def: DEFAULT_CARDS[0], section: mission },
-    { def: DEFAULT_CARDS[1], section: vision },
-    { def: DEFAULT_CARDS[2], section: values },
-  ];
+    { slot: PRINCIPLE_SLOTS[0]!, section: mission },
+    { slot: PRINCIPLE_SLOTS[1]!, section: vision },
+    { slot: PRINCIPLE_SLOTS[2]!, section: values },
+  ].filter((c) => c.section);
+
+  if (cards.length === 0 && leftovers.length === 0) return null;
 
   return (
     <section className="mx-auto max-w-5xl px-4 pb-4 pt-16 sm:px-6 sm:pt-20">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <Eyebrow icon={Sparkles}>
-            {isEn ? DEFAULT_PRINCIPLES.eyebrowEn : DEFAULT_PRINCIPLES.eyebrowEs}
+            {isEn ? PRINCIPLES_HEADER.eyebrowEn : PRINCIPLES_HEADER.eyebrowEs}
           </Eyebrow>
           <h2 className="mt-3 max-w-md font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            {isEn ? DEFAULT_PRINCIPLES.titleEn : DEFAULT_PRINCIPLES.titleEs}
+            {isEn ? PRINCIPLES_HEADER.titleEn : PRINCIPLES_HEADER.titleEs}
           </h2>
         </div>
         <p className="max-w-sm text-[13px] leading-relaxed text-muted-foreground">
-          {isEn ? DEFAULT_PRINCIPLES.sideEn : DEFAULT_PRINCIPLES.sideEs}
+          {isEn ? PRINCIPLES_HEADER.sideEn : PRINCIPLES_HEADER.sideEs}
         </p>
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
-        {cards.map(({ def, section }) => (
+        {cards.map(({ slot, section }) => (
           <PrincipleCard
-            key={def.key}
-            icon={def.icon}
-            eyebrow={isEn ? def.eyebrowEn : def.eyebrowEs}
+            key={slot.key}
+            icon={slot.icon}
+            eyebrow={isEn ? slot.eyebrowEn : slot.eyebrowEs}
             title={
               (isEn ? section?.titleEn : section?.titleEs) ||
-              (isEn ? def.titleEn : def.titleEs)
+              (isEn ? section?.titleEs : section?.titleEn) ||
+              ""
             }
             body={
               (isEn ? section?.bodyEn : section?.bodyEs) ||
-              (isEn ? def.bodyEn : def.bodyEs)
+              (isEn ? section?.bodyEs : section?.bodyEn)
             }
           />
         ))}

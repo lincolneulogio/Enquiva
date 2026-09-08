@@ -18,8 +18,8 @@ export default async function SuperAdminTermsPage() {
 
   const title = locale === "en" ? "Terms & Conditions" : "Términos y Condiciones";
   const intro = locale === "en"
-    ? "Manage the bilingual clauses displayed as tabs on the public /terms page. Reorder, edit, activate or deactivate clauses to control the public experience. Leave it empty to show the default legal text."
-    : "Administra las cláusulas bilingües que se muestran como pestañas en la página pública /terms. Reordena, edita, activa o desactiva cláusulas para controlar la experiencia pública. Déjalo vacío para mostrar el texto legal por defecto.";
+    ? "Manage the bilingual clauses displayed as tabs on the public /terms page. Reorder, edit, activate or deactivate clauses to control the public experience. The page shows only what you publish here."
+    : "Administra las cláusulas bilingües que se muestran como pestañas en la página pública /terms. Reordena, edita, activa o desactiva cláusulas para controlar la experiencia pública. La página muestra solo lo que publiques aquí.";
 
   return (
     <div className="space-y-6">

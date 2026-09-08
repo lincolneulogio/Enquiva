@@ -48,42 +48,6 @@ type AttentionCard = {
   footEn: string;
 };
 
-const CHANNELS: AttentionCard[] = [
-  {
-    role: "attendee",
-    titleEs: "Soporte a Asistentes",
-    titleEn: "Attendee Support",
-    descEs:
-      "Descarga y reenvío de tickets QR, cambios de titular, verificación de pagos con Yape, Plin o tarjetas.",
-    descEn:
-      "QR ticket download and resend, holder changes, payment verification with Yape, Plin or cards.",
-    footEs: "Respuesta promedio < 45 min",
-    footEn: "Average reply < 45 min",
-  },
-  {
-    role: "business",
-    titleEs: "Empresarial & Eventos",
-    titleEn: "Business & Events",
-    descEs:
-      "Asesoría personalizada para productores, configuración de múltiples tipos de boletos y pasarelas bancarias.",
-    descEn:
-      "Personalized advice for producers, setup of multiple ticket types and bank gateways.",
-    footEs: "Atención ejecutiva dedicada",
-    footEn: "Dedicated executive support",
-  },
-  {
-    role: "hours",
-    titleEs: "Horario Continuo",
-    titleEn: "Always-on Hours",
-    descEs:
-      "Mesa técnica operativa de lunes a domingo de 08:00 a 22:00 hrs (GMT-5). Guardias activas en días de concierto.",
-    descEn:
-      "Tech desk open Monday to Sunday, 08:00–22:00 (GMT-5). Active on-call during concert days.",
-    footEs: "En línea ahora",
-    footEn: "Online now",
-  },
-];
-
 function sectionToAttentionCard(section: {
   kind: string | null;
   role: string | null;
@@ -142,45 +106,6 @@ type DirectChannel = {
   detailEs: string;
   detailEn: string;
 };
-
-const DEFAULT_DIRECT_CHANNELS: DirectChannel[] = [
-  {
-    role: "email",
-    titleEs: "Atención general",
-    titleEn: "General inbox",
-    valueEs: BRAND.contactEmail,
-    valueEn: BRAND.contactEmail,
-    detailEs: "Información general e institucional",
-    detailEn: "General and institutional info",
-  },
-  {
-    role: "support",
-    titleEs: "Soporte y validación",
-    titleEn: "Support & validation",
-    valueEs: BRAND.supportEmail,
-    valueEn: BRAND.supportEmail,
-    detailEs: "Tickets, reembolsos y validaciones QR",
-    detailEn: "Tickets, refunds and QR validations",
-  },
-  {
-    role: "corporate",
-    titleEs: "Eventos empresariales",
-    titleEn: "Corporate events",
-    valueEs: BRAND.contactEmail,
-    valueEn: BRAND.contactEmail,
-    detailEs: "Producciones masivas y contratos SaaS",
-    detailEn: "Large productions and SaaS contracts",
-  },
-  {
-    role: "address",
-    titleEs: "Sede central Huánuco",
-    titleEn: "Huánuco headquarters",
-    valueEs: "Jr. Dámaso Beraún N° 845",
-    valueEn: "Jr. Dámaso Beraún N° 845",
-    detailEs: "Huánuco, Perú · Mesa de Partes",
-    detailEn: "Huánuco, Peru · Front desk",
-  },
-];
 
 function sectionToDirectChannel(
   section: {
@@ -268,25 +193,14 @@ export default async function ContactPage() {
   }
   const systemSettings = await getSystemSettings().catch(() => null);
   const contactEmail = systemSettings?.publicContactEmail?.trim() || BRAND.contactEmail;
-  const supportEmail = systemSettings?.supportEmail?.trim() || BRAND.supportEmail;
 
-  const defaults: DirectChannel[] = DEFAULT_DIRECT_CHANNELS.map((c) =>
-    c.role === "support"
-      ? { ...c, valueEs: supportEmail, valueEn: supportEmail }
-      : c.role === "email" || c.role === "corporate"
-        ? { ...c, valueEs: contactEmail, valueEn: contactEmail }
-        : c,
-  );
-
-  const dbChannels = (sections ?? [])
+  const directChannels = (sections ?? [])
     .map((s) => sectionToDirectChannel(s, systemSettings))
     .filter((c): c is DirectChannel => c !== null);
-  const directChannels = dbChannels.length > 0 ? dbChannels : defaults;
 
-  const dbAttention = (sections ?? [])
+  const attentionCards = (sections ?? [])
     .map(sectionToAttentionCard)
     .filter((c): c is AttentionCard => c !== null);
-  const attentionCards = dbAttention.length > 0 ? dbAttention : CHANNELS;
 
   return (
     <div className="min-h-screen bg-background">
@@ -311,9 +225,10 @@ export default async function ContactPage() {
         </div>
       </section>
 
-      {/* Canales de atención */}
-      <section className="mx-auto max-w-6xl px-4 pb-2 pt-10 sm:px-6 sm:pt-12">
-        <div className="grid gap-4 md:grid-cols-3">
+      {/* Canales de atención (solo DB) */}
+      {attentionCards.length > 0 ? (
+        <section className="mx-auto max-w-6xl px-4 pb-2 pt-10 sm:px-6 sm:pt-12">
+          <div className="grid gap-4 md:grid-cols-3">
           {attentionCards.map((card) => {
             const Icon = pickAttentionIcon(card.role);
             const online = card.role === "hours";
@@ -343,14 +258,15 @@ export default async function ContactPage() {
               </article>
             );
           })}
-        </div>
-      </section>
+          </div>
+        </section>
+      ) : null}
 
       {/* Formulario + contacto directo */}
       <section className="mx-auto max-w-6xl px-4 pb-2 pt-10 sm:px-6 sm:pt-12">
         <div className="grid gap-6 lg:grid-cols-5">
           {/* Formulario */}
-          <div className="lg:col-span-3">
+          <div className={directChannels.length > 0 ? "lg:col-span-3" : "lg:col-span-5"}>
             <div className="rounded-2xl border border-primary/15 bg-white p-6 shadow-sm dark:border-border dark:bg-card sm:p-8">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
@@ -370,7 +286,8 @@ export default async function ContactPage() {
             </div>
           </div>
 
-          {/* Columna derecha */}
+          {/* Columna derecha (solo DB) */}
+          {directChannels.length > 0 ? (
           <div className="space-y-4 lg:col-span-2">
             <div className="rounded-2xl border border-primary/15 bg-white p-6 shadow-sm dark:border-border dark:bg-card">
               <h3 className="font-display text-base font-bold text-foreground">
@@ -426,6 +343,7 @@ export default async function ContactPage() {
               </ul>
             </div>
           </div>
+          ) : null}
         </div>
       </section>
 
