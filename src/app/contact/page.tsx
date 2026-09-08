@@ -1,14 +1,11 @@
 import Link from "next/link";
 import {
-  ArrowRight,
   Building2,
-  ChevronRight,
   Clock,
   Mail,
   MapPin,
   MessageSquareHeart,
   Ticket,
-  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { PublicHeader } from "@/components/shared/PublicHeader";
@@ -16,6 +13,7 @@ import { ScrollToTopButton } from "@/components/shared/ScrollToTopButton";
 import { Footer } from "@/components/landing/Footer";
 import { ContactForm } from "@/components/landing/ContactForm";
 import { getStaticI18n } from "@/lib/i18n/server";
+import { getPublicPageSectionsAction } from "@/actions/admin/pages";
 import { BRAND } from "@/lib/brand";
 
 export const revalidate = 120;
@@ -39,18 +37,19 @@ const HERO_COPY = {
     "Questions about your tickets, validation tech support, or planning your next big festival or conference? Write to us and our team will reply warmly.",
 };
 
-const CHANNELS: Array<{
-  icon: LucideIcon;
+type AttentionCard = {
+  role: string;
   titleEs: string;
   titleEn: string;
   descEs: string;
   descEn: string;
   footEs: string;
   footEn: string;
-  online?: boolean;
-}> = [
+};
+
+const CHANNELS: AttentionCard[] = [
   {
-    icon: Ticket,
+    role: "attendee",
     titleEs: "Soporte a Asistentes",
     titleEn: "Attendee Support",
     descEs:
@@ -61,7 +60,7 @@ const CHANNELS: Array<{
     footEn: "Average reply < 45 min",
   },
   {
-    icon: Building2,
+    role: "business",
     titleEs: "Empresarial & Eventos",
     titleEn: "Business & Events",
     descEs:
@@ -72,7 +71,7 @@ const CHANNELS: Array<{
     footEn: "Dedicated executive support",
   },
   {
-    icon: Clock,
+    role: "hours",
     titleEs: "Horario Continuo",
     titleEn: "Always-on Hours",
     descEs:
@@ -81,9 +80,41 @@ const CHANNELS: Array<{
       "Tech desk open Monday to Sunday, 08:00–22:00 (GMT-5). Active on-call during concert days.",
     footEs: "En línea ahora",
     footEn: "Online now",
-    online: true,
   },
 ];
+
+function sectionToAttentionCard(section: {
+  kind: string | null;
+  role: string | null;
+  titleEs: string | null;
+  titleEn: string | null;
+  subtitleEs: string | null;
+  subtitleEn: string | null;
+  bodyEs: string | null;
+  bodyEn: string | null;
+}): AttentionCard | null {
+  if (section.kind !== "attention") return null;
+  return {
+    role: section.role ?? "attendee",
+    titleEs: section.titleEs ?? "",
+    titleEn: section.titleEn ?? "",
+    descEs: section.subtitleEs ?? "",
+    descEn: section.subtitleEn ?? "",
+    footEs: section.bodyEs ?? "",
+    footEn: section.bodyEn ?? "",
+  };
+}
+
+function pickAttentionIcon(role: string): LucideIcon {
+  switch (role) {
+    case "business":
+      return Building2;
+    case "hours":
+      return Clock;
+    default:
+      return Ticket;
+  }
+}
 
 const FORM_COPY = {
   titleEs: "Envíanos un mensaje",
@@ -101,41 +132,95 @@ const DIRECT_COPY = {
   descEn: "Reach our centralized inboxes according to your profile.",
 };
 
-const ORGANIZE_COPY = {
-  titleEs: "¿Prefieres organizar tú mismo?",
-  titleEn: "Prefer to organize yourself?",
-  descEs:
-    "Crea tu evento en minutos desde tu panel de organizador, con control total de aforo, escaneo de tickets QR y venta directa sin intermediarios.",
-  descEn:
-    "Create your event in minutes from your organizer panel, with full capacity control, QR ticket scanning and direct sales with no middlemen.",
-  primaryEs: "Ver planes SaaS",
-  primaryEn: "See SaaS plans",
-  secondaryEs: "Demo en vivo",
-  secondaryEn: "Live demo",
+type DirectChannel = {
+  role: string;
+  titleEs: string;
+  titleEn: string;
+  valueEs: string;
+  valueEn: string;
+  detailEs: string;
+  detailEn: string;
 };
 
-const FAQ_COPY = {
-  titleEs: "Preguntas frecuentes rápidas",
-  titleEn: "Quick FAQs",
-  itemsEs: [
-    "¿Cómo transfiero mi entrada a otra persona?",
-    "¿Qué comisiones aplican a las ventas de entradas?",
-    "¿Cómo funciona el check-in con la app de escaneo?",
-  ],
-  itemsEn: [
-    "How do I transfer my ticket to someone else?",
-    "Which fees apply to ticket sales?",
-    "How does check-in work with the scanning app?",
-  ],
-};
+const DEFAULT_DIRECT_CHANNELS: DirectChannel[] = [
+  {
+    role: "email",
+    titleEs: "Atención general",
+    titleEn: "General inbox",
+    valueEs: BRAND.contactEmail,
+    valueEn: BRAND.contactEmail,
+    detailEs: "Información general e institucional",
+    detailEn: "General and institutional info",
+  },
+  {
+    role: "support",
+    titleEs: "Soporte y validación",
+    titleEn: "Support & validation",
+    valueEs: BRAND.supportEmail,
+    valueEn: BRAND.supportEmail,
+    detailEs: "Tickets, reembolsos y validaciones QR",
+    detailEn: "Tickets, refunds and QR validations",
+  },
+  {
+    role: "corporate",
+    titleEs: "Eventos empresariales",
+    titleEn: "Corporate events",
+    valueEs: BRAND.contactEmail,
+    valueEn: BRAND.contactEmail,
+    detailEs: "Producciones masivas y contratos SaaS",
+    detailEn: "Large productions and SaaS contracts",
+  },
+  {
+    role: "address",
+    titleEs: "Sede central Huánuco",
+    titleEn: "Huánuco headquarters",
+    valueEs: "Jr. Dámaso Beraún N° 845",
+    valueEn: "Jr. Dámaso Beraún N° 845",
+    detailEs: "Huánuco, Perú · Mesa de Partes",
+    detailEn: "Huánuco, Peru · Front desk",
+  },
+];
+
+function sectionToDirectChannel(section: {
+  kind: string | null;
+  role: string | null;
+  titleEs: string | null;
+  titleEn: string | null;
+  subtitleEs: string | null;
+  subtitleEn: string | null;
+  bodyEs: string | null;
+  bodyEn: string | null;
+}): DirectChannel | null {
+  if (section.kind !== "contact") return null;
+  return {
+    role: section.role ?? "email",
+    titleEs: section.titleEs ?? "",
+    titleEn: section.titleEn ?? "",
+    valueEs: section.subtitleEs ?? "",
+    valueEn: section.subtitleEn ?? "",
+    detailEs: section.bodyEs ?? "",
+    detailEn: section.bodyEn ?? "",
+  };
+}
+
+function pickDirectChannelIcon(role: string): LucideIcon {
+  switch (role) {
+    case "support":
+      return MessageSquareHeart;
+    case "corporate":
+      return Building2;
+    case "address":
+      return MapPin;
+    default:
+      return Mail;
+  }
+}
 
 const BANNER_COPY = {
   titleEs: "¿Tienes dudas o ideas para tu próximo evento?",
   titleEn: "Questions or ideas for your next event?",
   descEs: "Escríbenos y te ayudamos a organizar tu evento",
   descEn: "Write to us and we will help you organize your event",
-  primaryEs: "Escribir mensaje",
-  primaryEn: "Write a message",
   secondaryEs: "Unirme a Enquiva",
   secondaryEn: "Join Enquiva",
 };
@@ -153,8 +238,30 @@ export default async function ContactPage() {
   const { locale } = await getStaticI18n();
   const isEn = locale === "en";
   const contactEmail = BRAND.contactEmail;
-  const supportEmail = BRAND.supportEmail;
-  const faqItems = isEn ? FAQ_COPY.itemsEn : FAQ_COPY.itemsEs;
+
+  let sections: Array<{
+    kind: string | null;
+    role: string | null;
+    titleEs: string | null;
+    titleEn: string | null;
+    subtitleEs: string | null;
+    subtitleEn: string | null;
+    bodyEs: string | null;
+    bodyEn: string | null;
+  }>;
+  try {
+    sections = await getPublicPageSectionsAction("contact");
+  } catch {
+    sections = [];
+  }
+
+  const dbChannels = (sections ?? []).map(sectionToDirectChannel).filter((c): c is DirectChannel => c !== null);
+  const directChannels = dbChannels.length > 0 ? dbChannels : DEFAULT_DIRECT_CHANNELS;
+
+  const dbAttention = (sections ?? [])
+    .map(sectionToAttentionCard)
+    .filter((c): c is AttentionCard => c !== null);
+  const attentionCards = dbAttention.length > 0 ? dbAttention : CHANNELS;
 
   return (
     <div className="min-h-screen bg-background">
@@ -182,28 +289,35 @@ export default async function ContactPage() {
       {/* Canales de atención */}
       <section className="mx-auto max-w-6xl px-4 pb-2 pt-10 sm:px-6 sm:pt-12">
         <div className="grid gap-4 md:grid-cols-3">
-          {CHANNELS.map(({ icon: Icon, titleEs, titleEn, descEs, descEn, footEs, footEn, online }) => (
-            <article
-              key={titleEn}
-              className="rounded-2xl border border-primary/15 bg-white p-5 shadow-sm dark:border-border dark:bg-card sm:p-6"
-            >
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Icon className="h-4 w-4" />
-              </span>
-              <h2 className="mt-4 font-display text-base font-bold text-foreground">
-                {isEn ? titleEn : titleEs}
-              </h2>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
-                {isEn ? descEn : descEs}
-              </p>
-              <p className="mt-4 flex items-center gap-1.5 text-[11px] font-semibold text-primary">
-                {online ? (
-                  <span className="h-1.5 w-1.5 rounded-full bg-green-500" aria-hidden />
-                ) : null}
-                {isEn ? footEn : footEs}
-              </p>
-            </article>
-          ))}
+          {attentionCards.map((card) => {
+            const Icon = pickAttentionIcon(card.role);
+            const online = card.role === "hours";
+            const title = isEn ? card.titleEn : card.titleEs;
+            const desc = isEn ? card.descEn : card.descEs;
+            const foot = isEn ? card.footEn : card.footEs;
+            return (
+              <article
+                key={card.role}
+                className="rounded-2xl border border-primary/15 bg-white p-5 shadow-sm dark:border-border dark:bg-card sm:p-6"
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Icon className="h-4 w-4" />
+                </span>
+                <h2 className="mt-4 font-display text-base font-bold text-foreground">
+                  {title}
+                </h2>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
+                  {desc}
+                </p>
+                <p className="mt-4 flex items-center gap-1.5 text-[11px] font-semibold text-primary">
+                  {online ? (
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-500" aria-hidden />
+                  ) : null}
+                  {foot}
+                </p>
+              </article>
+            );
+          })}
         </div>
       </section>
 
@@ -241,124 +355,49 @@ export default async function ContactPage() {
                 {isEn ? DIRECT_COPY.descEn : DIRECT_COPY.descEs}
               </p>
               <ul className="mt-4 space-y-3 text-sm">
-                <li className="flex items-start gap-3 rounded-xl bg-primary/5 p-3 dark:bg-primary/10">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <Mail className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      {isEn ? "General inbox" : "Atención general"}
-                    </p>
-                    <a
-                      href={`mailto:${contactEmail}`}
-                      className="block truncate font-semibold text-foreground transition-colors hover:text-primary"
+                {directChannels.map((ch) => {
+                  const Icon = pickDirectChannelIcon(ch.role);
+                  const title = isEn ? ch.titleEn : ch.titleEs;
+                  const value = isEn ? ch.valueEn : ch.valueEs;
+                  const detail = isEn ? ch.detailEn : ch.detailEs;
+                  const isAddress = ch.role === "address";
+                  return (
+                    <li
+                      key={`${ch.role}-${title}`}
+                      className="flex items-start gap-3 rounded-xl bg-primary/5 p-3 dark:bg-primary/10"
                     >
-                      {contactEmail}
-                    </a>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      {isEn ? "General and institutional info" : "Información general e institucional"}
-                    </p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3 rounded-xl bg-primary/5 p-3 dark:bg-primary/10">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <MessageSquareHeart className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      {isEn ? "Support & validation" : "Soporte y validación"}
-                      <span className="rounded-full bg-primary/15 px-1.5 py-px text-[9px] font-bold normal-case tracking-normal text-primary">
-                        {isEn ? "Fast" : "Rápido"}
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <Icon className="h-4 w-4" />
                       </span>
-                    </p>
-                    <a
-                      href={`mailto:${supportEmail}`}
-                      className="block truncate font-semibold text-foreground transition-colors hover:text-primary"
-                    >
-                      {supportEmail}
-                    </a>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      {isEn ? "Tickets, refunds and QR validations" : "Tickets, reembolsos y validaciones QR"}
-                    </p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3 rounded-xl bg-primary/5 p-3 dark:bg-primary/10">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <Building2 className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      {isEn ? "Corporate events" : "Eventos empresariales"}
-                    </p>
-                    <a
-                      href={`mailto:${contactEmail}`}
-                      className="block truncate font-semibold text-foreground transition-colors hover:text-primary"
-                    >
-                      {contactEmail}
-                    </a>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      {isEn ? "Large productions and SaaS contracts" : "Producciones masivas y contratos SaaS"}
-                    </p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3 rounded-xl bg-primary/5 p-3 dark:bg-primary/10">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <MapPin className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      {isEn ? "Huánuco headquarters" : "Sede central Huánuco"}
-                    </p>
-                    <p className="font-semibold text-foreground">Jr. Dámaso Beraún N° 845</p>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      {isEn ? "Huánuco, Peru · Front desk" : "Huánuco, Perú · Mesa de Partes"}
-                    </p>
-                  </div>
-                </li>
-              </ul>
-            </div>
-
-            <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/15 via-primary/5 to-card p-6 dark:border-border dark:from-primary/10 dark:via-card dark:to-card">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                <Zap className="h-4 w-4" />
-              </span>
-              <h3 className="mt-3 font-display text-base font-bold text-foreground">
-                {isEn ? ORGANIZE_COPY.titleEn : ORGANIZE_COPY.titleEs}
-              </h3>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
-                {isEn ? ORGANIZE_COPY.descEn : ORGANIZE_COPY.descEs}
-              </p>
-              <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
-                <Link
-                  href="/pricing"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-                >
-                  {isEn ? ORGANIZE_COPY.primaryEn : ORGANIZE_COPY.primaryEs}
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <a
-                  href={`mailto:${contactEmail}`}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-primary/25 bg-card px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-primary/5"
-                >
-                  {isEn ? ORGANIZE_COPY.secondaryEn : ORGANIZE_COPY.secondaryEs}
-                </a>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-primary/15 bg-white p-6 dark:border-border dark:bg-card">
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                {isEn ? FAQ_COPY.titleEn : FAQ_COPY.titleEs}
-              </h3>
-              <ul className="mt-2 divide-y divide-border/70">
-                {faqItems.map((item) => (
-                  <li
-                    key={item}
-                    className="flex items-center justify-between gap-3 py-2.5 text-[13px] font-medium text-foreground"
-                  >
-                    <span>{item}</span>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  </li>
-                ))}
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          {title}
+                          {ch.role === "support" ? (
+                            <span className="rounded-full bg-primary/15 px-1.5 py-px text-[9px] font-bold normal-case tracking-normal text-primary">
+                              {isEn ? "Fast" : "Rápido"}
+                            </span>
+                          ) : null}
+                        </p>
+                        {isAddress ? (
+                          <>
+                            <p className="font-semibold text-foreground">{value}</p>
+                            <p className="mt-0.5 text-[11px] text-muted-foreground">{detail}</p>
+                          </>
+                        ) : (
+                          <>
+                            <a
+                              href={`mailto:${value}`}
+                              className="block truncate font-semibold text-foreground transition-colors hover:text-primary"
+                            >
+                              {value}
+                            </a>
+                            <p className="mt-0.5 text-[11px] text-muted-foreground">{detail}</p>
+                          </>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           </div>
@@ -378,12 +417,6 @@ export default async function ContactPage() {
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <a
-              href={`mailto:${contactEmail}`}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-background px-5 py-3 text-sm font-bold text-foreground transition-colors hover:opacity-90"
-            >
-              {isEn ? BANNER_COPY.primaryEn : BANNER_COPY.primaryEs}
-            </a>
             <Link
               href="/pricing"
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"

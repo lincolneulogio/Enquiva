@@ -18,6 +18,7 @@ const PAGE_REVALIDATE_PATHS: Record<string, string[]> = {
   about: ["/about", "/superadmin/about"],
   terms: ["/terms", "/superadmin/terms"],
   privacy: ["/privacy", "/superadmin/privacy"],
+  contact: ["/contact", "/superadmin/contact"],
 };
 
 function revalidatePageSections(pageKey: string) {

@@ -100,6 +100,7 @@ export const adminSections = (options: AdminNavOptions): NavSection[] => {
               { labelKey: "dashboard.sidebar.admin.aboutPage", href: "/superadmin/about", icon: Landmark, permissions: ["settings:manage"] as const },
               { labelKey: "dashboard.sidebar.admin.termsPage", href: "/superadmin/terms", icon: Scale, permissions: ["settings:manage"] as const },
               { labelKey: "dashboard.sidebar.admin.privacyPage", href: "/superadmin/privacy", icon: Lock, permissions: ["settings:manage"] as const },
+              { labelKey: "dashboard.sidebar.admin.contactPage", href: "/superadmin/contact", icon: Mail, permissions: ["settings:manage"] as const },
               { labelKey: "dashboard.sidebar.admin.broadcasts", href: p("/broadcasts"), icon: Megaphone, permissions: ["broadcasts:send:org", "broadcasts:send:own"] as const },
             ],
           },
