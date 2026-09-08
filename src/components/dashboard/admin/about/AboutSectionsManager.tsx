@@ -15,6 +15,7 @@ import {
   Landmark,
   FileText,
   Users2,
+  TrendingUp,
 } from "lucide-react";
 import type { PageSection } from "@/lib/db/schema";
 import {
@@ -59,6 +60,29 @@ const EMPTY_FORM: FormData = {
   isActive: true,
 };
 
+function stripHtml(value: string | null | undefined): string {
+  return (value ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function htmlToPlain(value: string | null | undefined): string {
+  return (value ?? "")
+    .replace(/<\/(p|li|h[1-6]|ul|ol|div)>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function plainToHtml(value: string | null | undefined): string {
+  return (value ?? "")
+    .split(/\n\s*\n+/)
+    .map((paragraph) => paragraph.replace(/\n/g, "<br>"))
+    .filter((paragraph) => paragraph.trim().length > 0)
+    .map((paragraph) => `<p>${paragraph}</p>`)
+    .join("");
+}
+
 function mapSectionToForm(section: PageSection): FormData {
   return {
     kind: section.kind ?? "section",
@@ -66,8 +90,8 @@ function mapSectionToForm(section: PageSection): FormData {
     titleEn: section.titleEn ?? "",
     subtitleEs: section.subtitleEs ?? "",
     subtitleEn: section.subtitleEn ?? "",
-    bodyEs: section.bodyEs ?? "",
-    bodyEn: section.bodyEn ?? "",
+    bodyEs: htmlToPlain(section.bodyEs),
+    bodyEn: htmlToPlain(section.bodyEn),
     firstName: section.firstName ?? "",
     lastName: section.lastName ?? "",
     role: section.role ?? "",
@@ -85,6 +109,11 @@ function FormModal({
   formData,
   allowedKinds,
   pageLabel,
+  sectionSingular,
+  titlePlaceholderEs,
+  bodyPlaceholderEs,
+  showSubtitleFields,
+  showContactClauseToggle,
   onFormChange,
   onSubmit,
   onClose,
@@ -96,6 +125,11 @@ function FormModal({
   formData: FormData;
   allowedKinds: string[];
   pageLabel: string;
+  sectionSingular: string;
+  titlePlaceholderEs: string;
+  bodyPlaceholderEs: string;
+  showSubtitleFields: boolean;
+  showContactClauseToggle: boolean;
   onFormChange: <K extends keyof FormData>(field: K, value: FormData[K]) => void;
   onSubmit: (e: FormEvent) => void;
   onClose: () => void;
@@ -114,8 +148,8 @@ function FormModal({
           <h3 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
             <Landmark className="h-5 w-5 text-primary" />
             {editingId
-              ? formData.kind === "team" ? "Editar Miembro del Equipo" : "Editar Sección"
-              : formData.kind === "team" ? "Nuevo Miembro del Equipo" : "Crear Nueva Sección"}
+              ? formData.kind === "team" ? "Editar Miembro del Equipo" : `Editar ${sectionSingular}`
+              : formData.kind === "team" ? "Nuevo Miembro del Equipo" : `Crear Nueva ${sectionSingular}`}
           </h3>
           <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground text-sm font-medium">
             ✕
@@ -124,18 +158,21 @@ function FormModal({
 
         <form onSubmit={onSubmit} className="mt-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">Tipo de Sección</label>
-              <select
-                value={formData.kind}
-                onChange={(e) => onFormChange("kind", e.target.value)}
-                className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              >
-                {allowedKinds.includes("hero") ? <option value="hero">Hero (Portada)</option> : null}
-                {allowedKinds.includes("section") ? <option value="section">Sección de contenido</option> : null}
-                {allowedKinds.includes("team") ? <option value="team">Miembro del Equipo</option> : null}
-              </select>
-            </div>
+            {allowedKinds.length > 1 ? (
+              <div>
+                <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">Tipo de Sección</label>
+                <select
+                  value={formData.kind}
+                  onChange={(e) => onFormChange("kind", e.target.value)}
+                  className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  {allowedKinds.includes("hero") ? <option value="hero">Hero (Portada)</option> : null}
+                  {allowedKinds.includes("section") ? <option value="section">Sección de contenido</option> : null}
+                  {allowedKinds.includes("stat") ? <option value="stat">Métrica / Estadística</option> : null}
+                  {allowedKinds.includes("team") ? <option value="team">Miembro del Equipo</option> : null}
+                </select>
+              </div>
+            ) : null}
             <div>
               <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">Orden</label>
               <input
@@ -187,23 +224,12 @@ function FormModal({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">Descripción (Español)</label>
+                <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">Descripción</label>
                 <textarea
                   rows={4}
                   value={formData.bodyEs}
                   onChange={(e) => onFormChange("bodyEs", e.target.value)}
-                  placeholder="Breve descripción profesional en español..."
-                  className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">Descripción (Inglés)</label>
-                <textarea
-                  rows={4}
-                  value={formData.bodyEn}
-                  onChange={(e) => onFormChange("bodyEn", e.target.value)}
-                  placeholder="Brief professional description in English..."
+                  placeholder="Breve descripción profesional..."
                   className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
                 />
               </div>
@@ -217,36 +243,45 @@ function FormModal({
             <>
               {formData.kind === "hero" ? (
                 <p className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
-                  El contenido del hero se muestra en la parte superior de la página &quot;{pageLabel}&quot;. Puedes personalizar título y subtítulo en ambos idiomas.
+                  El contenido del hero se muestra en la parte superior de la página &quot;{pageLabel}&quot;. Personaliza título y subtítulo.
                 </p>
               ) : null}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">Título (Español)</label>
-                  <input
-                    type="text"
-                    value={formData.titleEs}
-                    onChange={(e) => onFormChange("titleEs", e.target.value)}
-                    placeholder="Ej. Nuestra Misión"
-                    className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">Título (Inglés)</label>
-                  <input
-                    type="text"
-                    value={formData.titleEn}
-                    onChange={(e) => onFormChange("titleEn", e.target.value)}
-                    placeholder="Ej. Our Mission"
-                    className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
+              {formData.kind === "stat" ? (
+                <p className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
+                  La métrica se muestra en la franja de estadísticas de Sobre Nosotros. Título = etiqueta, valor numérico = el dato destacado.
+                </p>
+              ) : null}
+
+              <div>
+                <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">
+                  {formData.kind === "stat" ? "Etiqueta" : "Título"}
+                </label>
+                <input
+                  type="text"
+                  value={formData.titleEs}
+                  onChange={(e) => onFormChange("titleEs", e.target.value)}
+                  placeholder={formData.kind === "stat" ? "Ej. Escala lograda" : titlePlaceholderEs}
+                  className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {formData.kind === "stat" ? (
                 <div>
-                  <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">Subtítulo (Español)</label>
+                  <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">Valor</label>
+                  <input
+                    type="text"
+                    value={formData.subtitleEs}
+                    onChange={(e) => onFormChange("subtitleEs", e.target.value)}
+                    placeholder="Ej. +50,000"
+                    className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+              ) : null}
+
+              {showSubtitleFields && formData.kind !== "stat" ? (
+                <div>
+                  <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">Subtítulo</label>
                   <input
                     type="text"
                     value={formData.subtitleEs}
@@ -255,44 +290,38 @@ function FormModal({
                     className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">Subtítulo (Inglés)</label>
+              ) : null}
+
+              {showContactClauseToggle ? (
+                <label className="flex items-start gap-2.5 rounded-xl border border-primary/20 bg-primary/5 px-3.5 py-3 cursor-pointer select-none">
                   <input
-                    type="text"
-                    value={formData.subtitleEn}
-                    onChange={(e) => onFormChange("subtitleEn", e.target.value)}
-                    placeholder="Short description (optional)"
-                    className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    type="checkbox"
+                    checked={formData.subtitleEs === "contacto"}
+                    onChange={(e) => {
+                      onFormChange("subtitleEs", e.target.checked ? "contacto" : "");
+                      onFormChange("subtitleEn", e.target.checked ? "contact" : "");
+                    }}
+                    className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary"
                   />
-                </div>
-              </div>
+                  <span className="text-xs text-muted-foreground">
+                    <span className="block font-semibold text-foreground">Mostrar botones de contacto</span>
+                    Añade al final de esta cláusula los botones de página de contacto y correo de soporte.
+                  </span>
+                </label>
+              ) : null}
 
               <div>
-                <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">Cuerpo (Español)</label>
+                <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">
+                  {formData.kind === "stat" ? "Descripción" : "Cuerpo"}
+                </label>
                 <textarea
                   rows={5}
                   value={formData.bodyEs}
                   onChange={(e) => onFormChange("bodyEs", e.target.value)}
-                  placeholder="Contenido principal de la sección en español..."
+                  placeholder={formData.kind === "stat" ? "Texto de apoyo que acompaña a la métrica..." : bodyPlaceholderEs}
                   className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
                 />
               </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">Cuerpo (Inglés)</label>
-                <textarea
-                  rows={5}
-                  value={formData.bodyEn}
-                  onChange={(e) => onFormChange("bodyEn", e.target.value)}
-                  placeholder="Main section content in English..."
-                  className="w-full rounded-xl border border-border bg-background px-3.5 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
-                />
-              </div>
-
-              <TeamMemberPhotoField
-                value={formData.imageUrl}
-                onChange={(url) => onFormChange("imageUrl", url)}
-              />
             </>
           )}
 
@@ -323,7 +352,7 @@ function FormModal({
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              {editingId ? "Guardar Cambios" : "Crear Sección"}
+              {editingId ? "Guardar Cambios" : `Crear ${sectionSingular}`}
             </button>
           </div>
         </form>
@@ -397,6 +426,11 @@ export function AboutSectionsManager({
   createLabel = "Nueva Sección / Miembro",
   emptyCreateLabel = "Crear Primera Sección",
   allowedKinds = ["hero", "section", "team"],
+  sectionSingular = "Sección",
+  titlePlaceholderEs = "Ej. Nuestra Misión",
+  bodyPlaceholderEs = "Contenido principal de la sección en español...",
+  showSubtitleFields = true,
+  showContactClauseToggle = false,
 }: {
   initialSections: PageSection[];
   pageKey?: string;
@@ -404,6 +438,11 @@ export function AboutSectionsManager({
   createLabel?: string;
   emptyCreateLabel?: string;
   allowedKinds?: string[];
+  sectionSingular?: string;
+  titlePlaceholderEs?: string;
+  bodyPlaceholderEs?: string;
+  showSubtitleFields?: boolean;
+  showContactClauseToggle?: boolean;
 }) {
   const [sections, setSections] = useState(initialSections);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -441,10 +480,17 @@ export function AboutSectionsManager({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const payload = {
+      ...formData,
+      titleEn: formData.titleEn || formData.titleEs,
+      subtitleEn: formData.subtitleEn || formData.subtitleEs,
+      bodyEs: plainToHtml(formData.bodyEs),
+      bodyEn: plainToHtml(formData.bodyEn || formData.bodyEs),
+    };
     startTransition(async () => {
       try {
         if (editingId) {
-          const result = await updatePageSectionAction(editingId, formData, pageKey);
+          const result = await updatePageSectionAction(editingId, payload, pageKey);
           if (result.success && "section" in result && result.section) {
             setSections((prev) =>
               prev.map((s) => (s.id === editingId ? result.section! : s)),
@@ -454,7 +500,7 @@ export function AboutSectionsManager({
             toast.error("Error al actualizar");
           }
         } else {
-          const result = await createPageSectionAction(formData, pageKey);
+          const result = await createPageSectionAction(payload, pageKey);
           if (result.success && "section" in result && result.section) {
             setSections((prev) => [...prev, result.section!]);
             toast.success("Sección creada correctamente");
@@ -610,12 +656,14 @@ export function AboutSectionsManager({
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
                         section.kind === "hero"
                           ? "bg-primary/10 text-primary border border-primary/25"
-                          : section.kind === "team"
-                            ? "bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/25"
-                            : "bg-muted text-muted-foreground border border-border/60"
+                          : section.kind === "stat"
+                            ? "bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/25"
+                            : section.kind === "team"
+                              ? "bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/25"
+                              : "bg-muted text-muted-foreground border border-border/60"
                       }`}>
-                        {section.kind === "hero" ? <Landmark className="h-3 w-3" /> : section.kind === "team" ? <Users2 className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
-                        {section.kind === "hero" ? "Hero" : section.kind === "team" ? "Miembro" : "Sección"}
+                        {section.kind === "hero" ? <Landmark className="h-3 w-3" /> : section.kind === "stat" ? <TrendingUp className="h-3 w-3" /> : section.kind === "team" ? <Users2 className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+                        {section.kind === "hero" ? "Hero" : section.kind === "stat" ? "Métrica" : section.kind === "team" ? "Miembro" : "Sección"}
                       </span>
                     </td>
                     <td className="px-4 py-4 font-medium text-foreground max-w-[180px] truncate">
@@ -630,7 +678,7 @@ export function AboutSectionsManager({
                     </td>
                     <td className="px-4 py-4 max-w-xs">
                       <p className="line-clamp-2 text-xs text-muted-foreground">
-                        {section.bodyEs || "Sin contenido"}
+                        {stripHtml(section.bodyEs) || "Sin contenido"}
                       </p>
                     </td>
                     <td className="px-4 py-4 text-center">
@@ -685,6 +733,11 @@ export function AboutSectionsManager({
         formData={formData}
         allowedKinds={allowedKinds}
         pageLabel={contextLabel}
+        sectionSingular={sectionSingular}
+        titlePlaceholderEs={titlePlaceholderEs}
+        bodyPlaceholderEs={bodyPlaceholderEs}
+        showSubtitleFields={showSubtitleFields}
+        showContactClauseToggle={showContactClauseToggle}
         onFormChange={handleFormChange}
         onSubmit={handleSubmit}
         onClose={() => setIsModalOpen(false)}

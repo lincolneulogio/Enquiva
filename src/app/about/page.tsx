@@ -22,6 +22,10 @@ import { Footer } from "@/components/landing/Footer";
 import { RichTextContent } from "@/components/ui/RichTextContent";
 import { getStaticI18n } from "@/lib/i18n/server";
 import { getPublicPageSectionsAction } from "@/actions/admin/pages";
+import { db } from "@/lib/db";
+import { count, ne } from "drizzle-orm";
+import { events, registrations } from "@/lib/db/schema";
+import { getSystemSettings } from "@/lib/settings/settings-db";
 import { BRAND } from "@/lib/brand";
 
 export const revalidate = 120;
@@ -115,8 +119,6 @@ const DEFAULT_CARDS: Array<{
   titleEn: string;
   bodyEs: string;
   bodyEn: string;
-  footerEs: string;
-  footerEn: string;
 }> = [
   {
     key: "mission",
@@ -129,8 +131,6 @@ const DEFAULT_CARDS: Array<{
       "<p>Empoderar a creadores, productores y comunidades con herramientas rápidas, transparentes y elegantes para gestionar inscripciones, cobros en moneda local y accesos biométricos de eventos masivos.</p>",
     bodyEn:
       "<p>To empower creators, producers, and communities with fast, transparent, elegant tools to manage registrations, local-currency payments, and biometric access for massive events.</p>",
-    footerEs: "Operación en tiempo real",
-    footerEn: "Real-time operations",
   },
   {
     key: "vision",
@@ -143,8 +143,6 @@ const DEFAULT_CARDS: Array<{
       "<p>Convertirnos en el estándar líder de infraestructura SaaS para la producción de conferencias, meetups y congresos tecnológicos de alto impacto en Huánuco y todo el Perú regional.</p>",
     bodyEn:
       "<p>To become the leading SaaS infrastructure standard for producing high-impact conferences, meetups, and tech congresses in Huánuco and across regional Peru.</p>",
-    footerEs: "Expansión Huánuco & Perú 2024–2028",
-    footerEn: "Huánuco & Peru expansion 2024–2028",
   },
   {
     key: "values",
@@ -157,8 +155,6 @@ const DEFAULT_CARDS: Array<{
       "<p><strong>Innovación pragmática:</strong> soluciones sólidas que funcionan incluso sin internet en auditorios remotos.</p><p><strong>Transparencia total:</strong> tarifas claras y justas, sin comisiones sorpresa en eventos 24/7.</p><p><strong>Calor humano:</strong> soporte 24/7 por personas reales, no con respuestas automatizadas.</p>",
     bodyEn:
       "<p><strong>Pragmatic innovation:</strong> solid solutions that work even without internet in remote venues.</p><p><strong>Total transparency:</strong> clear, fair pricing with no surprise fees on 24/7 events.</p><p><strong>Human warmth:</strong> 24/7 support by real people, not automated replies.</p>",
-    footerEs: "Calidad y artesanía técnica",
-    footerEn: "Quality and technical craft",
   },
 ];
 
@@ -280,13 +276,28 @@ function HeroSection({
   );
 }
 
-function StatsRow({ isEn }: { isEn: boolean }) {
+function StatsRow({ stats, isEn }: { stats: AboutSection[]; isEn: boolean }) {
+  const items =
+    stats.length > 0
+      ? stats.map((s, i) => ({
+          icon: DEFAULT_STATS[i % DEFAULT_STATS.length]?.icon ?? BadgeCheck,
+          label: (isEn ? s.titleEn : s.titleEs) ?? ((isEn ? s.titleEs : s.titleEn) ?? "—"),
+          value: (isEn ? s.subtitleEn : s.subtitleEs) ?? ((isEn ? s.subtitleEs : s.subtitleEn) ?? "—"),
+          text: (isEn ? s.bodyEn : s.bodyEs) ?? ((isEn ? s.bodyEs : s.bodyEn) ?? ""),
+        }))
+      : DEFAULT_STATS.map((d) => ({
+          icon: d.icon,
+          label: isEn ? d.labelEn : d.labelEs,
+          value: d.value,
+          text: isEn ? d.textEn : d.textEs,
+        }));
+
   return (
     <section className="mx-auto max-w-5xl px-4 pb-2 pt-12 sm:px-6 sm:pt-14">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {DEFAULT_STATS.map(({ icon: Icon, labelEs, labelEn, value, textEs, textEn }) => (
+        {items.map(({ icon: Icon, label, value, text }) => (
           <article
-            key={value + labelEn}
+            key={label}
             className="rounded-2xl border border-primary/15 bg-white p-4 shadow-sm dark:border-border dark:bg-card"
           >
             <div className="flex items-center gap-2">
@@ -294,12 +305,12 @@ function StatsRow({ isEn }: { isEn: boolean }) {
                 <Icon className="h-3.5 w-3.5" />
               </span>
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                {isEn ? labelEn : labelEs}
+                {label}
               </p>
             </div>
             <p className="mt-2 font-display text-2xl font-bold text-foreground">{value}</p>
             <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-              {isEn ? textEn : textEs}
+              {text}
             </p>
           </article>
         ))}
@@ -334,13 +345,11 @@ function PrincipleCard({
   eyebrow,
   title,
   body,
-  footer,
 }: {
   icon: LucideIcon;
   eyebrow: string;
   title: string;
   body: string | null | undefined;
-  footer: string;
 }) {
   return (
     <article className="flex flex-col rounded-2xl border border-primary/15 bg-white p-5 shadow-sm dark:border-border dark:bg-card sm:p-6">
@@ -356,9 +365,6 @@ function PrincipleCard({
           <RichTextContent content={body} />
         </div>
       ) : null}
-      <p className="mt-4 border-t border-primary/15 pt-3 text-[11px] font-medium text-primary dark:border-border dark:text-primary">
-        {footer} →
-      </p>
     </article>
   );
 }
@@ -412,7 +418,6 @@ function PrinciplesSection({
               (isEn ? section?.bodyEn : section?.bodyEs) ||
               (isEn ? def.bodyEn : def.bodyEs)
             }
-            footer={isEn ? def.footerEn : def.footerEs}
           />
         ))}
       </div>
@@ -671,18 +676,20 @@ function AboutContent({
   hero,
   generics,
   members,
+  stats,
   isEn,
 }: {
   hero: AboutSection | null;
   generics: AboutSection[];
   members: AboutSection[];
+  stats: AboutSection[];
   isEn: boolean;
 }) {
   return (
     <div className="min-h-screen bg-background">
       <PublicHeader />
       <HeroSection hero={hero} isEn={isEn} />
-      <StatsRow isEn={isEn} />
+      <StatsRow stats={stats} isEn={isEn} />
       <PrinciplesSection sections={generics} isEn={isEn} />
       <TeamTimeline members={members} isEn={isEn} />
       <TalentCta isEn={isEn} />
@@ -705,13 +712,59 @@ export default async function AboutPage() {
   }
 
   if (!sections || sections.length === 0) {
-    return <AboutContent hero={null} generics={[]} members={[]} isEn={isEn} />;
+    return <AboutContent hero={null} generics={[]} members={[]} stats={[]} isEn={isEn} />;
   }
 
   const hero = sections.find((s) => s.kind === "hero") ?? null;
   const rest = sections.filter((s) => s.kind !== "hero");
   const members = rest.filter((s) => s.kind === "team");
-  const generics = rest.filter((s) => s.kind !== "team");
+  const stats = rest.filter((s) => s.kind === "stat");
+  const generics = rest.filter((s) => s.kind !== "team" && s.kind !== "stat");
 
-  return <AboutContent hero={hero} generics={generics} members={members} isEn={isEn} />;
+  const [registrationsCount, eventsCount, systemSettings] = await Promise.all([
+    db
+      .select({ n: count() })
+      .from(registrations)
+      .where(ne(registrations.status, "cancelled"))
+      .then(([row]) => row?.n ?? 0)
+      .catch((error) => {
+        console.error("[about] Error counting registrations:", error);
+        return 0;
+      }),
+    db
+      .select({ n: count() })
+      .from(events)
+      .then(([row]) => row?.n ?? 0)
+      .catch((error) => {
+        console.error("[about] Error counting events:", error);
+        return 0;
+      }),
+    getSystemSettings().catch(() => null),
+  ]);
+
+  for (const stat of stats) {
+    const label = `${stat.titleEs ?? ""} ${stat.titleEn ?? ""}`.toLowerCase();
+    let live: string | null = null;
+    if (label.includes("escala") || label.includes("proven scale")) {
+      live = registrationsCount ? `+${registrationsCount.toLocaleString("en-US")}` : "0";
+    } else if (label.includes("confianza") || label.includes("trust")) {
+      live = eventsCount ? `+${eventsCount.toLocaleString("en-US")}` : "0";
+    } else if (label.includes("satisfacc") || label.includes("satisfaction")) {
+      live = systemSettings?.impactSatisfactionRate || "99.8%";
+    }
+    if (live !== null) {
+      stat.subtitleEs = live;
+      stat.subtitleEn = live;
+    }
+  }
+
+  return (
+    <AboutContent
+      hero={hero}
+      generics={generics}
+      members={members}
+      stats={stats}
+      isEn={isEn}
+    />
+  );
 }

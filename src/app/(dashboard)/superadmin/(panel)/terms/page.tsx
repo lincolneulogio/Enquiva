@@ -42,6 +42,11 @@ export default async function SuperAdminTermsPage() {
         createLabel="Nueva Cláusula"
         emptyCreateLabel="Crear Primera Cláusula"
         allowedKinds={["section"]}
+        sectionSingular="Cláusula"
+        showSubtitleFields={false}
+        showContactClauseToggle
+        titlePlaceholderEs="Ej. Aceptación de los términos"
+        bodyPlaceholderEs="Texto legal de la cláusula en español... Separa párrafos con una línea en blanco."
       />
     </div>
   );

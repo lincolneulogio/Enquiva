@@ -16,7 +16,7 @@ export default async function SuperAdminAboutPage() {
   const { locale } = await getI18n();
   const sections = await getAdminPageSectionsAction("about");
 
-  const title = locale === "en" ? "About Us — Page Content" : "Sobre Nosotros — Contenido de la Página";
+  const title = locale === "en" ? "About Us" : "Sobre Nosotros";
   const intro = locale === "en"
     ? "Manage the bilingual content sections displayed on the public /about page. Reorder, edit, activate or deactivate sections to control the public experience."
     : "Administra las secciones de contenido bilingüe que se muestran en la página pública /about. Reordena, edita, activa o desactiva secciones para controlar la experiencia pública.";
@@ -35,7 +35,10 @@ export default async function SuperAdminAboutPage() {
         </p>
       </div>
 
-      <AboutSectionsManager initialSections={sections} />
+      <AboutSectionsManager
+        initialSections={sections}
+        allowedKinds={["section", "stat", "team"]}
+      />
     </div>
   );
 }
