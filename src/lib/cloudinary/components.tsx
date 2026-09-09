@@ -9,7 +9,11 @@
 
 import { useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { CLOUDINARY_ENDPOINTS, type CloudinaryEndpointName } from "./index";
+import {
+  CLOUDINARY_ENDPOINTS,
+  matchesAllowedMime,
+  type CloudinaryEndpointName,
+} from "./index";
 import type { CloudinaryUploadSign } from "./server";
 import { cn } from "@/lib/utils";
 
@@ -25,13 +29,6 @@ interface UseCloudinaryUploadOptions {
   onClientUploadComplete?: (res: UploadedFile[]) => void;
   onUploadError?: (error: Error) => void;
   onUploadBegin?: (info: { file: File }) => void;
-}
-
-function matchesMime(mime: string, patterns: string[]): boolean {
-  return patterns.some((pattern) => {
-    if (pattern === "image/*") return mime.startsWith("image/");
-    return mime === pattern;
-  });
 }
 
 function uploadFileToCloudinary(
@@ -81,10 +78,63 @@ function uploadFileToCloudinary(
   });
 }
 
-interface UploadSignResponse extends CloudinaryUploadSign {
-  maxSizeBytes: number;
-  allowedMimeTypes: string[];
+function uploadFileToLocal(
+  file: File,
+  endpoint: CloudinaryEndpointName,
+  onProgress: (p: number) => void
+): Promise<UploadedFile> {
+  return new Promise((resolve, reject) => {
+    const form = new FormData();
+    form.append("endpoint", endpoint);
+    form.append("files", file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/upload/local");
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onerror = () => reject(new Error("Network error durante la subida"));
+    xhr.onload = () => {
+      let data: { files?: UploadedFile[]; error?: { message?: string } | string } | null =
+        null;
+      try {
+        data = JSON.parse(xhr.responseText);
+      } catch {
+        reject(new Error("Respuesta inválida del servidor"));
+        return;
+      }
+      if (xhr.status >= 200 && xhr.status < 300 && data) {
+        if (Array.isArray(data.files) && data.files.length > 0) {
+          resolve(data.files[0]);
+          return;
+        }
+        reject(new Error("El servidor no devolvió ningún archivo"));
+        return;
+      }
+      const message =
+        typeof data?.error === "string"
+          ? data.error
+          : data?.error?.message || `Subida falló (${xhr.status})`;
+      reject(new Error(message));
+    };
+    xhr.send(form);
+  });
 }
+
+type UploadSignResponse =
+  | (CloudinaryUploadSign & {
+      mode: "cloudinary";
+      maxSizeBytes: number;
+      allowedMimeTypes: string[];
+    })
+  | {
+      mode: "local";
+      endpoint: CloudinaryEndpointName;
+      folder: string;
+      maxSizeBytes: number;
+      allowedMimeTypes: string[];
+    };
 
 async function requestUploadSign(
   endpoint: CloudinaryEndpointName
@@ -128,7 +178,7 @@ export function useCloudinaryUpload(
       return;
     }
     const invalid = files.find(
-      (f) => f.size > config.maxSizeBytes || !matchesMime(f.type, config.allowedMimeTypes)
+      (f) => f.size > config.maxSizeBytes || !matchesAllowedMime(f.type, config.allowedMimeTypes)
     );
     if (invalid) {
       optionsRef.current.onUploadError?.(
@@ -149,11 +199,14 @@ export function useCloudinaryUpload(
       for (const file of files) {
         optionsRef.current.onUploadBegin?.({ file });
         const sign = await requestUploadSign(endpoint);
-        const result = await uploadFileToCloudinary(
-          file,
-          sign,
-          (p) => optionsRef.current.onUploadProgress?.(p)
-        );
+        const result =
+          sign.mode === "local"
+            ? await uploadFileToLocal(file, endpoint, (p) =>
+                optionsRef.current.onUploadProgress?.(p)
+              )
+            : await uploadFileToCloudinary(file, sign, (p) =>
+                optionsRef.current.onUploadProgress?.(p)
+              );
         uploaded.push(result);
       }
       optionsRef.current.onClientUploadComplete?.(uploaded);

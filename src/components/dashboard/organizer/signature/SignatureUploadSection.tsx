@@ -23,7 +23,7 @@ export function SignatureUploadSection({
     onClientUploadComplete: (res) => {
       const url = res?.[0]?.url;
       if (!url) return;
-      if (signatureUrl && signatureUrl.includes("res.cloudinary.com")) {
+      if (signatureUrl && signatureUrl !== url) {
         deleteOrganizerUploadAction(signatureUrl).catch(() => {});
       }
       setSignatureUrl(url);

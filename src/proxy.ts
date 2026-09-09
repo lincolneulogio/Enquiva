@@ -58,6 +58,7 @@ const publicPatterns = [
   "/ticket/",
   "/_next/",
   "/api/",
+  "/uploads/",
   "/favicon.ico",
   "/images/",
 ];

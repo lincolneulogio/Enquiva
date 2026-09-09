@@ -6,7 +6,7 @@ import {
   isEndpointAllowed,
   type CloudinaryEndpointName,
 } from "@/lib/cloudinary";
-import { signCloudinaryUpload } from "@/lib/cloudinary/server";
+import { signCloudinaryUpload, isLocalStorageMode } from "@/lib/cloudinary/server";
 import { env } from "@/env";
 
 export async function POST(request: Request) {
@@ -47,9 +47,21 @@ export async function POST(request: Request) {
     );
   }
 
+  if (isLocalStorageMode()) {
+    // Almacenamiento local: el navegador sube a POST /api/upload/local.
+    return NextResponse.json({
+      mode: "local",
+      endpoint: endpointName,
+      folder: endpoint.folder,
+      maxSizeBytes: endpoint.maxSizeBytes,
+      allowedMimeTypes: endpoint.allowedMimeTypes,
+    });
+  }
+
   const sign = signCloudinaryUpload(endpoint.folder, endpoint.resourceType);
 
   return NextResponse.json({
+    mode: "cloudinary",
     ...sign,
     maxSizeBytes: endpoint.maxSizeBytes,
     allowedMimeTypes: endpoint.allowedMimeTypes,

@@ -24,7 +24,7 @@ export function UploadQRDropzone({ value, onChange }: UploadQRDropzoneProps) {
       const url = res?.[0]?.url;
       if (url) {
         const previous = valueRef.current;
-        if (previous && previous !== url && previous.includes("res.cloudinary.com")) {
+        if (previous && previous !== url) {
           deleteOrganizerUploadAction(previous).catch(() => {});
         }
         onChange(url);

@@ -1,7 +1,27 @@
 import "server-only";
 
-import { createHash } from "crypto";
+import { createHash, randomUUID } from "crypto";
+import { mkdir, writeFile, unlink, access } from "node:fs/promises";
+import path from "node:path";
 import { env } from "@/env";
+
+/**
+ * Almacenamiento activo: "local" guarda en `public/uploads/<carpeta>/`
+ * (dev sin tocar la cuenta de Cloudinary); "cloudinary" usa la cuenta real.
+ * Por defecto: local en desarrollo/test, cloudinary en producción. Se puede
+ * forzar con UPLOAD_STORAGE=local|cloudinary.
+ */
+export function isLocalStorageMode(): boolean {
+  const explicit = process.env.UPLOAD_STORAGE;
+  if (explicit === "local") return true;
+  if (explicit === "cloudinary") return false;
+  return process.env.NODE_ENV !== "production";
+}
+
+/** Raíz absoluta donde se guardan los archivos en modo local. */
+export function uploadsRootDir(): string {
+  return path.join(process.cwd(), "public", "uploads");
+}
 
 /**
  * Firma SHA-1 de parámetros al estilo Cloudinary: params ordenados por key,
@@ -52,7 +72,7 @@ export function signCloudinaryUpload(
 ): CloudinaryUploadSign {
   const { cloudName, apiKey, apiSecret } = getCloudinaryConfig();
   const timestamp = Math.floor(Date.now() / 1000);
-  const publicId = `enquiva/${folderPath}/${crypto.randomUUID()}`;
+  const publicId = `enquiva/${folderPath}/${randomUUID()}`;
 
   const signature = buildCloudinarySignature(
     { public_id: publicId, timestamp: String(timestamp) },
@@ -106,13 +126,21 @@ export function parseCloudinaryUrl(url: string): ParsedCloudinaryAsset | null {
 }
 
 /**
- * Elimina un asset de Cloudinary a partir de su URL pública.
- * Diseñado como helper seguro y resiliente (misma firma que deleteUploadThingFile).
+ * Elimina un asset a partir de su URL pública. Conoce el almacenamiento activo:
+ * URLs locales `/uploads/...` se borran del disco; URLs de
+ * `res.cloudinary.com` se destruyen vía la API de Cloudinary.
  */
 export async function deleteCloudinaryFile(
   url: string | null | undefined
 ): Promise<boolean> {
-  if (!url || !url.includes("res.cloudinary.com")) {
+  if (!url) return false;
+
+  // Modo local: borrado directo del archivo en public/uploads.
+  if (url.startsWith("/uploads/")) {
+    return deleteLocalUploadFile(url);
+  }
+
+  if (!url.includes("res.cloudinary.com")) {
     return false;
   }
 
@@ -149,4 +177,45 @@ export async function deleteCloudinaryFile(
     console.error(`[Cloudinary Delete Error] Failed to delete file at ${url}:`, error);
     return false;
   }
+}
+
+/**
+ * Resuelve de forma segura una URL `/uploads/<carpeta>/<archivo>` a un path
+ * dentro de `public/uploads` (evita path traversal con "..").
+ */
+function resolveLocalUploadPath(url: string): string | null {
+  const decoded = decodeURIComponent(url);
+  const root = uploadsRootDir();
+  const relative = decoded.replace(/^\/uploads\//, "");
+  const abs = path.resolve(root, relative);
+  if (!abs.startsWith(path.resolve(root) + path.sep)) return null;
+  return abs;
+}
+
+/** Borra un archivo local; devuelve true si ya no existe (idempotente). */
+async function deleteLocalUploadFile(url: string): Promise<boolean> {
+  try {
+    const target = resolveLocalUploadPath(url);
+    if (!target) return false;
+    await access(target);
+    await unlink(target);
+    return true;
+  } catch {
+    // No existe: considerado eliminado.
+    return true;
+  }
+}
+
+/** Escribe bytes en public/uploads/<folder>/<uuid>.<ext>; devuelve la URL pública. */
+export async function writeLocalUploadFile(
+  folder: string,
+  extension: string,
+  data: Buffer
+): Promise<string> {
+  const root = uploadsRootDir();
+  const dir = path.join(root, folder);
+  await mkdir(dir, { recursive: true });
+  const filename = `${randomUUID()}.${extension}`;
+  await writeFile(path.join(dir, filename), data);
+  return `/uploads/${folder}/${filename}`;
 }

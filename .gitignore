@@ -80,3 +80,8 @@ backups/
 *.tmp
 *.temp
 .cache/
+
+# --------------------------------------------------
+# Local file uploads (modo local / desarrollo)
+# --------------------------------------------------
+public/uploads/

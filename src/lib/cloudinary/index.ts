@@ -143,3 +143,11 @@ export function isEndpointAllowed(
   if (!role) return false;
   return ENDPOINT_ALLOWED_ROLES[endpoint](role);
 }
+
+/** Comprueba un MIME contra patrones ("image/*" cubre cualquier imagen). */
+export function matchesAllowedMime(mime: string, patterns: string[]): boolean {
+  return patterns.some((pattern) => {
+    if (pattern === "image/*") return mime.startsWith("image/");
+    return mime === pattern;
+  });
+}
