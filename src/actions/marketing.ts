@@ -196,7 +196,7 @@ export async function getCommunityMetrics(): Promise<CommunityMetrics> {
       card1Title: settings?.impactCard1Title || "5+ años impulsando",
       card1Subtitle:
         settings?.impactCard1Subtitle ||
-        "Eventos de tecnología, negocios e innovación en Latinoamérica.",
+        "Eventos de tecnología, negocios e innovación en Huánuco y todo el Perú.",
       card1ImageUrl: settings?.impactCard1ImageUrl || "",
       card2Title: settings?.impactCard2Title || "Más de 250 empresas",
       card2Subtitle:
@@ -212,7 +212,7 @@ export async function getCommunityMetrics(): Promise<CommunityMetrics> {
       satisfactionRate: "99.8%",
       connectedCities: "0 Organizaciones",
       card1Title: "5+ años impulsando",
-      card1Subtitle: "Eventos de tecnología, negocios e innovación en Latinoamérica.",
+      card1Subtitle: "Eventos de tecnología, negocios e innovación en Huánuco y todo el Perú.",
       card1ImageUrl: "",
       card2Title: "Más de 250 empresas",
       card2Subtitle: "Ya patrocinan y reclutan talento activamente en nuestros eventos.",

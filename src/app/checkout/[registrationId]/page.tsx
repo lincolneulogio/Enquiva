@@ -10,6 +10,12 @@ import { notFound, redirect } from "next/navigation";
 import { isCulqiEnabledForEvent, getCulqiPublicKeyForEvent } from "@/lib/culqi/capabilities";
 import { getAttendeeDestination } from "@/lib/navigation/attendee-paths";
 import { getRequestSession } from "@/lib/request-context";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Pago de inscripción",
+  robots: { index: false, follow: false },
+};
 
 interface Props {
   params: Promise<{ registrationId: string }>;

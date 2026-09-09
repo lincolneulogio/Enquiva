@@ -6,13 +6,24 @@ import { Footer } from "@/components/landing/Footer";
 import { TermsTabs, type TermsTabItem } from "@/components/landing/TermsTabs";
 import { getStaticI18n } from "@/lib/i18n/server";
 import { getPublicPageSectionsAction } from "@/actions/admin/pages";
+import type { Metadata } from "next";
+import { absoluteUrl } from "@/lib/url";
 
 export const revalidate = 120;
 
-export const metadata = {
-  title: "Términos y condiciones | Enquiva",
+export const metadata: Metadata = {
+  title: "Términos y condiciones",
   description:
-    "Términos y condiciones de uso de la plataforma Enquiva: cuentas, eventos, pagos, tickets y responsabilidades.",
+    "Términos y condiciones de uso de la plataforma Enquiva de eventos en Huánuco y el Perú: cuentas, eventos, pagos, tickets y responsabilidades.",
+  alternates: { canonical: "/terms" },
+  openGraph: {
+    type: "website",
+    locale: "es_PE",
+    url: absoluteUrl("/terms"),
+    title: "Términos y condiciones | Enquiva",
+    description:
+      "Términos y condiciones de uso de la plataforma Enquiva: cuentas, eventos, pagos, tickets y responsabilidades.",
+  },
 };
 
 type TermsSection = import("@/lib/db/schema").PageSection;

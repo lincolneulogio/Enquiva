@@ -138,7 +138,7 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   alertSubscriptionPastDue: true,
   alertDailyFinanceSummary: false,
   impactCard1Title: "5+ años impulsando",
-  impactCard1Subtitle: "Eventos de tecnología, negocios e innovación en Latinoamérica.",
+  impactCard1Subtitle: "Eventos de tecnología, negocios e innovación en Huánuco y todo el Perú.",
   impactCard1ImageUrl: "",
   impactCard2Title: "Más de 250 empresas",
   impactCard2Subtitle: "Ya patrocinan y reclutan talento activamente en nuestros eventos.",

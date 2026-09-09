@@ -9,6 +9,12 @@ import { DownloadTicketButton } from "@/components/tickets/DownloadTicketButton"
 import { CalendarSyncButtons } from "@/components/tickets/CalendarSyncButtons";
 import { verifyTicketSignature } from "@/lib/tickets/signature";
 import { resolveTicketQrDataUrl } from "@/lib/tickets/qr";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Ticket de ingreso",
+  robots: { index: false, follow: false },
+};
 
 interface TicketPublicPageProps {
   params: Promise<{ code: string }>;

@@ -58,7 +58,7 @@ export function Footer({ copy }: FooterProps = {}) {
           <div className="sm:col-span-2 md:col-span-3 lg:col-span-1">
             <BrandLogo href="/" size="md" showText className="mb-4" />
             <p className="max-w-xs text-xs leading-relaxed text-muted-foreground sm:text-sm">
-              Plataforma integral de gestión, venta de tickets y descubrimiento de experiencias inolvidables en Latinoamérica.
+              Plataforma integral de gestión, venta de tickets y descubrimiento de experiencias inolvidables en Huánuco y todo el Perú.
             </p>
 
             <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-card/90 px-3 py-1.5 text-xs font-semibold text-foreground shadow-2xs">

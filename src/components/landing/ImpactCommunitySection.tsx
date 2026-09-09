@@ -33,7 +33,7 @@ export function ImpactCommunitySection({ metrics }: ImpactCommunitySectionProps)
   const card1Title = metrics?.card1Title || "5+ años impulsando";
   const card1Subtitle =
     metrics?.card1Subtitle ||
-    "Eventos de tecnología, negocios e innovación en Latinoamérica.";
+    "Eventos de tecnología, negocios e innovación en Huánuco y todo el Perú.";
   const card1ImageUrl = metrics?.card1ImageUrl || "";
 
   const card2Title = metrics?.card2Title || "Más de 250 empresas";

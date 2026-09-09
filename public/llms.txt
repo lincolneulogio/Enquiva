@@ -2,7 +2,7 @@
 
 Plataforma de gestión de eventos. Crea, gestiona y descubre eventos de todo tipo: inscripciones, tickets QR, pagos y transporte en un solo lugar.
 
-> Enquiva conecta organizadores y asistentes en Latinoamérica. Publica eventos, vende tickets con QR y gestiona tus inscripciones desde un solo lugar.
+> Enquiva conecta organizadores y asistentes en Huánuco y todo el Perú. Publica eventos, vende tickets con QR y gestiona tus inscripciones desde un solo lugar.
 
 ## Public pages
 

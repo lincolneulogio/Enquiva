@@ -37,6 +37,19 @@ const publicRoutes = new Set([
   "/maintenance",
   "/superadmin/login",
   "/superadmin/register",
+  /* Archivos y rutas SEO / PWA: nunca requieren sesión. */
+  "/robots.txt",
+  "/sitemap.xml",
+  "/manifest.webmanifest",
+  "/opengraph-image",
+  "/opengraph-image.png",
+  "/twitter-image",
+  "/twitter-image.png",
+  "/icon",
+  "/icon.png",
+  "/icon.svg",
+  "/apple-icon",
+  "/apple-icon.png",
 ]);
 
 const publicPatterns = [

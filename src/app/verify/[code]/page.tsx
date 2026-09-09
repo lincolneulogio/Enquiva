@@ -27,6 +27,7 @@ export async function generateMetadata({ params }: VerifyPageProps): Promise<Met
   return {
     title: `Verificación Oficial de Certificado — ${code} | Enquiva`,
     description: `Portal oficial de validación y autenticidad de certificaciones emitidas por Enquiva. Código: ${code}`,
+    robots: { index: false, follow: false },
   };
 }
 

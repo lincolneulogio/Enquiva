@@ -1,8 +1,19 @@
 User-agent: *
-Allow: /
 Disallow: /api/
 Disallow: /dashboard
+Disallow: /organizer
+Disallow: /member
+Disallow: /admin
+Disallow: /superadmin
+Disallow: /scanner
+Disallow: /attendee
+Disallow: /checkout
+Disallow: /ticket
+Disallow: /maintenance
 Disallow: /login
 Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /two-factor
 
 Sitemap: https://enquiva.site/sitemap.xml

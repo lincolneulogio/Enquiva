@@ -13,13 +13,24 @@ import { TermsTabs, type TermsTabItem } from "@/components/landing/TermsTabs";
 import { getStaticI18n } from "@/lib/i18n/server";
 import { getPublicPageSectionsAction } from "@/actions/admin/pages";
 import { BRAND } from "@/lib/brand";
+import type { Metadata } from "next";
+import { absoluteUrl } from "@/lib/url";
 
 export const revalidate = 120;
 
-export const metadata = {
-  title: "Política de privacidad | Enquiva",
+export const metadata: Metadata = {
+  title: "Política de privacidad",
   description:
-    "Cómo Enquiva recopila, usa y protege tu información personal, tus datos de pago y tu actividad en la plataforma.",
+    "Cómo Enquiva recopila, usa y protege tu información personal, tus datos de pago y tu actividad en la plataforma de eventos de Huánuco y el Perú.",
+  alternates: { canonical: "/privacy" },
+  openGraph: {
+    type: "website",
+    locale: "es_PE",
+    url: absoluteUrl("/privacy"),
+    title: "Política de privacidad | Enquiva",
+    description:
+      "Cómo Enquiva recopila, usa y protege tu información personal y tus datos de pago.",
+  },
 };
 
 type PrivacySection = import("@/lib/db/schema").PageSection;

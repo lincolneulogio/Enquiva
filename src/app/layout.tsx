@@ -24,17 +24,39 @@ const outfit = Outfit({
 
 export async function generateMetadata(): Promise<Metadata> {
   const brand = await getPlatformBrand();
-  const defaultTitle = `${brand.name} — Plataforma de gestión de eventos`;
+  const defaultTitle = `${brand.name} — Eventos en Huánuco y todo el Perú`;
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "https://enquiva.site";
+  const description =
+    "Enquiva es la plataforma de gestión de eventos de Huánuco y todo el Perú: descubre, crea y vende entradas con tickets QR, inscripciones, pagos y transporte en un solo lugar.";
+  const image = `${baseUrl}/images/og-image.png`;
 
   return {
-    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+    metadataBase: new URL(baseUrl),
     title: {
       default: defaultTitle,
       template: `%s | ${brand.name}`,
     },
-    description:
-      "Crea, gestiona y descubre eventos de todo tipo. Inscripciones, tickets QR, pagos y transporte en un solo lugar.",
-    keywords: ["eventos", "gestión", "tickets", "inscripciones", "organizadores", "comunidad"],
+    description,
+    applicationName: brand.name,
+    keywords: [
+      "eventos en Huánuco",
+      "eventos en Perú",
+      "agenda de eventos Huánuco",
+      "conciertos Huánuco",
+      "talleres y seminarios Huánuco",
+      "venta de entradas online",
+      "tickets QR",
+      "inscripciones a eventos",
+      "plataforma de eventos Perú",
+      "organizar eventos",
+      "festivales",
+      "congresos",
+      "gestión de eventos",
+      "transporte a eventos",
+    ],
+    authors: [{ name: brand.name }],
+    creator: brand.name,
     icons: {
       icon: [
         { url: "/favicon.ico" },
@@ -43,21 +65,25 @@ export async function generateMetadata(): Promise<Metadata> {
       ],
       apple: [{ url: "/images/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
     },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: { index: true, follow: true, "max-image-preview": "large" },
+    },
     openGraph: {
       type: "website",
       locale: "es_PE",
       siteName: brand.name,
+      url: baseUrl,
       title: defaultTitle,
-      description:
-        "Crea, gestiona y descubre eventos de todo tipo. Inscripciones, tickets QR, pagos y transporte en un solo lugar.",
-      images: [{ url: "/images/og-image.png", width: 1200, height: 630, alt: brand.name }],
+      description,
+      images: [{ url: image, width: 1200, height: 630, alt: brand.name }],
     },
     twitter: {
       card: "summary_large_image",
       title: defaultTitle,
-      description:
-        "Crea, gestiona y descubre eventos de todo tipo. Inscripciones, tickets QR, pagos y transporte en un solo lugar.",
-      images: ["/images/og-image.png"],
+      description,
+      images: [image],
     },
   };
 }

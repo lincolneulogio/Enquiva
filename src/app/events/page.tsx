@@ -15,9 +15,44 @@ import { ScrollToTopButton } from "@/components/shared/ScrollToTopButton";
 import { getStaticI18n } from "@/lib/i18n/server";
 import type { EventModality, EventDateFilter, EventPriceFilter, EventAccessFilter, EventStatusFilter } from "@/lib/events/taxonomy";
 import type { Event } from "@/lib/db/schema";
+import type { Metadata } from "next";
+import { absoluteUrl } from "@/lib/url";
 
 /** Debe ser literal: Next.js no analiza imports en segment config. */
 export const revalidate = 120;
+
+export const metadata: Metadata = {
+  title: "Eventos en Huánuco y todo el Perú",
+  description:
+    "Descubre los mejores eventos en Huánuco y todo el Perú: conciertos, talleres, seminarios, congresos, festivales y experiencias. Entradas digitales con tickets QR, pagos seguros y transporte incluido.",
+  keywords: [
+    "eventos Huánuco",
+    "agenda de eventos Perú",
+    "conciertos",
+    "talleres",
+    "congresos",
+    "festivales",
+    "seminarios",
+    "entradas online",
+    "tickets QR",
+  ],
+  alternates: { canonical: "/events" },
+  openGraph: {
+    type: "website",
+    locale: "es_PE",
+    url: absoluteUrl("/events"),
+    title: "Eventos en Huánuco y todo el Perú | Enquiva",
+    description:
+      "Explora el catálogo de eventos en Huánuco y todo el Perú: conciertos, talleres, congresos y festivales con entradas digitales.",
+    images: [{ url: "/images/og-image.png", width: 1200, height: 630, alt: "Eventos en Huánuco" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Eventos en Huánuco y todo el Perú | Enquiva",
+    description: "Explora el catálogo de eventos en Huánuco y todo el Perú con entradas digitales.",
+    images: ["/images/og-image.png"],
+  },
+};
 
 interface EventsPageProps {
   searchParams: Promise<{

@@ -74,7 +74,7 @@ export const platformSettings = pgTable("platform_settings", {
   alertDailyFinanceSummary: boolean("alert_daily_finance_summary").notNull().default(false),
   /** Métricas y tarjetas de impacto en portada (landing) */
   impactCard1Title: text("impact_card_1_title").notNull().default("5+ años impulsando"),
-  impactCard1Subtitle: text("impact_card_1_subtitle").notNull().default("Eventos de tecnología, negocios e innovación en Latinoamérica."),
+  impactCard1Subtitle: text("impact_card_1_subtitle").notNull().default("Eventos de tecnología, negocios e innovación en Huánuco y todo el Perú."),
   impactCard1ImageUrl: text("impact_card_1_image_url").notNull().default(""),
   impactCard2Title: text("impact_card_2_title").notNull().default("Más de 250 empresas"),
   impactCard2Subtitle: text("impact_card_2_subtitle").notNull().default("Ya patrocinan y reclutan talento activamente en nuestros eventos."),

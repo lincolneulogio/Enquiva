@@ -12,8 +12,8 @@ import {
 import { Award } from "lucide-react";
 
 export const metadata = {
-  title: "Mis Certificados Oficiales | Enquiva",
-  description: "Consulta, valida y descarga tus certificados y diplomas de eventos en Enquiva.",
+  title: "Mis Certificados Oficiales",
+  description: "Consulta, valida y descarga tus certificados y diplomas de eventos de Enquiva en Huánuco y el Perú.",
 };
 
 export default async function MemberCertificatesPage() {

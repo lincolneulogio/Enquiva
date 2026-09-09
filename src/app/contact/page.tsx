@@ -16,13 +16,31 @@ import { getStaticI18n } from "@/lib/i18n/server";
 import { getPublicPageSectionsAction } from "@/actions/admin/pages";
 import { getSystemSettings } from "@/lib/settings";
 import { BRAND } from "@/lib/brand";
+import type { Metadata } from "next";
+import { absoluteUrl } from "@/lib/url";
 
 export const revalidate = 120;
 
-export const metadata = {
-  title: "Contáctanos | Enquiva",
+export const metadata: Metadata = {
+  title: "Contacto y soporte",
   description:
-    "¿Dudas, soporte o quieres organizar un evento? Contacta al equipo de Enquiva: soporte, ventas empresariales y prensa.",
+    "¿Dudas, soporte o quieres organizar un evento en Huánuco o el Perú? Contacta al equipo de Enquiva en Huánuco: soporte, ventas empresariales y prensa.",
+  keywords: ["contacto Enquiva", "soporte", "organizar evento Huánuco", "ventas", "prensa"],
+  alternates: { canonical: "/contact" },
+  openGraph: {
+    type: "website",
+    locale: "es_PE",
+    url: absoluteUrl("/contact"),
+    title: "Contacto y soporte | Enquiva",
+    description:
+      "Contacta al equipo de Enquiva en Huánuco: soporte, ventas empresariales y prensa.",
+    images: [{ url: "/images/og-image.png", width: 1200, height: 630, alt: "Contacto Enquiva" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Contacto y soporte | Enquiva",
+    description: "Contacta al equipo de Enquiva en Huánuco: soporte, ventas y prensa.",
+  },
 };
 
 const HERO_COPY = {

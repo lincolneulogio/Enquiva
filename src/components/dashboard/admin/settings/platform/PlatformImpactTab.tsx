@@ -22,7 +22,7 @@ export function PlatformImpactTab({ initialPlatformSettings }: PlatformImpactTab
     initialPlatformSettings.impactCard1Title ?? "5+ años impulsando"
   );
   const [impactCard1Subtitle, setImpactCard1Subtitle] = useState(
-    initialPlatformSettings.impactCard1Subtitle ?? "Eventos de tecnología, negocios e innovación en Latinoamérica."
+    initialPlatformSettings.impactCard1Subtitle ?? "Eventos de tecnología, negocios e innovación en Huánuco y todo el Perú."
   );
   const [impactCard1ImageUrl, setImpactCard1ImageUrl] = useState(
     initialPlatformSettings.impactCard1ImageUrl ?? ""
@@ -103,7 +103,7 @@ export function PlatformImpactTab({ initialPlatformSettings }: PlatformImpactTab
         subtitleLabel={locale === "en" ? "Card 1 Subtitle / Description" : "Subtítulo / Descripción de la Tarjeta 1"}
         cardSubtitle={impactCard1Subtitle}
         setCardSubtitle={setImpactCard1Subtitle}
-        subtitlePlaceholder="Eventos de tecnología, negocios e innovación en Latinoamérica."
+        subtitlePlaceholder="Eventos de tecnología, negocios e innovación en Huánuco y todo el Perú."
         cardImageUrl={impactCard1ImageUrl}
         setCardImageUrl={setImpactCard1ImageUrl}
         imageLabel={locale === "en" ? "Card 1 Background Image" : "Imagen de fondo de la Tarjeta 1"}

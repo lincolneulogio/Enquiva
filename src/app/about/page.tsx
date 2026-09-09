@@ -27,13 +27,31 @@ import { count, ne } from "drizzle-orm";
 import { events, registrations } from "@/lib/db/schema";
 import { getSystemSettings } from "@/lib/settings/settings-db";
 import { BRAND } from "@/lib/brand";
+import type { Metadata } from "next";
+import { absoluteUrl } from "@/lib/url";
 
 export const revalidate = 120;
 
-export const metadata = {
-  title: "Sobre Nosotros | Enquiva",
+export const metadata: Metadata = {
+  title: "Sobre Nosotros",
   description:
-    "Conoce a Enquiva: nuestra misión, visión y el equipo detrás de la plataforma de gestión de eventos más completa de Latinoamérica.",
+    "Conoce a Enquiva: la plataforma de gestión de eventos de Huánuco y todo el Perú. Nuestra misión, visión y el equipo que impulsa la evolución de la industria de eventos desde Huánuco hacia todo el país.",
+  keywords: ["Enquiva", "sobre nosotros", "equipo Enquiva", "plataforma de eventos Huánuco", "misión", "visión"],
+  alternates: { canonical: "/about" },
+  openGraph: {
+    type: "website",
+    locale: "es_PE",
+    url: absoluteUrl("/about"),
+    title: "Sobre Nosotros | Enquiva",
+    description:
+      "Conoce a Enquiva: la plataforma de gestión de eventos de Huánuco y todo el Perú.",
+    images: [{ url: "/images/og-image.png", width: 1200, height: 630, alt: "Sobre Enquiva" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Sobre Nosotros | Enquiva",
+    description: "Conoce a Enquiva: la plataforma de gestión de eventos de Huánuco y todo el Perú.",
+  },
 };
 
 type AboutSection = import("@/lib/db/schema").PageSection;

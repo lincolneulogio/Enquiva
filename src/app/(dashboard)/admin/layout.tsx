@@ -18,6 +18,11 @@ import { redirectIfDashboardPathForbidden } from "@/lib/navigation/enforce-dashb
 import { getRequestPathname, getRequestSession } from "@/lib/request-context";
 import { Suspense } from "react";
 import { DashboardRouteLoading } from "@/components/dashboard/DashboardRouteLoading";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: { default: "Panel de administración", template: "%s | Enquiva" },
+};
 
 export default async function AdminLayout({
   children,

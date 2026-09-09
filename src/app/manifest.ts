@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Enquiva — Plataforma de gestión de eventos",
+    name: "Enquiva — Eventos en Huánuco y todo el Perú",
     short_name: "Enquiva",
     description:
-      "Crea, gestiona y descubre eventos de todo tipo. Inscripciones, tickets QR, pagos y transporte en un solo lugar.",
+      "Descubre y organiza eventos en Huánuco y todo el Perú: entradas digitales con tickets QR, inscripciones, pagos y transporte en un solo lugar.",
     start_url: "/",
     display: "standalone",
     background_color: "#f2ece0",

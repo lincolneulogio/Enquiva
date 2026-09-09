@@ -16,6 +16,11 @@ import { redirectIfAccountDisabled } from "@/lib/auth/redirect-if-disabled";
 import { getRequestPathname, getRequestSession } from "@/lib/request-context";
 import { Suspense } from "react";
 import { DashboardRouteLoading } from "@/components/dashboard/DashboardRouteLoading";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: { default: "Panel de organizador", template: "%s | Enquiva" },
+};
 
 const BILLING_PATH = "/organizer/billing";
 

@@ -8,6 +8,12 @@ import { ContactEmailLink } from "@/components/shared/BrandText";
 import { formatDateTimeInTimezone } from "@/lib/settings/platform-locale";
 import { getI18n } from "@/lib/i18n/server";
 import { MaintenanceCountdown } from "@/components/shared/MaintenanceCountdown";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Mantenimiento",
+  robots: { index: false, follow: false },
+};
 
 export default async function MaintenancePage() {
   const [{ locale }, ops, settings, session] = await Promise.all([

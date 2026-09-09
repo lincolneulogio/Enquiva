@@ -14,9 +14,35 @@ import {
 import { ScrollToTopButton } from "@/components/shared/ScrollToTopButton";
 import { MarketingMotionProvider } from "@/components/providers/MarketingMotionProvider";
 import { getPublicTestimonials, getCommunityMetrics } from "@/actions/marketing";
+import type { Metadata } from "next";
+import { absoluteUrl } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+const homeCanonical = absoluteUrl("/");
+
+export const metadata: Metadata = {
+  description:
+    "Enquiva es la plataforma de eventos de Huánuco y todo el Perú: descubre conciertos, talleres, congresos y festivales, o crea el tuyo y vende entradas con tickets QR, inscripciones, pagos y transporte en un solo lugar.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    locale: "es_PE",
+    url: homeCanonical,
+    title: "Enquiva — Eventos en Huánuco y todo el Perú",
+    description:
+      "Descubre y organiza eventos en Huánuco y todo el Perú con venta de entradas digitales, tickets QR, inscripciones, pagos y transporte.",
+    images: [{ url: "/images/og-image.png", width: 1200, height: 630, alt: "Enquiva" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Enquiva — Eventos en Huánuco y todo el Perú",
+    description:
+      "Descubre y organiza eventos en Huánuco y todo el Perú con entradas digitales y tickets QR.",
+    images: ["/images/og-image.png"],
+  },
+};
 
 export default async function HomePage() {
   const { locale, t } = await getStaticI18n();

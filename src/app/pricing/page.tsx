@@ -15,14 +15,32 @@ import {
   PricingPlanCta,
 } from "@/components/pricing/PricingSessionCtas";
 import { cn } from "@/lib/utils";
+import type { Metadata } from "next";
+import { absoluteUrl } from "@/lib/url";
 
 /** Debe ser literal: Next.js no analiza imports en segment config. */
 export const revalidate = 120;
 
-export const metadata = {
-  title: "Planes y precios | Enquiva",
+export const metadata: Metadata = {
+  title: "Planes y precios",
   description:
-    "Elige el plan Enquiva para tu organización: eventos, Culqi, transporte, IA y comisiones transparentes.",
+    "Elige el plan Enquiva para tu organización o evento en Huánuco y todo el Perú: venta de entradas, Culqi, transporte, IA y comisiones transparentes.",
+  keywords: ["planes Enquiva", "precios", "venta de entradas", "Culqi", "organizar eventos Perú", "comisiones"],
+  alternates: { canonical: "/pricing" },
+  openGraph: {
+    type: "website",
+    locale: "es_PE",
+    url: absoluteUrl("/pricing"),
+    title: "Planes y precios | Enquiva",
+    description:
+      "Elige el plan Enquiva para tu organización: eventos, Culqi, transporte, IA y comisiones transparentes.",
+    images: [{ url: "/images/og-image.png", width: 1200, height: 630, alt: "Planes Enquiva" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Planes y precios | Enquiva",
+    description: "Elige el plan Enquiva para tu organización: eventos, Culqi, transporte e IA.",
+  },
 };
 
 function fallbackPlans() {
