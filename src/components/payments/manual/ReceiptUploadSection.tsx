@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { toast } from "sonner";
-import { UploadDropzone } from "@/lib/uploadthing/components";
+import { UploadDropzone } from "@/lib/cloudinary/components";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 
 interface ReceiptUploadSectionProps {

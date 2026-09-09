@@ -13,13 +13,14 @@ const testEnv: Record<string, string> = {
   MAIL_FROM_NAME: "Test",
   PUSHER_APP_ID: "test-app-id",
   PUSHER_SECRET: "test-pusher-secret",
-  UPLOADTHING_SECRET: "sk_test_secret",
+  CLOUDINARY_CLOUD_NAME: "test-cloud",
+  CLOUDINARY_API_KEY: "test-api-key",
+  CLOUDINARY_API_SECRET: "test-api-secret",
   UPSTASH_REDIS_REST_URL: "https://test.upstash.io",
   UPSTASH_REDIS_REST_TOKEN: "test-redis-token",
   NEXT_PUBLIC_APP_URL: "http://localhost:3000",
   NEXT_PUBLIC_PUSHER_KEY: "test-pusher-key",
   NEXT_PUBLIC_PUSHER_CLUSTER: "us2",
-  NEXT_PUBLIC_UPLOADTHING_APP_ID: "test-uploadthing-app",
 };
 
 for (const [key, value] of Object.entries(testEnv)) {

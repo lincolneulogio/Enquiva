@@ -2,7 +2,7 @@
 
 import { requireSuperAdmin } from "@/lib/auth/guards";
 import { getSystemSettings, saveSystemSettings } from "@/lib/settings";
-import { deleteUploadThingFile } from "@/lib/uploadthing/delete";
+import { deleteCloudinaryFile } from "@/lib/cloudinary/server";
 import { revalidatePath } from "next/cache";
 import { DEFAULT_CERTIFICATE_SEAL_URL } from "@/lib/certificates/constants";
 
@@ -44,14 +44,14 @@ export async function saveCertificateSealAction(newSealUrl: string): Promise<{
     const currentSettings = await getSystemSettings();
     const oldUrl = currentSettings.certificateSealUrl;
 
-    // Si había una imagen personalizada anterior subida a UploadThing y se está cambiando, limpiarla
+    // Si había una imagen personalizada anterior en Cloudinary y se está cambiando, limpiarla
     if (
       oldUrl &&
       oldUrl !== cleanUrl &&
       oldUrl !== DEFAULT_CERTIFICATE_SEAL_URL &&
-      (oldUrl.includes("uploadthing") || oldUrl.includes("utfs.io"))
+      oldUrl.includes("res.cloudinary.com")
     ) {
-      deleteUploadThingFile(oldUrl).catch(() => {});
+      deleteCloudinaryFile(oldUrl).catch(() => {});
     }
 
     await saveSystemSettings(

@@ -71,8 +71,8 @@ export async function wipeBillingWorkspace(input: {
 
   if (coverImages.length > 0) {
     runBackground(async () => {
-      const { deleteUploadThingFile } = await import("@/lib/uploadthing/delete");
-      await Promise.allSettled(coverImages.map((url) => deleteUploadThingFile(url)));
+      const { deleteCloudinaryFile } = await import("@/lib/cloudinary/server");
+      await Promise.allSettled(coverImages.map((url) => deleteCloudinaryFile(url)));
     });
   }
 

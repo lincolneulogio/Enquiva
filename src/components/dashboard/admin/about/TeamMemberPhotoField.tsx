@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import Image from "next/image";
 import { Loader2, X, User as UserIcon, FileUp } from "lucide-react";
 import { toast } from "sonner";
-import { useUploadThing } from "@/lib/uploadthing/components";
+import { useCloudinaryUpload } from "@/lib/cloudinary/components";
 import { deleteOrphanUploadAction } from "@/actions/admin/upload-cleanup";
 
 interface TeamMemberPhotoFieldProps {
@@ -17,12 +17,12 @@ export function TeamMemberPhotoField({ value, onChange }: TeamMemberPhotoFieldPr
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const { startUpload, isUploading } = useUploadThing("teamMemberPhoto", {
+  const { startUpload, isUploading } = useCloudinaryUpload("teamMemberPhoto", {
     onUploadProgress: (p) => setUploadProgress(p),
     onClientUploadComplete: (res) => {
       const newUrl = res?.[0]?.url;
       if (newUrl) {
-        if (value && (value.includes("uploadthing") || value.includes("utfs.io"))) {
+        if (value && value.includes("res.cloudinary.com")) {
           deleteOrphanUploadAction(value).catch(() => {});
         }
         onChange(newUrl);
@@ -72,7 +72,7 @@ export function TeamMemberPhotoField({ value, onChange }: TeamMemberPhotoFieldPr
   };
 
   const handleRemoveImage = () => {
-    if (value && (value.includes("uploadthing") || value.includes("utfs.io"))) {
+    if (value && value.includes("res.cloudinary.com")) {
       deleteOrphanUploadAction(value).catch(() => {});
     }
     onChange("");

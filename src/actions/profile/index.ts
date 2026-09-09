@@ -33,7 +33,7 @@ export async function updateCurrentUserProfile(input: unknown) {
 
     const phone = data.phone?.trim() ? normalizePeruPhone(data.phone) : null;
 
-    // Obtener la imagen anterior del usuario para purgarla de UploadThing si se actualiza o borra
+    // Obtener la imagen anterior del usuario para purgarla de Cloudinary si se actualiza o borra
     const [existingUser] = await db
         .select({ image: users.image })
         .from(users)
@@ -52,11 +52,11 @@ export async function updateCurrentUserProfile(input: unknown) {
         })
         .where(eq(users.id, session.user.id));
 
-    // Purga asíncrona en segundo plano del avatar reemplazado o eliminado de UploadThing
+    // Purga asíncrona en segundo plano del avatar reemplazado o eliminado de Cloudinary
     if (existingUser && existingUser.image && existingUser.image !== data.image) {
-        const { deleteUploadThingFile } = await import("@/lib/uploadthing/delete");
-        deleteUploadThingFile(existingUser.image).catch((err) =>
-            console.error("Failed to delete old user avatar from UploadThing:", err)
+        const { deleteCloudinaryFile } = await import("@/lib/cloudinary/server");
+        deleteCloudinaryFile(existingUser.image).catch((err) =>
+            console.error("Failed to delete old user avatar from Cloudinary:", err)
         );
     }
 

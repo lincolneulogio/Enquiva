@@ -4,7 +4,7 @@ import React from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { Send, Sparkles, ImagePlus, X as XIcon, Loader2 } from "lucide-react";
-import { UploadButton } from "@/lib/uploadthing/components";
+import { UploadButton } from "@/lib/cloudinary/components";
 import { toast } from "sonner";
 import type { NewsletterStats } from "@/actions/admin/newsletter";
 

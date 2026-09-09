@@ -239,9 +239,9 @@ export class EventMutationsService {
     await invalidateCachePattern("events:public*");
 
     if (oldCoverImage && oldCoverImage !== updated.coverImage) {
-      const { deleteUploadThingFile } = await import("@/lib/uploadthing/delete");
-      deleteUploadThingFile(oldCoverImage).catch((err) =>
-        console.error("Failed to delete old cover image from UploadThing:", err)
+      const { deleteCloudinaryFile } = await import("@/lib/cloudinary/server");
+      deleteCloudinaryFile(oldCoverImage).catch((err) =>
+        console.error("Failed to delete old cover image from Cloudinary:", err)
       );
     }
 
@@ -288,9 +288,9 @@ export class EventMutationsService {
     );
 
     if (oldCoverImage) {
-      const { deleteUploadThingFile } = await import("@/lib/uploadthing/delete");
-      deleteUploadThingFile(oldCoverImage).catch((err) =>
-        console.error("Failed to delete cover image of deleted event from UploadThing:", err)
+      const { deleteCloudinaryFile } = await import("@/lib/cloudinary/server");
+      deleteCloudinaryFile(oldCoverImage).catch((err) =>
+        console.error("Failed to delete cover image of deleted event from Cloudinary:", err)
       );
     }
   }

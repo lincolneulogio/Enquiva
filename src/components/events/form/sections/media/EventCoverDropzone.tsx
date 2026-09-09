@@ -2,7 +2,7 @@
 
 import React from "react";
 import { ImageIcon } from "lucide-react";
-import { UploadDropzone } from "@/lib/uploadthing/components";
+import { UploadDropzone } from "@/lib/cloudinary/components";
 import { EventCoverFrame } from "@/components/events/EventCoverFrame";
 import { toast } from "sonner";
 

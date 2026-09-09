@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { toast } from "sonner";
-import { useUploadThing } from "@/lib/uploadthing/components";
+import { useCloudinaryUpload } from "@/lib/cloudinary/components";
 import { deleteOrphanUploadAction } from "@/actions/admin/upload-cleanup";
 
 export interface UseImpactImageUploadOptions {
@@ -21,14 +21,14 @@ export function useImpactImageUpload({
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const { startUpload, isUploading } = useUploadThing("landingImpactImage", {
+  const { startUpload, isUploading } = useCloudinaryUpload("landingImpactImage", {
     onUploadProgress: (p) => {
       setUploadProgress(p);
     },
     onClientUploadComplete: (res) => {
       const newUrl = res?.[0]?.url;
       if (newUrl) {
-        if (value && (value.includes("uploadthing") || value.includes("utfs.io"))) {
+        if (value && value.includes("res.cloudinary.com")) {
           deleteOrphanUploadAction(value).catch(() => {});
         }
         onChange(newUrl);
@@ -93,7 +93,7 @@ export function useImpactImageUpload({
   };
 
   const handleRemoveImage = () => {
-    if (value && (value.includes("uploadthing") || value.includes("utfs.io"))) {
+    if (value && value.includes("res.cloudinary.com")) {
       deleteOrphanUploadAction(value).catch(() => {});
     }
     onChange("");

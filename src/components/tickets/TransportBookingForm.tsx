@@ -7,7 +7,7 @@ import { bookTransport } from "@/actions/transport";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
 import { getIntlLocale } from "@/lib/i18n/core";
-import { UploadDropzone } from "@/lib/uploadthing/components";
+import { UploadDropzone } from "@/lib/cloudinary/components";
 import Image from "next/image";
 import { usePersistedFormFields } from "@/hooks/useFormPersistence";
 import { formStorageKey } from "@/lib/form-persistence";

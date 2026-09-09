@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { useUploadThing } from "@/lib/uploadthing/components";
+import { useCloudinaryUpload } from "@/lib/cloudinary/components";
 import { deleteOrphanUploadAction } from "@/actions/admin/upload-cleanup";
 import {
   saveCertificateSealAction,
@@ -33,7 +33,7 @@ export function CertificateSealCard({
   const isCustomSeal =
     Boolean(sealUrl) && sealUrl !== DEFAULT_CERTIFICATE_SEAL_URL;
 
-  const { startUpload, isUploading } = useUploadThing("certificateSealImage", {
+  const { startUpload, isUploading } = useCloudinaryUpload("certificateSealImage", {
     onUploadProgress: (p) => {
       setUploadProgress(p);
     },
@@ -43,7 +43,7 @@ export function CertificateSealCard({
         if (
           sealUrl &&
           sealUrl !== DEFAULT_CERTIFICATE_SEAL_URL &&
-          (sealUrl.includes("uploadthing") || sealUrl.includes("utfs.io"))
+          sealUrl.includes("res.cloudinary.com")
         ) {
           deleteOrphanUploadAction(sealUrl).catch(() => {});
         }

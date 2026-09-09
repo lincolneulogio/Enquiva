@@ -2,7 +2,7 @@ import Image from "next/image";
 import { Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslations } from "@/components/providers/LocaleProvider";
-import { UploadButton } from "@/lib/uploadthing/components";
+import { UploadButton } from "@/lib/cloudinary/components";
 
 interface TestimonialAvatarFieldProps {
   avatarUrl: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useUploadThing } from "@/lib/uploadthing/components";
+import { useCloudinaryUpload } from "@/lib/cloudinary/components";
 import { toast } from "sonner";
 import {
   Camera,
@@ -42,7 +42,7 @@ export function AvatarUploadCard({
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [manualUrl, setManualUrl] = useState(previewImage ?? "");
 
-  const { startUpload, isUploading } = useUploadThing("profileAvatar", {
+  const { startUpload, isUploading } = useCloudinaryUpload("profileAvatar", {
     onUploadProgress: (p) => {
       setUploadProgress(p);
     },
