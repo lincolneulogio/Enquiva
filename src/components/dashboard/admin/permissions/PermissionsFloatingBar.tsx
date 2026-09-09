@@ -45,12 +45,12 @@ export function PermissionsFloatingBar({
             {t("dashboard.admin.permissionsPendingHint")}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full sm:w-auto items-center gap-2">
           <button
             type="button"
             onClick={onDiscard}
             disabled={isPending || !dirty}
-            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-border bg-background px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+            className="inline-flex h-9 flex-1 sm:flex-none justify-center items-center gap-1.5 rounded-xl border border-border bg-background px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
           >
             <Undo2 className="h-4 w-4" />
             {t("dashboard.admin.permissionsDiscard")}
@@ -59,7 +59,7 @@ export function PermissionsFloatingBar({
             type="button"
             onClick={onSave}
             disabled={isPending || !dirty}
-            className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-primary px-3.5 text-sm font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="inline-flex h-9 flex-1 sm:flex-none justify-center items-center gap-1.5 rounded-xl bg-primary px-3.5 text-sm font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />

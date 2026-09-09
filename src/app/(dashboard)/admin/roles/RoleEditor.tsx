@@ -126,9 +126,9 @@ export function RoleEditor({ role }: { role: Role }) {
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <div className="min-w-0 rounded-xl border border-border bg-card p-5">
       <div className="flex items-start justify-between gap-4">
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           {editing ? (
             <div className="space-y-3">
               <div>
@@ -170,7 +170,7 @@ export function RoleEditor({ role }: { role: Role }) {
             </div>
           ) : (
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 items-center gap-2">
                 <span
                   className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${
                     stdRole
@@ -181,7 +181,7 @@ export function RoleEditor({ role }: { role: Role }) {
                   {RoleIcon && <RoleIcon className="h-3.5 w-3.5" />}
                   {localizedLabel}
                 </span>
-                <code className="text-xs text-muted-foreground">{role.name}</code>
+                <code className="min-w-0 truncate text-xs text-muted-foreground">{role.name}</code>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">{localizedDescription}</p>
             </div>

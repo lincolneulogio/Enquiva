@@ -73,7 +73,7 @@ export function CameraScannerSection({
           <button
             type="button"
             onClick={onStopScanner}
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
           >
             <CameraOff className="h-4 w-4" />
             {t("scanner.turnOffCamera")}
@@ -91,7 +91,7 @@ export function CameraScannerSection({
           <button
             type="button"
             onClick={onStartScanner}
-            className="fe-btn-glow inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all duration-300 cursor-pointer"
+            className="fe-btn-glow inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all duration-300 cursor-pointer"
           >
             <Camera className="h-4 w-4" />
             {t("scanner.turnOnCamera")}

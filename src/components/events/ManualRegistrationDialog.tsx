@@ -97,7 +97,7 @@ export function ManualRegistrationDialog({ events = [] }: ManualRegistrationDial
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/95 active:scale-98 select-none cursor-pointer"
+        className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/95 active:scale-98 select-none cursor-pointer"
       >
         <Plus className="h-4 w-4" />
         Registrar Asistente Manual

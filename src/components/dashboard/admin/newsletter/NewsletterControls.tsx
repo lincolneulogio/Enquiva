@@ -75,12 +75,12 @@ export function NewsletterControls({
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row items-center gap-2">
         <button
           type="button"
           onClick={onExportCsv}
           disabled={isPending || stats.total === 0}
-          className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+          className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
         >
           <Download className="h-4 w-4 text-muted-foreground" />
           Exportar CSV
@@ -89,7 +89,7 @@ export function NewsletterControls({
           type="button"
           onClick={onOpenBroadcastModal}
           disabled={stats.active === 0}
-          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
+          className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
         >
           <Send className="h-4 w-4" />
           Redactar Comunicado

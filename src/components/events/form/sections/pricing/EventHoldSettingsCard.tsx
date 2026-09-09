@@ -26,7 +26,7 @@ export function EventHoldSettingsCard({ register, t }: EventHoldSettingsCardProp
           {t("events.form.holdSettingsHelp")}
         </p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <div className="space-y-1.5">
           <label className="block text-xs font-medium text-muted-foreground">
             {t("events.form.holdMinutesCard")}

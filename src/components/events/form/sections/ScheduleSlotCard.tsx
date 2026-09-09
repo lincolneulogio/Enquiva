@@ -113,7 +113,7 @@ export function ScheduleSlotCard({
         />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3 pt-1">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 pt-1">
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -165,7 +165,7 @@ export function ScheduleSlotCard({
           />
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 sm:col-span-2 xl:col-span-1">
           <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
             {locale === "en" ? "End Time (optional)" : "Hora de fin (opcional)"}
           </label>

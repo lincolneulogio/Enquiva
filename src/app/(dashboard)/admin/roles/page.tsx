@@ -67,9 +67,9 @@ export default async function AdminRolesPage() {
                     </p>
                 </div>
             ) : (
-                <div className="grid gap-4 max-w-2xl">
+                <div className="grid gap-4 max-w-4xl lg:grid-cols-2">
                     {rolesWithCounts.map((role) => (
-                        <div key={role.name}>
+                        <div key={role.name} className="min-w-0">
                             <div className="mb-1 flex items-center justify-between px-1">
                                 <span className="text-xs text-muted-foreground">
                                     {t("dashboard.admin.roleUsersCount", {

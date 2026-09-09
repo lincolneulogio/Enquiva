@@ -344,13 +344,13 @@ export function EventTypesManager({ initialEventTypes, categories, eventCounts }
           </select>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-col sm:flex-row items-center gap-2.5">
           {/* Sync Defaults */}
           <button
             type="button"
             onClick={handleSyncDefaults}
             disabled={isPending}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-background hover:bg-muted px-3 py-2 text-xs font-semibold text-foreground transition disabled:opacity-50 cursor-pointer shadow-xs"
+            className="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-xl border border-border bg-background hover:bg-muted px-3 py-2 text-xs font-semibold text-foreground transition disabled:opacity-50 cursor-pointer shadow-xs"
             title={locale === "en" ? "Sync default event types from taxonomy" : "Sincronizar tipos de taxonomía predeterminados"}
           >
             <RefreshCw className={cn("h-3.5 w-3.5 text-primary", isPending && "animate-spin")} />
@@ -363,7 +363,7 @@ export function EventTypesManager({ initialEventTypes, categories, eventCounts }
           <button
             type="button"
             onClick={() => setShowCreateForm((prev) => !prev)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 px-3.5 py-2 text-xs font-semibold shadow-sm transition active:scale-95 cursor-pointer"
+            className="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 px-3.5 py-2 text-xs font-semibold shadow-sm transition active:scale-95 cursor-pointer"
           >
             <Plus className="h-4 w-4" />
             <span>{locale === "en" ? "New Event Type" : "Nuevo Tipo"}</span>

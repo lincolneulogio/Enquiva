@@ -101,7 +101,7 @@ export function TopbarUserMenu({ user }: TopbarUserMenuProps) {
 
       {/* Popover enriquecido para móviles y tablets */}
       {isMobileMenuOpen && (
-        <div className="fixed left-1/2 top-[calc(env(safe-area-inset-top)+4.25rem)] z-50 w-[calc(100vw-2rem)] max-w-[320px] -translate-x-1/2 overflow-hidden rounded-2xl border border-border bg-popover p-3 shadow-xl lg:hidden">
+        <div className="absolute right-0 top-full z-50 mt-2 w-[calc(100vw-2rem)] max-w-[320px] overflow-hidden rounded-2xl border border-border bg-popover p-3 shadow-xl lg:hidden">
           {/* Cabecera de usuario */}
           <div className="flex items-center gap-3 rounded-xl bg-secondary/40 p-2.5">
             <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-secondary">

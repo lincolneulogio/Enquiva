@@ -47,7 +47,7 @@ export function CategoriesTable({
                     </span>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex w-full sm:w-auto items-center gap-3">
                     <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium hidden md:inline">
                         {t("dashboard.admin.dragToReorder")}
                     </span>
@@ -55,7 +55,7 @@ export function CategoriesTable({
                         type="button"
                         onClick={handleSyncDefaults}
                         disabled={isPending}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background hover:bg-muted px-2.5 py-1 text-xs font-semibold text-foreground transition disabled:opacity-50 cursor-pointer shadow-xs"
+                        className="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-lg border border-border bg-background hover:bg-muted px-2.5 py-1 text-xs font-semibold text-foreground transition disabled:opacity-50 cursor-pointer shadow-xs"
                         title={locale === "en" ? "Sync default platform categories" : "Sincronizar categorías por defecto"}
                     >
                         <RefreshCw className={cn("h-3 w-3 text-primary", isPending && "animate-spin")} />
