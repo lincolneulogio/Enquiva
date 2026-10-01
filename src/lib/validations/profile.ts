@@ -28,7 +28,19 @@ export const updateProfileSchema = z.object({
     .nullable(),
   bio: z.string().max(500).optional().nullable(),
   image: z
-    .union([z.string().url("Invalid URL"), z.literal("")])
+    .string()
+    .refine(
+      (val) => {
+        if (val === "" || val.startsWith("/")) return true;
+        try {
+          const u = new URL(val);
+          return u.protocol === "http:" || u.protocol === "https:";
+        } catch {
+          return false;
+        }
+      },
+      { message: "Invalid URL" }
+    )
     .optional()
     .nullable(),
 });

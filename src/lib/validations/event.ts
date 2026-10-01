@@ -69,7 +69,24 @@ const optionalUrl = z
   .optional()
   .nullable()
   .transform((val) => (val == null || val.trim() === "" ? null : val))
-  .pipe(z.string().url("Ingresa una URL válida").nullable());
+  .pipe(
+    z
+      .string()
+      .refine(
+        (val) => {
+          // Accept server-relative paths (e.g. /uploads/…) from local storage mode
+          if (val.startsWith("/")) return true;
+          try {
+            const u = new URL(val);
+            return u.protocol === "http:" || u.protocol === "https:";
+          } catch {
+            return false;
+          }
+        },
+        { message: "Ingresa una URL válida" }
+      )
+      .nullable()
+  );
 
 export const baseEventSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(200),

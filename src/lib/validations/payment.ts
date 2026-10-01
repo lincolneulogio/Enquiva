@@ -8,7 +8,21 @@ export const createPaymentSchema = z.object({
   currency: z.string().length(3, "Use ISO currency code").transform((value) => value.toUpperCase()),
   method: z.string().min(3).max(100),
   reference: z.string().max(100).optional(),
-  receiptUrl: z.string().url().optional(),
+  receiptUrl: z
+    .string()
+    .refine(
+      (val) => {
+        if (val.startsWith("/")) return true;
+        try {
+          const u = new URL(val);
+          return u.protocol === "http:" || u.protocol === "https:";
+        } catch {
+          return false;
+        }
+      },
+      { message: "Ingresa una URL válida" }
+    )
+    .optional(),
   receiptFileName: z.string().max(200).optional(),
   notes: z.string().max(500).optional(),
 });
