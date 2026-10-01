@@ -5,6 +5,7 @@ import {
   CLOUDINARY_ENDPOINTS,
   isEndpointAllowed,
   matchesAllowedMime,
+  sanitizeFolderName,
   type CloudinaryEndpointName,
 } from "@/lib/cloudinary";
 import { isLocalStorageMode, writeLocalUploadFile } from "@/lib/cloudinary/server";
@@ -100,11 +101,21 @@ export async function POST(request: Request) {
     );
   }
 
+  const rawEventTitle = body.get("eventTitle");
+  let folder = config.folder;
+  if (endpointName === "eventCoverImage" || endpointName === "eventAttachment") {
+    const titleSlug =
+      typeof rawEventTitle === "string" && rawEventTitle.trim()
+        ? sanitizeFolderName(rawEventTitle.trim())
+        : "sin-titulo";
+    folder = `events/${titleSlug}`;
+  }
+
   const uploaded: { url: string; name: string; size: number; type: string }[] = [];
   for (const file of files) {
     try {
       const buffer = Buffer.from(await file.arrayBuffer());
-      const url = await writeLocalUploadFile(config.folder, extensionFor(file), buffer);
+      const url = await writeLocalUploadFile(folder, extensionFor(file), buffer);
       uploaded.push({ url, name: file.name, size: file.size, type: file.type });
     } catch (error) {
       console.error("[Local Upload Error] Failed to store file locally:", error);

@@ -13,6 +13,7 @@ interface MediaSettingsSectionProps {
   coverImage: string | null;
   setCoverImage: (url: string | null) => void;
   coverDropzoneAppearance: any;
+  eventTitle?: string | null;
   register: UseFormRegister<CreateEventInput>;
   errors: FieldErrors<CreateEventInput>;
   watchedStatus?: string;
@@ -33,6 +34,7 @@ export function MediaSettingsSection({
   coverImage,
   setCoverImage,
   coverDropzoneAppearance,
+  eventTitle,
   register,
   errors,
   watchedStatus = "draft",
@@ -56,6 +58,7 @@ export function MediaSettingsSection({
         coverImage={coverImage}
         setCoverImage={setCoverImage}
         coverDropzoneAppearance={coverDropzoneAppearance}
+        eventTitle={eventTitle}
         t={t}
       />
 

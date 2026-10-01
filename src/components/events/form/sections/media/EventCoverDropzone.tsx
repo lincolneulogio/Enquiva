@@ -10,6 +10,7 @@ interface EventCoverDropzoneProps {
   coverImage: string | null;
   setCoverImage: (url: string | null) => void;
   coverDropzoneAppearance: any;
+  eventTitle?: string | null;
   t: (key: string) => string;
 }
 
@@ -17,6 +18,7 @@ export function EventCoverDropzone({
   coverImage,
   setCoverImage,
   coverDropzoneAppearance,
+  eventTitle,
   t,
 }: EventCoverDropzoneProps) {
   return (
@@ -52,6 +54,7 @@ export function EventCoverDropzone({
       ) : (
         <UploadDropzone
           endpoint="eventCoverImage"
+          input={eventTitle ? { eventTitle } : undefined}
           config={{ mode: "auto" }}
           onClientUploadComplete={(res) => {
             if (res[0]) setCoverImage(res[0].url);

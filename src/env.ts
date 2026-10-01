@@ -115,6 +115,25 @@ export const env = createEnv({
     process.env.npm_lifecycle_event === "lint" ||
     process.env.NEXT_PHASE === "phase-production-build" ||
     (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL),
+  onValidationError: (issues) => {
+    const details = issues
+      .map((issue) => {
+        const path =
+          issue.path && issue.path.length > 0
+            ? issue.path
+                .map((segment) =>
+                  typeof segment === "object" && segment !== null && "key" in segment
+                    ? String((segment as { key: unknown }).key)
+                    : String(segment)
+                )
+                .join(".")
+            : "unknown";
+        return `${path}: ${issue.message}`;
+      })
+      .join(" | ");
+    console.error("❌ Invalid environment variables:\n" + details);
+    throw new Error(`Invalid environment variables: ${details}`);
+  },
   /**
    * En producción, si Culqi está habilitado (secret key), el webhook secret es obligatorio.
    */

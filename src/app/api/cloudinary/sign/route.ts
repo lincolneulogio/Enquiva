@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import {
   CLOUDINARY_ENDPOINTS,
   isEndpointAllowed,
+  sanitizeFolderName,
   type CloudinaryEndpointName,
 } from "@/lib/cloudinary";
 import { signCloudinaryUpload, isLocalStorageMode } from "@/lib/cloudinary/server";
@@ -27,7 +28,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 
-  let body: { endpoint?: unknown };
+  let body: {
+    endpoint?: unknown;
+    eventTitle?: unknown;
+    input?: { eventTitle?: unknown; [key: string]: unknown };
+  };
   try {
     body = await request.json();
   } catch {
@@ -47,18 +52,31 @@ export async function POST(request: Request) {
     );
   }
 
+  const rawTitle =
+    typeof body.eventTitle === "string"
+      ? body.eventTitle
+      : typeof body.input?.eventTitle === "string"
+        ? body.input.eventTitle
+        : "";
+
+  let folder = endpoint.folder;
+  if (endpointName === "eventCoverImage" || endpointName === "eventAttachment") {
+    const titleSlug = rawTitle ? sanitizeFolderName(rawTitle) : "sin-titulo";
+    folder = `events/${titleSlug}`;
+  }
+
   if (isLocalStorageMode()) {
     // Almacenamiento local: el navegador sube a POST /api/upload/local.
     return NextResponse.json({
       mode: "local",
       endpoint: endpointName,
-      folder: endpoint.folder,
+      folder,
       maxSizeBytes: endpoint.maxSizeBytes,
       allowedMimeTypes: endpoint.allowedMimeTypes,
     });
   }
 
-  const sign = signCloudinaryUpload(endpoint.folder, endpoint.resourceType);
+  const sign = signCloudinaryUpload(folder, endpoint.resourceType);
 
   return NextResponse.json({
     mode: "cloudinary",

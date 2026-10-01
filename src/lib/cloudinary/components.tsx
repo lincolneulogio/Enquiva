@@ -24,7 +24,8 @@ export interface UploadedFile {
   type: string;
 }
 
-interface UseCloudinaryUploadOptions {
+export interface UseCloudinaryUploadOptions {
+  input?: Record<string, unknown>;
   onUploadProgress?: (progress: number) => void;
   onClientUploadComplete?: (res: UploadedFile[]) => void;
   onUploadError?: (error: Error) => void;
@@ -81,12 +82,18 @@ function uploadFileToCloudinary(
 function uploadFileToLocal(
   file: File,
   endpoint: CloudinaryEndpointName,
+  input: Record<string, unknown> | undefined,
   onProgress: (p: number) => void
 ): Promise<UploadedFile> {
   return new Promise((resolve, reject) => {
     const form = new FormData();
     form.append("endpoint", endpoint);
     form.append("files", file);
+    if (input) {
+      for (const [key, value] of Object.entries(input)) {
+        if (typeof value === "string") form.append(key, value);
+      }
+    }
 
     const xhr = new XMLHttpRequest();
     xhr.open("POST", "/api/upload/local");
@@ -137,12 +144,13 @@ type UploadSignResponse =
     };
 
 async function requestUploadSign(
-  endpoint: CloudinaryEndpointName
+  endpoint: CloudinaryEndpointName,
+  input?: Record<string, unknown>
 ): Promise<UploadSignResponse> {
   const res = await fetch("/api/cloudinary/sign", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ endpoint }),
+    body: JSON.stringify({ endpoint, ...input, input }),
   });
 
   if (!res.ok) {
@@ -198,10 +206,10 @@ export function useCloudinaryUpload(
     try {
       for (const file of files) {
         optionsRef.current.onUploadBegin?.({ file });
-        const sign = await requestUploadSign(endpoint);
+        const sign = await requestUploadSign(endpoint, optionsRef.current.input);
         const result =
           sign.mode === "local"
-            ? await uploadFileToLocal(file, endpoint, (p) =>
+            ? await uploadFileToLocal(file, endpoint, optionsRef.current.input, (p) =>
                 optionsRef.current.onUploadProgress?.(p)
               )
             : await uploadFileToCloudinary(file, sign, (p) =>
@@ -231,8 +239,9 @@ interface ButtonContentContext {
 
 type ButtonRenderProp = ReactNode | ((ctx: ButtonContentContext) => ReactNode);
 
-interface SharedUploadProps {
+export interface SharedUploadProps {
   endpoint: CloudinaryEndpointName;
+  input?: Record<string, unknown>;
   onClientUploadComplete?: (res: UploadedFile[]) => void;
   onUploadError?: (error: Error) => void;
   onUploadBegin?: () => void;
@@ -259,6 +268,7 @@ function buildAccept(endpoint: CloudinaryEndpointName): string {
 
 export function UploadButton({
   endpoint,
+  input,
   onClientUploadComplete,
   onUploadError,
   content,
@@ -268,6 +278,7 @@ export function UploadButton({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { startUpload, isUploading } = useCloudinaryUpload(endpoint, {
+    input,
     onClientUploadComplete,
     onUploadError,
   });
@@ -320,6 +331,7 @@ export function UploadButton({
 
 export function UploadDropzone({
   endpoint,
+  input,
   onClientUploadComplete,
   onUploadError,
   onUploadBegin,
@@ -331,6 +343,7 @@ export function UploadDropzone({
   const [isDragging, setIsDragging] = useState(false);
 
   const { startUpload, isUploading } = useCloudinaryUpload(endpoint, {
+    input,
     onClientUploadComplete,
     onUploadError,
     onUploadBegin: onUploadBegin ? () => onUploadBegin() : undefined,

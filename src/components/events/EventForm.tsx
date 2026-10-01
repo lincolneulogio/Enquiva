@@ -173,6 +173,7 @@ export function EventForm({
           coverImage={coverImage}
           setCoverImage={setCoverImage}
           coverDropzoneAppearance={COVER_DROPZONE_APPEARANCE}
+          eventTitle={formValues.watchedTitle || event?.title}
           register={register}
           errors={errors}
           watchedStatus={formValues.watchedStatus}

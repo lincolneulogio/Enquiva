@@ -32,7 +32,7 @@ const MB = 1024 * 1024;
 
 export const CLOUDINARY_ENDPOINTS: Record<CloudinaryEndpointName, CloudinaryEndpointConfig> = {
   eventCoverImage: {
-    folder: "event-covers",
+    folder: "events",
     resourceType: "image",
     maxSizeBytes: 4 * MB,
     maxFileCount: 1,
@@ -150,4 +150,21 @@ export function matchesAllowedMime(mime: string, patterns: string[]): boolean {
     if (pattern === "image/*") return mime.startsWith("image/");
     return mime === pattern;
   });
+}
+
+/**
+ * Normaliza y limpia un texto para ser usado de forma segura y legible como nombre de carpeta en Cloudinary.
+ * Elimina acentos, caracteres especiales, y genera un slug limpio.
+ */
+export function sanitizeFolderName(name: string): string {
+  const normalized = name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+
+  return normalized || "sin-titulo";
 }
