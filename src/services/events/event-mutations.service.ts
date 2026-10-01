@@ -46,7 +46,7 @@ export class EventMutationsService {
    */
   static async createEvent(input: CreateEventInput, organizerId: string) {
     const validated = createEventSchema.parse(input);
-    await this.assertEventTypeMatchesCategory(validated.eventTypeId, validated.category);
+    await EventMutationsService.assertEventTypeMatchesCategory(validated.eventTypeId, validated.category);
     const slug = generateUniqueSlug(validated.title);
 
     const [organizer] = await db
@@ -115,7 +115,7 @@ export class EventMutationsService {
       .limit(1);
 
     if (!existing) throw new Error("Event not found");
-    await this.assertEventTypeMatchesCategory(
+    await EventMutationsService.assertEventTypeMatchesCategory(
       validated.eventTypeId !== undefined ? validated.eventTypeId : existing.eventTypeId,
       validated.category ?? existing.category,
     );

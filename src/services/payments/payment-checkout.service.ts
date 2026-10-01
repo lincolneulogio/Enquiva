@@ -57,7 +57,7 @@ export class PaymentCheckoutService {
     registrationId: string,
     options?: { guestFallbackName?: string },
   ) {
-    const base = await this.getPaymentCheckoutContext(userId, registrationId);
+    const base = await PaymentCheckoutService.getPaymentCheckoutContext(userId, registrationId);
     const { registration, event, payment } = base;
     const guestFallback = options?.guestFallbackName ?? "Invitado";
 
