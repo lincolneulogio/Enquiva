@@ -14,6 +14,7 @@ const secureHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "utfs.io" },
@@ -26,7 +27,6 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: { bodySizeLimit: "10mb" },
     optimizePackageImports: ["lucide-react", "date-fns", "recharts"],
-    inlineCss: true,
   },
   headers() {
     return [
